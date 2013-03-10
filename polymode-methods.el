@@ -12,7 +12,7 @@ Iterate over submodes slot and move those which return non-nil
 (defgeneric pm/applies-p (object)
   "Check if an OBJECT applies to the current context (buffer and mode).")
 
-(defmethod pm/applies-p ((submode pm-submode))
+(defmethod pm/applies-p ((submode pm-inner-submode))
   "Check if  SUBMODE appllies to the current buffer.
 Default method match :extensions slots of SUBMODE with the
 current file's extension."
@@ -23,71 +23,115 @@ current file's extension."
 
 
 ;;;; INTERFACE
-(defgeneric pm/init-submodes (config)
-  "Initialize the :submodes slot of CONFIG object")
+(defgeneric pm/initialize (config)
+  "Initialize current buffer with CONFIG.
 
-(defgeneric pm/get-span (submode &optional pos)
-  "Ask a submode for the span at point.
-Return a list of three elements (TYPE BEG END) where TYPE is a
-symbol representing the type of the span surrounding POS (header,
-tail, body, inline etc). BEG and END are the coordinates of the span.
+First initialize the :base-submode and :inner-submodes slots of
+CONFIG object ...
 
-Should return nil if there is no SUBMODE specific span around POS.")
+Current buffer is setup as the base buffer.")
+
+;; (defmethod pm/initialize ((config pm-config))
+;;   (pm--setup-buffer (current-buffer)))
+
+(defmethod pm/initialize ((config pm-config-one))
+  (eval `(oset config :base-submode
+               (clone ,(oref config :base-submode-name))))
+  (oset (oref config :base-submode)
+        :buffer (current-buffer))
+  (eval `(oset config :inner-submodes
+               (list (clone ,(oref config :inner-submode-name)))))
+  (let ((base-mode (oref (oref config :base-submode) :mode)))
+    ;; don't reinitialize if already there; can be used in minor modes
+    (unless (eq major-mode base-mode)
+      (let ((polymode-mode t)) ;;major-modes might check it 
+        (funcall base-mode))
+      (setq pm/config config)))
+  (set (make-local-variable 'polymode-mode) t)
+  (pm--setup-buffer (current-buffer))
+  ;; todo: initialize inner-submodes maybe
+  )
 
 (defgeneric pm/get-buffer (submode &optional span-type)
   "Get the indirect buffer associated with SUBMODE and
 SPAN-TYPE. Should return nil if buffer has not yet been
 installed. Also see `pm/get-span'.")
 
-(defgeneric pm/install-buffer (submode &optional span-type)
+(defgeneric pm/install-buffer (submode &optional type)
   "Ask SUBMODE to install an indirect buffer corresponding to
-SPAN-TYPE.")
+span TYPE.")
+
+(defmethod pm/install-buffer ((submode pm-submode) &optional type)
+  "Independently on the TYPE call `pm/create-indirect-buffer'
+create and install a new buffer in slot :buffer of SUBMODE."
+  (oset submode :buffer
+        (pm--create-indirect-buffer-maybe (oref submode :mode))))
+
+(defmethod pm/install-buffer ((submode pm-inner-submode) &optional type)
+  "Depending of the TYPE call `pm/create-indirect-buffer'
+and install in slot :buffer of SUBMODE."
+  (pm--set-submode-buffer submode type
+                          (pm--create-indirect-buffer-maybe (oref submode :mode))))
 
 (defgeneric pm/select-buffer (submode type)
   "Ask SUBMODE to select (make current) it's indirect buffer
 corresponding to the TYPE of the span returned by
 `pm/get-span'.")
 
-(defmethod pm/select-buffer ((submode pm-submode) type)
-  "Check and install new indirect buffer if it is not already installed.
+(defmethod pm/select-buffer ((submode pm-submode) &optional type)
+  "Simply select the (usually base) buffer"
+  (pm--select-buffer (pm/get-buffer submode type)))
 
-For this method to work correctly, SUBMODE class should define
-`pm/install-buffer' and `pm/get-buffer' methods.
-"
+(defmethod pm/select-buffer ((submode pm-inner-submode) type)
+  "Select the buffer associated with SUBMODE.
+Install a new indirect buffer if it is not already installed.
+
+For this method to work correctly, SUBMODE's class should define
+`pm/install-buffer' and `pm/get-buffer' methods."
   (let ((buff (pm/get-buffer submode type)))
-    (unless buff
+    (unless (buffer-live-p buff)
       (pm/install-buffer submode type)
       (setq buff (pm/get-buffer submode type)))
-    (pm--select-buffer buff)
-    ))
+    (pm--select-buffer buff)))
 
+(defgeneric pm/get-span (submode &optional pos)
+  "Ask a submode for the span at point.
+Return a list of three elements (TYPE BEG END) where TYPE is a
+symbol representing the type of the span surrounding POS (head,
+tail, body, inline etc). BEG and END are the coordinates of the span.
 
-;;;; SUBMODE/CONFIG-SIMPLE METHODS
-(defmethod pm/init-submodes ((config pm-config-simple))
-  (eval `(oset config :submodes (list (clone ,(oref config :default-submode))))))
-   
-(defmethod pm/get-span ((submode pm-submode-simple) &optional pos)
-  "Span type can be 'body, 'head or 'tail."
-  (with-slots (header-reg tail-reg header-mode tail-mode) submode
-    (let* ((span (pm--span-at-point header-reg tail-reg pos))
-           (type (car span)))
-      (when (or (and (eq type 'head) (eq header-mode 'base))
-                (and (eq type 'tail) (or (eq tail-mode 'base)
-                                         (and (null tail-mode)
-                                              (eq header-mode 'base)))))
-        (setcar span nil))
-      span)))
+Should return nil if there is no SUBMODE specific span around POS.")
 
-(defmethod pm/get-buffer ((submode pm-submode-simple) &optional type)
+;; CONFIG
+
+;; SUBMODES
+(defmethod pm/get-buffer ((submode pm-submode) &optional type)
   (oref submode :buffer))
 
-(defmethod pm/install-buffer ((submode pm-submode-simple) &optional type)
-  "Independently on the TYPE call `pm/create-indirect-buffer'
-and install in slot :buffer of SUBMODE."
-  (oset submode :buffer
-        (pm/create-indirect-buffer (oref submode mode))))
+(defmethod pm/get-buffer ((submode pm-inner-submode) &optional type)
+  (cond ((eq 'body type) (oref submode :buffer))
+        ((eq 'head type) (oref submode :head-buffer))
+        ((eq 'tail type) (oref submode :tail-buffer))
+        (t (error "Don't know how to select buffer of type" type
+                  "for submode" (object-name submode)
+                  "of class" (class-of submode)))))
 
+(defmethod pm/get-span ((submode pm-submode) &optional pos)
+  "Simply return nil. Base mode usually do/can not compute the span"
+  nil)
 
+(defmethod pm/get-span ((submode pm-inner-submode) &optional pos)
+  "Return a list of the form (TYPE pos-start pos-end).
+TYPE can be 'body, 'head or 'tail."
+  (with-slots (head-reg tail-reg head-mode tail-mode) submode
+    (let* ((span (pm--span-at-point head-reg tail-reg pos))
+           (type (car span)))
+      (when (or (and (eq type 'head) (eq head-mode 'base))
+                (and (eq type 'tail) (or (eq tail-mode 'base)
+                                         (and (null tail-mode)
+                                              (eq head-mode 'base)))))
+        (setcar span nil))
+      span)))
 
 ;;; UTILS
 (defun pm--span-at-point (head-reg tail-reg &optional pos)
@@ -126,11 +170,11 @@ tail -  tail span"
                 (list 'head pos2-start pos2-end)))
           )))))
 
-(let ((ess-blink-delay 1)
-      (span (pm/-span-at-point-with-headtail  "^<<\\(.*\\)>>=" "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")))
-  (ess-blink-region (cadr span) (nth 2 span)))
+;; (let ((ess-blink-delay 1)
+;;       (span (pm/-span-at-point-with-headtail  "^<<\\(.*\\)>>=" "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")))
+;;   (ess-blink-region (cadr span) (nth 2 span)))
 
-(pm/-span-at-point-with-headtail  "^<<\\(.*\\)>>=" "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
+;; (pm/-span-at-point-with-headtail  "^<<\\(.*\\)>>=" "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
 ;; (pm/-span-at-point "^<<\\(.*\\)>>=" "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
 
 ;; (defun pm/-span-at-point (head-reg tail-reg &optional pos)
@@ -222,3 +266,5 @@ tail -  tail span"
 ;; ;;           (list 2 pos2-start pos2-end)
 ;; ;;         (list 1 pos2-start pos2-end)))
 ;; ;;   )))))
+
+(provide 'polymode-methods)
