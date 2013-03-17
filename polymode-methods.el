@@ -1,25 +1,25 @@
 
-(defmethod pm/install-config ((object pm-config))
-  "Clone OBJECT and bind it to `pm/local-config'.
-Iterate over submodes slot and move those which return non-nil
-`pm/applies-p' into active-submodes slot."
-  (setq pm/local-config (clone object))
-  (dolist (sm (oref pm/local-config submodes))
-    (when (pm/applies-p sm)
-      (object-add-to-list pm/local-config active-submodes sm t))))
+;; (defmethod pm/install-config ((object pm-config))
+;;   "Clone OBJECT and bind it to `pm/local-config'.
+;; Iterate over submodes slot and move those which return non-nil
+;; `pm/applies-p' into active-submodes slot."
+;;   (setq pm/local-config (clone object))
+;;   (dolist (sm (oref pm/local-config submodes))
+;;     (when (pm/applies-p sm)
+;;       (object-add-to-list pm/local-config active-submodes sm t))))
 
 
-(defgeneric pm/applies-p (object)
-  "Check if an OBJECT applies to the current context (buffer and mode).")
+;; (defgeneric pm/applies-p (object)
+;;   "Check if an OBJECT applies to the current context (buffer and mode).")
 
-(defmethod pm/applies-p ((submode pm-inner-submode))
-  "Check if  SUBMODE appllies to the current buffer.
-Default method match :extensions slots of SUBMODE with the
-current file's extension."
-  (let ((EXT (upcase (file-name-extension (buffer-file-name))))
-        out) 
-    ;; todo: should be regexp
-    (member* EXT (oref submode :extensions)  :test 'equal :key 'upcase)))
+;; (defmethod pm/applies-p ((submode pm-inner-submode))
+;;   "Check if  SUBMODE appllies to the current buffer.
+;; Default method match :extensions slots of SUBMODE with the
+;; current file's extension."
+;;   (let ((EXT (upcase (file-name-extension (buffer-file-name))))
+;;         out) 
+;;     ;; todo: should be regexp
+;;     (member* EXT (oref submode :extensions)  :test 'equal :key 'upcase)))
 
 
 ;;;; INTERFACE
@@ -30,27 +30,34 @@ First initialize the :base-submode and :inner-submodes slots of
 CONFIG object ...
 
 Current buffer is setup as the base buffer.")
-
 ;; (defmethod pm/initialize ((config pm-config))
 ;;   (pm--setup-buffer (current-buffer)))
 
-(defmethod pm/initialize ((config pm-config-one))
+(defmethod pm/initialize ((config pm-config))
   (eval `(oset config :base-submode
                (clone ,(oref config :base-submode-name))))
   (oset (oref config :base-submode)
         :buffer (current-buffer))
-  (eval `(oset config :inner-submodes
-               (list (clone ,(oref config :inner-submode-name)))))
-  (let ((base-mode (oref (oref config :base-submode) :mode)))
+  (let ((base-mode (pm--check-if-available
+                    (oref (oref config :base-submode) :mode))))
     ;; don't reinitialize if already there; can be used in minor modes
     (unless (eq major-mode base-mode)
       (let ((polymode-mode t)) ;;major-modes might check it 
         (funcall base-mode))
-      (setq pm/config config)))
+      ;; after emacs mode install
+      (setq pm/config config)
+      (setq pm/submode (oref config :base-submode))
+      (oset pm/submode :mode base-mode)))
   (set (make-local-variable 'polymode-mode) t)
-  (pm--setup-buffer (current-buffer))
-  ;; todo: initialize inner-submodes maybe
-  )
+  ;; todo: initialize inner-submodes here?
+  (pm--setup-buffer (current-buffer)))
+  
+                          
+(defmethod pm/initialize ((config pm-config-one))
+  (call-next-method)
+  (eval `(oset config :inner-submodes
+               (list (clone ,(oref config :inner-submode-name))))))
+
 
 (defgeneric pm/get-buffer (submode &optional span-type)
   "Get the indirect buffer associated with SUBMODE and
@@ -64,17 +71,30 @@ span TYPE.")
 (defmethod pm/install-buffer ((submode pm-submode) &optional type)
   "Independently on the TYPE call `pm/create-indirect-buffer'
 create and install a new buffer in slot :buffer of SUBMODE."
-  (oset submode :buffer
-        (pm--create-indirect-buffer-maybe (oref submode :mode))))
+  (let ((buf (or (pm--get-indirect-buffer-of-mode mode)
+                 (pm--create-indirect-buffer mode))))
+    (with-current-buffer buf
+      (setq pm/submode submode)
+      (pm--setup-buffer))
+    (oset submode :buffer buf)))
 
-(defmethod pm/install-buffer ((submode pm-inner-submode) &optional type)
-  "Depending of the TYPE call `pm/create-indirect-buffer'
-and install in slot :buffer of SUBMODE."
-  (pm--set-submode-buffer submode type
-                          (pm--create-indirect-buffer-maybe (oref submode :mode))))
+(defmethod pm/install-buffer ((submode pm-inner-submode) type)
+  "Depending of the TYPE install an indirect buffer into
+slot :buffer of SUBMODE. Create this buffer if does not exist."
+  (let ((mode
+         (cond ((eq 'body type) (oref submode :mode))
+               ((eq 'head type) (oref submode :head-mode))
+               ((eq 'tail type) (oref submode :tail-mode))
+               (t (error "TYPE argument must be one of body, head, tail. ")))))
+    (let ((buf (or (pm--get-indirect-buffer-of-mode mode)
+                   (pm--create-indirect-buffer mode))))
+      (with-current-buffer buf
+        (setq pm/submode submode)
+        (pm--setup-buffer))
+      (pm--set-submode-buffer submode type buf))))
 
 (defgeneric pm/select-buffer (submode type)
-  "Ask SUBMODE to select (make current) it's indirect buffer
+  "Ask SUBMODE to select (make current) its indirect buffer
 corresponding to the TYPE of the span returned by
 `pm/get-span'.")
 
@@ -144,6 +164,7 @@ nil - pos is between (tail-reg or point-min) and (head-reg or point-max)
 body - pos is between head-reg and (tail-reg or point-max)
 head -  head span
 tail -  tail span"
+  ;; ! start of the span is part of the span !
   (save-excursion
     (save-restriction
       (widen)
@@ -159,12 +180,12 @@ tail -  tail span"
              (pos2-end (and pos2-start (match-end 0)))
              (pos2-tail? (and pos2-start (match-end 1)))
              (pos2-start (or pos2-start (point-max)))) ;consider pointmax as head
-        (if (<= pos pos2-start) ; inside doc or chunk body
+        (if (< pos pos2-start) ; inside doc or chunk body
             (if pos1-tail? 
                 (list nil pos1-end pos2-start) ;doc
               (list 'body pos1-end pos2-start)) ; chunk body
           ;; else inside head or tail
-          (if (< pos pos2-end) ;; just in case
+          (if (< pos pos2-end) ; <- this one should be always true
               (if pos2-tail?
                   (list 'tail pos2-start pos2-end)
                 (list 'head pos2-start pos2-end)))

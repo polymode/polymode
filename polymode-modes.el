@@ -44,7 +44,9 @@
 
 ;; (setq config pm-config/noweb)
 (defcustom pm-submode/noweb-R
-  (clone pm-submode/noweb :mode 'R-mode)
+  (clone pm-submode/noweb
+         :mode 'R-mode
+         :protect-indent-line-function t)
   "Noweb for R"
   :group 'polymode
   :type 'object)

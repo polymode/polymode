@@ -23,7 +23,7 @@
             :initform '()
             :type list
             :documentation
-            "Holds all the indirect buffers associated with current buffer"))
+            "Holds all buffers associated with current buffer"))
    
    "Configuration for a polymode. Each polymode buffer contains a local
 variable `pm/config' instantiated from this class or a subclass
@@ -47,14 +47,41 @@ submode. For example noweb.")
      :initarg :inner-submode-names
      :type list
      :custom list
+     :initform nil
      :documentation
      "List of names of the submode objects that are associated
      with this configuration. At initialization time, all of
-     these are cloned and plased in :inner-submodes slot."))
+     these are cloned and plased in :inner-submodes slot.")
+   (auto-inner-submodes
+    :initarg :auto-inner-submodes
+    :type list
+    :initform '()
+    :documentation
+    "List of submodes that are auto-generated in pm/get-span
+    method for this class.")
+   (head-reg :initarg :head-reg
+             :type string
+             :initform ""
+             :custom string
+             :documentation
+             "Regexp for the chunk start (aka head)")
+   (tail-reg :initarg :tail-reg
+             :type string
+             :initform ""
+             :custom string
+             :documentation
+             "Regexp for chunk end (aka tail)")
+   (retriever-regexp
+    :initarg :retriever-regexp
+    :type (or null string)
+    :custom string
+    :initform nil
+    :documentation
+    "Regexp that is used to retrive the modes symbol from the
+    head of the submode chunk. fixme: elaborate"))
   
-  "Configuration for a polymode that allows many submode. For
+  "Configuration for a polymode that allows multiple submode. For
 example org-mode, markdown and a variety of web-modes.")
-
 
 
 ;;; SUBMODE
@@ -63,6 +90,15 @@ example org-mode, markdown and a variety of web-modes.")
          :type symbol
          :initform 'fundamental-mode
          :custom symbol)
+   (protect-indent-line-function :initarg :protect-indent-line-function
+                                 :type boolean
+                                 :initform nil
+                                 :custom boolean
+                                 :documentation
+                                 "Whether to modify local
+                                 `indent-line-function' by
+                                 narrowing to current span
+                                 first")
    (buffer :initarg :buffer
            :type (or null buffer)
            :initform nil))
