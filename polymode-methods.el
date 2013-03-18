@@ -64,6 +64,17 @@ Current buffer is setup as the base buffer.")
 SPAN-TYPE. Should return nil if buffer has not yet been
 installed. Also see `pm/get-span'.")
 
+(defmethod pm/get-buffer ((submode pm-submode) &optional type)
+  (oref submode :buffer))
+
+(defmethod pm/get-buffer ((submode pm-inner-submode) &optional type)
+  (cond ((eq 'body type) (oref submode :buffer))
+        ((eq 'head type) (oref submode :head-buffer))
+        ((eq 'tail type) (oref submode :tail-buffer))
+        (t (error "Don't know how to select buffer of type" type
+                  "for submode" (object-name submode)
+                  "of class" (class-of submode)))))
+
 (defgeneric pm/install-buffer (submode &optional type)
   "Ask SUBMODE to install an indirect buffer corresponding to
 span TYPE.")
@@ -116,33 +127,67 @@ For this method to work correctly, SUBMODE's class should define
 
 (defgeneric pm/get-span (submode &optional pos)
   "Ask a submode for the span at point.
-Return a list of three elements (TYPE BEG END) where TYPE is a
-symbol representing the type of the span surrounding POS (head,
-tail, body, inline etc). BEG and END are the coordinates of the span.
+Return a list of three elements (TYPE BEG END OBJECT) where TYPE
+is a symbol representing the type of the span surrounding
+POS (head, tail, body, inline etc). BEG and END are the
+coordinates of the span. OBJECT is a sutable object which is
+'responsable' for this span. That is, OBJECT could be dispached
+upon with `pm/select-buffer' or other methods form the interface.
 
 Should return nil if there is no SUBMODE specific span around POS.")
 
-;; CONFIG
-
-;; SUBMODES
-(defmethod pm/get-buffer ((submode pm-submode) &optional type)
-  (oref submode :buffer))
-
-(defmethod pm/get-buffer ((submode pm-inner-submode) &optional type)
-  (cond ((eq 'body type) (oref submode :buffer))
-        ((eq 'head type) (oref submode :head-buffer))
-        ((eq 'tail type) (oref submode :tail-buffer))
-        (t (error "Don't know how to select buffer of type" type
-                  "for submode" (object-name submode)
-                  "of class" (class-of submode)))))
-
-(defmethod pm/get-span ((submode pm-submode) &optional pos)
+(defmethod pm/get-span (submode &optional pos)
   "Simply return nil. Base mode usually do/can not compute the span"
   nil)
 
+(defmethod pm/get-span ((config pm-config) &optional pos)
+    "Apply pm/get-span on every element of submodes slot of config object.
+Return a cons (submode . span), for which START is closest to
+POS (and before it); i.e. the innermost span.  POS defaults to
+point."
+    ;; fixme: base should be last, to take advantage of the submodes computation
+    (let ((smodes (cons (oref config :base-submode) 
+                        (oref config :inner-submodes)))
+          (start (point-min))
+          (end (point-max))
+          (pos (or pos (point)))
+          span val)
+      (save-restriction
+        (widen)
+        (dolist (sm smodes)
+          (setq val (pm/get-span sm pos))
+          (if (and val (>= (nth 1 val) start))
+              (setq span val
+                    start (nth 1 val)
+                    end (nth 2 val)))))
+      (unless (and (<= start end) (<= pos end) (>= pos start))
+        (error "Bad polymode selection: %s, %s"
+               (list start end) pos))
+      ;; fixme: why is this here?
+      (if (= start end)
+          (setq end (1+ end)))
+      (unless (car span) ; submodes can compute the base span by returning nil
+        (setcar (last span) (oref config :base-submode)))
+      span))
+
+;; (when (oref config :head-reg)
+;;     (with-slots ((retr-reg mode-retriever-regexp)
+;;                  (retr-fun mode-retriever-function)
+;;                  head-reg tail-reg) config
+;;       (let* ((span (pm--span-at-point head-reg tail-reg pos))
+;;              (type (car span)))
+;;         (when (or (and (eq type 'head) (eq head-mode 'base))
+;;                   (and (eq type 'tail) (or (eq tail-mode 'base)
+;;                                            (and (null tail-mode)
+;;                                                 (eq head-mode 'base)))))
+;;           (setcar span nil))
+;;         span)))
+  
+
 (defmethod pm/get-span ((submode pm-inner-submode) &optional pos)
-  "Return a list of the form (TYPE pos-start pos-end).
-TYPE can be 'body, 'head or 'tail."
+  "Return a list of the form (TYPE POS-START POS-END SELF).
+TYPE can be 'body, 'head or 'tail. SELF is just a submode object
+in this case."
   (with-slots (head-reg tail-reg head-mode tail-mode) submode
     (let* ((span (pm--span-at-point head-reg tail-reg pos))
            (type (car span)))
@@ -151,7 +196,9 @@ TYPE can be 'body, 'head or 'tail."
                                          (and (null tail-mode)
                                               (eq head-mode 'base)))))
         (setcar span nil))
-      span)))
+      (append span (list submode)))))
+
+
 
 ;;; UTILS
 (defun pm--span-at-point (head-reg tail-reg &optional pos)

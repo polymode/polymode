@@ -108,43 +108,14 @@ Not effective after loading the LitProg library."
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
-;; VS[26-08-2012]: Dave's comment:
-;; It would be nice to cache the results of this on text properties,
-;; but that probably won't work well if chunks can be nested.  In that
-;; case, you can't just mark everything between delimiters -- you have
-;; to consider other possible regions between them.  For now, we do
-;; the calculation each time, scanning outwards from point.
+;; ;; VS[26-08-2012]: Dave's comment:
+;; ;; It would be nice to cache the results of this on text properties,
+;; ;; but that probably won't work well if chunks can be nested.  In that
+;; ;; case, you can't just mark everything between delimiters -- you have
+;; ;; to consider other possible regions between them.  For now, we do
+;; ;; the calculation each time, scanning outwards from point.
 (defun pm/get-innermost-span (&optional pos)
-  "Apply pm/get-span on every element of submodes slot of pm/config object.
-Return a cons (submode . span), for which START is closest to
-POS (and before it); i.e. the innermost span.  POS defaults to
-point."
-  ;; fixme: base should be last, to take advantage of the submodes computation
-  (let ((smodes (cons (oref pm/config :base-submode) 
-                      (oref pm/config :inner-submodes)))
-	(start (point-min))
-	(end (point-max))
-	(pos (or pos (point)))
-        submode span val)
-    (save-restriction
-      (widen)
-      (dolist (sm smodes)
-	(setq val (pm/get-span sm pos))
-	(if (and val (>= (nth 1 val) start))
-	    (setq submode sm
-                  span val
-		  start (nth 1 val)
-		  end (nth 2 val)))))
-    (unless (and (<= start end) (<= pos end) (>= pos start))
-      (error "Bad polymode selection: %s, %s"
-	     (list start end) pos))
-    ;; fixme: why is this here?
-    (if (= start end)
-	(setq end (1+ end)))
-    (cons (if (car span) ; submodes can compute the base span by returning nil
-              submode 
-            (oref pm/config :base-submode))
-          span)))
+  (pm/get-span pm/config pos))
 
 (defun pm/map-over-spans (beg end fun)
   "For all spans between BEG and END, execute FUN.
@@ -160,7 +131,7 @@ the current innermost span.
       (goto-char beg)
       (while (< (point) end)
         (let ((*span* (pm/get-innermost-span)))
-          (pm/select-buffer (car *span*) (cadr *span*))
+          (pm/select-buffer (car (last *span*)) (car *span*)) ;; object and type
           (save-restriction
             (pm/narrow-to-span *span*)
             (funcall fun)
@@ -171,12 +142,12 @@ the current innermost span.
   "Narrow to current chunk."
   (interactive)
   (if (boundp 'syntax-ppss-last)
-      (setq syntax-ppss-last nil)) ;; fix me: why not let bind?
+      (setq syntax-ppss-last nil)) ;; fixme: why not let bind?
   (unless (= (point-min) (point-max))
     (let ((span (or span
                     (pm/get-innermost-span))))
       (if span 
-          (apply #'narrow-to-region (cddr span))
+          (narrow-to-region (nth 1 span) (nth 2 span))
         (error "No span found")))))
 
 (defun pm--comment-region (&optional beg end buffer)
@@ -271,7 +242,7 @@ This funciton is placed in local post-command hook."
   ;; (condition-case error
   (unless pm--ignore-post-command-hook
     (let ((span (pm/get-innermost-span)))
-      (pm/select-buffer (car span) (cadr span)))
+      (pm/select-buffer (car (last span)) (car span)))
     ;; urn post-command-hook at most every .01 seconds
     ;; fixme: should be more elaborated
     ;; (setq pm--ignore-post-command-hook t)

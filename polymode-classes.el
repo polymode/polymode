@@ -52,33 +52,41 @@ submode. For example noweb.")
      "List of names of the submode objects that are associated
      with this configuration. At initialization time, all of
      these are cloned and plased in :inner-submodes slot.")
-   (auto-inner-submodes
-    :initarg :auto-inner-submodes
+   (auto-submodes
+    :initarg :auto-submodes
     :type list
     :initform '()
     :documentation
     "List of submodes that are auto-generated in pm/get-span
     method for this class.")
    (head-reg :initarg :head-reg
-             :type string
-             :initform ""
+             :type (or null string)
+             :initform nil
              :custom string
              :documentation
              "Regexp for the chunk start (aka head)")
    (tail-reg :initarg :tail-reg
-             :type string
-             :initform ""
+             :type (or null string)
+             :initform nil
              :custom string
              :documentation
              "Regexp for chunk end (aka tail)")
-   (retriever-regexp
-    :initarg :retriever-regexp
+   (mode-retriever-regexp
+    :initarg :mode-retriever-regexp
     :type (or null string)
     :custom string
     :initform nil
     :documentation
     "Regexp that is used to retrive the modes symbol from the
-    head of the submode chunk. fixme: elaborate"))
+    head of the submode chunk. fixme: elaborate")
+   (mode-retriever-function
+    :initarg :mode-retriever-regexp
+    :type symbol
+    :custom symbol
+    :initform nil
+    :documentation
+    "Function name that is used to retrive the modes symbol from
+    the head of the submode chunk. fixme: elaborate"))
   
   "Configuration for a polymode that allows multiple submode. For
 example org-mode, markdown and a variety of web-modes.")
