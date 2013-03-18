@@ -131,7 +131,7 @@ the current innermost span.
       (goto-char beg)
       (while (< (point) end)
         (let ((*span* (pm/get-innermost-span)))
-          (pm/select-buffer (car (last *span*)) (car *span*)) ;; object and type
+          (pm/select-buffer (car (last *span*)) *span*) ;; object and type
           (save-restriction
             (pm/narrow-to-span *span*)
             (funcall fun)
@@ -223,7 +223,7 @@ in polymode buffers."
 
 ;;; internals
 
-(defun pm--check-if-available (mode)
+(defun pm--get-available-mode (mode)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return 'fundamental-mode with a
 warnign."
@@ -242,7 +242,7 @@ This funciton is placed in local post-command hook."
   ;; (condition-case error
   (unless pm--ignore-post-command-hook
     (let ((span (pm/get-innermost-span)))
-      (pm/select-buffer (car (last span)) (car span)))
+      (pm/select-buffer (car (last span)) span))
     ;; urn post-command-hook at most every .01 seconds
     ;; fixme: should be more elaborated
     ;; (setq pm--ignore-post-command-hook t)
@@ -283,13 +283,17 @@ This funciton is placed in local post-command hook."
           (set-window-start (get-buffer-window buffer t) window-start))
         ))))
 
+(setq pm--dbg-fontlock t
+      pm--dbg-hook t)
+
 (defun pm--setup-buffer (&optional buffer)
   ;; general buffer setup, should work for indirect and base buffers alike
   (with-current-buffer (or buffer (current-buffer))
-    (setq pm/fontify-region-original
-          font-lock-fontify-region-function)
-    (set (make-local-variable 'font-lock-fontify-region-function)
-         #'pm/fontify-region)
+    (when pm--dbg-fontlock 
+      (setq pm/fontify-region-original
+            font-lock-fontify-region-function)
+      (set (make-local-variable 'font-lock-fontify-region-function)
+           #'pm/fontify-region))
 
     ;; Don't let parse-partial-sexp get fooled by syntax outside
     ;; the chunk being fontified.
@@ -325,7 +329,8 @@ This funciton is placed in local post-command hook."
     ;; This should probably be at the front of the hook list, so
     ;; that other hook functions get run in the (perhaps)
     ;; newly-selected buffer.
-    (add-hook 'post-command-hook 'polymode-select-buffer nil t)
+    (when pm--dbg-hook
+      (add-hook 'post-command-hook 'polymode-select-buffer nil t))
     (object-add-to-list pm/config :buffers (current-buffer))))
 
 (defvar pm--killed-once nil)
@@ -361,11 +366,11 @@ Return newlly created buffer."
   ;; understand the local variables mechanism and wouldn't remove
   ;; this.  To invoke minor modes, you should just use `mode:' in
   ;; `local variables'.]
-  (if (eq 'autoload (car-safe (indirect-function mode)))
-      (with-temp-buffer
-        (insert "Local Variables:\nmode: fundamental\nEnd:\n")
-        (funcall mode)
-        (hack-local-variables)))
+  ;; (if (eq 'autoload (car-safe (indirect-function mode)))
+  ;;     (with-temp-buffer
+  ;;       (insert "Local Variables:\nmode: fundamental\nEnd:\n")
+  ;;       (funcall mode)
+  ;;       (hack-local-variables)))
 
   (with-current-buffer (pm/base-buffer)
     (let* ((config (buffer-local-value 'pm/config (current-buffer)))
@@ -396,10 +401,10 @@ Return newlly created buffer."
         ;; pull in the advice package unnecessarily.  `flet'-like
         ;; mechanisms lose with advice because `fset' acts on the
         ;; advice anyway.
-        (if (featurep 'advice)
-            (ad-with-originals (hack-one-local-variable)
-              (pm/hack-local-variables))
-          (pm/hack-local-variables))
+        ;; (if (featurep 'advice)
+        ;;     (ad-with-originals (hack-one-local-variable)
+        ;;       (pm/hack-local-variables))
+        ;;   (pm/hack-local-variables))
 
         (setq pm/config config)
 
@@ -468,6 +473,14 @@ Return newlly created buffer."
       (fset 'hack-one-local-variable late-hack))))
 
 
+
+;; Used to propagate the bindings to the indirect buffers.
+(define-minor-mode polymode-minor-mode
+  "Polymode minor mode, used to make everything work."
+  nil " PM" polymode-mode-map
+  ;; at this stage pm/config should be set locally
+  (pm/initialize pm/config))
+
 (define-derived-mode noweb-mode2 fundamental-mode "Noweb"
   "Mode for editing noweb documents.
 Supports differnt major modes for doc and code chunks using multi-mode."
@@ -484,14 +497,16 @@ Supports differnt major modes for doc and code chunks using multi-mode."
     )
   (polymode-minor-mode))
 
-;; Used to propagate the bindings to the indirect buffers.
-(define-minor-mode polymode-minor-mode
-  "Polymode minor mode, used to make everything work."
-  nil " PM" polymode-mode-map
-  ;; at this stage pm/config should be set locally
-  (pm/initialize pm/config))
-
 (add-to-list 'auto-mode-alist '("Tnw" . noweb-mode2))
+
+
+(define-derived-mode Rmd-mode fundamental-mode "Rmd"
+  "Mode for editing noweb documents.
+Supports differnt major modes for doc and code chunks using multi-mode."
+  (setq pm/config (clone pm-config/markdown))
+  (polymode-minor-mode))
+
+(add-to-list 'auto-mode-alist '("Rmd" . Rmd-mode))
   
 
 (provide 'polymode)

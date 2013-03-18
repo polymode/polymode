@@ -17,6 +17,7 @@
                  "Instantiated submode")
    (inner-submodes :initarg :inner-submodes
                    :type list
+                   :initform '()
                    :documentation
                    "List of submodes objects that inherit from `pm-inner-submode'")
    (buffers :initarg :buffers
@@ -51,45 +52,33 @@ submode. For example noweb.")
      :documentation
      "List of names of the submode objects that are associated
      with this configuration. At initialization time, all of
-     these are cloned and plased in :inner-submodes slot.")
+     these are cloned and plased in :inner-submodes slot."))
+  
+  "Configuration for a polymode that allows multiple submodes
+that are known in advance. For a variaty of web-modes.")
+
+
+
+(defclass pm-config-multi-auto (pm-config-multi)
+  ((auto-submode-name
+    :initarg :auto-submode-name
+    :type symbol
+    :custom symbol
+    :documentation
+    "Symbol of auto submode. At run time this object is cloned
+     and placed in :auto-submodes with coresponding :mode slot
+     initialized at run time.")
    (auto-submodes
     :initarg :auto-submodes
     :type list
     :initform '()
     :documentation
     "List of submodes that are auto-generated in pm/get-span
-    method for this class.")
-   (head-reg :initarg :head-reg
-             :type (or null string)
-             :initform nil
-             :custom string
-             :documentation
-             "Regexp for the chunk start (aka head)")
-   (tail-reg :initarg :tail-reg
-             :type (or null string)
-             :initform nil
-             :custom string
-             :documentation
-             "Regexp for chunk end (aka tail)")
-   (mode-retriever-regexp
-    :initarg :mode-retriever-regexp
-    :type (or null string)
-    :custom string
-    :initform nil
-    :documentation
-    "Regexp that is used to retrive the modes symbol from the
-    head of the submode chunk. fixme: elaborate")
-   (mode-retriever-function
-    :initarg :mode-retriever-regexp
-    :type symbol
-    :custom symbol
-    :initform nil
-    :documentation
-    "Function name that is used to retrive the modes symbol from
-    the head of the submode chunk. fixme: elaborate"))
+    method for this class."))
   
-  "Configuration for a polymode that allows multiple submode. For
-example org-mode, markdown and a variety of web-modes.")
+  "Configuration for a polymode that allows multiple submode that
+are not known in advance. For example org-mode, markdown.")
+
 
 
 ;;; SUBMODE
@@ -109,8 +98,8 @@ example org-mode, markdown and a variety of web-modes.")
                                  first")
    (buffer :initarg :buffer
            :type (or null buffer)
-           :initform nil))
-  "Represent a simple submode. Usually used for the definition of
+           :initform nil))  
+  "Represents a simple submode. Usually used for the definition of
   the base submodes (aka host submodes associated with the base
   buffer).")
 
@@ -120,10 +109,10 @@ example org-mode, markdown and a variety of web-modes.")
               :initform 'fundamental-mode
               :custom symbol
               :documentation
-              "Chunks' header mode. If set to
-                'body, the head is considered part of the chunk
-                body. If set to 'base, head is considered part of
-                the including base mode.")
+              "Chunks' header mode. If set to 'body, the head is
+              considered part of the chunk body. If set to 'base,
+              head is considered part of the including base
+              mode.")
    (head-buffer :initarg :head-buffer
                 :type (or null buffer)
                 :initform nil
@@ -168,6 +157,33 @@ example org-mode, markdown and a variety of web-modes.")
                               :type (or list symbol)
                               :initform nil))
   "Representation of an inner (aka child) submode in a buffer.")
+
+(defclass pm-inner-submode-auto (pm-inner-submode)
+  ((retriever-regexp
+    :initarg :retriever-regexp
+    :type (or null string)
+    :custom string
+    :initform nil
+    :documentation
+    "Regexp that is used to retrive the modes symbol from the
+    head of the submode chunk. fixme: elaborate")
+   (retriever-num
+    :initarg :retriever-num
+    :type integer
+    :custom integer
+    :initform 1
+    :documentation
+    "Subexpression to be matched by :retriver-regexp")
+   (retriever-function
+    :initarg :retriever-function
+    :type symbol
+    :custom symbol
+    :initform nil
+    :documentation
+    "Function name that is used to retrive the modes symbol from
+    the head of the submode chunk. fixme: elaborate"))
+
+  "Representation of an inner submode")
 
 
   

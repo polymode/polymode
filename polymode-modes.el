@@ -13,6 +13,13 @@
   :group 'base-submodes
   :type 'object)
 
+(defcustom pm-base/markdown
+  (pm-submode "latex"
+              :mode 'markdown-mode)
+  "Markdown base submode"
+  :group 'base-submodes
+  :type 'object)
+
 ;; NOWEB
 (defcustom  pm-submode/noweb
   (pm-inner-submode "noweb"
@@ -57,15 +64,32 @@
   :group 'polymode
   :type 'object)
 
+;; MARKDOWN
+(defcustom pm-config/markdown
+  (pm-config-multi-auto "markdown"
+                        :base-submode-name 'pm-base/markdown
+                        :auto-submode-name 'pm-submode/markdown)
+  "Markdown typical configuration"
+  :group 'polymode
+  :type 'object)
 
-;; (defcustom lp-noweb-chunk:knitr
-;;   (litprog-chunk "knitr-chunk"
-;;                  :mode nil
-;;                  :start  "^[ \t]*<<\\(.*\\)>>="
-;;                  :end    "^[ \t]*\\(@ +%def .*\\)$\\|\\(@[ \n]\\)"
-;;                  )
-;;   "Knitr allows for spaces before chunks. Useful for indentation."
-;;   :group 'lp-noweb
+(defcustom  pm-submode/markdown
+  (pm-inner-submode-auto "markdown"
+                         :head-reg "^\\c_*```[{\t]*\\w.*$"
+                         :tail-reg "^\\c_*```\\c_*$"
+                         :retriever-regexp "```\\c_*{?\\(\\w+\\)")
+  "Noweb typical chunk."
+  :group 'polymode
+  :type 'object)
+
+
+;; (defcustom pm-submode/markdown-R
+;;   (clone pm-submode/markdown "markdown-R"
+;;          :mode 'R-mode
+;;          :protect-indent-line-function t)
+;;   "Markdown for R"
+;;   :group 'polymode
 ;;   :type 'object)
+
 
 (provide 'polymode-modes)

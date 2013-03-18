@@ -38,7 +38,7 @@ Current buffer is setup as the base buffer.")
                (clone ,(oref config :base-submode-name))))
   (oset (oref config :base-submode)
         :buffer (current-buffer))
-  (let ((base-mode (pm--check-if-available
+  (let ((base-mode (pm--get-available-mode
                     (oref (oref config :base-submode) :mode))))
     ;; don't reinitialize if already there; can be used in minor modes
     (unless (eq major-mode base-mode)
@@ -75,6 +75,79 @@ installed. Also see `pm/get-span'.")
                   "for submode" (object-name submode)
                   "of class" (class-of submode)))))
 
+(defgeneric pm/select-buffer (submode span)
+  "Ask SUBMODE to select (make current) its indirect buffer
+corresponding to the type of the SPAN returned by
+`pm/get-span'.")
+
+(defmethod pm/select-buffer ((submode pm-submode) span)
+  "Select the buffer associated with SUBMODE.
+Install a new indirect buffer if it is not already installed.
+
+For this method to work correctly, SUBMODE's class should define
+`pm/install-buffer' and `pm/get-buffer' methods."
+  (let* ((type (car span))
+         (buff (pm/get-buffer submode type)))
+    (unless (buffer-live-p buff)
+      (pm/install-buffer submode type)
+      (setq buff (pm/get-buffer submode type)))
+    (pm--select-buffer buff)))
+
+;; (pm--select-buffer (pm/get-buffer submode (car span))))
+
+;; (defmethod pm/select-buffer ((submode pm-inner-submode) span)
+;;   "Select the buffer associated with SUBMODE.
+;; Install a new indirect buffer if it is not already installed.
+
+;; For this method to work correctly, SUBMODE's class should define
+;; `pm/install-buffer' and `pm/get-buffer' methods."
+;;   (let* ((type (car span))
+;;          (buff (pm/get-buffer submode type)))
+;;     (unless (buffer-live-p buff)
+;;       (pm/install-buffer submode type)
+;;       (setq buff (pm/get-buffer submode type)))
+;;     (pm--select-buffer buff)))
+
+(defun pm-get-mode-symbol-from-name (str)
+  "Default mode function guesser.
+Return major mode function constructed from STR by appending
+'-mode' if needed. If the constructed symbol is not a function
+return an error."
+  (let* ((mname (if (string-match-p "-mode$" str)
+                    str
+                  (concat str "-mode")))
+         (fsymb (intern mname)))
+    (if (fboundp fsymb)
+        fsymb
+      (error "Symbol %s is not a valid function" mname))))
+  
+(defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
+  
+  (if (null (car span))
+      (pm/select-buffer (oref config :base-submode) span)
+    (let ((type (car span))
+          (proto (symbol-value (oref config :auto-submode-name)))
+          submode)
+      (save-excursion
+        (goto-char (cadr span))
+        (unless (eq type 'head)
+          (re-search-backward (oref proto :head-reg) nil 'noerr))
+        (re-search-forward (oref proto :retriever-regexp))
+        (let* ((str (or (match-string-no-properties (oref proto :retriever-num))
+                        (error "retriever subexpression didn't match")))
+               (name (concat "auto-submode:" str)))
+          (setq submode
+                (or (loop for obj in (oref config :auto-submodes)
+                          when  (equal name (aref obj object-name))
+                          return obj)
+                    (let ((new-obj (clone proto
+                                          name :mode (pm-get-mode-symbol-from-name str))))
+                      (object-add-to-list config :auto-submodes new-obj)
+                      new-obj)))))
+      (pm/select-buffer submode span))))
+
+
+
 (defgeneric pm/install-buffer (submode &optional type)
   "Ask SUBMODE to install an indirect buffer corresponding to
 span TYPE.")
@@ -82,8 +155,9 @@ span TYPE.")
 (defmethod pm/install-buffer ((submode pm-submode) &optional type)
   "Independently on the TYPE call `pm/create-indirect-buffer'
 create and install a new buffer in slot :buffer of SUBMODE."
-  (let ((buf (or (pm--get-indirect-buffer-of-mode mode)
-                 (pm--create-indirect-buffer mode))))
+  (let* ((mode (oref submode :mode))
+         (buf (or (pm--get-indirect-buffer-of-mode mode)
+                  (pm--create-indirect-buffer mode))))
     (with-current-buffer buf
       (setq pm/submode submode)
       (pm--setup-buffer))
@@ -92,38 +166,18 @@ create and install a new buffer in slot :buffer of SUBMODE."
 (defmethod pm/install-buffer ((submode pm-inner-submode) type)
   "Depending of the TYPE install an indirect buffer into
 slot :buffer of SUBMODE. Create this buffer if does not exist."
-  (let ((mode
-         (cond ((eq 'body type) (oref submode :mode))
-               ((eq 'head type) (oref submode :head-mode))
-               ((eq 'tail type) (oref submode :tail-mode))
-               (t (error "TYPE argument must be one of body, head, tail. ")))))
-    (let ((buf (or (pm--get-indirect-buffer-of-mode mode)
-                   (pm--create-indirect-buffer mode))))
-      (with-current-buffer buf
-        (setq pm/submode submode)
-        (pm--setup-buffer))
-      (pm--set-submode-buffer submode type buf))))
+  (let* ((mode
+          (cond ((eq 'body type) (oref submode :mode))
+                ((eq 'head type) (oref submode :head-mode))
+                ((eq 'tail type) (oref submode :tail-mode))
+                (t (error "TYPE argument must be one of body, head, tail. "))))
+         (buf (or (pm--get-indirect-buffer-of-mode mode)
+                  (pm--create-indirect-buffer mode))))
+    (with-current-buffer buf
+      (setq pm/submode submode)
+      (pm--setup-buffer))
+    (pm--set-submode-buffer submode type buf)))
 
-(defgeneric pm/select-buffer (submode type)
-  "Ask SUBMODE to select (make current) its indirect buffer
-corresponding to the TYPE of the span returned by
-`pm/get-span'.")
-
-(defmethod pm/select-buffer ((submode pm-submode) &optional type)
-  "Simply select the (usually base) buffer"
-  (pm--select-buffer (pm/get-buffer submode type)))
-
-(defmethod pm/select-buffer ((submode pm-inner-submode) type)
-  "Select the buffer associated with SUBMODE.
-Install a new indirect buffer if it is not already installed.
-
-For this method to work correctly, SUBMODE's class should define
-`pm/install-buffer' and `pm/get-buffer' methods."
-  (let ((buff (pm/get-buffer submode type)))
-    (unless (buffer-live-p buff)
-      (pm/install-buffer submode type)
-      (setq buff (pm/get-buffer submode type)))
-    (pm--select-buffer buff)))
 
 (defgeneric pm/get-span (submode &optional pos)
   "Ask a submode for the span at point.
@@ -166,23 +220,24 @@ point."
       ;; fixme: why is this here?
       (if (= start end)
           (setq end (1+ end)))
-      (unless (car span) ; submodes can compute the base span by returning nil
+      (when (and span
+                 (null (car span))) ; submodes can compute the base span by returning nil
         (setcar (last span) (oref config :base-submode)))
       span))
 
-;; (when (oref config :head-reg)
-;;     (with-slots ((retr-reg mode-retriever-regexp)
-;;                  (retr-fun mode-retriever-function)
-;;                  head-reg tail-reg) config
-;;       (let* ((span (pm--span-at-point head-reg tail-reg pos))
-;;              (type (car span)))
-;;         (when (or (and (eq type 'head) (eq head-mode 'base))
-;;                   (and (eq type 'tail) (or (eq tail-mode 'base)
-;;                                            (and (null tail-mode)
-;;                                                 (eq head-mode 'base)))))
-;;           (setcar span nil))
-;;         span)))
-  
+
+(defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
+  (let ((span-other (call-next-method)))
+    (if (oref config :head-reg)
+        (let ((span (pm--span-at-point (oref config :head-reg)
+                                       (oref config :tail-reg)
+                                       pos)))
+          (if (and span-other
+                   (> (cadr span-other) (cadr span)))
+              span-other
+            (append span (list config))))
+      span-other)))
+
 
 (defmethod pm/get-span ((submode pm-inner-submode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
@@ -197,8 +252,6 @@ in this case."
                                               (eq head-mode 'base)))))
         (setcar span nil))
       (append span (list submode)))))
-
-
 
 ;;; UTILS
 (defun pm--span-at-point (head-reg tail-reg &optional pos)
