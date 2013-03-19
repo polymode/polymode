@@ -39,16 +39,18 @@ Current buffer is setup as the base buffer.")
   (oset (oref config :base-submode)
         :buffer (current-buffer))
   (let ((base-mode (pm--get-available-mode
-                    (oref (oref config :base-submode) :mode))))
+                    (or (oref (oref config :base-submode) :mode)
+                        ;; reuse existing if nil
+                        major-mode))))
     ;; don't reinitialize if already there; can be used in minor modes
-    (unless (eq major-mode base-mode)
+    (unless (equal (upcase (symbol-name major-mode))
+                   (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
       (let ((polymode-mode t)) ;;major-modes might check it 
-        (funcall base-mode))
-      ;; after emacs mode install
-      (setq pm/config config)
-      (setq pm/submode (oref config :base-submode))
-      (oset pm/submode :mode base-mode)))
-  (set (make-local-variable 'polymode-mode) t)
+        (funcall base-mode)))
+    ;; after emacs mode install
+    (setq pm/config config)
+    (setq pm/submode (oref config :base-submode))
+    (oset pm/submode :mode base-mode))
   ;; todo: initialize inner-submodes here?
   (pm--setup-buffer (current-buffer)))
   
@@ -157,7 +159,7 @@ span TYPE.")
 create and install a new buffer in slot :buffer of SUBMODE."
   (let* ((mode (oref submode :mode))
          (buf (or (pm--get-indirect-buffer-of-mode mode)
-                  (pm--create-indirect-buffer mode))))
+                  (pm--create-indirect-buffer mode)))) ; assigns pm/config
     (with-current-buffer buf
       (setq pm/submode submode)
       (pm--setup-buffer))
@@ -218,8 +220,8 @@ point."
         (error "Bad polymode selection: %s, %s"
                (list start end) pos))
       ;; fixme: why is this here?
-      (if (= start end)
-          (setq end (1+ end)))
+      ;; (if (= start end)
+      ;;     (setq end (1+ end)))
       (when (and span
                  (null (car span))) ; submodes can compute the base span by returning nil
         (setcar (last span) (oref config :base-submode)))
@@ -227,10 +229,11 @@ point."
 
 
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
-  (let ((span-other (call-next-method)))
-    (if (oref config :head-reg)
-        (let ((span (pm--span-at-point (oref config :head-reg)
-                                       (oref config :tail-reg)
+  (let ((span-other (call-next-method))
+        (proto (symbol-value (oref config :auto-submode-name))))
+    (if (oref proto :head-reg)
+        (let ((span (pm--span-at-point (oref proto :head-reg)
+                                       (oref proto :tail-reg)
                                        pos)))
           (if (and span-other
                    (> (cadr span-other) (cadr span)))
@@ -280,7 +283,9 @@ tail -  tail span"
              (pos2-end (and pos2-start (match-end 0)))
              (pos2-tail? (and pos2-start (match-end 1)))
              (pos2-start (or pos2-start (point-max)))) ;consider pointmax as head
-        (if (< pos pos2-start) ; inside doc or chunk body
+        (if (or (< pos pos2-start)
+                (eq pos (point-max)))
+            ;; inside doc or chunk body
             (if pos1-tail? 
                 (list nil pos1-end pos2-start) ;doc
               (list 'body pos1-end pos2-start)) ; chunk body

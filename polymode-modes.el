@@ -75,9 +75,9 @@
 
 (defcustom  pm-submode/markdown
   (pm-inner-submode-auto "markdown"
-                         :head-reg "^\\c_*```[{\t]*\\w.*$"
-                         :tail-reg "^\\c_*```\\c_*$"
-                         :retriever-regexp "```\\c_*{?\\(\\w+\\)")
+                         :head-reg "^[ \t]*```[{ \t]*\\w.*$"
+                         :tail-reg "^[ \t]*```[ \t]*$"
+                         :retriever-regexp "```[ \t]*{?\\(\\w+\\)")
   "Noweb typical chunk."
   :group 'polymode
   :type 'object)

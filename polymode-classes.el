@@ -11,6 +11,15 @@
                       :documentation
                       "Symbol pointing to an object of class
                       pm-submode representing the base submode.")
+   (minor-mode-name :initarg :minor-mode-name
+                    :initform 'polymode-minor-mode
+                    :type symbol
+                    :custom symbol
+                    :documentation
+                    "Symbol pointing to minor-mode function that
+                    should be activated in all buffers (base and
+                    indirect). This is a \"glue\" mode and is
+                    `polymode-minor-mode' by default.")
    (base-submode :initarg :base-submode
                  :type (or null pm-submode)
                  :documentation
