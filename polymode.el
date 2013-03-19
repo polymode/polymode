@@ -150,43 +150,50 @@ the current innermost span.
           (narrow-to-region (nth 1 span) (nth 2 span))
         (error "No span found")))))
 
-(defun pm--comment-region (&optional beg end buffer)
-  ;; mark as syntactic comment
-  (let ((beg (or beg (region-beginning)))
-        (end (or end (region-end)))
-        (buffer (or buffer (current-buffer))))
-    (with-current-buffer buffer
-      (with-silent-modifications
-        (let ((ch-beg (char-after beg))
-              (ch-end (char-before end)))
-          (add-text-properties beg (1+ beg)
-                               (list 'syntax-table (cons 11 ch-beg)
-                                     'rear-nonsticky t
-                                     'polymode-comment 'start))
-          (add-text-properties (1- end) end
-                               (list 'syntax-table (cons 12 ch-end)
-                                     'rear-nonsticky t
-                                     'polymode-comment 'end))
-          )))))
+;; (defun pm--comment-region (&optional beg end buffer)
+;;   ;; mark as syntactic comment
+;;   (let ((beg (or beg (region-beginning)))
+;;         (end (or end (region-end)))
+;;         (buffer (or buffer (current-buffer))))
+;;     (with-current-buffer buffer
+;;       (with-silent-modifications
+;;         (let ((ch-beg (char-after beg))
+;;               (ch-end (char-before end)))
+;;           (add-text-properties beg (1+ beg)
+;;                                (list 'syntax-table (cons 11 ch-beg)
+;;                                      'rear-nonsticky t
+;;                                      'polymode-comment 'start))
+;;           (add-text-properties (1- end) end
+;;                                (list 'syntax-table (cons 12 ch-end)
+;;                                      'rear-nonsticky t
+;;                                      'polymode-comment 'end))
+;;           )))))
 
-(defun pm--remove-syntax-comment (&optional beg end buffer)
-  ;; remove all syntax-table properties. Should not cause any problem as it is
-  ;; always used before font locking
-  (let ((beg (or beg (region-beginning)))
-        (end (or end (region-end)))
-        (buffer (or buffer (current-buffer))))
-    (with-current-buffer buffer
-      (with-silent-modifications
-        (remove-text-properties beg end
-                                '(syntax-table nil rear-nonsticky nil polymode-comment nil))))))
+;; (defun pm--remove-syntax-comment (&optional beg end buffer)
+;;   ;; remove all syntax-table properties. Should not cause any problem as it is
+;;   ;; always used before font locking
+;;   (let ((beg (or beg (region-beginning)))
+;;         (end (or end (region-end)))
+;;         (buffer (or buffer (current-buffer))))
+;;     (with-current-buffer buffer
+;;       (with-silent-modifications
+;;         (remove-text-properties beg end
+;;                                 '(syntax-table nil rear-nonsticky nil polymode-comment nil))))))
 
-(defun pm--comment-buffers-except-current (beg end)
-  ;; marke with syntact comments all the buffers except this on
-  (dolist ((bf (oref pm/config :buffers)))
-    (when (and (buffer-live-p bf)
-               (not (eq bf (current-buffer))))
-      (pm--comment-region beg end bf))))
-  
+;; ;; this one does't really work, text-properties are the same in all buffers
+;; (defun pm--mark-buffers-except-current (beg end)
+;;   ;; marke with syntact comments all the buffers except this on
+;;   (dolist ((bf (oref pm/config :buffers)))
+;;     (when (and (buffer-live-p bf)
+;;                (not (eq bf (current-buffer))))
+;;       (pm--comment-region beg end bf)
+;;       ;; (put-text-property beg end 'fontified t)
+;;       )))
+
+;; (defun pm/fontify-region-simle (beg end &optional verbose)
+;;   (with-silent-modifications
+;;     (put-text-property beg end 'fontified t)))
+
 (defun pm/fontify-region (beg end &optional verbose)
   "Polymode font-lock fontification function.
 Fontifies chunk-by chunk within the region.
@@ -197,11 +204,13 @@ A fontification mechanism should call
 that). If it does not, the fontification will probably be screwed
 in polymode buffers."
   (let* ((modified (buffer-modified-p))
-	 (buffer-undo-list t)
+         (buffer-undo-list t)
 	 (inhibit-read-only t)
 	 (inhibit-point-motion-hooks t)
 	 (inhibit-modification-hooks t)
 	 deactivate-mark)
+    ;; (with-silent-modifications
+
     (save-restriction
       (widen)
       (pm/map-over-spans
@@ -209,18 +218,17 @@ in polymode buffers."
        (lambda ()
          ;; (message  "%s %s (%s %s) point: %s"
          ;;           (current-buffer) major-mode (point-min) (point-max) (point))
-         (with-silent-modifications
-           (let ((beg (point-min))
-                 (end (point-max)))
-             (font-lock-unfontify-region beg end)
-             (pm--remove-syntax-comment beg end)
-             (pm--comment-buffers-except-current beg end)
-             (unwind-protect 
-                 (if (and font-lock-mode font-lock-keywords)
-                     (funcall pm/fontify-region-original
-                              (point-min) (point-max) verbose))
-               ;; In case font-lock isn't done for some mode:
-               (put-text-property beg end 'fontified t)))))))))
+         (font-lock-unfontify-region (point-min) (point-max))
+         (unwind-protect
+             (progn (dbg (point-min) (point-max) (current-buffer))
+                    ;; (object-name (car (last *span*))))
+                    (if (and font-lock-mode font-lock-keywords)
+                        (funcall pm/fontify-region-original
+                                 (point-min) (point-max) verbose)))
+           ;; In case font-lock isn't done for some mode:
+           (put-text-property (point-min) (point-max) 'fontified t))))
+      (unless ,modified
+        (restore-buffer-modified-p nil)))))
 
 
 ;;; internals
@@ -288,53 +296,56 @@ This funciton is placed in local post-command hook."
 (defun pm--setup-buffer (&optional buffer)
   ;; general buffer setup, should work for indirect and base buffers alike
   ;; assumes pm/config is already in place
-  (with-current-buffer (or buffer (current-buffer))
-    (set (make-local-variable 'polymode-mode) t)
-    (funcall (oref pm/config :minor-mode-name) t)
-    
-    (when pm--dbg-fontlock 
-      (setq pm/fontify-region-original
-            font-lock-fontify-region-function)
-      (set (make-local-variable 'font-lock-fontify-region-function)
-           #'pm/fontify-region))
+  ;; return buffer
+  (let ((buff (or buffer (current-buffer))))
+    (with-current-buffer buff
+      (set (make-local-variable 'polymode-mode) t)
+      (funcall (oref pm/config :minor-mode-name) t)
+      
+      (when pm--dbg-fontlock 
+        (setq pm/fontify-region-original
+              font-lock-fontify-region-function)
+        (set (make-local-variable 'font-lock-fontify-region-function)
+             #'pm/fontify-region))
 
-    ;; Don't let parse-partial-sexp get fooled by syntax outside
-    ;; the chunk being fontified.
-    (set (make-local-variable 'font-lock-dont-widen) t)
+      ;; Don't let parse-partial-sexp get fooled by syntax outside
+      ;; the chunk being fontified.
+      (set (make-local-variable 'font-lock-dont-widen) t)
 
-    ;; font-lock, forward-sexp etc should see syntactic comments
-    (set (make-local-variable 'parse-sexp-lookup-properties) t)
+      ;; font-lock, forward-sexp etc should see syntactic comments
+      (set (make-local-variable 'parse-sexp-lookup-properties) t)
 
-    ;; Indentation should first narrow to the chunk.  Modes
-    ;; should normally just bind `indent-line-function' to
-    ;; handle indentation.
-    (when (and indent-line-function ; not that it should ever be nil...
-               (oref pm/submode :protect-indent-line-function))
-      (set (make-local-variable 'indent-line-function)
-           `(lambda ()
-              (save-restriction
-                (pm/narrow-to-span)
-                (,indent-line-function)))))
+      ;; Indentation should first narrow to the chunk.  Modes
+      ;; should normally just bind `indent-line-function' to
+      ;; handle indentation.
+      (when (and indent-line-function ; not that it should ever be nil...
+                 (oref pm/submode :protect-indent-line-function))
+        (set (make-local-variable 'indent-line-function)
+             `(lambda ()
+                (save-restriction
+                  (pm/narrow-to-span)
+                  (,indent-line-function)))))
 
-    ;; Kill the base buffer along with the indirect one; careful not
-    ;; to infloop.
-    ;; (add-hook 'kill-buffer-hook
-    ;;           '(lambda ()
-    ;;              ;; (setq kill-buffer-hook nil) :emacs 24 bug (killing
-    ;;              ;; dead buffer triggers an error)
-    ;;              (let ((base (buffer-base-buffer)))
-    ;;                (if  base
-    ;;                    (unless (buffer-local-value 'pm--killed-once base)
-    ;;                      (kill-buffer base))
-    ;;                  (setq pm--killed-once t))))
-    ;;           t t)
-    
-    ;; This should probably be at the front of the hook list, so
-    ;; that other hook functions get run in the (perhaps)
-    ;; newly-selected buffer.
-    (when pm--dbg-hook
-      (add-hook 'post-command-hook 'polymode-select-buffer nil t))
-    (object-add-to-list pm/config :buffers (current-buffer))))
+      ;; Kill the base buffer along with the indirect one; careful not
+      ;; to infloop.
+      ;; (add-hook 'kill-buffer-hook
+      ;;           '(lambda ()
+      ;;              ;; (setq kill-buffer-hook nil) :emacs 24 bug (killing
+      ;;              ;; dead buffer triggers an error)
+      ;;              (let ((base (buffer-base-buffer)))
+      ;;                (if  base
+      ;;                    (unless (buffer-local-value 'pm--killed-once base)
+      ;;                      (kill-buffer base))
+      ;;                  (setq pm--killed-once t))))
+      ;;           t t)
+      
+      ;; This should probably be at the front of the hook list, so
+      ;; that other hook functions get run in the (perhaps)
+      ;; newly-selected buffer.
+      (when pm--dbg-hook
+        (add-hook 'post-command-hook 'polymode-select-buffer nil t))
+      (object-add-to-list pm/config :buffers (current-buffer)))
+    buff))
 
 (defvar pm--killed-once nil)
 (make-variable-buffer-local 'pm--killed-once)
@@ -353,8 +364,8 @@ Optional argument REGEXP selects variables to clone."
               (set (make-local-variable (car pair))
                    (cdr pair))
             ;; fixme: enable-multibyte-characters cannot be set, what are others?
-            (error
-             (message "-- local set: %s" (error-message-string error))))))
+            (error ;(message  "--dbg local set: %s" (error-message-string error))
+                   nil))))
    (buffer-local-variables from-buffer)))
 
 (defun pm--create-indirect-buffer (mode)
@@ -403,9 +414,12 @@ Return newlly created buffer."
            ;; (hook pm/indirect-buffer-hook)
            (file (buffer-file-name))
            (base-name (buffer-name))
+           (jit-lock-mode nil)
            (coding buffer-file-coding-system)
            (tbf (get-buffer-create "*pm-tmp*")))
-      
+
+      ;; do it in empty buffer to exclude all kind of font-lock issues
+      ;; Or, is there a reliable way to deactivate font-lock temporarly?
       (with-current-buffer tbf
         (let ((polymode-mode t)) ;;major-modes might check it
           (funcall mode)))
@@ -413,6 +427,12 @@ Return newlly created buffer."
         (pm--clone-local-variables tbf)
         ;; Now we can make it local:
         (set (make-local-variable 'polymode-mode) t)
+        (setq polymode-major-mode mode)
+        ;; how to avoid this  very silly font-lock infloop :(
+        ;; (with-silent-modifications
+        ;;   (save-restriction
+        ;;     (widen)
+        ;;     (put-text-property (point-min) (point-max) 'fontified t)))
         ;; todo: see clone-indirect-buffer for other stuff to clone.
         
         ;; VS[26-08-2012]: Dave Love's hack.
@@ -511,7 +531,6 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 (add-to-list 'auto-mode-alist '("Tnw" . noweb-mode2))
 
-
 (define-derived-mode Rmd-mode fundamental-mode "Rmd"
   "Mode for editing noweb documents.
 Supports differnt major modes for doc and code chunks using multi-mode."
@@ -529,9 +548,6 @@ Supports differnt major modes for doc and code chunks using multi-mode."
           pm/submode nil)))
 
 (add-to-list 'auto-mode-alist '("Rmd" . Rmd-mode))
-  
-(setq pm--dbg-fontlock t
-      pm--dbg-hook t)
 
 
 (defun pm--map-over-spans-highlight ()
@@ -542,5 +558,7 @@ Supports differnt major modes for doc and code chunks using multi-mode."
                              (end (nth 2 *span*)))
                          (ess-blink-region start end)
                          (sit-for 1)))))
+(setq pm--dbg-fontlock t
+      pm--dbg-hook t)
 
 (provide 'polymode)

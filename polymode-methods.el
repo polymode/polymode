@@ -43,14 +43,18 @@ Current buffer is setup as the base buffer.")
                         ;; reuse existing if nil
                         major-mode))))
     ;; don't reinitialize if already there; can be used in minor modes
-    (unless (equal (upcase (symbol-name major-mode))
-                   (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
+    ;; fixme: fixme: fixme: fixme:
+    ;; waf? why reinstaling base mode helps with font-lock infloop?
+    (unless nil ; (equal (upcase (symbol-name major-mode))
+                 ;  (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
       (let ((polymode-mode t)) ;;major-modes might check it 
         (funcall base-mode)))
     ;; after emacs mode install
     (setq pm/config config)
     (setq pm/submode (oref config :base-submode))
     (oset pm/submode :mode base-mode))
+  ;; (let ((font-lock-fontify-region-function #'pm/fontify-region-simle))
+  ;;   (pm/map-over-spans (point-min) (point-max) (lambda())))
   ;; todo: initialize inner-submodes here?
   (pm--setup-buffer (current-buffer)))
   
@@ -157,28 +161,27 @@ span TYPE.")
 (defmethod pm/install-buffer ((submode pm-submode) &optional type)
   "Independently on the TYPE call `pm/create-indirect-buffer'
 create and install a new buffer in slot :buffer of SUBMODE."
-  (let* ((mode (oref submode :mode))
-         (buf (or (pm--get-indirect-buffer-of-mode mode)
-                  (pm--create-indirect-buffer mode)))) ; assigns pm/config
-    (with-current-buffer buf
-      (setq pm/submode submode)
-      (pm--setup-buffer))
-    (oset submode :buffer buf)))
+  (let ((mode (oref submode :mode)))
+    (oset submode :buffer 
+          (or (pm--get-indirect-buffer-of-mode mode)
+              (with-current-buffer  buf
+                (setq pm/submode submode)
+                (pm--setup-buffer))))))
+
 
 (defmethod pm/install-buffer ((submode pm-inner-submode) type)
   "Depending of the TYPE install an indirect buffer into
 slot :buffer of SUBMODE. Create this buffer if does not exist."
-  (let* ((mode
-          (cond ((eq 'body type) (oref submode :mode))
-                ((eq 'head type) (oref submode :head-mode))
-                ((eq 'tail type) (oref submode :tail-mode))
-                (t (error "TYPE argument must be one of body, head, tail. "))))
-         (buf (or (pm--get-indirect-buffer-of-mode mode)
-                  (pm--create-indirect-buffer mode))))
-    (with-current-buffer buf
-      (setq pm/submode submode)
-      (pm--setup-buffer))
-    (pm--set-submode-buffer submode type buf)))
+  (let ((mode
+         (cond ((eq 'body type) (oref submode :mode))
+               ((eq 'head type) (oref submode :head-mode))
+               ((eq 'tail type) (oref submode :tail-mode))
+               (t (error "TYPE argument must be one of body, head, tail. ")))))
+    (pm--set-submode-buffer submode type
+                            (or (pm--get-indirect-buffer-of-mode mode)
+                                (with-current-buffer (pm--create-indirect-buffer mode)
+                                  (setq pm/submode submode)
+                                  (pm--setup-buffer))))))
 
 
 (defgeneric pm/get-span (submode &optional pos)
