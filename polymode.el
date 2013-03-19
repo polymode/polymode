@@ -6,7 +6,6 @@
 (require 'eieio)
 (require 'eieio-base)
 (require 'eieio-custom)
-(add-to-list 'load-path "~/VC/polymode/")
 (require 'polymode-classes)
 (require 'polymode-methods)
 (require 'polymode-modes)
@@ -220,7 +219,7 @@ in polymode buffers."
          ;;           (current-buffer) major-mode (point-min) (point-max) (point))
          (font-lock-unfontify-region (point-min) (point-max))
          (unwind-protect
-             (progn (dbg (point-min) (point-max) (current-buffer))
+             (progn ;; (dbg (point-min) (point-max) (current-buffer))
                     ;; (object-name (car (last *span*))))
                     (if (and font-lock-mode font-lock-keywords)
                         (funcall pm/fontify-region-original
@@ -299,8 +298,12 @@ This funciton is placed in local post-command hook."
   ;; return buffer
   (let ((buff (or buffer (current-buffer))))
     (with-current-buffer buff
-      (set (make-local-variable 'polymode-mode) t)
-      (funcall (oref pm/config :minor-mode-name) t)
+      ;; Don't let parse-partial-sexp get fooled by syntax outside
+      ;; the chunk being fontified.
+      ;; font-lock, forward-sexp etc should see syntactic comments
+      ;; (set (make-local-variable 'parse-sexp-lookup-properties) t)
+
+      (set (make-local-variable 'font-lock-dont-widen) t)
       
       (when pm--dbg-fontlock 
         (setq pm/fontify-region-original
@@ -308,12 +311,10 @@ This funciton is placed in local post-command hook."
         (set (make-local-variable 'font-lock-fontify-region-function)
              #'pm/fontify-region))
 
-      ;; Don't let parse-partial-sexp get fooled by syntax outside
-      ;; the chunk being fontified.
-      (set (make-local-variable 'font-lock-dont-widen) t)
+      (set (make-local-variable 'polymode-mode) t)
+      (funcall (oref pm/config :minor-mode-name) t)
 
-      ;; font-lock, forward-sexp etc should see syntactic comments
-      (set (make-local-variable 'parse-sexp-lookup-properties) t)
+
 
       ;; Indentation should first narrow to the chunk.  Modes
       ;; should normally just bind `indent-line-function' to
@@ -426,14 +427,7 @@ Return newlly created buffer."
       (with-current-buffer new-buffer
         (pm--clone-local-variables tbf)
         ;; Now we can make it local:
-        (set (make-local-variable 'polymode-mode) t)
         (setq polymode-major-mode mode)
-        ;; how to avoid this  very silly font-lock infloop :(
-        ;; (with-silent-modifications
-        ;;   (save-restriction
-        ;;     (widen)
-        ;;     (put-text-property (point-min) (point-max) 'fontified t)))
-        ;; todo: see clone-indirect-buffer for other stuff to clone.
         
         ;; VS[26-08-2012]: Dave Love's hack.
         ;; Use file's local variables section to set variables in
@@ -452,13 +446,13 @@ Return newlly created buffer."
         ;;       (pm/hack-local-variables))
         ;;   (pm/hack-local-variables))
 
-        (setq pm/config config)
 
         ;; Avoid the uniqified name for the indirect buffer in the
         ;; mode line.
         ;; (setq mode-line-buffer-identification
         ;;       (propertized-buffer-identification base-name))
-
+        (setq pm/config config)
+        
         (setq buffer-file-coding-system coding)
         ;; For benefit of things like VC
         (setq buffer-file-name file)
