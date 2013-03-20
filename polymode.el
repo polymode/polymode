@@ -116,7 +116,7 @@ Not effective after loading the LitProg library."
 (defun pm/get-innermost-span (&optional pos)
   (pm/get-span pm/config pos))
 
-(defun pm/map-over-spans (beg end fun)
+(defun pm/map-over-spans (fun beg end)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args.  It is executed with point at the
 beginning of the span and with the buffer narrowed to the
@@ -134,8 +134,7 @@ the current innermost span.
           (save-restriction
             (pm/narrow-to-span *span*)
             (funcall fun)
-            (goto-char (point-max)))
-          )))))
+            (goto-char (point-max))))))))
 
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
@@ -209,24 +208,18 @@ in polymode buffers."
 	 (inhibit-modification-hooks t)
 	 deactivate-mark)
     ;; (with-silent-modifications
-
     (save-restriction
       (widen)
-      (pm/map-over-spans
-       beg end
-       (lambda ()
-         ;; (message  "%s %s (%s %s) point: %s"
-         ;;           (current-buffer) major-mode (point-min) (point-max) (point))
-         (font-lock-unfontify-region (point-min) (point-max))
-         (unwind-protect
-             (progn ;; (dbg (point-min) (point-max) (current-buffer))
-                    ;; (object-name (car (last *span*))))
-                    (if (and font-lock-mode font-lock-keywords)
-                        (funcall pm/fontify-region-original
-                                 (point-min) (point-max) verbose)))
-           ;; In case font-lock isn't done for some mode:
-           (put-text-property (point-min) (point-max) 'fontified t))))
-      (unless ,modified
+      (pm/map-over-spans (lambda ()
+                           (font-lock-unfontify-region (point-min) (point-max))
+                           (unwind-protect
+                               (if (and font-lock-mode font-lock-keywords)
+                                   (funcall pm/fontify-region-original
+                                            (point-min) (point-max) verbose))
+                             ;; In case font-lock isn't done for some mode:
+                             (put-text-property (point-min) (point-max) 'fontified t)))
+                         beg end)
+      (unless modified
         (restore-buffer-modified-p nil)))))
 
 
@@ -353,21 +346,21 @@ This funciton is placed in local post-command hook."
 
 
 ;; adapted from org
-(defun pm--clone-local-variables (from-buffer &optional regexp)
-  "Clone local variables from FROM-BUFFER.
-Optional argument REGEXP selects variables to clone."
-  (mapc
-   (lambda (pair)
-     (and (symbolp (car pair))
-	  (or (null regexp)
-	      (string-match regexp (symbol-name (car pair))))
-          (condition-case error ;; some special wars cannot be set directly, how to solve?
-              (set (make-local-variable (car pair))
-                   (cdr pair))
-            ;; fixme: enable-multibyte-characters cannot be set, what are others?
-            (error ;(message  "--dbg local set: %s" (error-message-string error))
-                   nil))))
-   (buffer-local-variables from-buffer)))
+;; (defun pm--clone-local-variables (from-buffer &optional regexp)
+;;   "Clone local variables from FROM-BUFFER.
+;; Optional argument REGEXP selects variables to clone."
+;;   (mapc
+;;    (lambda (pair)
+;;      (and (symbolp (car pair))
+;; 	  (or (null regexp)
+;; 	      (string-match regexp (symbol-name (car pair))))
+;;           (condition-case error ;; some special wars cannot be set directly, how to solve?
+;;               (set (make-local-variable (car pair))
+;;                    (cdr pair))
+;;             ;; fixme: enable-multibyte-characters cannot be set, what are others?
+;;             (error ;(message  "--dbg local set: %s" (error-message-string error))
+;;                    nil))))
+;;    (buffer-local-variables from-buffer)))
 
 (defun pm--create-indirect-buffer (mode)
   "Create indirect buffer with major MODE and initialize appropriately.
@@ -421,11 +414,14 @@ Return newlly created buffer."
 
       ;; do it in empty buffer to exclude all kind of font-lock issues
       ;; Or, is there a reliable way to deactivate font-lock temporarly?
-      (with-current-buffer tbf
-        (let ((polymode-mode t)) ;;major-modes might check it
-          (funcall mode)))
+      ;; (with-current-buffer tbf
+      ;;   (let ((polymode-mode t)) ;;major-modes might check it
+      ;;     (funcall mode)))
       (with-current-buffer new-buffer
-        (pm--clone-local-variables tbf)
+        (let ((polymode-mode t)) ;;major-modes might check it
+          (funcall mode))
+        ;; clonning doesn't really work, local maps 
+        ;; (pm--clone-local-variables tbf)
         ;; Now we can make it local:
         (setq polymode-major-mode mode)
         
@@ -472,6 +468,14 @@ Return newlly created buffer."
 
 (defun pm--set-submode-buffer (obj type buff)
   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
+    ;; (cond ((eq type 'body)
+    ;;        (setq buffer buff))
+    ;;       ((eq type 'head)
+    ;;        (setq head-buffer buff))
+    ;;       ((eq type 'tail)
+    ;;        (setq tail-buffer buff))
+    ;;       (t (setq buffer head)))))
+           
     (pcase (list type head-mode tail-mode)
       (`(body body ,(or `nil `body))
        (setq buffer buff
@@ -496,8 +500,9 @@ Return newlly created buffer."
 
 ;; (oref pm-submode/noweb-R :tail-mode)
 ;; (oref pm-submode/noweb-R :buffer)
-;; (oref pm-submode/noweb-R :head-buffer)
-;; (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
+(progn
+  (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
+  (oref pm-submode/noweb-R :head-buffer))
 
 ;;;; HACKS
 ;; VS[26-08-2012]: Dave Love's hack. See commentary above.
@@ -517,31 +522,6 @@ Return newlly created buffer."
 (define-minor-mode polymode-minor-mode
   "Polymode minor mode, used to make everything work."
   nil " PM" polymode-mode-map)
-
-(define-derived-mode noweb-mode2 fundamental-mode "Noweb"
-  "Mode for editing noweb documents.
-Supports differnt major modes for doc and code chunks using multi-mode."
-  (pm/initialize (clone pm-config/noweb-R)))
-
-(add-to-list 'auto-mode-alist '("Tnw" . noweb-mode2))
-
-(define-derived-mode Rmd-mode fundamental-mode "Rmd"
-  "Mode for editing noweb documents.
-Supports differnt major modes for doc and code chunks using multi-mode."
-  (pm/initialize (clone pm-config/markdown)))
-
-(define-minor-mode Rmd-minor-mode
-  "Polymode minor mode, used to make everything work."
-  nil " Rmd" polymode-mode-map
-  (if Rmd-minor-mode
-      (unless pm/config
-        (let ((config (clone pm-config/markdown)))
-          (oset config :minor-mode-name 'Rmd-minor-mode)
-          (pm/initialize config)))
-    (setq pm/config nil
-          pm/submode nil)))
-
-(add-to-list 'auto-mode-alist '("Rmd" . Rmd-mode))
 
 
 (defun pm--map-over-spans-highlight ()
