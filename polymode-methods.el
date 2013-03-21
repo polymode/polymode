@@ -237,8 +237,76 @@ in this case."
       (append span (list submode)))))
 
 ;;; UTILS
-(defun pm--span-at-point (head-reg tail-reg &optional pos)
+(defun pm--default-matcher (reg ahead)
+  (if (< ahead 0)
+      (if (re-search-backward reg nil t)
+          (cons (match-beginning 0) (match-end 0))
+        (cons (point-min) (point-min)))
+    (if (re-search-forward reg nil t)
+        (cons (match-beginning 0) (match-end 0))
+      (cons (point-max) (point-max)))))
+
+(defun pm--span-at-point-fun-fun (hd-matcher tl-matcher)
+  (save-excursion
+    (let* ((pos (point))
+           (posh (funcall hd-matcher -1))
+           (post (progn (goto-char (cdr posh))
+                        (funcall tl-matcher 1))))
+      (if (and (<= (cdr posh) pos)
+               (<= pos (car post)))
+          (list 'body (cdr posh) (car post))
+        (if (and (< (car post) pos)
+                 (< pos (cdr post)))
+            (list 'tail (car post) (cdr post))
+          (if (< pos (cdr post))
+              ;; might be in the head
+              (progn
+                (goto-char (car post))
+                (let ((posh1 (funcall hd-matcher -1)))
+                  (if (and (< (car posh1) pos)
+                           (< pos (cdr posh1)))
+                      (list 'head (car posh1) (cdr posh1))
+                    (list nil (cdr posh) (car posh1))))) ;; posh is point min.
+            (goto-char (cdr post))
+            (let ((posh1 (funcall hd-matcher 1)))
+              (if (and (< (car posh1) pos )
+                       (< pos (cdr posh1)))
+                  (list 'head (car posh1) (cdr posh1))
+                (list nil (cdr post) (car posh1))))))))))
+
+(defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
+  ;; efficent reg-reg lookup with only 2 searches
+  (save-excursion
+    (let* ((pos (point))
+           (reg (concat "\\(?1:\\(" tail-matcher "\\)\\)\\|\\(?2:\\(" head-matcher "\\)\\)"))
+           (pos1-end (if (re-search-backward reg nil t)
+                         (match-end 0)))
+           (pos1-tail? (or (null pos1-end) (match-end 1))) ;; consider point-min as a tail
+           (pos1-end (goto-char (or pos1-end  (point-min))))
+           (pos2-start (if (re-search-forward reg nil t)
+                           (match-beginning 0)))
+           (pos2-end (and pos2-start (match-end 0)))
+           (pos2-tail? (and pos2-start (match-end 1)))
+           (pos2-start (or pos2-start (point-max)))) ;consider pointmax as head
+      (if (or (< pos pos2-start)
+              (eq pos (point-max)))
+          ;; inside doc or chunk body
+          (if pos1-tail? 
+              (list nil pos1-end pos2-start) ;doc
+            (list 'body pos1-end pos2-start)) ; chunk body
+        ;; else inside head or tail
+        (if (< pos pos2-end) ; <- this one should be always true
+            (if pos2-tail?
+                (list 'tail pos2-start pos2-end)
+              (list 'head pos2-start pos2-end)))
+        ))))
+
+(defun pm--span-at-point (head-matcher tl-matcher &optional pos)
   "Basic span detector with head/tail.
+
+HEAD-MATCHER and TAIL-MATCHER can be regexp or functions
+returning (cons beg end) and accepting one argument AHEAD that
+can be either 1 or -1 for either forward or backward search.
 
 Return (type span-start span-end) where type is one of the
 follwoing symbols:
@@ -248,32 +316,53 @@ body - pos is between head-reg and (tail-reg or point-max)
 head -  head span
 tail -  tail span"
   ;; ! start of the span is part of the span !
-  (save-excursion
-    (save-restriction
-      (widen)
-      (setq pos (or pos (point)))
-      (goto-char pos)
-      (let* ((reg (concat "\\(?1:\\(" tail-reg "\\)\\)\\|\\(?2:\\(" head-reg "\\)\\)"))
-             (pos1-end (if (re-search-backward reg nil t)
-                           (match-end 0)))
-             (pos1-tail? (or (null pos1-end) (match-end 1))) ;; consider point-min as a tail
-             (pos1-end (goto-char (or pos1-end  (point-min))))
-             (pos2-start (if (re-search-forward reg nil t)
-                             (match-beginning 0)))
-             (pos2-end (and pos2-start (match-end 0)))
-             (pos2-tail? (and pos2-start (match-end 1)))
-             (pos2-start (or pos2-start (point-max)))) ;consider pointmax as head
-        (if (or (< pos pos2-start)
-                (eq pos (point-max)))
-            ;; inside doc or chunk body
-            (if pos1-tail? 
-                (list nil pos1-end pos2-start) ;doc
-              (list 'body pos1-end pos2-start)) ; chunk body
-          ;; else inside head or tail
-          (if (< pos pos2-end) ; <- this one should be always true
-              (if pos2-tail?
-                  (list 'tail pos2-start pos2-end)
-                (list 'head pos2-start pos2-end)))
-          )))))
+  (save-restriction
+    (widen)
+    (goto-char (or pos (point)))
+    (cond ((and (stringp head-matcher)
+                (stringp tail-matcher))
+           (pm--span-at-point-reg-reg head-matcher tail-matcher))
+          ((and (stringp head-matcher)
+                (functionp tail-matcher))
+           (pm--span-at-point-fun-fun
+            (lambda (ahead) (pm--default-matcher hd-matcher ahead))
+            tail-matcher))
+          ((and (functionp head-matcher)
+                (stringp tail-matcher))
+           (pm--span-at-point-fun-fun
+            head-matcher
+            (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
+          ((and (functionp head-matcher)
+                (functionp tail-matcher))
+           (pm--span-at-point-fun-fun head-matcher tail-matcher))
+          (t (error "head and tail matchers should be either regexp strings or functions")))))
+       
+                     
+;; (defun pm--test-ff ()
+;;   (interactive)
+;;   (let* ((hd-reg "<!--[ \t]*begin.rcode")
+;;          (tl-reg "end.rcode[ \t]*-->")
+;;          (span (pm--span-at-point
+;;                 (lambda (ahead) (pm--default-matcher hd-reg ahead))
+;;                 (lambda (ahead) (pm--default-matcher tl-reg ahead)))))
+;;     (ess-blink-region (cadr span) (caddr span))
+;;     (message "%s" span)))
+
+;; (defun pm--test-rf ()
+;;   (interactive)
+;;   (let ((span (pm--span-at-point "<!--[ \t]*begin.rcode"
+;;                                  (lambda (ahead)
+;;                                    (pm--default-matcher "end.rcode[ \t]*-->" ahead)))))
+;;     (ess-blink-region (cadr span) (caddr span))
+;;     (message "%s" span)))
+
+;; (defun pm--test-rr ()
+;;   (interactive)
+;;   (let ((span (pm--span-at-point "<!--[ \t]*begin.rcode"
+;;                                  "end.rcode[ \t]*-->")))
+;;     (ess-blink-region (cadr span) (caddr span))
+;;     (message "%s" span)))
+
+              
 
 (provide 'polymode-methods)

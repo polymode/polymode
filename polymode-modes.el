@@ -27,14 +27,12 @@
   :group 'base-submodes
   :type 'object)
 
-
 (defcustom pm-base/R
   (pm-submode "R"
               :mode 'R-mode)
   "R base submode"
   :group 'base-submodes
   :type 'object)
-
 
 (defcustom pm-base/text
   (pm-submode "text"
@@ -43,8 +41,8 @@
   :group 'base-submodes
   :type 'object)
 
-;; NOWEB
 
+;; NOWEB
 (defcustom pm-config/noweb
   (pm-config-one "noweb"
                  :base-submode-name 'pm-base/latex
@@ -56,24 +54,10 @@
 (defcustom  pm-submode/noweb
   (pm-inner-submode "noweb"
                     :head-reg  "^<<\\(.*\\)>>="
-                    :tail-reg    "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)"
-                    ;; :font-lock-keywords `(("^\\(<<\\)\\(.*\\)\\(>>=\\)$" (1 'font-lock-keyword-face)
-                    ;;                        (2 'font-lock-variable-name-face) (3 'font-lock-keyword-face))
-                    ;;                       ("^\\(@ +%def\\) +\\(.+\\)"
-                    ;;                        (1 'font-lock-keyword-face)
-                    ;;                        (2 'font-lock-variable-name-face))
-                    ;;                       "^@")
-                    ;; :font-lock-matcher '("\\(?:$\\|[^@]\\|\\`\\)\\(<<\\)\\([^>]+\\)\\(>>\\)"
-                    ;;                      (1 'font-lock-keyword-face t)
-                    ;;                      (2 'font-lock-variable-name-face t)
-                    ;;                      (3 'font-lock-keyword-face t))
-                    ;; :font-lock-syntactic-matcher '("\\(?:$\\|[^@]\\)\\(<\\)<[^>]+>\\(>\\)" (1 "!") (2 "!"))
-                    ;; :font-lock-literal-matcher '("\\(\\[\\)\\[[^]]+]\\(]\\)" (1 "|") (2 "|"))
-                    )
+                    :tail-reg    "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
   "Noweb typical chunk."
   :group 'polymode
   :type 'object)
-
 
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
@@ -82,7 +66,6 @@
   :group 'polymode
   :type 'object)
 
-;; (setq config pm-config/noweb)
 (defcustom pm-submode/noweb+R
   (clone pm-submode/noweb
          :mode 'R-mode
@@ -91,14 +74,13 @@
   :group 'polymode
   :type 'object)
 
-
 (define-derived-mode poly-noweb+R-mode fundamental-mode "Noweb+R"
   "Mode for editing noweb documents.
 Supports differnt major modes for doc and code chunks using multi-mode."
   (pm/initialize (clone pm-config/noweb-R)))
 
+(add-to-list 'interpreter-mode-alist '("noweb+R" . poly-noweb+R-mode))
 (add-to-list 'auto-mode-alist '("Snw" . poly-noweb+R-mode))
-
 
 
 ;;; MARKDOWN
