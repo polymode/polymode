@@ -139,14 +139,14 @@ are not known in advance. For example org-mode, markdown.")
                 :type (or null buffer)
                 :initform nil)
    (head-reg :initarg :head-reg
-             :type string
+             :type (or string symbol)
              :initform ""
-             :custom string
+             :custom (or string symbol)
              :documentation "Regexp for the chunk start (aka head)")
    (tail-reg :initarg :tail-reg
-             :type string
+             :type (or string symbol)
              :initform ""
-             :custom string
+             :custom (or string symbol)
              :documentation "Regexp for chunk end (aka tail)")
    (extensions :initarg :extensions
                :type list

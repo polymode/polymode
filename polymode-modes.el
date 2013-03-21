@@ -179,33 +179,92 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 (add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+R-mode))
 
-;;; RCpp
-;; (defcustom pm-config/R
-;;   (pm-config-one "R"
-;;                  :base-submode-name 'pm-base/R
-;;                  :inner-submode-name 'pm-submode/fundamental)
-;;   "HTML typical configuration"
-;;   :group 'polymode :type 'object)
+;;; R+C++
+(defcustom pm-config/R
+  (pm-config-one "R"
+                 :base-submode-name 'pm-base/R
+                 :inner-submode-name 'pm-submode/fundamental)
+  "HTML typical configuration"
+  :group 'polymode :type 'object)
 
-;; (defcustom pm-config/R+Cpp
-;;   (clone pm-config/R "R+Cpp" :inner-submode-name 'pm-submode/R+Cpp)
-;;   "HTML + R configuration"
-;;   :group 'polymode  :type 'object)
+(defcustom pm-config/R+C++
+  (clone pm-config/R "R+C++" :inner-submode-name 'pm-submode/R+C++)
+  "R + C++ configuration"
+  :group 'polymode  :type 'object)
 
-;; (defcustom  pm-submode/R+Cpp
-;;   (pm-inner-submode "html+R"
-;;                     :mode 'R-mode
-;;                     :head-reg "cppFunction('"
-;;                     :tail-reg nil
-;;                     :protect-indent-line-function t)
-;;   "HTML KnitR chunk."
-;;   :group 'polymode  :type 'object)
 
-;; (define-derived-mode poly-R+Cpp-mode fundamental-mode "R+Cpp"
-;;   "Polymode for R+Cpp"
-;;   (pm/initialize (clone pm-config/R+Cpp)))
+;; todo: move into :matcher-subexp functionality?
+(defun pm--R+C++-head-matcher (ahead)
+  (when (re-search-forward "cppFunction[ \t]*(\\(['\"]\\)"
+                           nil t ahead)
+    (cons (match-beginning 1) (match-end 1))))
 
-;; (add-to-list 'auto-mode-alist '("RCpp" . poly-R+Cpp-mode))
+(defun pm--R+C++-tail-matcher (ahead)
+  (when (< ahead 0)
+    (goto-char (car (pm--R+C++-head-matcher -1))))
+  (let ((end (condition-case err
+                 (progn (forward-sexp)
+                        (point))
+               (error (point-max)))))
+    (cons (- end 1) end)))
+ 
+(defcustom  pm-submode/R+C++
+  (pm-inner-submode "R+C++"
+                    :mode 'c++-mode
+                    :head-reg 'pm--R+C++-head-matcher
+                    :tail-reg 'pm--R+C++-tail-matcher
+                    :protect-indent-line-function t)
+  "HTML KnitR chunk."
+  :group 'polymode  :type 'object)
+
+(define-derived-mode poly-R+C++-mode fundamental-mode "R+C++"
+  "Polymode for R+C++"
+  (pm/initialize (clone pm-config/R+C++)))
+
+(add-to-list 'interpreter-mode-alist '("R+C++" . poly-R+C++-mode))
+(add-to-list 'auto-mode-alist '("Rcpp" . poly-R+C++-mode))
+
+
+;;; C++R
+(defcustom pm-config/C++
+  (pm-config-one "C++"
+                 :base-submode-name 'pm-base/C++
+                 :inner-submode-name 'pm-submode/fundamental)
+  "C++ typical configuration"
+  :group 'polymode :type 'object)
+
+(defcustom pm-config/C++R
+  (clone pm-config/R "C++R" :inner-submode-name 'pm-submode/C++R)
+  "R + C++ configuration"
+  :group 'polymode  :type 'object)
+
+
+;; todo: move into :matcher-subexp functionality?
+(defun pm--C++R-head-matcher (ahead)
+  (when (re-search-forward "^[ \t]*/[*]+[ \t]*R" nil t ahead)
+    (cons (match-beginning 0) (match-end 0))))
+
+(defun pm--C++R-tail-matcher (ahead)
+  (when (< ahead 0)
+    (error "backwards tail match not implemented"))
+  (when (re-search-forward "^[ \t]*\\*/")
+    (cons (match-beginning 0) (match-end 0))))
+
+(defcustom  pm-submode/C++R
+  (pm-inner-submode "C++R"
+                    :mode 'fundamental-mode
+                    :head-reg 'pm--C++R-head-matcher
+                    :tail-reg 'pm--C++R-tail-matcher
+                    :protect-indent-line-function t)
+  "HTML KnitR chunk."
+  :group 'polymode  :type 'object)
+
+(define-derived-mode poly-C++R-mode fundamental-mode "C++R"
+  "Polymode for C++R"
+  (pm/initialize (clone pm-config/C++R)))
+
+(add-to-list 'interpreter-mode-alist '("C++R" . poly-C++R-mode))
+(add-to-list 'auto-mode-alist '("cppR" . poly-C++R-mode))
 
 
 

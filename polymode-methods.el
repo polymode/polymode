@@ -240,39 +240,50 @@ in this case."
 (defun pm--default-matcher (reg ahead)
   (if (< ahead 0)
       (if (re-search-backward reg nil t)
-          (cons (match-beginning 0) (match-end 0))
-        (cons (point-min) (point-min)))
+          (cons (match-beginning 0) (match-end 0)))
     (if (re-search-forward reg nil t)
-        (cons (match-beginning 0) (match-end 0))
-      (cons (point-max) (point-max)))))
+        (cons (match-beginning 0) (match-end 0)))))
 
+
+;; fixme: there should be a simpler way... check the code and document
 (defun pm--span-at-point-fun-fun (hd-matcher tl-matcher)
   (save-excursion
-    (let* ((pos (point))
-           (posh (funcall hd-matcher -1))
-           (post (progn (goto-char (cdr posh))
-                        (funcall tl-matcher 1))))
-      (if (and (<= (cdr posh) pos)
-               (<= pos (car post)))
-          (list 'body (cdr posh) (car post))
-        (if (and (< (car post) pos)
-                 (< pos (cdr post)))
-            (list 'tail (car post) (cdr post))
-          (if (< pos (cdr post))
-              ;; might be in the head
-              (progn
-                (goto-char (car post))
-                (let ((posh1 (funcall hd-matcher -1)))
-                  (if (and (< (car posh1) pos)
+    (let ((pos (point))
+          (posh (funcall hd-matcher -1)))
+      (if (null posh)
+          ;; special first chunk
+          (let ((posh1 (progn (goto-char (point-min))
+                              (funcall hd-matcher 1))))
+            (if (and posh1 (< (car posh1) pos) (< pos (cdr posh1)))
+                (list 'head (car posh1) (cdr posh1))
+              (list nil (point-min) (or (car posh1)
+                                        (point-max)))))
+        (let ((post (progn (goto-char (car posh))
+                           (or (funcall tl-matcher 1)
+                               (cons (point-max) (point-max))))))
+          (if (and (<= (cdr posh) pos)
+                   (<= pos (car post)))
+              (list 'body (cdr posh) (car post))
+            (if (and (< (car post) pos)
+                     (< pos (cdr post)))
+                (list 'tail (car post) (cdr post))
+              (if (< pos (cdr post))
+                  ;; might be in the head
+                  (progn
+                    (goto-char (car post))
+                    (let ((posh1 (funcall hd-matcher -1)))
+                      (if (and (< (car posh1) pos)
+                               (< pos (cdr posh1)))
+                          (list 'head (car posh1) (cdr posh1))
+                        (list nil (cdr posh) (car posh1))))) ;; posh is point min, fixme: not true anymore?
+                (goto-char (cdr post))
+                (let ((posh1 (or (funcall hd-matcher 1)
+                                 (cons (point-max) (point-max)))))
+                  (if (and posh
+                           (< (car posh1) pos )
                            (< pos (cdr posh1)))
                       (list 'head (car posh1) (cdr posh1))
-                    (list nil (cdr posh) (car posh1))))) ;; posh is point min.
-            (goto-char (cdr post))
-            (let ((posh1 (funcall hd-matcher 1)))
-              (if (and (< (car posh1) pos )
-                       (< pos (cdr posh1)))
-                  (list 'head (car posh1) (cdr posh1))
-                (list nil (cdr post) (car posh1))))))))))
+                    (list nil (cdr post) (car posh1))))))))))))
 
 (defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
   ;; efficent reg-reg lookup with only 2 searches
@@ -301,7 +312,7 @@ in this case."
               (list 'head pos2-start pos2-end)))
         ))))
 
-(defun pm--span-at-point (head-matcher tl-matcher &optional pos)
+(defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Basic span detector with head/tail.
 
 HEAD-MATCHER and TAIL-MATCHER can be regexp or functions
