@@ -91,14 +91,14 @@ Many things still don't work as expected. For example:
      
 ### Ess-help buffer
 
-![ess-help](img/ess-help.png)
+<img src="img/ess-help.png" width="350px"/>
 
 ### C++R
-![cppR](img/cppR.png)
+<img src="img/cppR.png" width="350px"/>
 
 ### markdown+R
 
-![Rmd](img/Rmd.png)
+<img src="img/Rmd.png" width="350px"/>
 
 
 
