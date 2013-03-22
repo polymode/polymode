@@ -1,0 +1,12 @@
+require(inline)
+require(RcppEigen)
+
+runifXd <- cxxfunction(signature(arg1="integer"), plugin='RcppEigen',
+                       includes='
+RNGScope scope;
+using namespace Eigen;
+
+inline VectorXd runifXd(int size, double a=0., double b=1.) {
+  return as<VectorXd>(runif(size, a, b));
+}',
+                       body='return wrap(runifXd(as<int>(arg1)));')
