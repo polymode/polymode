@@ -1,3 +1,5 @@
+(require 'polymode)
+
 ;; BASE MODES
 (defcustom pm-base/fundamental
   (pm-submode "fundamental"
@@ -55,4 +57,24 @@
   :group 'base-submodes
   :type 'object)
 
+;; CONFIG
+(defcustom pm-config/brew
+  (pm-config-one "brew"
+                 :base-submode-name 'pm-base/text
+                 :inner-submode-name 'pm-submode/fundamental)
+  "HTML typical configuration"
+  :group 'polymode :type 'object)
+
+
+(defcustom pm-config/html
+  (pm-config-one "html"
+                 :base-submode-name 'pm-base/html
+                 :inner-submode-name 'pm-submode/fundamental)
+  "HTML typical configuration"
+  :group 'polymode :type 'object)
+
+
+
 (provide 'poly-base)
+
+

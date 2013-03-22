@@ -1,6 +1,8 @@
+(require 'poly-base)
+
 ;; NOWEB
-
-
+(require 'poly-noweb)
+         
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
          :inner-submode-name 'pm-submode/noweb+R)
@@ -25,6 +27,8 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 
 ;; MARKDOWN
+(require 'poly-markdown)
+
 (define-derived-mode poly-markdown+r-mode fundamental-mode "Rmd"
   "Mode for editing noweb documents.
 Supports differnt major modes for doc and code chunks using multi-mode."
@@ -68,13 +72,6 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 
 ;;; R-brew
-(defcustom pm-config/brew
-  (pm-config-one "brew"
-                 :base-submode-name 'pm-base/text
-                 :inner-submode-name 'pm-submode/fundamental)
-  "HTML typical configuration"
-  :group 'polymode :type 'object)
-
 (defcustom pm-config/brew+R
   (clone pm-config/brew "brew+R" :inner-submode-name 'pm-submode/brew+R)
   "Brew + R configuration"

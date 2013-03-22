@@ -1,6 +1,5 @@
 (require 'polymode)
 
-;; NOWEB
 (defcustom pm-config/noweb
   (pm-config-one "noweb"
                  :base-submode-name 'pm-base/latex
