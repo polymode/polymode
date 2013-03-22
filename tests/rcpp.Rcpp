@@ -1,3 +1,4 @@
+
 ## signR <- function(x) {
 ##   if (x > 0) {
 ##     1
@@ -8,8 +9,10 @@
 ##   }
 ## }
 
+
+
 cppFunction('
-  int signC(int x) {
+ int signC(int x) {
     if (x > 0) {
     n  return 1;
     } else if (x == 0) {
@@ -19,6 +22,6 @@ cppFunction('
     }
   }')
 
-sfdsfs 
+
 
 

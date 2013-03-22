@@ -1,7 +1,7 @@
 
 ## What is polymode?
 
-Polymode is a new emacs package that offers suport for multiple major modes
+Polymode is a new emacs package that offers support for multiple major modes
 inside a single emacs buffer. It is lightweight and fully object oriented,
 specifically designed for quick addition of new polymodes.
 
@@ -85,6 +85,18 @@ Many things still don't work as expected. For example:
    * Customization is not tested at all ... don't even try.
    * No navigation between chunks as yet.
    * No literate programming backends. This will be part of another package.
-   
+   * Occasional problems with font-lock and messages `Error during redisplay:
+     (jit-lock-function 163) signaled (args-out-of-range 1 142)`
+     
+     
+## Screenshots
+
+![ess-help](img/ess-help.png)
+
+![Rcpp](img/Rcpp.png)
+
+![Rmd](img/Rmd.png)
+
+
 
 
