@@ -1,4 +1,4 @@
-
+<!-- M-x poly-markdown+r-minor-mode RET -->
 
 ```r
 1 + 1
