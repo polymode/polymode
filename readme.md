@@ -89,11 +89,14 @@ Many things still don't work as expected. For example:
      (jit-lock-function 163) signaled (args-out-of-range 1 142)`
      
      
-## Screenshots
+### Ess-help buffer
 
 ![ess-help](img/ess-help.png)
 
-![Rcpp](img/Rcpp.png)
+### C++R
+![cppR](img/cppR.png)
+
+### markdown+R
 
 ![Rmd](img/Rmd.png)
 
