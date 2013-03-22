@@ -1,78 +1,5 @@
-(require 'polymode)
-
-;; BASE MODES
-(defcustom pm-base/fundamental
-  (pm-submode "fundamental"
-              :mode 'fundamental-mode)
-  "Fundamental base mode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/latex
-  (pm-submode "latex"
-              :mode 'latex-mode)
-  "Latex base submode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/markdown
-  (pm-submode "latex"
-              :mode 'markdown-mode)
-  "Markdown base submode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/html
-  (pm-submode "html"
-              :mode 'html-mode)
-  "HTML base submode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/R
-  (pm-submode "R"
-              :mode 'R-mode)
-  "R base submode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/C++
-  (pm-submode "C++"
-              :mode 'c++-mode)
-  "C++ base submode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/text
-  (pm-submode "text"
-              :mode 'text-mode)
-  "Text base submode"
-  :group 'base-submodes
-  :type 'object)
-
-(defcustom pm-base/ess-help
-  (pm-submode "ess-help"
-              :mode 'ess-help-mode)
-  "ess-help"
-  :group 'base-submodes
-  :type 'object)
-
 ;; NOWEB
-(defcustom pm-config/noweb
-  (pm-config-one "noweb"
-                 :base-submode-name 'pm-base/latex
-                 :inner-submode-name 'pm-submode/noweb)
-  "Noweb typical configuration"
-  :group 'polymode
-  :type 'object)
 
-(defcustom  pm-submode/noweb
-  (pm-inner-submode "noweb"
-                    :head-reg  "^<<\\(.*\\)>>="
-                    :tail-reg    "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
-  "Noweb typical chunk."
-  :group 'polymode
-  :type 'object)
 
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
@@ -96,31 +23,14 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 (add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
 
-;;; MARKDOWN
-(defcustom pm-config/markdown
-  (pm-config-multi-auto "markdown"
-                        :base-submode-name 'pm-base/markdown
-                        :auto-submode-name 'pm-submode/markdown)
-  "Markdown typical configuration"
-  :group 'polymode
-  :type 'object)
-
-(defcustom  pm-submode/markdown
-  (pm-inner-submode-auto "markdown"
-                         :head-reg "^[ \t]*```[{ \t]*\\w.*$"
-                         :tail-reg "^[ \t]*```[ \t]*$"
-                         :retriever-regexp "```[ \t]*{?\\(\\w+\\)")
-  "Noweb typical chunk."
-  :group 'polymode
-  :type 'object)
-
-
-(define-derived-mode poly-markdown+R-mode fundamental-mode "Rmd"
+
+;; MARKDOWN
+(define-derived-mode poly-markdown+r-mode fundamental-mode "Rmd"
   "Mode for editing noweb documents.
 Supports differnt major modes for doc and code chunks using multi-mode."
   (pm/initialize (clone pm-config/markdown)))
 
-(define-minor-mode poly-markdown+R-minor-mode
+(define-minor-mode poly-markdown+r-minor-mode
   "Polymode minor mode, used to make everything work."
   nil " Rmd" polymode-mode-map
   (if Rmd-minor-mode
@@ -131,17 +41,10 @@ Supports differnt major modes for doc and code chunks using multi-mode."
     (setq pm/config nil
           pm/submode nil)))
 
-(add-to-list 'auto-mode-alist '("Rmd" . poly-markdown-R-mode))
+(add-to-list 'auto-mode-alist '("Rmd" . poly-markdown+r-mode))
 
-
-;;; HTML
-(defcustom pm-config/html
-  (pm-config-one "html"
-                 :base-submode-name 'pm-base/html
-                 :inner-submode-name 'pm-submode/fundamental)
-  "HTML typical configuration"
-  :group 'polymode :type 'object)
-
+
+;; HTML
 (defcustom pm-config/html+R
   (clone pm-config/html "html+R" :inner-submode-name 'pm-submode/html+R)
   "HTML + R configuration"
@@ -163,6 +66,7 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 (add-to-list 'auto-mode-alist '("Rhtml" . poly-html+r-mode))
 
+
 ;;; R-brew
 (defcustom pm-config/brew
   (pm-config-one "brew"
@@ -192,6 +96,8 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 (add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+r-mode))
 
+
+
 ;;; R+C++
 ;; todo: move into :matcher-subexp functionality?
 (defun pm--R+C++-head-matcher (ahead)
@@ -207,9 +113,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   (when (< ahead 0)
     (goto-char (car (pm--R+C++-head-matcher -1))))
   ;; (with-syntax-table pm--C++R-syntax-table
-    (let ((end (or (ignore-errors (scan-sexps (point) 1))
-                   (buffer-end 1))))
-      (cons (max 1 (- end 1)) end)))
+  (let ((end (or (ignore-errors (scan-sexps (point) 1))
+                 (buffer-end 1))))
+    (cons (max 1 (- end 1)) end)))
 
 (defcustom pm-config/R
   (pm-config-one "R"
@@ -239,6 +145,7 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 
 (add-to-list 'auto-mode-alist '("Rcpp" . poly-r+c++-mode))
 
+
 ;;; C++R
 (defun pm--C++R-head-matcher (ahead)
   (when (re-search-forward "^[ \t]*/[*]+[ \t]*R" nil t ahead)
@@ -280,6 +187,7 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 (add-to-list 'auto-mode-alist '("cppR" . poly-c++r-mode))
 
 
+
 ;;; R help
 (defcustom pm-config/ess-help+R
   (pm-config-one "ess-R-help"
@@ -316,6 +224,6 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 (when (and (boundp ess-help-use-polymode)
            ess-help-use-polymode)
   (add-hook 'ess-help-mode-hook 'poly-ess-help+r-minor-mode))
-    
 
-(provide 'polymode-modes)
+
+(provide 'poly-R)

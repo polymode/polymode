@@ -1,0 +1,20 @@
+We know the value of pi is <% pi + 34 %>, and 2 times pi is <% 2*pi %>.
+
+The brew syntax in knitr is similar to the brew package, but all kinds of
+syntax in the brew package will be treated in the same way in knitr: they are
+nothing but inline R code.
+
+<% x<-1.234; NULL %>
+
+You can write a number as <% x %>, or <%= x %>, or <% x -%>.
+
+
+You won’t see this R output, but it will run. <% foo <- ’bar’ %>
+Now foo is <%=foo%> and today is <%=format(Sys.time(),’%B %d, %Y’)%>.
+<%# Comment -- ignored -- useful in testing.
+#Also notice the dash-percent-gt.
+It chops off the trailing newline.
+You can add it to any percent-gt. -%>
+How about generating a template from a template?
+<%% foo <- "fee fi fo fum" %%>
+foo is still <%= foo %>.
