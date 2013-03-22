@@ -1,5 +1,5 @@
-This demo shows you how to merge the source and output blocks in markdown output. Note **knitr** puts R source and output in separate blocks by default.
-
+This demo shows you how to merge the source and output blocks in markdown
+output. Note **knitr** puts R source and output in separate blocks by default.
 
 
 ```r

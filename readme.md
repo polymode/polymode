@@ -1,5 +1,4 @@
 
-
 ## What is polymode?
 
 Polymode is a new emacs package that offers suport for multiple major modes
@@ -58,6 +57,10 @@ currently loaded.
    
    ```C
    // -*- mode: poly-C++R -*-
+   ```
+   or 
+   ```sh
+   -*- mode: poly-brew+R; -*-
    ```
 
 

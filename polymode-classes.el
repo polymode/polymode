@@ -132,7 +132,7 @@ buffer).")
 
 (defclass pm-inner-submode (pm-submode)
   ((background
-    :initform 1.1)
+    :initform 1.12)
    (head-mode
     :initarg :head-mode
     :type symbol

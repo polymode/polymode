@@ -37,10 +37,10 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 (define-minor-mode poly-markdown+r-minor-mode
   "Polymode minor mode, used to make everything work."
   nil " Rmd" polymode-mode-map
-  (if Rmd-minor-mode
+  (if poly-markdown+r-minor-mode
       (unless pm/config
         (let ((config (clone pm-config/markdown)))
-          (oset config :minor-mode-name 'Rmd-minor-mode)
+          (oset config :minor-mode-name 'poly-markdown+r-minor-mode)
           (pm/initialize config)))
     (setq pm/config nil
           pm/submode nil)))
@@ -102,14 +102,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
                            nil t ahead)
     (cons (match-beginning 1) (match-end 1))))
 
-;; (defvar pm--C++R-syntax-table (make-syntax-table))
-;; (modify-syntax-entry ?\' "\"" pm--C++R-syntax-table)
-;; (modify-syntax-entry ?\" "\"" pm--C++R-syntax-table)
-
 (defun pm--R+C++-tail-matcher (ahead)
   (when (< ahead 0)
     (goto-char (car (pm--R+C++-head-matcher -1))))
-  ;; (with-syntax-table pm--C++R-syntax-table
   (let ((end (or (ignore-errors (scan-sexps (point) 1))
                  (buffer-end 1))))
     (cons (max 1 (- end 1)) end)))
@@ -151,7 +146,7 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 (defun pm--C++R-tail-matcher (ahead)
   (when (< ahead 0)
     (error "backwards tail match not implemented"))
-  ;; todo: may be base it on syntactic lookup 
+  ;; may be rely on syntactic lookup ?
   (when (re-search-forward "^[ \t]*\\*/")
     (cons (match-beginning 0) (match-end 0))))
 
