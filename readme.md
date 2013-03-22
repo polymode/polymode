@@ -72,6 +72,17 @@ The core polymode object and modes are usually named as "engine+submode", or
 todo: more to come on this ... need to define object hierarchy for the full story.
 
 
+## Warning!
 
+Many things still don't work as expected. For example:
+
+   * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
+   * Customization interface is not working as expected,  it is an eieio bug. 
+   * Customization is not tested at all ... don't even try.
+   * Tested only with emacs 24.3.1
+   * No navigation between chunks as yet.
+   * No literate programming backends. This will be part of another package.
+   * Rnw extension is still assigned to old ess-noweb-mode. Snw works.
+   
 
 
