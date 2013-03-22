@@ -200,14 +200,15 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 (define-minor-mode poly-ess-help+r-minor-mode
   "ess help"
   nil " RPM" polymode-mode-map
-  (if poly-ess-help+R-minor-mode
+  (if poly-ess-help+r-minor-mode
       (unless pm/config
         (let ((config (clone pm-config/ess-help+R)))
-          (oset config :minor-mode-name 'poly-ess-help+R-minor-mode)
+          (oset config :minor-mode-name 'poly-ess-help+r-minor-mode)
           (pm/initialize config)))
     (setq pm/config nil
           pm/submode nil)))
 
+;; will move into ESS
 (defcustom ess-help-use-polymode t
   "Use polymode in ESS help when available?"
   :group 'ess
