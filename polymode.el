@@ -202,18 +202,19 @@ warnign."
   (setq pm--ignore-post-command-hook nil))
 
 (defvar polymode-highlight-chunks t)
-(defvar pm--overlay nil)
-(make-variable-buffer-local 'pm--overlay)
 
 (defun polymode-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
 This funciton is placed in local post-command hook."
-  ;; (condition-case error
-  (unless pm--ignore-post-command-hook
-    (let ((*span* (pm/get-innermost-span))
-          (pm--can-move-overlays t))
-      (pm/select-buffer (car (last *span*)) *span*)
-      (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*)))))
+  (condition-case error
+      (unless pm--ignore-post-command-hook
+        (let ((*span* (pm/get-innermost-span))
+              (pm--can-move-overlays t))
+          (pm/select-buffer (car (last *span*)) *span*)
+          (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*))))
+    (error (message "polymode error: %s"
+                    (error-message-string error)))))
+  
 
 
 (defun pm/transform-color-value (color prop)
@@ -465,9 +466,9 @@ Return newlly created buffer."
 
         ;; Avoid the uniqified name for the indirect buffer in the
         ;; mode line.
-        ;; (setq mode-line-buffer-identification
-        ;;       (propertized-buffer-identification base-name))
-        (setq pm--overlay t)
+        (when pm--dbg-mode-line
+          (setq mode-line-buffer-identification
+                (propertized-buffer-identification base-name)))
         (setq pm/config config)
         ;; (face-remap-add-relative 'default '(:background "#073642"))
         (setq buffer-file-coding-system coding)
@@ -571,12 +572,12 @@ Return newlly created buffer."
     (ess-blink-region (nth 1 span) (nth 2 span))
     (message "%s" span)))
 
-(setq pm--dbg-fontlock t
+(setq pm--dbg-mode-line t
+      pm--dbg-fontlock t
       pm--dbg-hook t)
 
-(provide 'polymode)
 
-
+;; do not delete
 ;; (defun pm--comment-region (&optional beg end buffer)
 ;;   ;; mark as syntactic comment
 ;;   (let ((beg (or beg (region-beginning)))
@@ -622,3 +623,4 @@ Return newlly created buffer."
 ;;     (put-text-property beg end 'fontified t)))
 
 
+(provide 'polymode)
