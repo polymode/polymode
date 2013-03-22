@@ -74,15 +74,17 @@ todo: more to come on this ... need to define object hierarchy for the full stor
 
 ## Warning!
 
+   * Tested with Emacs 24.3.1 and unlikely to work with Emacses younger
+     than 24.2 as it uses pattern matching and eieio.
+   * Rnw extension is still assigned to old ess-noweb-mode. Snw works. 
+   
 Many things still don't work as expected. For example:
-
+    
    * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
    * Customization interface is not working as expected,  it is an eieio bug. 
    * Customization is not tested at all ... don't even try.
-   * Tested only with emacs 24.3.1
    * No navigation between chunks as yet.
    * No literate programming backends. This will be part of another package.
-   * Rnw extension is still assigned to old ess-noweb-mode. Snw works.
    
 
 
