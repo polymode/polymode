@@ -8,7 +8,6 @@
 (require 'eieio-custom)
 (require 'polymode-classes)
 (require 'polymode-methods)
-(require 'polymode-modes)
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"
@@ -30,17 +29,11 @@
   "Hook run by `pm/install-mode' in each indirect buffer.
 It is run after all the indirect buffers have been set up.")
 
-(defvar pm/fontify-region-original nil
-  "Fontification function normally used by the buffer's major mode.
-Used internaly to cahce font-lock-fontify-region-function.  Buffer local.")
-(make-variable-buffer-local 'multi-fontify-region-original)
+;; (defvar pm/base-mode nil)
+;; (make-variable-buffer-local 'pm/base-mode)
 
-
-(defvar pm/base-mode nil)
-(make-variable-buffer-local 'pm/base-mode)
-
-(defvar pm/default-submode nil)
-(make-variable-buffer-local 'pm/default-submode)
+;; (defvar pm/default-submode nil)
+;; (make-variable-buffer-local 'pm/default-submode)
 
 (defvar pm/config nil)
 (make-variable-buffer-local 'pm/config)
@@ -48,57 +41,63 @@ Used internaly to cahce font-lock-fontify-region-function.  Buffer local.")
 (defvar pm/submode nil)
 (make-variable-buffer-local 'pm/submode)
 
+(defvar pm/type nil)
+(make-variable-buffer-local 'pm/type)
+;; (defvar pm/overlay nil)
+;; (make-variable-frame-local 'pm/overlay)
+
 (defcustom polymode-prefix-key "\M-n"
-  "Prefix key for the litprog mode keymap.
-Not effective after loading the LitProg library."
-  :group 'litprog
+  "Prefix key for the polymode mode keymap.
+Not effective after loading the polymode library."
+  :group 'polymode
   :type '(choice string vector))
 
 (defvar polymode-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map polymode-prefix-key
       (let ((map (make-sparse-keymap)))
-	(define-key map "\C-n" 'litprog-next-header)
-	(define-key map "\C-p" 'litprog-previous-header)
-	;; (define-key map "\M-n" 'litprog-goto-next)
-	;; (define-key map "\M-p" 'litprog-goto-prev)
-	;; (define-key map "c" 'litprog-code-next)
-	;; (define-key map "C" 'litprog-code-prev)
-	;; (define-key map "d" 'litprog-doc-next)
-	;; (define-key map "D" 'litprog-doc-prev)
+	(define-key map "\C-n" 'polymode-next-header)
+	(define-key map "\C-p" 'polymode-previous-header)
+	;; (define-key map "\M-n" 'polymode-goto-next)
+	;; (define-key map "\M-p" 'polymode-goto-prev)
+	;; (define-key map "c" 'polymode-code-next)
+	;; (define-key map "C" 'polymode-code-prev)
+	;; (define-key map "d" 'polymode-doc-next)
+	;; (define-key map "D" 'polymode-doc-prev)
         ;; Use imenu.
-        ;; 	(define-key map "\C-g" 'litprog-goto-chunk)
-        (define-key map "\M-k" 'litprog-kill-chunk)
-        (define-key map "\M-K" 'litprog-kill-chunk-pair)
-        (define-key map "\M-m" 'litprog-mark-chunk)
-        (define-key map "\M-M" 'litprog-mark-chunk-pair)
-        (define-key map "\M-n" 'litprog-narrow-to-chunk)
-        (define-key map "\M-N" 'litprog-narrow-to-chunk-pair)
-        (define-key map "\C-t" 'litprog-toggle-narrowing)
-	(define-key map "\M-i" 'litprog-new-chunk)
-	(define-key map "."	'litprog-select-backend)
-	(define-key map "$"	'litprog-display-process)
-	;; (if (bound-and-true-p litprog-electric-<)
-	;;     (define-key litprog-mode-map "<" #'litprog-electric-<))
-	;; (if (bound-and-true-p litprog-electric-@)
-	;;     (define-key litprog-mode-map "@" #'litprog-electric-@))
+        ;; 	(define-key map "\C-g" 'polymode-goto-chunk)
+        (define-key map "\M-k" 'polymode-kill-chunk)
+        (define-key map "\M-K" 'polymode-kill-chunk-pair)
+        (define-key map "\M-m" 'polymode-mark-chunk)
+        (define-key map "\M-M" 'polymode-mark-chunk-pair)
+        (define-key map "\M-n" 'polymode-narrow-to-chunk)
+        (define-key map "\M-N" 'polymode-narrow-to-chunk-pair)
+        (define-key map "\C-t" 'polymode-toggle-narrowing)
+	(define-key map "\M-i" 'polymode-new-chunk)
+	(define-key map "."	'polymode-select-backend)
+	(define-key map "$"	'polymode-display-process)
+	;; (if (bound-and-true-p polymode-electric-<)
+	;;     (define-key polymode-mode-map "<" #'polymode-electric-<))
+	;; (if (bound-and-true-p polymode-electric-@)
+	;;     (define-key polymode-mode-map "@" #'polymode-electric-@))
 	map))
-    (define-key map [menu-bar LitProG]
-      (cons "LitProG"
-	    (let ((map (make-sparse-keymap "LitProG")))
+    (define-key map [menu-bar Polymode]
+      (cons "Polymode"
+	    (let ((map (make-sparse-keymap "Polymode")))
               (define-key-after map [goto-prev]
-		'(menu-item "Next chunk header" litprog-next-header))
+		'(menu-item "Next chunk header" polymode-next-header))
 	      (define-key-after map [goto-prev]
-		'(menu-item "Previous chunk header" litprog-previous-header))
+		'(menu-item "Previous chunk header" polymode-previous-header))
 	      (define-key-after map [mark]
-		'(menu-item "Mark chunk" litprog-mark-chunk))
+		'(menu-item "Mark chunk" polymode-mark-chunk))
 	      (define-key-after map [kill]
-		'(menu-item "Kill chunk" litprog-kill-chunk))
+		'(menu-item "Kill chunk" polymode-kill-chunk))
 	      (define-key-after map [new]
-		'(menu-item "New chunk" litprog-new-chunk))
+		'(menu-item "New chunk" polymode-new-chunk))
 	      map)))
     map)
-  "A keymap for LitProG mode.")
+  "The default minor mode keymap that is active in all polymode
+  modes.")
 
 
 (defsubst pm/base-buffer ()
@@ -123,10 +122,9 @@ beginning of the span and with the buffer narrowed to the
 span.
 
 During the call of FUN, a dynamically bound variable *span* hold
-the current innermost span.
-"
+the current innermost span."
   (save-excursion
-    (save-window-excursion ;; why is this here?
+    (save-window-excursion 
       (goto-char beg)
       (while (< (point) end)
         (let ((*span* (pm/get-innermost-span)))
@@ -134,13 +132,13 @@ the current innermost span.
           (save-restriction
             (pm/narrow-to-span *span*)
             (funcall fun)
-            (goto-char (point-max))))))))
+            (goto-char (nth 2 *span*))))))))
 
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
   (interactive)
   (if (boundp 'syntax-ppss-last)
-      (setq syntax-ppss-last nil)) ;; fixme: why not let bind?
+      (setq syntax-ppss-last nil)) ;; fixme: set to the beggining of the chunk
   (unless (= (point-min) (point-max))
     (let ((span (or span
                     (pm/get-innermost-span))))
@@ -148,49 +146,10 @@ the current innermost span.
           (narrow-to-region (nth 1 span) (nth 2 span))
         (error "No span found")))))
 
-;; (defun pm--comment-region (&optional beg end buffer)
-;;   ;; mark as syntactic comment
-;;   (let ((beg (or beg (region-beginning)))
-;;         (end (or end (region-end)))
-;;         (buffer (or buffer (current-buffer))))
-;;     (with-current-buffer buffer
-;;       (with-silent-modifications
-;;         (let ((ch-beg (char-after beg))
-;;               (ch-end (char-before end)))
-;;           (add-text-properties beg (1+ beg)
-;;                                (list 'syntax-table (cons 11 ch-beg)
-;;                                      'rear-nonsticky t
-;;                                      'polymode-comment 'start))
-;;           (add-text-properties (1- end) end
-;;                                (list 'syntax-table (cons 12 ch-end)
-;;                                      'rear-nonsticky t
-;;                                      'polymode-comment 'end))
-;;           )))))
-
-;; (defun pm--remove-syntax-comment (&optional beg end buffer)
-;;   ;; remove all syntax-table properties. Should not cause any problem as it is
-;;   ;; always used before font locking
-;;   (let ((beg (or beg (region-beginning)))
-;;         (end (or end (region-end)))
-;;         (buffer (or buffer (current-buffer))))
-;;     (with-current-buffer buffer
-;;       (with-silent-modifications
-;;         (remove-text-properties beg end
-;;                                 '(syntax-table nil rear-nonsticky nil polymode-comment nil))))))
-
-;; ;; this one does't really work, text-properties are the same in all buffers
-;; (defun pm--mark-buffers-except-current (beg end)
-;;   ;; marke with syntact comments all the buffers except this on
-;;   (dolist ((bf (oref pm/config :buffers)))
-;;     (when (and (buffer-live-p bf)
-;;                (not (eq bf (current-buffer))))
-;;       (pm--comment-region beg end bf)
-;;       ;; (put-text-property beg end 'fontified t)
-;;       )))
-
-;; (defun pm/fontify-region-simle (beg end &optional verbose)
-;;   (with-silent-modifications
-;;     (put-text-property beg end 'fontified t)))
+(defvar pm--fontify-region-original nil
+  "Fontification function normally used by the buffer's major mode.
+Used internaly to cahce font-lock-fontify-region-function.  Buffer local.")
+(make-variable-buffer-local 'multi-fontify-region-original)
 
 (defun pm/fontify-region (beg end &optional verbose)
   "Polymode font-lock fontification function.
@@ -206,21 +165,26 @@ in polymode buffers."
 	 (inhibit-read-only t)
 	 (inhibit-point-motion-hooks t)
 	 (inhibit-modification-hooks t)
+         (font-lock-dont-widen t)
+         (buff (current-buffer))
 	 deactivate-mark)
     ;; (with-silent-modifications
-    (save-restriction
-      (widen)
-      (pm/map-over-spans (lambda ()
-                           (font-lock-unfontify-region (point-min) (point-max))
-                           (unwind-protect
-                               (if (and font-lock-mode font-lock-keywords)
-                                   (funcall pm/fontify-region-original
-                                            (point-min) (point-max) verbose))
-                             ;; In case font-lock isn't done for some mode:
-                             (put-text-property (point-min) (point-max) 'fontified t)))
-                         beg end)
-      (unless modified
-        (restore-buffer-modified-p nil)))))
+    (font-lock-unfontify-region beg end)
+    (save-excursion
+      (save-restriction
+        (unwind-protect
+            (progn 
+              (widen)
+              (pm/map-over-spans (lambda ()
+                                   (when (and font-lock-mode font-lock-keywords)
+                                     ;; (dbg (point-min) (point-max) (point) (get-text-property (point) 'fontified))
+                                     (pm--adjust-chunk-overlay (point-min) (point-max) buff)
+                                     (funcall pm--fontify-region-original
+                                              (point-min) (point-max) verbose)))
+                                 beg end))
+          (put-text-property beg end 'fontified t))
+        (unless modified
+          (restore-buffer-modified-p nil))))))
 
 
 ;;; internals
@@ -236,22 +200,69 @@ warnign."
 (defvar pm--ignore-post-command-hook nil)
 (defun pm--restore-ignore ()
   (setq pm--ignore-post-command-hook nil))
-        
+
+(defvar polymode-highlight-chunks t)
+(defvar pm--overlay nil)
+(make-variable-buffer-local 'pm--overlay)
+
 (defun polymode-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
 This funciton is placed in local post-command hook."
   ;; (condition-case error
   (unless pm--ignore-post-command-hook
-    (let ((span (pm/get-innermost-span)))
-      (pm/select-buffer (car (last span)) span))
-    ;; urn post-command-hook at most every .01 seconds
-    ;; fixme: should be more elaborated
-    ;; (setq pm--ignore-post-command-hook t)
-    ;; (run-with-timer .01 nil 'pm--restore-ignore))
-    ;; (error
-    ;;  (message "%s" (error-message-string error))))
-  ))
+    (let ((*span* (pm/get-innermost-span))
+          (pm--can-move-overlays t))
+      (pm/select-buffer (car (last *span*)) *span*)
+      (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*)))))
 
+
+(defun pm/transform-color-value (color prop)
+  "Darken or lighten a specific COLOR multiplicatively by PROP.
+
+On dark backgrounds, values of PROP > 1 generate lighter colors
+than COLOR and < 1, darker. On light backgrounds, do it the other
+way around.
+
+Colors are in hex RGB format #RRGGBB
+
+   (pm/transform-color-value (face-background 'default) 1.1)
+"
+  (let* ((st (substring color 1))
+         (RGB (list (substring st 0 2)
+                    (substring st 2 4)
+                    (substring st 4 6))))
+    (when (eq (frame-parameter nil 'background-mode) 'light)
+      (setq prop (/ 1 prop)))
+    (when (< prop 0)
+      (message "background value should be non-negative" )
+      (setq prop 1))
+    (concat "#"
+            (mapconcat (lambda (n)
+                         (format "%02x"
+                                 (min 255 (max 0 (round (* prop (string-to-number n 16)))))))
+                       RGB ""))))
+
+(defun pm--adjust-chunk-overlay (beg end &optional buffer)
+  ;; super duper internal function
+  ;; should be used only after pm/select-buffer
+  (when (eq pm/type 'body)
+    (let ((background (oref pm/submode :background))) ;; in Current buffer !!
+      (with-current-buffer (or buffer (current-buffer))
+        (when background
+          (let* ((OS (overlays-in  beg end))
+                 (o (some (lambda (o) (and (overlay-get o 'polymode) o))
+                          OS)))
+            (if o
+                (move-overlay o  beg end )
+              (let ((o (make-overlay beg end nil nil t))
+                    (face (if (numberp background)
+                              (cons 'background-color
+                                    (pm/transform-color-value (face-background 'default)
+                                                              background))
+                            background)))
+                (overlay-put o 'polymode 'polymode-major-mode)
+                (overlay-put o 'face face)
+                (overlay-put o 'evaporate t)))))))))
 
 (defun pm--adjust-visual-line-mode (new-vlm)
   (when (not (eq visual-line-mode vlm))
@@ -259,35 +270,43 @@ This funciton is placed in local post-command hook."
         (visual-line-mode -1)
       (visual-line-mode 1))))
 
+;; move only in post-command hook, after buffer selection
+(defvar pm--can-move-overlays nil)
+(defun pm--move-overlays (new-buff)
+  (when pm--can-move-overlays 
+    (mapc (lambda (o)
+            (move-overlay o (overlay-start o) (overlay-end o) new-buff))
+          (overlays-in 1 (1+ (buffer-size))))))
 
 (defun pm--select-buffer (buffer)
-  (unless (eq buffer (current-buffer))
-    (when (buffer-live-p buffer)
-      (let* ((point (point))
-             (window-start (window-start))
-             (visible (pos-visible-in-window-p))
-             (oldbuf (current-buffer))
-             (vlm visual-line-mode)
-             (ractive (region-active-p))
-             (mkt (mark t)))
-        (switch-to-buffer buffer)
-        (pm--adjust-visual-line-mode vlm)
-        (bury-buffer oldbuf)
-        ;; fixme: wha tis the right way to do this ... activate-mark-hook?
-        (if (not ractive)
-            (deactivate-mark)
-          (set-mark mkt)
-          (activate-mark))
-        (goto-char point)
-        ;; Avoid the display jumping around.
-        (when visible
-          (set-window-start (get-buffer-window buffer t) window-start))
-        ))))
+  (when (and (not (eq buffer (current-buffer)))
+             (buffer-live-p buffer))
+    (let* ((point (point))
+           (window-start (window-start))
+           (visible (pos-visible-in-window-p))
+           (oldbuf (current-buffer))
+           (vlm visual-line-mode)
+           (ractive (region-active-p))
+           (mkt (mark t)))
+      (pm--move-overlays buffer)
+      (switch-to-buffer buffer)
+      (pm--adjust-visual-line-mode vlm)
+      (bury-buffer oldbuf)
+      ;; fixme: wha tis the right way to do this ... activate-mark-hook?
+      (if (not ractive)
+          (deactivate-mark)
+        (set-mark mkt)
+        (activate-mark))
+      (goto-char point)
+      ;; Avoid the display jumping around.
+      (when visible
+        (set-window-start (get-buffer-window buffer t) window-start))
+      )))
 
 
 (defun pm--setup-buffer (&optional buffer)
   ;; general buffer setup, should work for indirect and base buffers alike
-  ;; assumes pm/config is already in place
+  ;; assumes pm/config and pm/submode is already in place
   ;; return buffer
   (let ((buff (or buffer (current-buffer))))
     (with-current-buffer buff
@@ -299,7 +318,7 @@ This funciton is placed in local post-command hook."
       (set (make-local-variable 'font-lock-dont-widen) t)
       
       (when pm--dbg-fontlock 
-        (setq pm/fontify-region-original
+        (setq pm--fontify-region-original
               font-lock-fontify-region-function)
         (set (make-local-variable 'font-lock-fontify-region-function)
              #'pm/fontify-region))
@@ -336,6 +355,7 @@ This funciton is placed in local post-command hook."
       ;; This should probably be at the front of the hook list, so
       ;; that other hook functions get run in the (perhaps)
       ;; newly-selected buffer.
+      
       (when pm--dbg-hook
         (add-hook 'post-command-hook 'polymode-select-buffer nil t))
       (object-add-to-list pm/config :buffers (current-buffer)))
@@ -447,8 +467,9 @@ Return newlly created buffer."
         ;; mode line.
         ;; (setq mode-line-buffer-identification
         ;;       (propertized-buffer-identification base-name))
+        (setq pm--overlay t)
         (setq pm/config config)
-        
+        ;; (face-remap-add-relative 'default '(:background "#073642"))
         (setq buffer-file-coding-system coding)
         ;; For benefit of things like VC
         (setq buffer-file-name file)
@@ -462,20 +483,11 @@ Return newlly created buffer."
 (defun pm--get-indirect-buffer-of-mode (mode)
   (loop for bf in (oref pm/config :buffers)
         when (and (buffer-live-p bf)
-                  (or (eq mode (buffer-local-value 'major-mode bf))
-                      (eq mode (buffer-local-value 'polymode-major-mode bf))))
+                  (eq mode (buffer-local-value 'polymode-major-mode bf)))
         return bf))
 
 (defun pm--set-submode-buffer (obj type buff)
   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
-    ;; (cond ((eq type 'body)
-    ;;        (setq buffer buff))
-    ;;       ((eq type 'head)
-    ;;        (setq head-buffer buff))
-    ;;       ((eq type 'tail)
-    ;;        (setq tail-buffer buff))
-    ;;       (t (setq buffer head)))))
-           
     (pcase (list type head-mode tail-mode)
       (`(body body ,(or `nil `body))
        (setq buffer buff
@@ -498,11 +510,34 @@ Return newlly created buffer."
        (setq tail-buffer buff))
       (_ (error "type must be one of 'body 'head and 'tail")))))
 
+(defun pm--get-submode-mode (obj type)
+  (with-slots (mode head-mode tail-mode) obj
+    (cond ((or (eq type 'body)
+               (and (eq type 'head)
+                    (eq head-mode 'body))
+               (and (eq type 'tail)
+                    (or (eq tail-mode 'body)
+                        (and (null tail-mode)
+                             (eq head-mode 'body)))))
+           (oref obj :mode))
+          ((or (and (eq type 'head)
+                    (eq head-mode 'base))
+               (and (eq type 'tail)
+                    (or (eq tail-mode 'base)
+                        (and (null tail-mode)
+                             (eq head-mode 'base)))))
+           (oref (oref pm/config :base-submode) :mode))
+          ((eq type 'head)
+           (oref obj :head-mode))
+          ((eq type 'tail)
+           (oref obj :tail-mode))
+          (t (error "type must be one of 'head 'tail 'body")))))
+
 ;; (oref pm-submode/noweb-R :tail-mode)
 ;; (oref pm-submode/noweb-R :buffer)
-(progn
-  (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
-  (oref pm-submode/noweb-R :head-buffer))
+;; (progn
+;;   (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
+;;   (oref pm-submode/noweb-R :head-buffer))
 
 ;;;; HACKS
 ;; VS[26-08-2012]: Dave Love's hack. See commentary above.
@@ -517,22 +552,73 @@ Return newlly created buffer."
 	(hack-local-variables)
       (fset 'hack-one-local-variable late-hack))))
 
-
 ;; Used to propagate the bindings to the indirect buffers.
 (define-minor-mode polymode-minor-mode
   "Polymode minor mode, used to make everything work."
   nil " PM" polymode-mode-map)
 
-
 (defun pm--map-over-spans-highlight ()
   (interactive)
-  (pm/map-over-spans (point-min) (point-max)
-                     (lambda ()
+  (pm/map-over-spans (lambda ()
                        (let ((start (nth 1 *span*))
                              (end (nth 2 *span*)))
                          (ess-blink-region start end)
-                         (sit-for 1)))))
+                         (sit-for 1)))
+                     (point-min) (point-max)))
+
+(defun pm--highlight-span (hd-matcher tl-matcher)
+  (let ((span (pm--span-at-point hd-matcher tl-matcher)))
+    (ess-blink-region (nth 1 span) (nth 2 span))
+    (message "%s" span)))
+
 (setq pm--dbg-fontlock t
       pm--dbg-hook t)
 
 (provide 'polymode)
+
+
+;; (defun pm--comment-region (&optional beg end buffer)
+;;   ;; mark as syntactic comment
+;;   (let ((beg (or beg (region-beginning)))
+;;         (end (or end (region-end)))
+;;         (buffer (or buffer (current-buffer))))
+;;     (with-current-buffer buffer
+;;       (with-silent-modifications
+;;         (let ((ch-beg (char-after beg))
+;;               (ch-end (char-before end)))
+;;           (add-text-properties beg (1+ beg)
+;;                                (list 'syntax-table (cons 11 ch-beg)
+;;                                      'rear-nonsticky t
+;;                                      'polymode-comment 'start))
+;;           (add-text-properties (1- end) end
+;;                                (list 'syntax-table (cons 12 ch-end)
+;;                                      'rear-nonsticky t
+;;                                      'polymode-comment 'end))
+;;           )))))
+
+;; (defun pm--remove-syntax-comment (&optional beg end buffer)
+;;   ;; remove all syntax-table properties. Should not cause any problem as it is
+;;   ;; always used before font locking
+;;   (let ((beg (or beg (region-beginning)))
+;;         (end (or end (region-end)))
+;;         (buffer (or buffer (current-buffer))))
+;;     (with-current-buffer buffer
+;;       (with-silent-modifications
+;;         (remove-text-properties beg end
+;;                                 '(syntax-table nil rear-nonsticky nil polymode-comment nil))))))
+
+;; ;; this one does't really work, text-properties are the same in all buffers
+;; (defun pm--mark-buffers-except-current (beg end)
+;;   ;; marke with syntact comments all the buffers except this on
+;;   (dolist ((bf (oref pm/config :buffers)))
+;;     (when (and (buffer-live-p bf)
+;;                (not (eq bf (current-buffer))))
+;;       (pm--comment-region beg end bf)
+;;       ;; (put-text-property beg end 'fontified t)
+;;       )))
+
+;; (defun pm/fontify-region-simle (beg end &optional verbose)
+;;   (with-silent-modifications
+;;     (put-text-property beg end 'fontified t)))
+
+

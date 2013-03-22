@@ -1,3 +1,5 @@
+(require 'polymode)
+
 ;; BASE MODES
 (defcustom pm-base/fundamental
   (pm-submode "fundamental"
@@ -34,6 +36,13 @@
   :group 'base-submodes
   :type 'object)
 
+(defcustom pm-base/C++
+  (pm-submode "C++"
+              :mode 'c++-mode)
+  "C++ base submode"
+  :group 'base-submodes
+  :type 'object)
+
 (defcustom pm-base/text
   (pm-submode "text"
               :mode 'text-mode)
@@ -41,6 +50,12 @@
   :group 'base-submodes
   :type 'object)
 
+(defcustom pm-base/ess-help
+  (pm-submode "ess-help"
+              :mode 'ess-help-mode)
+  "ess-help"
+  :group 'base-submodes
+  :type 'object)
 
 ;; NOWEB
 (defcustom pm-config/noweb
@@ -74,14 +89,12 @@
   :group 'polymode
   :type 'object)
 
-(define-derived-mode poly-noweb+R-mode fundamental-mode "Noweb+R"
+(define-derived-mode poly-noweb+r-mode fundamental-mode "Noweb+R"
   "Mode for editing noweb documents.
 Supports differnt major modes for doc and code chunks using multi-mode."
   (pm/initialize (clone pm-config/noweb-R)))
 
-(add-to-list 'interpreter-mode-alist '("noweb+R" . poly-noweb+R-mode))
-(add-to-list 'auto-mode-alist '("Snw" . poly-noweb+R-mode))
-
+(add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
 
 ;;; MARKDOWN
 (defcustom pm-config/markdown
@@ -144,11 +157,11 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   :group 'polymode  :type 'object)
 
 
-(define-derived-mode poly-html+R-mode fundamental-mode "html+R"
+(define-derived-mode poly-html+r-mode fundamental-mode "html+R"
   "Polymode for html + R"
   (pm/initialize (clone pm-config/html+R)))
 
-(add-to-list 'auto-mode-alist '("Rhtml" . poly-html+R-mode))
+(add-to-list 'auto-mode-alist '("Rhtml" . poly-html+r-mode))
 
 ;;; R-brew
 (defcustom pm-config/brew
@@ -173,13 +186,31 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   :group 'polymode  :type 'object)
 
 
-(define-derived-mode poly-brew+R-mode fundamental-mode "brew+R"
+(define-derived-mode poly-brew+r-mode fundamental-mode "brew+R"
   "Polymode for brew + R"
   (pm/initialize (clone pm-config/brew+R)))
 
-(add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+R-mode))
+(add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+r-mode))
 
 ;;; R+C++
+;; todo: move into :matcher-subexp functionality?
+(defun pm--R+C++-head-matcher (ahead)
+  (when (re-search-forward "cppFunction *( *\\(['\"]\\)"
+                           nil t ahead)
+    (cons (match-beginning 1) (match-end 1))))
+
+;; (defvar pm--C++R-syntax-table (make-syntax-table))
+;; (modify-syntax-entry ?\' "\"" pm--C++R-syntax-table)
+;; (modify-syntax-entry ?\" "\"" pm--C++R-syntax-table)
+
+(defun pm--R+C++-tail-matcher (ahead)
+  (when (< ahead 0)
+    (goto-char (car (pm--R+C++-head-matcher -1))))
+  ;; (with-syntax-table pm--C++R-syntax-table
+    (let ((end (or (ignore-errors (scan-sexps (point) 1))
+                   (buffer-end 1))))
+      (cons (max 1 (- end 1)) end)))
+
 (defcustom pm-config/R
   (pm-config-one "R"
                  :base-submode-name 'pm-base/R
@@ -192,40 +223,34 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   "R + C++ configuration"
   :group 'polymode  :type 'object)
 
-
-;; todo: move into :matcher-subexp functionality?
-(defun pm--R+C++-head-matcher (ahead)
-  (when (re-search-forward "cppFunction[ \t]*(\\(['\"]\\)"
-                           nil t ahead)
-    (cons (match-beginning 1) (match-end 1))))
-
-(defun pm--R+C++-tail-matcher (ahead)
-  (when (< ahead 0)
-    (goto-char (car (pm--R+C++-head-matcher -1))))
-  (let ((end (condition-case err
-                 (progn (forward-sexp)
-                        (point))
-               (error (point-max)))))
-    (cons (- end 1) end)))
- 
 (defcustom  pm-submode/R+C++
   (pm-inner-submode "R+C++"
                     :mode 'c++-mode
+                    :head-mode 'base
                     :head-reg 'pm--R+C++-head-matcher
                     :tail-reg 'pm--R+C++-tail-matcher
                     :protect-indent-line-function t)
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-(define-derived-mode poly-R+C++-mode fundamental-mode "R+C++"
+(define-derived-mode poly-r+c++-mode fundamental-mode "R+C++"
   "Polymode for R+C++"
   (pm/initialize (clone pm-config/R+C++)))
 
-(add-to-list 'interpreter-mode-alist '("R+C++" . poly-R+C++-mode))
-(add-to-list 'auto-mode-alist '("Rcpp" . poly-R+C++-mode))
-
+(add-to-list 'auto-mode-alist '("Rcpp" . poly-r+c++-mode))
 
 ;;; C++R
+(defun pm--C++R-head-matcher (ahead)
+  (when (re-search-forward "^[ \t]*/[*]+[ \t]*R" nil t ahead)
+    (cons (match-beginning 0) (match-end 0))))
+
+(defun pm--C++R-tail-matcher (ahead)
+  (when (< ahead 0)
+    (error "backwards tail match not implemented"))
+  ;; todo: may be base it on syntactic lookup 
+  (when (re-search-forward "^[ \t]*\\*/")
+    (cons (match-beginning 0) (match-end 0))))
+
 (defcustom pm-config/C++
   (pm-config-one "C++"
                  :base-submode-name 'pm-base/C++
@@ -234,47 +259,63 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   :group 'polymode :type 'object)
 
 (defcustom pm-config/C++R
-  (clone pm-config/R "C++R" :inner-submode-name 'pm-submode/C++R)
+  (clone pm-config/C++ "C++R" :inner-submode-name 'pm-submode/C++R)
   "R + C++ configuration"
   :group 'polymode  :type 'object)
 
-
-;; todo: move into :matcher-subexp functionality?
-(defun pm--C++R-head-matcher (ahead)
-  (when (re-search-forward "^[ \t]*/[*]+[ \t]*R" nil t ahead)
-    (cons (match-beginning 0) (match-end 0))))
-
-(defun pm--C++R-tail-matcher (ahead)
-  (when (< ahead 0)
-    (error "backwards tail match not implemented"))
-  (when (re-search-forward "^[ \t]*\\*/")
-    (cons (match-beginning 0) (match-end 0))))
-
 (defcustom  pm-submode/C++R
   (pm-inner-submode "C++R"
-                    :mode 'fundamental-mode
+                    :mode 'R-mode
+                    :background 1.1
                     :head-reg 'pm--C++R-head-matcher
                     :tail-reg 'pm--C++R-tail-matcher
                     :protect-indent-line-function t)
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-(define-derived-mode poly-C++R-mode fundamental-mode "C++R"
+(define-derived-mode poly-c++r-mode fundamental-mode "C++R"
   "Polymode for C++R"
   (pm/initialize (clone pm-config/C++R)))
 
-(add-to-list 'interpreter-mode-alist '("C++R" . poly-C++R-mode))
-(add-to-list 'auto-mode-alist '("cppR" . poly-C++R-mode))
+(add-to-list 'auto-mode-alist '("cppR" . poly-c++r-mode))
 
 
+;;; R help
+(defcustom pm-config/ess-help+R
+  (pm-config-one "ess-R-help"
+                 :base-submode-name 'pm-base/ess-help
+                 :inner-submode-name 'pm-submode/ess-help+R)
+  "ess-R-help"
+  :group 'polymode :type 'object)
 
-;; (defcustom pm-submode/markdown-R
-;;   (clone pm-submode/markdown "markdown-R"
-;;          :mode 'R-mode
-;;          :protect-indent-line-function t)
-;;   "Markdown for R"
-;;   :group 'polymode
-;;   :type 'object)
+(defcustom  pm-submode/ess-help+R
+  (pm-inner-submode "ess-help+R"
+                    :mode 'R-mode
+                    :head-reg "^Examples:"
+                    :tail-reg "\\'"
+                    :protect-indent-line-function t)
+  "Ess help R chunk"
+  :group 'polymode  :type 'object)
 
+(define-minor-mode poly-ess-help+r-minor-mode
+  "ess help"
+  nil " RPM" polymode-mode-map
+  (if poly-ess-help+R-minor-mode
+      (unless pm/config
+        (let ((config (clone pm-config/ess-help+R)))
+          (oset config :minor-mode-name 'poly-ess-help+R-minor-mode)
+          (pm/initialize config)))
+    (setq pm/config nil
+          pm/submode nil)))
+
+(defcustom ess-help-use-polymode t
+  "Use polymode in ESS help when available?"
+  :group 'ess
+  :type 'boolean)
+
+(when (and (boundp ess-help-use-polymode)
+           ess-help-use-polymode)
+  (add-hook 'ess-help-mode-hook 'poly-ess-help+r-minor-mode))
+    
 
 (provide 'polymode-modes)

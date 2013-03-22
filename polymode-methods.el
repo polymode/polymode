@@ -20,10 +20,10 @@ Current buffer is setup as the base buffer.")
                         ;; reuse existing if nil
                         major-mode))))
     ;; don't reinitialize if already there; can be used in minor modes
-    ;; fixme: fixme: fixme: fixme:
     ;; waf? why reinstaling base mode helps with font-lock infloop?
-    (unless nil ; (equal (upcase (symbol-name major-mode))
-                 ;  (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
+    ;; sort of solves .. looks like
+    (unless (equal (upcase (symbol-name major-mode))
+                   (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
       (let ((polymode-mode t)) ;;major-modes might check it 
         (funcall base-mode)))
     ;; after emacs mode install
@@ -143,21 +143,19 @@ create and install a new buffer in slot :buffer of SUBMODE."
           (or (pm--get-indirect-buffer-of-mode mode)
               (with-current-buffer  buf
                 (setq pm/submode submode)
+                (setq pm/type type)
                 (pm--setup-buffer))))))
 
 
 (defmethod pm/install-buffer ((submode pm-inner-submode) type)
   "Depending of the TYPE install an indirect buffer into
 slot :buffer of SUBMODE. Create this buffer if does not exist."
-  (let ((mode
-         (cond ((eq 'body type) (oref submode :mode))
-               ((eq 'head type) (oref submode :head-mode))
-               ((eq 'tail type) (oref submode :tail-mode))
-               (t (error "TYPE argument must be one of body, head, tail. ")))))
+  (let ((mode (pm--get-submode-mode submode type)))
     (pm--set-submode-buffer submode type
                             (or (pm--get-indirect-buffer-of-mode mode)
                                 (with-current-buffer (pm--create-indirect-buffer mode)
                                   (setq pm/submode submode)
+                                  (setq pm/type type)
                                   (pm--setup-buffer))))))
 
 
@@ -254,7 +252,9 @@ in this case."
           ;; special first chunk
           (let ((posh1 (progn (goto-char (point-min))
                               (funcall hd-matcher 1))))
-            (if (and posh1 (< (car posh1) pos) (< pos (cdr posh1)))
+            (if (and posh1
+                     (<= (car posh1) pos)
+                     (< pos (cdr posh1)))
                 (list 'head (car posh1) (cdr posh1))
               (list nil (point-min) (or (car posh1)
                                         (point-max)))))
@@ -262,9 +262,9 @@ in this case."
                            (or (funcall tl-matcher 1)
                                (cons (point-max) (point-max))))))
           (if (and (<= (cdr posh) pos)
-                   (<= pos (car post)))
+                   (< pos (car post)))
               (list 'body (cdr posh) (car post))
-            (if (and (< (car post) pos)
+            (if (and (<= (car post) pos)
                      (< pos (cdr post)))
                 (list 'tail (car post) (cdr post))
               (if (< pos (cdr post))
@@ -272,7 +272,7 @@ in this case."
                   (progn
                     (goto-char (car post))
                     (let ((posh1 (funcall hd-matcher -1)))
-                      (if (and (< (car posh1) pos)
+                      (if (and (<= (car posh1) pos)
                                (< pos (cdr posh1)))
                           (list 'head (car posh1) (cdr posh1))
                         (list nil (cdr posh) (car posh1))))) ;; posh is point min, fixme: not true anymore?
@@ -280,7 +280,7 @@ in this case."
                 (let ((posh1 (or (funcall hd-matcher 1)
                                  (cons (point-max) (point-max)))))
                   (if (and posh
-                           (< (car posh1) pos )
+                           (<= (car posh1) pos )
                            (< pos (cdr posh1)))
                       (list 'head (car posh1) (cdr posh1))
                     (list nil (cdr post) (car posh1))))))))))))
