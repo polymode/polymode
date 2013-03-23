@@ -18,10 +18,10 @@
   :group 'polymode
   :type 'object)
 
-(define-derived-mode poly-noweb+r-mode fundamental-mode "Noweb+R"
-  "Mode for editing noweb documents.
-Supports differnt major modes for doc and code chunks using multi-mode."
-  (pm/initialize (clone pm-config/noweb-R)))
+(defun poly-noweb+r-mode ()
+  "Noweb+R polymode."
+  (interactive)
+  (pm/initialize (clone pm-config/noweb+R)))
 
 (add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
 
@@ -29,9 +29,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
 ;; MARKDOWN
 (require 'poly-markdown)
 
-(define-derived-mode poly-markdown+r-mode fundamental-mode "Rmd"
-  "Mode for editing noweb documents.
-Supports differnt major modes for doc and code chunks using multi-mode."
+(defun poly-markdown+r-mode ()
+  "Markdown+R polymode"
+  (interactive)
   (pm/initialize (clone pm-config/markdown)))
 
 (define-minor-mode poly-markdown+r-minor-mode
@@ -64,8 +64,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   :group 'polymode  :type 'object)
 
 
-(define-derived-mode poly-html+r-mode fundamental-mode "html+R"
-  "Polymode for html + R"
+(defun poly-html+r-mode ()
+  "HTML + R polymode"
+  (interactive)
   (pm/initialize (clone pm-config/html+R)))
 
 (add-to-list 'auto-mode-alist '("Rhtml" . poly-html+r-mode))
@@ -87,8 +88,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   :group 'polymode  :type 'object)
 
 
-(define-derived-mode poly-brew+r-mode fundamental-mode "brew+R"
+(defun poly-brew+r-mode ()
   "Polymode for brew + R"
+  (interactive)
   (pm/initialize (clone pm-config/brew+R)))
 
 (add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+r-mode))
@@ -131,8 +133,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-(define-derived-mode poly-r+c++-mode fundamental-mode "R+C++"
-  "Polymode for R+C++"
+(defun poly-r+c++-mode ()
+  "R+C++ polymode"
+  (interactive)
   (pm/initialize (clone pm-config/R+C++)))
 
 (add-to-list 'auto-mode-alist '("Rcpp" . poly-r+c++-mode))
@@ -172,8 +175,9 @@ Supports differnt major modes for doc and code chunks using multi-mode."
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-(define-derived-mode poly-c++r-mode fundamental-mode "C++R"
-  "Polymode for C++R"
+(defun poly-c++r-mode ()
+  "C++R polymode"
+  (interactive)
   (pm/initialize (clone pm-config/C++R)))
 
 (add-to-list 'auto-mode-alist '("cppR" . poly-c++r-mode))
