@@ -5,13 +5,12 @@ Polymode is a new emacs package that offers support for multiple major modes
 inside a single emacs buffer. It is lightweight and fully object oriented,
 specifically designed for quick addition of new polymodes.
 
-Technically speaking, polymode doesn't keep its modes in one emacs buffer but in
-many indirect buffers, as many as different modes are there in a
-file. Consequently polymode is as fast as switching buffers as it never
-re-installs major modes after original initialization. I am very much indebted
-to Dave Love's
+Technically speaking, polymode doesn't keep its modes in a single emacs buffer
+but in several indirect buffers, actually as many as different modes are there
+in a file. Consequently, polymode is as fast as switching buffers because it
+never re-installs major modes. I am very much indebted to Dave Love's
 [multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) for this
-original idea.
+awesome idea.
 
 
 ## Installation 
@@ -50,9 +49,9 @@ There are two main ways to activate emacs mode.
 
    1. By registering a file extension. Some of the file extensions are already
 defined for you "Rmd", "Snw", "Rcpp", "cppR", "Rhtml" etc. You can find some
-examples `tests` sub-directory. You can, of course, set your own extensions by
-adding them to `auto-mode-alist`, which see for all the poly modes extensions
-currently loaded.
+examples in `tests` sub-directory. Of course you can always set your own
+extensions by adding them to `auto-mode-alist`.
+
    1. By setting local mode variable in you file. This is how you would activate C++R mode:
    
    ```C
@@ -60,7 +59,7 @@ currently loaded.
    ```
    or 
    ```sh
-   -*- mode: poly-brew+R; -*-
+   ## -*- mode: poly-brew+R; -*-
    ```
 
 
@@ -89,6 +88,8 @@ Many things still don't work as expected. For example:
      (jit-lock-function 163) signaled (args-out-of-range 1 142)`
      
      
+## Screenshots
+
 ### Ess-help buffer
 
 <img src="img/ess-help.png" width="350px"/>
