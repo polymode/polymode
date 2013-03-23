@@ -38,7 +38,8 @@
 
 (defcustom pm-base/C++
   (pm-submode "C++"
-              :mode 'c++-mode)
+              :mode 'c++-mode
+              :font-lock-narrow nil)
   "C++ base submode"
   :group 'base-submodes
   :type 'object)

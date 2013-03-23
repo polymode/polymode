@@ -35,7 +35,7 @@
   (pm/initialize (clone pm-config/markdown)))
 
 (define-minor-mode poly-markdown+r-minor-mode
-  "Polymode minor mode, used to make everything work."
+  "Markdown + R poly minor mode."
   nil " Rmd" polymode-mode-map
   (if poly-markdown+r-minor-mode
       (unless pm/config
@@ -100,7 +100,7 @@
 ;;; R+C++
 ;; todo: move into :matcher-subexp functionality?
 (defun pm--R+C++-head-matcher (ahead)
-  (when (re-search-forward "cppFunction *( *\\(['\"]\\)"
+  (when (re-search-forward "cppFunction *( *\\(['\"]\n\\)"
                            nil t ahead)
     (cons (match-beginning 1) (match-end 1))))
 
@@ -129,6 +129,7 @@
                     :head-mode 'base
                     :head-reg 'pm--R+C++-head-matcher
                     :tail-reg 'pm--R+C++-tail-matcher
+                    :font-lock-narrow nil
                     :protect-indent-line-function t)
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)

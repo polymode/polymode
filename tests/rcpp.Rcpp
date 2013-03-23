@@ -1,27 +1,25 @@
+signR <- function(x) {
+  if (x > 0) {
+     1
+  } else if (x == 0) {
+     0 
+   } else {
+    -1 
+  }
+}
 
-## signR <- function(x) {
-##   if (x > 0) {
-##     1
-##  } else if (x == 0) {
-##     0
-##   } else {
-##     -1 
-##   }
-## }
-
-
+<sdfds >   < sdfds >  
 
 cppFunction('
- int signC(int x) {
-    if (x > 0) {
+int signnC(int x) {
+  if (x > 0) {
     n  return 1;
-    } else if (x == 0) {
-      return 0;
-    } else {
-      return -1;
-    }
-  }')
+  } else if (x == 0) {
+    return 0;
+  } else {
+    return -1;
+  }
+}')
 
 
-
-
+sfdds <-  343

@@ -115,7 +115,8 @@ Not effective after loading the polymode library."
 (defun pm/get-innermost-span (&optional pos)
   (pm/get-span pm/config pos))
 
-(defun pm/map-over-spans (fun beg end)
+(defvar pm--can-narrow? t)
+(defun pm/map-over-spans (fun beg end &optional dont-narrow)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args.  It is executed with point at the
 beginning of the span and with the buffer narrowed to the
@@ -130,20 +131,25 @@ the current innermost span."
         (let ((*span* (pm/get-innermost-span)))
           (pm/select-buffer (car (last *span*)) *span*) ;; object and type
           (save-restriction
-            (pm/narrow-to-span *span*)
+            (unless dont-narrow
+              (pm/narrow-to-span *span*))
             (funcall fun)
             (goto-char (nth 2 *span*))))))))
 
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
   (interactive)
-  (if (boundp 'syntax-ppss-last)
-      (setq syntax-ppss-last nil)) ;; fixme: set to the beggining of the chunk
   (unless (= (point-min) (point-max))
     (let ((span (or span
                     (pm/get-innermost-span))))
-      (if span 
-          (narrow-to-region (nth 1 span) (nth 2 span))
+      (if span
+          (let ((min (nth 1 span))
+                (max (nth 2 span)))
+            (when (boundp 'syntax-ppss-last)
+              (setq syntax-ppss-last
+                    (cons (point-min)
+                          (list 0 nil (point-min) nil nil nil 0 nil nil nil))))
+            (narrow-to-region min max))
         (error "No span found")))))
 
 (defvar pm--fontify-region-original nil
@@ -172,19 +178,33 @@ in polymode buffers."
     (font-lock-unfontify-region beg end)
     (save-excursion
       (save-restriction
-        (unwind-protect
-            (progn 
-              (widen)
-              (pm/map-over-spans (lambda ()
-                                   (when (and font-lock-mode font-lock-keywords)
-                                     ;; (dbg (point-min) (point-max) (point) (get-text-property (point) 'fontified))
-                                     (pm--adjust-chunk-overlay (point-min) (point-max) buff)
-                                     (funcall pm--fontify-region-original
-                                              (point-min) (point-max) verbose)))
-                                 beg end))
-          (put-text-property beg end 'fontified t))
-        (unless modified
-          (restore-buffer-modified-p nil))))))
+        (widen)
+        (pm/map-over-spans
+         (lambda ()
+           (when (and font-lock-mode font-lock-keywords)
+             (let ((sbeg (nth 1 *span*))
+                   (send (nth 2 *span*)))
+               ;; (dbg (point-min) (point-max) (point))
+               (pm--adjust-chunk-overlay sbeg send buff) ;; set in original buffer!
+               (when parse-sexp-lookup-properties
+                 (pm--comment-region 1 sbeg))
+               ;; (dbg sbeg send)
+               (unwind-protect 
+                   (if (oref (nth 3 *span*) :font-lock-narrow)
+                       (save-restriction
+                         (narrow-to-region sbeg send)
+                         (funcall pm--fontify-region-original
+                                  (max sbeg beg) (min send end) verbose)
+                         )
+                     (funcall pm--fontify-region-original
+                              (max sbeg beg) (min send end) verbose))
+                 (when parse-sexp-lookup-properties
+                   (pm--uncomment-region 1 sbeg))
+                 ))))
+         beg end 'dont-narrow))
+      (put-text-property beg end 'fontified t)
+      (unless modified
+        (restore-buffer-modified-p nil)))))
 
 
 ;;; internals
@@ -336,9 +356,13 @@ Colors are in hex RGB format #RRGGBB
                  (oref pm/submode :protect-indent-line-function))
         (set (make-local-variable 'indent-line-function)
              `(lambda ()
-                (save-restriction
-                  (pm/narrow-to-span)
-                  (,indent-line-function)))))
+                (let ((span (pm/get-innermost-span)))
+                  (unwind-protect
+                      (save-restriction
+                        (pm--comment-region  1 (nth 1 span))
+                        (pm/narrow-to-span span)
+                        (,indent-line-function))
+                    (pm--uncomment-region 1 (nth 1 span)))))))
 
       ;; Kill the base buffer along with the indirect one; careful not
       ;; to infloop.
@@ -542,16 +566,16 @@ Return newlly created buffer."
 
 ;;;; HACKS
 ;; VS[26-08-2012]: Dave Love's hack. See commentary above.
-(defun pm/hack-local-variables ()
-  "Like `hack-local-variables', but ignore `mode' items."
-  (let ((late-hack (symbol-function 'hack-one-local-variable)))
-    (fset 'hack-one-local-variable
-	  (lambda (var val)
-	    (unless (eq var 'mode)
-	      (funcall late-hack var val))))
-    (unwind-protect
-	(hack-local-variables)
-      (fset 'hack-one-local-variable late-hack))))
+;; (defun pm/hack-local-variables ()
+;;   "Like `hack-local-variables', but ignore `mode' items."
+;;   (let ((late-hack (symbol-function 'hack-one-local-variable)))
+;;     (fset 'hack-one-local-variable
+;; 	  (lambda (var val)
+;; 	    (unless (eq var 'mode)
+;; 	      (funcall late-hack var val))))
+;;     (unwind-protect
+;; 	(hack-local-variables)
+;;       (fset 'hack-one-local-variable late-hack))))
 
 ;; Used to propagate the bindings to the indirect buffers.
 (define-minor-mode polymode-minor-mode
@@ -567,46 +591,59 @@ Return newlly created buffer."
                          (sit-for 1)))
                      (point-min) (point-max)))
 
-(defun pm--highlight-span (hd-matcher tl-matcher)
-  (let ((span (pm--span-at-point hd-matcher tl-matcher)))
+(defun pm--highlight-span (&optional hd-matcher tl-matcher)
+  (interactive)
+  (let* ((hd-matcher (or hd-matcher (oref pm/submode :head-reg)))
+         (tl-matcher (or tl-matcher (oref pm/submode :tail-reg)))
+         (span (pm--span-at-point hd-matcher tl-matcher)))
     (ess-blink-region (nth 1 span) (nth 2 span))
     (message "%s" span)))
 
-(setq pm--dbg-mode-line t
-      pm--dbg-fontlock t
-      pm--dbg-hook t)
+(defun pm--run-over-check ()
+  (interactive)
+  (goto-char (point-min))
+  (let ((start (current-time))
+        (count 1))
+    (polymode-select-buffer)
+    (while (< (point) (point-max))
+      (setq count (1+ count))
+      (forward-char)
+      (polymode-select-buffer))
+    (let ((elapsed  (time-to-seconds (time-subtract (current-time) start))))
+    (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
+  
 
 
 ;; do not delete
-;; (defun pm--comment-region (&optional beg end buffer)
-;;   ;; mark as syntactic comment
-;;   (let ((beg (or beg (region-beginning)))
-;;         (end (or end (region-end)))
-;;         (buffer (or buffer (current-buffer))))
-;;     (with-current-buffer buffer
-;;       (with-silent-modifications
-;;         (let ((ch-beg (char-after beg))
-;;               (ch-end (char-before end)))
-;;           (add-text-properties beg (1+ beg)
-;;                                (list 'syntax-table (cons 11 ch-beg)
-;;                                      'rear-nonsticky t
-;;                                      'polymode-comment 'start))
-;;           (add-text-properties (1- end) end
-;;                                (list 'syntax-table (cons 12 ch-end)
-;;                                      'rear-nonsticky t
-;;                                      'polymode-comment 'end))
-;;           )))))
+(defun pm--comment-region (beg end)
+  ;; mark as syntactic comment
+  (when (> end 1)
+    (with-silent-modifications
+      (let ((beg (or beg (region-beginning)))
+            (end (or end (region-end))))
+        (let ((ch-beg (char-after beg))
+              (ch-end (char-before end)))
+          (add-text-properties beg (1+ beg)
+                               (list 'syntax-table (cons 11 ch-beg)
+                                     'rear-nonsticky t
+                                     'polymode-comment 'start))
+          (add-text-properties (1- end) end
+                               (list 'syntax-table (cons 12 ch-end)
+                                     'rear-nonsticky t
+                                     'polymode-comment 'end))
+          )))))
 
-;; (defun pm--remove-syntax-comment (&optional beg end buffer)
-;;   ;; remove all syntax-table properties. Should not cause any problem as it is
-;;   ;; always used before font locking
-;;   (let ((beg (or beg (region-beginning)))
-;;         (end (or end (region-end)))
-;;         (buffer (or buffer (current-buffer))))
-;;     (with-current-buffer buffer
-;;       (with-silent-modifications
-;;         (remove-text-properties beg end
-;;                                 '(syntax-table nil rear-nonsticky nil polymode-comment nil))))))
+(defun pm--uncomment-region (beg end)
+  ;; remove all syntax-table properties. Should not cause any problem as it is
+  ;; always used before font locking
+  (when (> end 1)
+    (with-silent-modifications
+      (let ((props '(syntax-table nil rear-nonsticky nil polymode-comment nil)))
+        (remove-text-properties beg end props)
+        ;; (remove-text-properties beg (1+ beg) props)
+        ;; (remove-text-properties end (1- end) props)
+        ))))
+
 
 ;; ;; this one does't really work, text-properties are the same in all buffers
 ;; (defun pm--mark-buffers-except-current (beg end)
@@ -622,5 +659,9 @@ Return newlly created buffer."
 ;;   (with-silent-modifications
 ;;     (put-text-property beg end 'fontified t)))
 
+
+(setq pm--dbg-mode-line nil
+      pm--dbg-fontlock t
+      pm--dbg-hook t)
 
 (provide 'polymode)

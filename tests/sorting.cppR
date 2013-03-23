@@ -7,7 +7,6 @@
  *     and the C++ STL.
  */
 
-
 /**
  * Consider the problem to sort all elements of the given vector in ascending
  * order. We can simply use the function `std::sort` from the C++ STL.
@@ -21,8 +20,8 @@ NumericVector stl_sort(NumericVector x) {
    NumericVector y = clone(x);
    std::sort(y.begin(), y.end());
    return y;
-}
-
+} 
+ 
 /*** R
 library(rbenchmark)
 set.seed(123)
@@ -115,9 +114,11 @@ benchmark(stl_nth_element(z, n),
          order="relative")[,1:4]
 */
 
+
 /**
  * While these are not huge speed improvements over the base R sort function, 
  * this post demonstrates how to easily access sorting functions in the C++
  * STL and is a good exercise to better understand the differences and 
  * performance of the sorting algorithms available in C++ and R.
  */
+

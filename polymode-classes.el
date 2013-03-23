@@ -109,6 +109,12 @@ are not known in advance. For example org-mode, markdown.")
     :documentation
     "Whether to modify local `indent-line-function' by narrowing
     to current span first")
+   (font-lock-narrow
+    :initarg :font-lock-narrow
+    :type boolean
+    :initform t
+    :documentation
+    "Whether to narrow to span during font lock")
    (buffer
     :initarg :buffer
     :type (or null buffer)
