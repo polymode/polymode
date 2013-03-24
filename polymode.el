@@ -233,7 +233,7 @@ This funciton is placed in local post-command hook."
           (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*))))
     (error (message "polymode error: %s"
                     (error-message-string error)))))
-  
+
 
 
 (defun pm/transform-color-value (color prop)
@@ -344,9 +344,6 @@ Colors are in hex RGB format #RRGGBB
              #'pm/fontify-region))
 
       (set (make-local-variable 'polymode-mode) t)
-      (funcall (oref pm/config :minor-mode-name) t)
-
-
 
       ;; Indentation should first narrow to the chunk.  Modes
       ;; should normally just bind `indent-line-function' to
@@ -379,7 +376,8 @@ Colors are in hex RGB format #RRGGBB
       ;; This should probably be at the front of the hook list, so
       ;; that other hook functions get run in the (perhaps)
       ;; newly-selected buffer.
-      
+
+      (funcall (oref pm/config :minor-mode-name))
       (when pm--dbg-hook
         (add-hook 'post-command-hook 'polymode-select-buffer nil t))
       (object-add-to-list pm/config :buffers (current-buffer)))
@@ -609,8 +607,8 @@ Return newlly created buffer."
       (forward-char)
       (polymode-select-buffer))
     (let ((elapsed  (time-to-seconds (time-subtract (current-time) start))))
-    (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
-  
+      (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
+
 
 
 ;; do not delete
@@ -658,6 +656,136 @@ Return newlly created buffer."
 ;;   (with-silent-modifications
 ;;     (put-text-property beg end 'fontified t)))
 
+(defmacro define-polymode (mode config &optional keymap &rest body)
+  "Define a new polymode MODE.
+This defines command MODE and (by default) an indicator variable
+MODE that is t when MODE is active and nil othervise.
+
+Optional KEYMAP is the default keymap bound to the mode keymap.
+  If nil, no new keymap is created and MODE uses `polymode-mode-map'.
+  If t, a new keymap is created with name MODE-MAP that inherits
+  form `polymode-mode-map'.
+  Otherwise it should be a variable name (whose value is a keymap),
+  or an alist of binding arguments passed to `easy-mmode-define-keymap'.
+
+BODY contains code to execute each time the mode is enabled. It
+  is executed after the complete initialization of the
+  polymode (`pm/initialize') and before running MODE-hook. Before
+  the actual body code, you can write keyword arguments,
+  i.e. alternating keywords and values.  These following special
+  keywords are supported:
+
+:lighter SPEC   Optional LIGHTER is displayed in the mode line when
+                the mode is on. If omitted, it defaults to
+                the :lighter slot of CONFIG object.
+:keymap MAP	Same as the KEYMAP argument.
+
+:after-hook     A single lisp form which is evaluated after the mode hooks
+                have been run.  It should not be quoted.
+"
+  (declare 
+   (debug (&define name name
+                   [&optional [&not keywordp] sexp]
+                   [&rest [keywordp sexp]]
+                   def-body)))
+
+  (when (keywordp keymap)
+    (push keymap body) (setq keymap nil))
+
+  (let* ((last-message (make-symbol "last-message"))
+         (mode-name (symbol-name mode))
+         (pretty-name (concat
+                       (replace-regexp-in-string "poly-\\|-mode" "" mode-name)
+                       " polymode"))
+	 (group nil)
+         (lighter (oref (symbol-value config) :lighter))
+	 (extra-keywords nil)
+         (modefun mode)          ;The minor mode function name we're defining.
+	 (after-hook nil)
+	 (hook (intern (concat mode-name "-hook")))
+	 keyw keymap-sym tmp)
+
+    ;; Check keys.
+    (while (keywordp (setq keyw (car body)))
+      (setq body (cdr body))
+      (pcase keyw
+	(`:lighter (setq lighter (purecopy (pop body))))
+	;; (`:group (setq group (nconc group (list :group (pop body)))))
+	(`:keymap (setq keymap (pop body)))
+	(`:after-hook (setq after-hook (pop body)))
+	(_ (push keyw extra-keywords) (push (pop body) extra-keywords))))
+
+    ;; (unless group
+    ;;   ;; We might as well provide a best-guess default group.
+    ;;   (setq group
+    ;;         `(:group ',(intern (replace-regexp-in-string
+    ;;     			"-mode\\'" "" mode-name)))))
+    (unless keymap
+      (setq keymap 'polymode-mode-map))
+    (when (or (eq keymap t)
+              (listp keymap))
+      (if (eq keymap t) (setq keymap nil))
+      (let ((map-name (concat mode-name "-map")))
+        (setq keymap-sym (intern map-name))))
+    
+
+    `(progn
+       ;; Define the variable to enable or disable the mode.
+       :autoload-end
+       (defvar ,mode nil ,(format "Non-nil if %s is enabled." pretty-name))
+       (make-variable-buffer-local ',mode)
+
+       ;; The actual function.
+       (defun ,mode (&optional arg) ,(format "%s\n\n\\{%s}"
+                                             (concat pretty-name ".")
+                                             (or keymap-sym
+                                                 (and (null keymap)
+                                                      'polymode-mode-map)
+                                                 (and (symbolp keymap)
+                                                      keymap)))
+	 (interactive)
+         (unless ,mode
+           ;; do nothing if already installed
+           ;; waf? why is this one called twice.
+           (setq ,mode t)
+           (let ((,last-message (current-message)))
+             (unless pm/config ;; don't reinstall for time being
+               (let ((config (clone ,config)))
+                 (oset config :minor-mode-name ',mode)
+                 (pm/initialize config)))
+             ;; (dbg "here" (current-buffer))
+             ,@body
+             (run-hooks ',hook)
+             ;; Avoid overwriting a message shown by the body,
+             ;; but do overwrite previous messages.
+             (when (and (called-interactively-p 'any)
+                        (or (null (current-message))
+                            (not (equal ,last-message
+                                        (current-message)))))
+               (message ,(format "%s enabled" pretty-name)))
+             ,@(when after-hook `(,after-hook))
+             (force-mode-line-update)))
+         ;; Return the new setting.
+         ,mode)
+
+       ;; Autoloading a define-minor-mode autoloads everything
+       ;; up-to-here.
+       :autoload-end
+       
+       ;; Define the minor-mode keymap.
+       ,(when keymap-sym
+          `(defvar ,keymap-sym
+             (easy-mmode-define-keymap ,keymap nil nil '(:inherit ,polymode-mode-map))
+             ,(format "Keymap for %s." pretty-name)))
+
+       (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
+
+(dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
+  (font-lock-add-keywords
+   mode
+   '(("(\\(define-polymode\\)\\s +\\(\\(\\w\\|\\s_\\)+\\)"
+      (1 font-lock-keyword-face)
+      (2 font-lock-variable-name-face)))))
 
 (setq pm--dbg-mode-line t
       pm--dbg-fontlock t

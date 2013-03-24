@@ -21,6 +21,12 @@
     "Symbol pointing to minor-mode function that should be
     activated in all buffers (base and indirect). This is a
     \"glue\" mode and is `polymode-minor-mode' by default.")
+   (lighter
+    :initarg :lighter
+    :initform " PM"
+    :type string
+    :custom string
+    :documentation "Modline lighter.")
    (base-submode
     :initarg :base-submode
     :type (or null pm-submode)

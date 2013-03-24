@@ -2,7 +2,7 @@
 
 ;; NOWEB
 (require 'poly-noweb)
-         
+
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
          :inner-submode-name 'pm-submode/noweb+R)
@@ -18,33 +18,13 @@
   :group 'polymode
   :type 'object)
 
-(defun poly-noweb+r-mode ()
-  "Noweb+R polymode."
-  (interactive)
-  (pm/initialize (clone pm-config/noweb+R)))
-
+(define-polymode poly-noweb+r-mode pm-config/noweb+R)
 (add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
 
 
 ;; MARKDOWN
 (require 'poly-markdown)
-
-(defun poly-markdown+r-mode ()
-  "Markdown+R polymode"
-  (interactive)
-  (pm/initialize (clone pm-config/markdown)))
-
-(define-minor-mode poly-markdown+r-minor-mode
-  "Markdown + R poly minor mode."
-  nil " Rmd" polymode-mode-map
-  (if poly-markdown+r-minor-mode
-      (unless pm/config
-        (let ((config (clone pm-config/markdown)))
-          (oset config :minor-mode-name 'poly-markdown+r-minor-mode)
-          (pm/initialize config)))
-    (setq pm/config nil
-          pm/submode nil)))
-
+(define-polymode poly-markdown+r-mode pm-config/markdown :lighter " Rmd")
 (add-to-list 'auto-mode-alist '("Rmd" . poly-markdown+r-mode))
 
 
@@ -63,12 +43,7 @@
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-
-(defun poly-html+r-mode ()
-  "HTML + R polymode"
-  (interactive)
-  (pm/initialize (clone pm-config/html+R)))
-
+(define-polymode poly-html+r-mode pm-config/html+R)
 (add-to-list 'auto-mode-alist '("Rhtml" . poly-html+r-mode))
 
 
@@ -87,14 +62,8 @@
   "Brew R chunk."
   :group 'polymode  :type 'object)
 
-
-(defun poly-brew+r-mode ()
-  "Polymode for brew + R"
-  (interactive)
-  (pm/initialize (clone pm-config/brew+R)))
-
+(define-polymode poly-brew+r-mode pm-config/brew+R)
 (add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+r-mode))
-
 
 
 ;;; R+C++
@@ -134,11 +103,7 @@
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-(defun poly-r+c++-mode ()
-  "R+C++ polymode"
-  (interactive)
-  (pm/initialize (clone pm-config/R+C++)))
-
+(define-polymode poly-r+c++-mode pm-config/R+C++)
 (add-to-list 'auto-mode-alist '("Rcpp" . poly-r+c++-mode))
 
 
@@ -176,11 +141,7 @@
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
-(defun poly-c++r-mode ()
-  "C++R polymode"
-  (interactive)
-  (pm/initialize (clone pm-config/C++R)))
-
+(define-polymode poly-c++r-mode pm-config/C++R)
 (add-to-list 'auto-mode-alist '("cppR" . poly-c++r-mode))
 
 
@@ -202,16 +163,8 @@
   "Ess help R chunk"
   :group 'polymode  :type 'object)
 
-(define-minor-mode poly-ess-help+r-minor-mode
-  "ess help"
-  nil " RPM" polymode-mode-map
-  (if poly-ess-help+r-minor-mode
-      (unless pm/config
-        (let ((config (clone pm-config/ess-help+R)))
-          (oset config :minor-mode-name 'poly-ess-help+r-minor-mode)
-          (pm/initialize config)))
-    (setq pm/config nil
-          pm/submode nil)))
+
+(define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
 
 ;; will move into ESS
 (defcustom ess-help-use-polymode t
@@ -221,7 +174,7 @@
 
 (when (and (boundp ess-help-use-polymode)
            ess-help-use-polymode)
-  (add-hook 'ess-help-mode-hook 'poly-ess-help+r-minor-mode))
+  (add-hook 'ess-help-mode-hook 'poly-ess-help+r-mode))
 
 
 (provide 'poly-R)
