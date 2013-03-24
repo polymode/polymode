@@ -11,29 +11,32 @@ Current buffer is setup as the base buffer.")
 ;;   (pm--setup-buffer (current-buffer)))
 
 (defmethod pm/initialize ((config pm-config))
-  (eval `(oset config :base-submode
-               (clone ,(oref config :base-submode-name))))
-  (oset (oref config :base-submode)
-        :buffer (current-buffer))
-  (let ((base-mode (pm--get-available-mode
-                    (or (oref (oref config :base-submode) :mode)
-                        ;; reuse existing if nil
-                        major-mode))))
-    ;; don't reinitialize if already there; can be used in minor modes
-    ;; waf? why reinstaling base mode helps with font-lock infloop?
-    ;; sort of solves .. looks like
-    (unless (equal (upcase (symbol-name major-mode))
-                   (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
-      (let ((polymode-mode t)) ;;major-modes might check it 
-        (funcall base-mode)))
-    ;; after emacs mode install
-    (setq pm/config config)
-    (setq pm/submode (oref config :base-submode))
-    (oset pm/submode :mode base-mode))
-  ;; (let ((font-lock-fontify-region-function #'pm/fontify-region-simle))
-  ;;   (pm/map-over-spans (point-min) (point-max) (lambda())))
-  ;; todo: initialize inner-submodes here?
-  (pm--setup-buffer (current-buffer)))
+  ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ... 
+  ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
+  ;; For time baing never reinstall twice
+  (unless pm/config
+    (eval `(oset config :base-submode
+                 (clone ,(oref config :base-submode-name))))
+    (oset (oref config :base-submode)
+          :buffer (current-buffer))
+    (let ((base-mode (pm--get-available-mode
+                      (or (oref (oref config :base-submode) :mode)
+                          ;; reuse existing if nil
+                          major-mode))))
+      ;; don't reinitialize if already there; can be used in minor modes
+      ;; waf? why reinstaling base mode helps with font-lock infloop?
+      ;; sort of solves .. looks like
+      (unless (equal (upcase (symbol-name major-mode))
+                     (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
+        (let ((polymode-mode t)) ;;major-modes might check it 
+          (funcall base-mode)))
+      (setq pm/config config)
+      (setq pm/submode (oref config :base-submode))
+      (oset pm/submode :mode base-mode))
+    ;; (let ((font-lock-fontify-region-function #'pm/fontify-region-simle))
+    ;;   (pm/map-over-spans (point-min) (point-max) (lambda())))
+    ;; todo: initialize inner-submodes here?
+    (pm--setup-buffer (current-buffer))))
   
                           
 (defmethod pm/initialize ((config pm-config-one))

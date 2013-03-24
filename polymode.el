@@ -1,8 +1,9 @@
 ;;; polymode.el --- support for multiple major modes
 ;; Author: Vitalie Spinu
 
+(require 'cl)
 (require 'font-lock)
-(require 'imenu)
+;; (require 'imenu)
 (require 'eieio)
 (require 'eieio-base)
 (require 'eieio-custom)
@@ -188,14 +189,12 @@ in polymode buffers."
                (pm--adjust-chunk-overlay sbeg send buff) ;; set in original buffer!
                (when parse-sexp-lookup-properties
                  (pm--comment-region 1 sbeg))
-               ;; (dbg sbeg send)
                (unwind-protect 
-                   (if (oref (nth 3 *span*) :font-lock-narrow)
+                   (if (oref pm/submode :font-lock-narrow)
                        (save-restriction
                          (narrow-to-region sbeg send)
                          (funcall pm--fontify-region-original
-                                  (max sbeg beg) (min send end) verbose)
-                         )
+                                  (max sbeg beg) (min send end) verbose))
                      (funcall pm--fontify-region-original
                               (max sbeg beg) (min send end) verbose))
                  (when parse-sexp-lookup-properties
@@ -660,7 +659,7 @@ Return newlly created buffer."
 ;;     (put-text-property beg end 'fontified t)))
 
 
-(setq pm--dbg-mode-line nil
+(setq pm--dbg-mode-line t
       pm--dbg-fontlock t
       pm--dbg-hook t)
 
