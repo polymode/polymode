@@ -75,6 +75,13 @@
   :group 'polymode :type 'object)
 
 
+(defcustom pm-config/C++
+  (pm-config-one "C++"
+                 :base-submode-name 'pm-base/C++
+                 :inner-submode-name 'pm-submode/fundamental)
+  "C++ typical configuration"
+  :group 'polymode :type 'object)
+
 
 (provide 'poly-base)
 

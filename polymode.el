@@ -30,12 +30,6 @@
   "Hook run by `pm/install-mode' in each indirect buffer.
 It is run after all the indirect buffers have been set up.")
 
-;; (defvar pm/base-mode nil)
-;; (make-variable-buffer-local 'pm/base-mode)
-
-;; (defvar pm/default-submode nil)
-;; (make-variable-buffer-local 'pm/default-submode)
-
 (defvar pm/config nil)
 (make-variable-buffer-local 'pm/config)
 
@@ -44,8 +38,6 @@ It is run after all the indirect buffers have been set up.")
 
 (defvar pm/type nil)
 (make-variable-buffer-local 'pm/type)
-;; (defvar pm/overlay nil)
-;; (make-variable-frame-local 'pm/overlay)
 
 (defcustom polymode-prefix-key "\M-n"
   "Prefix key for the polymode mode keymap.
@@ -332,6 +324,7 @@ Colors are in hex RGB format #RRGGBB
     (with-current-buffer buff
       ;; Don't let parse-partial-sexp get fooled by syntax outside
       ;; the chunk being fontified.
+
       ;; font-lock, forward-sexp etc should see syntactic comments
       ;; (set (make-local-variable 'parse-sexp-lookup-properties) t)
 
@@ -373,36 +366,15 @@ Colors are in hex RGB format #RRGGBB
       ;;                  (setq pm--killed-once t))))
       ;;           t t)
       
-      ;; This should probably be at the front of the hook list, so
-      ;; that other hook functions get run in the (perhaps)
-      ;; newly-selected buffer.
-
       (funcall (oref pm/config :minor-mode-name))
       (when pm--dbg-hook
-        (add-hook 'post-command-hook 'polymode-select-buffer nil t))
+        (add-hook 'post-command-hook
+                  'polymode-select-buffer nil t))
       (object-add-to-list pm/config :buffers (current-buffer)))
     buff))
 
 (defvar pm--killed-once nil)
 (make-variable-buffer-local 'pm--killed-once)
-
-
-;; adapted from org
-;; (defun pm--clone-local-variables (from-buffer &optional regexp)
-;;   "Clone local variables from FROM-BUFFER.
-;; Optional argument REGEXP selects variables to clone."
-;;   (mapc
-;;    (lambda (pair)
-;;      (and (symbolp (car pair))
-;; 	  (or (null regexp)
-;; 	      (string-match regexp (symbol-name (car pair))))
-;;           (condition-case error ;; some special wars cannot be set directly, how to solve?
-;;               (set (make-local-variable (car pair))
-;;                    (cdr pair))
-;;             ;; fixme: enable-multibyte-characters cannot be set, what are others?
-;;             (error ;(message  "--dbg local set: %s" (error-message-string error))
-;;                    nil))))
-;;    (buffer-local-variables from-buffer)))
 
 (defun pm--create-indirect-buffer (mode)
   "Create indirect buffer with major MODE and initialize appropriately.
@@ -417,28 +389,6 @@ Return newlly created buffer."
     (error "`pm/config' not found in the base buffer %s" (pm/base-buffer)))
   
   (setq mode (pm--get-available-mode mode))
-  ;; VS[26-08-2012]: The following if is Dave Love's hack in multi-mode. Kept
-  ;; here, because i don't really understand it.
-
-  ;; This is part of a grim hack for lossage in AUCTeX, which
-  ;; bogusly advises `hack-one-local-variable'.  This loses, due to
-  ;; the way advice works, when we run `pm/hack-local-variables'
-  ;; below -- there ought to be a way round this, probably with CL's
-  ;; flet.  Any subsequent use of it then fails because advice has
-  ;; captured the now-unbound variable `late-hack'...  Thus ensure
-  ;; we've loaded the mode in advance to get any autoloads sorted
-  ;; out.  Do it generally in case other modes have similar
-  ;; problems.  [The AUCTeX stuff is in support of an undocumented
-  ;; feature which is unnecessary and, anyway, wouldn't need advice
-  ;; to implement.  Unfortunately the maintainer seems not to
-  ;; understand the local variables mechanism and wouldn't remove
-  ;; this.  To invoke minor modes, you should just use `mode:' in
-  ;; `local variables'.]
-  ;; (if (eq 'autoload (car-safe (indirect-function mode)))
-  ;;     (with-temp-buffer
-  ;;       (insert "Local Variables:\nmode: fundamental\nEnd:\n")
-  ;;       (funcall mode)
-  ;;       (hack-local-variables)))
 
   (with-current-buffer (pm/base-buffer)
     (let* ((config (buffer-local-value 'pm/config (current-buffer)))
@@ -454,46 +404,17 @@ Return newlly created buffer."
            (coding buffer-file-coding-system)
            (tbf (get-buffer-create "*pm-tmp*")))
 
-      ;; do it in empty buffer to exclude all kind of font-lock issues
-      ;; Or, is there a reliable way to deactivate font-lock temporarly?
-      ;; (with-current-buffer tbf
-      ;;   (let ((polymode-mode t)) ;;major-modes might check it
-      ;;     (funcall mode)))
       (with-current-buffer new-buffer
         (let ((polymode-mode t)) ;;major-modes might check it
           (funcall mode))
-        ;; clonning doesn't really work, local maps 
-        ;; (pm--clone-local-variables tbf)
-        ;; Now we can make it local:
         (setq polymode-major-mode mode)
         
-        ;; VS[26-08-2012]: Dave Love's hack.
-        ;; Use file's local variables section to set variables in
-        ;; this buffer.  (Don't just copy local variables from the
-        ;; base buffer because it may have set things locally that
-        ;; we don't want in the other modes.)  We need to prevent
-        ;; `mode' being processed and re-setting the major mode.
-        ;; It all goes badly wrong if `hack-one-local-variable' is
-        ;; advised.  The appropriate mechanism to get round this
-        ;; appears to be `ad-with-originals', but we don't want to
-        ;; pull in the advice package unnecessarily.  `flet'-like
-        ;; mechanisms lose with advice because `fset' acts on the
-        ;; advice anyway.
-        ;; (if (featurep 'advice)
-        ;;     (ad-with-originals (hack-one-local-variable)
-        ;;       (pm/hack-local-variables))
-        ;;   (pm/hack-local-variables))
-
-
-        ;; Avoid the uniqified name for the indirect buffer in the
-        ;; mode line.
+        ;; Avoid the uniqified name for the indirect buffer in the mode line.
         (when pm--dbg-mode-line
           (setq mode-line-buffer-identification
                 (propertized-buffer-identification base-name)))
         (setq pm/config config)
-        ;; (face-remap-add-relative 'default '(:background "#073642"))
         (setq buffer-file-coding-system coding)
-        ;; For benefit of things like VC
         (setq buffer-file-name file)
         (vc-find-file-hook))
       new-buffer)))
@@ -561,20 +482,6 @@ Return newlly created buffer."
 ;;   (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
 ;;   (oref pm-submode/noweb-R :head-buffer))
 
-;;;; HACKS
-;; VS[26-08-2012]: Dave Love's hack. See commentary above.
-;; (defun pm/hack-local-variables ()
-;;   "Like `hack-local-variables', but ignore `mode' items."
-;;   (let ((late-hack (symbol-function 'hack-one-local-variable)))
-;;     (fset 'hack-one-local-variable
-;; 	  (lambda (var val)
-;; 	    (unless (eq var 'mode)
-;; 	      (funcall late-hack var val))))
-;;     (unwind-protect
-;; 	(hack-local-variables)
-;;       (fset 'hack-one-local-variable late-hack))))
-
-;; Used to propagate the bindings to the indirect buffers.
 (define-minor-mode polymode-minor-mode
   "Polymode minor mode, used to make everything work."
   nil " PM" polymode-mode-map)
@@ -610,8 +517,6 @@ Return newlly created buffer."
       (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
 
 
-
-;; do not delete
 (defun pm--comment-region (beg end)
   ;; mark as syntactic comment
   (when (> end 1)
@@ -641,20 +546,6 @@ Return newlly created buffer."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-
-;; ;; this one does't really work, text-properties are the same in all buffers
-;; (defun pm--mark-buffers-except-current (beg end)
-;;   ;; marke with syntact comments all the buffers except this on
-;;   (dolist ((bf (oref pm/config :buffers)))
-;;     (when (and (buffer-live-p bf)
-;;                (not (eq bf (current-buffer))))
-;;       (pm--comment-region beg end bf)
-;;       ;; (put-text-property beg end 'fontified t)
-;;       )))
-
-;; (defun pm/fontify-region-simle (beg end &optional verbose)
-;;   (with-silent-modifications
-;;     (put-text-property beg end 'fontified t)))
 
 (defmacro define-polymode (mode config &optional keymap &rest body)
   "Define a new polymode MODE.
@@ -780,6 +671,7 @@ BODY contains code to execute each time the mode is enabled. It
 
        (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
 
+;; indulge elisp font-lock :) 
 (dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
   (font-lock-add-keywords
    mode

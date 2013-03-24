@@ -7,21 +7,19 @@
   (clone pm-config/noweb
          :inner-submode-name 'pm-submode/noweb+R)
   "Noweb for R configuration"
-  :group 'polymode
-  :type 'object)
+  :group 'polymode :type 'object)
 
 (defcustom pm-submode/noweb+R
   (clone pm-submode/noweb
          :mode 'R-mode
          :protect-indent-line-function t)
   "Noweb for R"
-  :group 'polymode
-  :type 'object)
+  :group 'polymode :type 'object)
 
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
 (add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
 
-
+
 ;; MARKDOWN
 (require 'poly-markdown)
 (define-polymode poly-markdown+r-mode pm-config/markdown :lighter " Rmd")
@@ -119,13 +117,6 @@
   (when (re-search-forward "^[ \t]*\\*/")
     (cons (match-beginning 0) (match-end 0))))
 
-(defcustom pm-config/C++
-  (pm-config-one "C++"
-                 :base-submode-name 'pm-base/C++
-                 :inner-submode-name 'pm-submode/fundamental)
-  "C++ typical configuration"
-  :group 'polymode :type 'object)
-
 (defcustom pm-config/C++R
   (clone pm-config/C++ "C++R" :inner-submode-name 'pm-submode/C++R)
   "R + C++ configuration"
@@ -163,7 +154,6 @@
   "Ess help R chunk"
   :group 'polymode  :type 'object)
 
-
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
 
 ;; will move into ESS
@@ -175,6 +165,5 @@
 (when (and (boundp ess-help-use-polymode)
            ess-help-use-polymode)
   (add-hook 'ess-help-mode-hook 'poly-ess-help+r-mode))
-
 
 (provide 'poly-R)
