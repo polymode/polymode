@@ -15,22 +15,28 @@ Current buffer is setup as the base buffer.")
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; For time baing never reinstall twice
   (unless pm/config
-    (eval `(oset config :base-submode
-                 (clone ,(oref config :base-submode-name))))
-    (oset (oref config :base-submode) :buffer (current-buffer))
-    (let ((base-mode (pm--get-available-mode
-                      (or (oref (oref config :base-submode) :mode)
-                          ;; reuse existing if nil
-                          major-mode))))
-      (unless (equal (upcase (symbol-name major-mode))
-                     (upcase (symbol-name base-mode))) ;; may be check if point tothe same function 
+    (let* ((submode (clone (symbol-value (oref config :base-submode-name))
+                           :buffer (current-buffer)))
+           ;; set if nil, to allow unspecified base submodes to be used in minor modes
+           (base-mode (or (oref submode :mode)
+                          (oset submode :mode major-mode))))
+      (unless (or (eq major-mode base-mode)
+                  (eq polymode-major-mode base-mode))
         (let ((polymode-mode t)) ;;major-modes might check it 
           (funcall base-mode)))
+      ;; fixme:maybe: inconsistencies?
+      ;; 1)  not calling pm/install-buffer on base-buffer
+      ;; But, we are not creating/installing a new buffer here .. so it is a
+      ;; different thing .. and is probably ok
+      ;; 2)  not calling config's :minor-mode-name (polymode function).
+      ;; But polymode function calls pm/initialize... so I guess it is ok
+      (oset config :base-submode submode)
       (setq pm/config config)
-      (setq pm/submode (oref config :base-submode))
+      (setq pm/submode submode)
       (setq pm/type 'base)
-      (oset pm/submode :mode base-mode))
-    (pm--setup-buffer (current-buffer))))
+      ;; if base-mode is nil 
+      (pm--setup-buffer)
+    )))
   
                           
 (defmethod pm/initialize ((config pm-config-one))
@@ -130,31 +136,31 @@ return an error."
 
 (defgeneric pm/install-buffer (submode &optional type)
   "Ask SUBMODE to install an indirect buffer corresponding to
-span TYPE.")
+span TYPE. Should return newly installed/retrieved buffer.")
 
 (defmethod pm/install-buffer ((submode pm-submode) &optional type)
   "Independently on the TYPE call `pm/create-indirect-buffer'
 create and install a new buffer in slot :buffer of SUBMODE."
-  (let ((mode (oref submode :mode)))
-    (oset submode :buffer 
-          (or (pm--get-indirect-buffer-of-mode mode)
-              (with-current-buffer  buf
-                (setq pm/submode submode)
-                (setq pm/type type)
-                (pm--setup-buffer))))))
-
+  (oset submode :buffer
+        (pm--submode-create-buffer-maybe submode type)))
 
 (defmethod pm/install-buffer ((submode pm-inner-submode) type)
   "Depending of the TYPE install an indirect buffer into
 slot :buffer of SUBMODE. Create this buffer if does not exist."
-  (let ((mode (pm--get-submode-mode submode type)))
-    (pm--set-submode-buffer submode type
-                            (or (pm--get-indirect-buffer-of-mode mode)
-                                (with-current-buffer (pm--create-indirect-buffer mode)
-                                  (setq pm/submode submode)
-                                  (setq pm/type type)
-                                  (pm--setup-buffer))))))
+  (pm--set-submode-buffer submode type
+                          (pm--create-submode-buffer-maybe submode type)))
 
+(defun pm--create-submode-buffer-maybe (submode type)
+  ;; assumes pm/config is set
+  (let ((mode (pm--get-submode-mode submode type)))
+    (or (pm--get-indirect-buffer-of-mode mode)
+        (let ((buff (pm--create-indirect-buffer mode)))
+           (with-current-buffer  buff
+             (setq pm/submode submode)
+             (setq pm/type type)
+             (pm--setup-buffer)
+             (funcall (oref pm/config :minor-mode-name))
+             buff)))))
 
 (defgeneric pm/get-span (submode &optional pos)
   "Ask a submode for the span at point.

@@ -366,7 +366,6 @@ Colors are in hex RGB format #RRGGBB
       ;;                  (setq pm--killed-once t))))
       ;;           t t)
       
-      (funcall (oref pm/config :minor-mode-name))
       (when pm--dbg-hook
         (add-hook 'post-command-hook
                   'polymode-select-buffer nil t))
