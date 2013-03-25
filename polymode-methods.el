@@ -108,7 +108,6 @@ return an error."
       (error "Symbol %s is not a valid function" mname))))
   
 (defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
-  
   (if (null (car span))
       (pm/select-buffer (oref config :base-submode) span)
     (let ((type (car span))
