@@ -18,7 +18,7 @@
 /*** R
   suppressMessages(library(Matrix))
   i <- c(1,3:8) 
-  j <- c(2,9,6:10) 
+   j <- c(2,9,6:10) a
   x <- 7 * (1:7)
   A <- sparseMatrix(i, j, x = x) 
   print(A)
@@ -77,9 +77,8 @@ void convertSparse(S4 mat) {         // slight improvement with two non-nested l
  * Running this example shows the same matrix printed to `stdout` by
  * Armadillo.
  */
-
-/*** R
-  convertSparse(A)
+/***R
+   convertSparse(A)
 */
 
 /**

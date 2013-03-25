@@ -49,49 +49,114 @@ Not effective after loading the polymode library."
   (let ((map (make-sparse-keymap)))
     (define-key map polymode-prefix-key
       (let ((map (make-sparse-keymap)))
-	(define-key map "\C-n" 'polymode-next-header)
-	(define-key map "\C-p" 'polymode-previous-header)
-	;; (define-key map "\M-n" 'polymode-goto-next)
-	;; (define-key map "\M-p" 'polymode-goto-prev)
-	;; (define-key map "c" 'polymode-code-next)
-	;; (define-key map "C" 'polymode-code-prev)
-	;; (define-key map "d" 'polymode-doc-next)
-	;; (define-key map "D" 'polymode-doc-prev)
-        ;; Use imenu.
-        ;; 	(define-key map "\C-g" 'polymode-goto-chunk)
+	(define-key map "\C-n" 'polymode-next-chunk)
+	(define-key map "\C-p" 'polymode-previous-chunk)
+        (define-key map "\C-\M-n" 'polymode-next-chunk-same-type)
+	(define-key map "\C-\M-p" 'polymode-previous-chunk-same-type)
         (define-key map "\M-k" 'polymode-kill-chunk)
-        (define-key map "\M-K" 'polymode-kill-chunk-pair)
-        (define-key map "\M-m" 'polymode-mark-chunk)
-        (define-key map "\M-M" 'polymode-mark-chunk-pair)
-        (define-key map "\M-n" 'polymode-narrow-to-chunk)
-        (define-key map "\M-N" 'polymode-narrow-to-chunk-pair)
-        (define-key map "\C-t" 'polymode-toggle-narrowing)
-	(define-key map "\M-i" 'polymode-new-chunk)
-	(define-key map "."	'polymode-select-backend)
-	(define-key map "$"	'polymode-display-process)
-	;; (if (bound-and-true-p polymode-electric-<)
-	;;     (define-key polymode-mode-map "<" #'polymode-electric-<))
-	;; (if (bound-and-true-p polymode-electric-@)
-	;;     (define-key polymode-mode-map "@" #'polymode-electric-@))
+        (define-key map "\M-m" 'polymode-mark-or-extend-chunk)
+        (define-key map "\C-t" 'polymode-toggle-chunk-narrowing)
+	(define-key map "\M-i" 'polymode-insert-new-chunk)
 	map))
     (define-key map [menu-bar Polymode]
       (cons "Polymode"
 	    (let ((map (make-sparse-keymap "Polymode")))
               (define-key-after map [goto-prev]
-		'(menu-item "Next chunk header" polymode-next-header))
+		'(menu-item "Next chunk" polymode-next-chunk))
 	      (define-key-after map [goto-prev]
-		'(menu-item "Previous chunk header" polymode-previous-header))
+		'(menu-item "Previous chunk" polymode-previous-chunk))
+              (define-key-after map [goto-prev]
+		'(menu-item "Next chunk same type" polymode-next-chunk-same-type))
+	      (define-key-after map [goto-prev]
+		'(menu-item "Previous chunk same type" polymode-previous-chunk-same-type))
 	      (define-key-after map [mark]
-		'(menu-item "Mark chunk" polymode-mark-chunk))
+		'(menu-item "Mark or extend chunk" polymode-mark-or-extend-chunk))
 	      (define-key-after map [kill]
 		'(menu-item "Kill chunk" polymode-kill-chunk))
 	      (define-key-after map [new]
-		'(menu-item "New chunk" polymode-new-chunk))
+		'(menu-item "Insert new chunk" polymode-insert-new-chunk))
 	      map)))
     map)
   "The default minor mode keymap that is active in all polymode
   modes.")
 
+(defun polymode-next-chunk (&optional N)
+  "Go to next COUNT chunk.
+Return, how many chucks actually jumped over."
+  (interactive "p")
+  (let ((sofar 0))
+    (condition-case nil
+        (pm/map-over-spans
+         (lambda ()
+           (unless (memq (car *span*) '(head tail))
+             (when (>= sofar N)
+               (signal 'quit nil))
+             (setq sofar (1+ sofar))))
+         (point) (point-max))
+      (quit (when (looking-at "\\s *$")
+              (forward-line))))
+    sofar))
+
+;;fixme: problme with long chunks .. point is recentered
+;;todo: merge into next-chunk
+(defun polymode-previous-chunk (&optional N)
+  "Go to next COUNT chunk.
+Return, how many chucks actually jumped over."
+  (interactive "p")
+  (let ((sofar 0))
+    (condition-case nil
+        (pm/map-over-spans
+         (lambda ()
+           (unless (memq (car *span*) '(head tail))
+             (when (>= sofar N)
+               (signal 'quit nil))
+             (setq sofar (1+ sofar))))
+         (point-min) (point) nil 'back)
+      (quit (when (looking-at "\\s *$")
+              (forward-line 1))))
+    sofar))
+
+(defun polymode-next-chunk-same-type (&optional N)
+  "Go to next COUNT chunk.
+Return, how many chucks actually jumped over."
+  (interactive "p")
+  (let ((sofar 0)
+        orig-type)
+    (condition-case nil
+        (pm/map-over-spans
+         (lambda ()
+           (unless (memq (car *span*) '(head tail))
+             (when (equal orig-type (object-name (car (last *span*))))
+               (setq sofar (1+ sofar)))
+             (unless orig-type
+               (setq orig-type (object-name (car (last *span*)))))
+             (when (>= sofar N)
+               (signal 'quit nil))))
+         (point) (point-max))
+      (quit (when (looking-at "\\s *$")
+              (forward-line))))
+    sofar))
+
+(defun polymode-previous-chunk-same-type (&optional N)
+  "Go to previus COUNT chunk.
+Return, how many chucks actually jumped over."
+  (interactive "p")
+  (let ((sofar 0)
+        orig-type)
+    (condition-case nil
+        (pm/map-over-spans
+         (lambda ()
+           (unless (memq (car *span*) '(head tail))
+             (when (equal orig-type (object-name (car (last *span*))))
+               (setq sofar (1+ sofar)))
+             (unless orig-type
+               (setq orig-type (object-name (car (last *span*)))))
+             (when (>= sofar N)
+               (signal 'quit nil))))
+         (point-max) (point) nil nil)
+      (quit (when (looking-at "\\s *$")
+              (forward-line))))
+    sofar))
 
 (defsubst pm/base-buffer ()
   ;; fixme: redundant with :base-buffer 
@@ -109,25 +174,35 @@ Not effective after loading the polymode library."
   (pm/get-span pm/config pos))
 
 (defvar pm--can-narrow? t)
-(defun pm/map-over-spans (fun beg end &optional dont-narrow)
+(defun pm/map-over-spans (fun beg end &optional count backward?)
   "For all spans between BEG and END, execute FUN.
-FUN is a function of no args.  It is executed with point at the
+FUN is a function of no args. It is executed with point at the
 beginning of the span and with the buffer narrowed to the
-span.
-
-During the call of FUN, a dynamically bound variable *span* hold
+span. If COUNT is non-nil, jump at most that many times. If
+BACKWARD? is non-nil, map backwards.
+ 
+During the call of FUN, a dynamically bound variable *span* holds
 the current innermost span."
-  (save-excursion
-    (save-window-excursion 
-      (goto-char beg)
-      (while (< (point) end)
-        (let ((*span* (pm/get-innermost-span)))
-          (pm/select-buffer (car (last *span*)) *span*) ;; object and type
-          (save-restriction
-            (unless dont-narrow
-              (pm/narrow-to-span *span*))
-            (funcall fun)
-            (goto-char (nth 2 *span*))))))))
+  (goto-char (if backward? end beg))
+  (let ((nr 0))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (while (and (if backward?
+                        (> (point) beg)
+                      (< (point) end))
+                    (or (null count)
+                        (< nr count)))
+          (let ((*span* (pm/get-innermost-span)))
+            (dbg (point))
+            (setq nr (1+ nr))
+            (pm/select-buffer (car (last *span*)) *span*) ;; object and type
+            ;; (goto-char (nth 1 *span*))
+            (funcall fun)))
+        (if backward?
+            (goto-char (max (point-min)
+                            (1- (nth 1 *span*)))) ;; enter previous chunk
+          (goto-char (nth 2 *span*)))))))
 
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
@@ -177,6 +252,7 @@ in polymode buffers."
            (when (and font-lock-mode font-lock-keywords)
              (let ((sbeg (nth 1 *span*))
                    (send (nth 2 *span*)))
+               (dbg sbeg send)
                ;; (dbg (point-min) (point-max) (point))
                (pm--adjust-chunk-overlay sbeg send buff) ;; set in original buffer!
                (when parse-sexp-lookup-properties
@@ -192,7 +268,7 @@ in polymode buffers."
                  (when parse-sexp-lookup-properties
                    (pm--uncomment-region 1 sbeg))
                  ))))
-         beg end 'dont-narrow))
+         beg end))
       (put-text-property beg end 'fontified t)
       (unless modified
         (restore-buffer-modified-p nil)))))
