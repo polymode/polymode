@@ -80,11 +80,17 @@ Not effective after loading the polymode library."
   "The default minor mode keymap that is active in all polymode
   modes.")
 
+
+;;; COMMANDS
 (defun polymode-next-chunk (&optional N)
-  "Go to next COUNT chunk.
+  "Go COUNT chunks forwards.
 Return, how many chucks actually jumped over."
   (interactive "p")
-  (let ((sofar 0))
+  (let* ((sofar 0)
+         (back (< N 0))
+         (beg (if back (point-min) (point)))
+         (end (if back (point) (point-max)))
+         (N (if back (- N) N)))
     (condition-case nil
         (pm/map-over-spans
          (lambda ()
@@ -92,7 +98,7 @@ Return, how many chucks actually jumped over."
              (when (>= sofar N)
                (signal 'quit nil))
              (setq sofar (1+ sofar))))
-         (point) (point-max))
+         beg end nil back)
       (quit (when (looking-at "\\s *$")
               (forward-line))))
     sofar))
@@ -100,39 +106,35 @@ Return, how many chucks actually jumped over."
 ;;fixme: problme with long chunks .. point is recentered
 ;;todo: merge into next-chunk
 (defun polymode-previous-chunk (&optional N)
-  "Go to next COUNT chunk.
+  "Go COUNT chunks backwards .
 Return, how many chucks actually jumped over."
   (interactive "p")
-  (let ((sofar 0))
-    (condition-case nil
-        (pm/map-over-spans
-         (lambda ()
-           (unless (memq (car *span*) '(head tail))
-             (when (>= sofar N)
-               (signal 'quit nil))
-             (setq sofar (1+ sofar))))
-         (point-min) (point) nil 'back)
-      (quit (when (looking-at "\\s *$")
-              (forward-line 1))))
-    sofar))
+  (polymode-next-chunk (- N)))
+  
 
 (defun polymode-next-chunk-same-type (&optional N)
   "Go to next COUNT chunk.
 Return, how many chucks actually jumped over."
   (interactive "p")
-  (let ((sofar 0)
-        orig-type)
+  (let* ((sofar 0)
+         (back (< N 0))
+         (beg (if back (point-min) (point)))
+         (end (if back (point) (point-max)))
+         (N (if back (- N) N))
+         this-type this-class)
     (condition-case nil
         (pm/map-over-spans
          (lambda ()
            (unless (memq (car *span*) '(head tail))
-             (when (equal orig-type (object-name (car (last *span*))))
+             (when (and (equal this-class (object-name (car (last *span*))))
+                        (eq this-type (car *span*)))
                (setq sofar (1+ sofar)))
-             (unless orig-type
-               (setq orig-type (object-name (car (last *span*)))))
+             (unless this-class
+               (setq this-class (object-name (car (last *span*)))
+                     this-type (car *span*)))
              (when (>= sofar N)
                (signal 'quit nil))))
-         (point) (point-max))
+         beg end nil back)
       (quit (when (looking-at "\\s *$")
               (forward-line))))
     sofar))
@@ -141,23 +143,53 @@ Return, how many chucks actually jumped over."
   "Go to previus COUNT chunk.
 Return, how many chucks actually jumped over."
   (interactive "p")
-  (let ((sofar 0)
-        orig-type)
-    (condition-case nil
-        (pm/map-over-spans
-         (lambda ()
-           (unless (memq (car *span*) '(head tail))
-             (when (equal orig-type (object-name (car (last *span*))))
-               (setq sofar (1+ sofar)))
-             (unless orig-type
-               (setq orig-type (object-name (car (last *span*)))))
-             (when (>= sofar N)
-               (signal 'quit nil))))
-         (point-max) (point) nil nil)
-      (quit (when (looking-at "\\s *$")
-              (forward-line))))
-    sofar))
+  (polymode-next-chunk-same-type (- N)))
 
+(defun pm--kill-span (types)
+  (let ((span (pm/get-innermost-span)))
+    (when (memq (car span) types)
+      (delete-region (nth 1 span) (nth 2 span)))))
+
+(defun polymode-kill-chunk ()
+  "Kill current chunk"
+  (interactive)
+  (pcase (pm/get-innermost-span)
+    (`(,(or `nil `base) ,beg ,end ,_) (delete-region beg end))
+    (`(body ,beg ,end ,_)
+     (goto-char beg)
+     (pm--kill-span '(body))
+     (pm--kill-span '(head tail))
+     (pm--kill-span '(head tail)))
+    (`(tail ,beg ,end ,_)
+     (if (eq beg (point-min))
+         (delete-region beg end)
+       (goto-char (1- beg))
+       (polymode-kill-chunk)))
+    (`(head ,_ ,end ,_)
+     (goto-char end)
+     (polymode-kill-chunk))
+    (_ (error "canoot find chunk to kill"))))
+
+
+(defun polymode-toggle-chunk-narrowing ()
+  (interactive)
+  (if (buffer-narrowed-p)
+      (progn (widen) (recenter))
+    (pcase (pm/get-innermost-span)
+      (`(head ,_ ,end ,_)
+       (goto-char end)
+       (pm/narrow-to-span))
+      (`(tail ,beg ,end ,_)
+       (if (eq beg (point-min))
+           (error "Invalid chunk")
+         (goto-char (1- beg))
+         (pm/narrow-to-span)))
+      (_ (pm/narrow-to-span)))))
+
+
+
+
+;;; CORE
 (defsubst pm/base-buffer ()
   ;; fixme: redundant with :base-buffer 
   "Return base buffer of current buffer, or the current buffer if it's direct."
@@ -183,26 +215,25 @@ BACKWARD? is non-nil, map backwards.
  
 During the call of FUN, a dynamically bound variable *span* holds
 the current innermost span."
-  (goto-char (if backward? end beg))
-  (let ((nr 0))
-    (save-excursion
-      (save-restriction
-        (widen)
-        (while (and (if backward?
-                        (> (point) beg)
-                      (< (point) end))
-                    (or (null count)
-                        (< nr count)))
-          (let ((*span* (pm/get-innermost-span)))
-            (dbg (point))
-            (setq nr (1+ nr))
-            (pm/select-buffer (car (last *span*)) *span*) ;; object and type
-            ;; (goto-char (nth 1 *span*))
-            (funcall fun)))
-        (if backward?
-            (goto-char (max (point-min)
-                            (1- (nth 1 *span*)))) ;; enter previous chunk
-          (goto-char (nth 2 *span*)))))))
+  (let ((nr 0)
+        *span*)
+    ;; (save-excursion
+    ;;   (save-window-excursion
+    (goto-char (if backward? end beg))
+    (while (and (if backward?
+                    (> (point) beg)
+                  (< (point) end))
+                (or (null count)
+                    (< nr count)))
+      (setq *span* (pm/get-innermost-span)
+            nr (1+ nr))
+      (pm/select-buffer (car (last *span*)) *span*) ;; object and type
+      (goto-char (nth 1 *span*))
+      (funcall fun)
+      (if backward?
+          (goto-char (max 1 (1- (nth 1 *span*)))) ;; enter previous chunk
+        (goto-char (nth 2 *span*))))));))
+
 
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
@@ -245,36 +276,32 @@ in polymode buffers."
     ;; (with-silent-modifications
     (font-lock-unfontify-region beg end)
     (save-excursion
-      (save-restriction
-        (widen)
+      (save-window-excursion
         (pm/map-over-spans
          (lambda ()
            (when (and font-lock-mode font-lock-keywords)
-             (let ((sbeg (nth 1 *span*))
-                   (send (nth 2 *span*)))
-               (dbg sbeg send)
-               ;; (dbg (point-min) (point-max) (point))
-               (pm--adjust-chunk-overlay sbeg send buff) ;; set in original buffer!
-               (when parse-sexp-lookup-properties
-                 (pm--comment-region 1 sbeg))
-               (unwind-protect 
-                   (if (oref pm/submode :font-lock-narrow)
-                       (save-restriction
-                         (narrow-to-region sbeg send)
-                         (funcall pm--fontify-region-original
-                                  (max sbeg beg) (min send end) verbose))
-                     (funcall pm--fontify-region-original
-                              (max sbeg beg) (min send end) verbose))
+               (let ((sbeg (nth 1 *span*))
+                     (send (nth 2 *span*)))
+                 (pm--adjust-chunk-overlay sbeg send buff) ;; set in original buffer!
                  (when parse-sexp-lookup-properties
-                   (pm--uncomment-region 1 sbeg))
-                 ))))
-         beg end))
-      (put-text-property beg end 'fontified t)
-      (unless modified
-        (restore-buffer-modified-p nil)))))
+                   (pm--comment-region 1 sbeg))
+                 (unwind-protect 
+                     (if (oref pm/submode :font-lock-narrow)
+                         (save-restriction
+                           (narrow-to-region sbeg send)
+                           (funcall pm--fontify-region-original
+                                    (max sbeg beg) (min send end) verbose))
+                       (funcall pm--fontify-region-original
+                                (max sbeg beg) (min send end) verbose))
+                   (when parse-sexp-lookup-properties
+                     (pm--uncomment-region 1 sbeg))))))
+           beg end)))
+    (put-text-property beg end 'fontified t)
+    (unless modified
+      (restore-buffer-modified-p nil))))
 
 
-;;; internals
+;;; INTERNALS
 (defun pm--get-available-mode (mode)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return 'fundamental-mode with a
@@ -748,6 +775,8 @@ BODY contains code to execute each time the mode is enabled. It
 
        (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
 
+
+;;; FONT-LOCK
 ;; indulge elisp font-lock :) 
 (dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
   (font-lock-add-keywords
@@ -756,7 +785,7 @@ BODY contains code to execute each time the mode is enabled. It
       (1 font-lock-keyword-face)
       (2 font-lock-variable-name-face)))))
 
-(setq pm--dbg-mode-line t
+(setq pm--dbg-mode-line nil
       pm--dbg-fontlock t
       pm--dbg-hook t)
 
