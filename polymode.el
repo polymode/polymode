@@ -3,7 +3,6 @@
 
 (require 'cl)
 (require 'font-lock)
-;; (require 'imenu)
 (require 'eieio)
 (require 'eieio-base)
 (require 'eieio-custom)
@@ -172,6 +171,7 @@ Return, how many chucks actually jumped over."
 
 
 (defun polymode-toggle-chunk-narrowing ()
+  "Toggle narrowing of the current chunk."
   (interactive)
   (if (buffer-narrowed-p)
       (progn (widen) (recenter))
@@ -186,7 +186,13 @@ Return, how many chucks actually jumped over."
          (pm/narrow-to-span)))
       (_ (pm/narrow-to-span)))))
 
+(defun polymode-mark-or-extend-chunk ()
+  (interactive)
+  (error "Not implemented yet"))
 
+(defun polymode-insert-new-chunk ()
+  (interactive)
+  (error "Not implemented yet"))
 
 
 ;;; CORE
