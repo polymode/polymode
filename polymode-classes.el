@@ -6,7 +6,7 @@
 (defclass pm-config (polymode) 
   ((base-submode-name
     :initarg :base-submode-name
-    :initform 'pm-base/fundamental
+    :initform 'pm-base/blank
     :type symbol
     :custom symbol
     :documentation
@@ -105,7 +105,7 @@ are not known in advance. For example org-mode, markdown.")
   ((mode
     :initarg :mode
     :type symbol
-    :initform 'fundamental-mode
+    :initform nil
     :custom symbol)
    (protect-indent-line-function
     :initarg :protect-indent-line-function

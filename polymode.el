@@ -1,7 +1,7 @@
 ;;; polymode.el --- support for multiple major modes
 ;; Author: Vitalie Spinu
 
-(require 'cl)
+(eval-when-compile (require 'cl))
 (require 'font-lock)
 (require 'eieio)
 (require 'eieio-base)

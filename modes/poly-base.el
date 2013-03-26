@@ -1,6 +1,14 @@
 (require 'polymode)
 
 ;; BASE MODES
+(defcustom pm-base/blank
+  (pm-submode "blank")
+  "Blank submode. This is the default :base-submode for all pm-config objects.
+On initalisation this submode sets :mode to whatever major-mode
+is in place at that time."
+  :group 'base-submodes
+  :type 'object)
+
 (defcustom pm-base/fundamental
   (pm-submode "fundamental"
               :mode 'fundamental-mode)

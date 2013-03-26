@@ -166,4 +166,34 @@
            ess-help-use-polymode)
   (add-hook 'ess-help-mode-hook 'poly-ess-help+r-mode))
 
+
+(defun pm--Rd-examples-head-matcher (ahead)
+  (when (re-search-forward "\\examples *\\({\n\\)" nil t ahead)
+    (cons (match-beginning 1) (match-end 1))))
+
+(defun pm--Rd-examples-tail-matcher (ahead)
+  (when (< ahead 0)
+    (goto-char (car (pm--R+C++-head-matcher -1))))
+  (let ((end (or (ignore-errors (scan-sexps (point) 1))
+                 (buffer-end 1))))
+    (cons (max 1 (- end 1)) end)))
+
+(defvar pm-config/Rd
+  (pm-config-one "R-documentation"
+                 :inner-submode-name 'pm-submode/Rd)
+  "R submode for Rd files")
+
+(defvar  pm-submode/Rd
+  (pm-inner-submode "R+C++"
+                    :mode 'R-mode
+                    :head-mode 'base
+                    :head-reg 'pm--Rd-examples-head-matcher
+                    :tail-reg 'pm--Rd-examples-tail-matcher
+                    :protect-indent-line-function t)
+  "Rd examples chunk.")
+
+(define-polymode poly-Rd-mode pm-config/Rd)
+(add-hook 'Rd-mode-hook 'poly-Rd-mode)
+
+
 (provide 'poly-R)
