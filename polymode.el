@@ -662,12 +662,22 @@ Return newlly created buffer."
 This defines command MODE and (by default) an indicator variable
 MODE that is t when MODE is active and nil othervise.
 
+MODE command is similar to standard emacs major modes and it can
+be used in `auto-mode-alist'. Standard hook MODE-hook is run at
+the end of the initialization of each polymode buffer, indirect
+and base alike. MODE-map is created only if nontrivial KEYMAP
+argument is supplied. See below.
+
+MODE command can also be use as a minor mode. Current major mode
+is not reinitialized if it coincides with the :mode slot of
+CONFIG object or if :mode slot is nil.
+
 Optional KEYMAP is the default keymap bound to the mode keymap.
   If nil, no new keymap is created and MODE uses `polymode-mode-map'.
   If t, a new keymap is created with name MODE-MAP that inherits
   form `polymode-mode-map'.
   Otherwise it should be a variable name (whose value is a keymap),
-  or an alist of binding arguments passed to `easy-mmode-define-keymap'.
+  or an alist of binding arguments passed to `easy-mmode-define-keymap' and 
 
 BODY contains code to execute each time the mode is enabled. It
   is executed after the complete initialization of the
@@ -746,15 +756,13 @@ BODY contains code to execute each time the mode is enabled. It
                                                       keymap)))
 	 (interactive)
          (unless ,mode
-           ;; do nothing if already installed
-           ;; waf? why is this one called twice.
-           (setq ,mode t)
            (let ((,last-message (current-message)))
              (unless pm/config ;; don't reinstall for time being
                (let ((config (clone ,config)))
                  (oset config :minor-mode-name ',mode)
                  (pm/initialize config)))
-             ;; (dbg "here" (current-buffer))
+             ;; set our "minor" mode
+             (setq ,mode t)
              ,@body
              (run-hooks ',hook)
              ;; Avoid overwriting a message shown by the body,
@@ -791,7 +799,7 @@ BODY contains code to execute each time the mode is enabled. It
       (1 font-lock-keyword-face)
       (2 font-lock-variable-name-face)))))
 
-(setq pm--dbg-mode-line nil
+(setq pm--dbg-mode-line t
       pm--dbg-fontlock t
       pm--dbg-hook t)
 

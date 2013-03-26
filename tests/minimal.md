@@ -1,8 +1,8 @@
-<!-- M-x poly-markdown+r-minor-mode RET -->
+If `poly-markdown.el` is loaded. This should works by default.  Otherise `M-x
+poly-markdown+r-mode RET` should do the job.
 
 ```r
 1 + 1
-
 ```
 
 ```r
