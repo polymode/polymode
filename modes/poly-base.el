@@ -59,12 +59,6 @@ is in place at that time."
   :group 'base-submodes
   :type 'object)
 
-(defcustom pm-base/ess-help
-  (pm-submode "ess-help"
-              :mode 'ess-help-mode)
-  "ess-help"
-  :group 'base-submodes
-  :type 'object)
 
 ;; CONFIG
 (defcustom pm-config/brew

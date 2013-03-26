@@ -2,7 +2,6 @@
 
 ;; NOWEB
 (require 'poly-noweb)
-
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
          :inner-submode-name 'pm-submode/noweb+R)
@@ -18,6 +17,7 @@
 
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
 (add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
+(add-to-list 'auto-mode-alist '("Rnw" . poly-noweb+r-mode))
 
 
 ;; MARKDOWN
@@ -138,33 +138,21 @@
 
 
 ;;; R help
-(defcustom pm-config/ess-help+R
+(defvar pm-config/ess-help+R
   (pm-config-one "ess-R-help"
-                 :base-submode-name 'pm-base/ess-help
                  :inner-submode-name 'pm-submode/ess-help+R)
-  "ess-R-help"
-  :group 'polymode :type 'object)
+  "ess-R-help")
 
-(defcustom  pm-submode/ess-help+R
+(defvar  pm-submode/ess-help+R
   (pm-inner-submode "ess-help+R"
                     :mode 'R-mode
                     :head-reg "^Examples:"
                     :tail-reg "\\'"
                     :protect-indent-line-function t)
-  "Ess help R chunk"
-  :group 'polymode  :type 'object)
+  "Ess help R chunk")
 
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
-
-;; will move into ESS
-(defcustom ess-help-use-polymode t
-  "Use polymode in ESS help when available?"
-  :group 'ess
-  :type 'boolean)
-
-(when (and (boundp ess-help-use-polymode)
-           ess-help-use-polymode)
-  (add-hook 'ess-help-mode-hook 'poly-ess-help+r-mode))
+(add-hook 'ess-help-mode-hook 'poly-ess-help+r-mode)
 
 
 (defun pm--Rd-examples-head-matcher (ahead)
@@ -194,6 +182,5 @@
 
 (define-polymode poly-Rd-mode pm-config/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
-
 
 (provide 'poly-R)

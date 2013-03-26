@@ -6,6 +6,8 @@ objects defined as part of polymode.
 
 ### Three types of objects: polymode class hierarchy
 
+For time being see the source and documentation of `define-polymode`.
+
 ...
 
 ### How to define a new polymode

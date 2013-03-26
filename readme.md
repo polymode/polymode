@@ -1,9 +1,9 @@
 
-## What is polymode?
+## Overview
 
-Polymode is a new emacs package that offers support for multiple major modes
-inside a single emacs buffer. It is lightweight and fully object oriented,
-specifically designed for quick addition of new polymodes.
+Polymode is an emacs package that offers support for multiple major modes inside
+a single emacs buffer. It is lightweight and fully object oriented, specifically
+designed for quick addition of new polymodes.
 
 Technically speaking, polymode doesn't keep its modes in a single emacs buffer
 but in several indirect buffers, actually as many as different modes are there
@@ -15,7 +15,7 @@ awesome idea.
 
 ## Installation 
 
-The project is in a very early alpha stage and it is not, as yet, available in
+The project is in a vyyyyyyery early alpha stage and it is not, as yet, available in
 melpa repo. You will have to install it manually:
 
 ```sh
@@ -54,7 +54,7 @@ extensions by adding them to `auto-mode-alist`.
 
    1. By setting local mode variable in you file. This is how you would activate C++R mode:
    
-   ```C
+   ```c++
    // -*- mode: poly-C++R -*-
    ```
    or 
@@ -74,18 +74,18 @@ todo: more to come on this ... need to define object hierarchy for the full stor
 ## Warning!
 
    * Tested with Emacs 24.3.1 and unlikely to work with Emacses younger
-     than 24.2 as it uses pattern matching and eieio.
-   * Rnw extension is still assigned to old ess-noweb-mode. Snw works. 
+     than 24.2 because of the heavy use pattern matching and eieio.
    
 Many things still don't work as expected. For example:
     
    * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
-   * Customization interface is not working as expected,  it is an eieio bug. 
-   * Customization is not tested at all ... don't even try.
-   * No navigation between chunks as yet.
+   * Customization interface is not working as expected (an eieio bug) and is
+     not tested. Moreover the interface is likely to change slightly so don't
+     even try it.
    * No literate programming backends. This will be part of another package.
-   * Occasional problems with font-lock and messages `Error during redisplay:
-     (jit-lock-function 163) signaled (args-out-of-range 1 142)`
+   * Occasional problems with font-lock inflooping, May be messages like `Error
+     during redisplay: (jit-lock-function 163) signaled (args-out-of-range 1
+     142)`. Please report.
      
      
 ## Screenshots
