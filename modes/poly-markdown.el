@@ -17,5 +17,8 @@
   :group 'polymode
   :type 'object)
 
+(define-polymode poly-markdown-mode pm-config/markdown)
+(add-to-list 'auto-mode-alist '(".md" . poly-markdown-mode))
+
 (provide 'poly-markdown)
 

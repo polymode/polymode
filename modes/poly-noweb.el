@@ -16,4 +16,5 @@
   :group 'polymode
   :type 'object)
 
+(define-polymode poly-noweb-mode pm-config/noweb)
 (provide 'poly-noweb)

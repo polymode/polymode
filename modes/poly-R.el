@@ -38,7 +38,7 @@
                     :head-reg "<!--[ \t]*begin.rcode"
                     :tail-reg "end.rcode[ \t]*-->"
                     :protect-indent-line-function t)
-  "HTML KnitR chunk."
+  "HTML KnitR submode."
   :group 'polymode  :type 'object)
 
 (define-polymode poly-html+r-mode pm-config/html+R)
