@@ -99,14 +99,11 @@ For this method to work correctly, SUBMODE's class should define
 Return major mode function constructed from STR by appending
 '-mode' if needed. If the constructed symbol is not a function
 return an error."
-  (let* ((mname (if (string-match-p "-mode$" str)
-                    str
-                  (concat str "-mode")))
-         (fsymb (intern mname)))
-    (if (fboundp fsymb)
-        fsymb
-      (error "Symbol %s is not a valid function" mname))))
-  
+  (let ((mname (if (string-match-p "-mode$" str)
+                   str
+                 (concat str "-mode"))))
+         (pm--get-available-mode (intern mname))))
+
 (defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
   (if (null (car span))
       (pm/select-buffer (oref config :base-submode) span)
