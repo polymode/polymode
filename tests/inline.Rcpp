@@ -1,3 +1,5 @@
+## inline functions are not working as yet, use cppFunction instead
+
 require(inline)
 require(RcppEigen)
 

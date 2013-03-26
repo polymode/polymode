@@ -16,14 +16,14 @@
   :group 'polymode :type 'object)
 
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
-(add-to-list 'auto-mode-alist '("Snw" . poly-noweb+r-mode))
-(add-to-list 'auto-mode-alist '("Rnw" . poly-noweb+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Snw" . poly-noweb+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Rnw" . poly-noweb+r-mode))
 
 
 ;; MARKDOWN
 (require 'poly-markdown)
 (define-polymode poly-markdown+r-mode pm-config/markdown :lighter " Rmd")
-(add-to-list 'auto-mode-alist '("Rmd" . poly-markdown+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
 
 
 ;; HTML
@@ -42,7 +42,7 @@
   :group 'polymode  :type 'object)
 
 (define-polymode poly-html+r-mode pm-config/html+R)
-(add-to-list 'auto-mode-alist '("Rhtml" . poly-html+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Rhtml" . poly-html+r-mode))
 
 
 ;;; R-brew
@@ -61,7 +61,7 @@
   :group 'polymode  :type 'object)
 
 (define-polymode poly-brew+r-mode pm-config/brew+R)
-(add-to-list 'auto-mode-alist '("Rbrew" . poly-brew+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Rbrew" . poly-brew+r-mode))
 
 
 ;;; R+C++
@@ -102,7 +102,7 @@
   :group 'polymode  :type 'object)
 
 (define-polymode poly-r+c++-mode pm-config/R+C++)
-(add-to-list 'auto-mode-alist '("Rcpp" . poly-r+c++-mode))
+(add-to-list 'auto-mode-alist '("\\.Rcpp" . poly-r+c++-mode))
 
 
 ;;; C++R
@@ -133,7 +133,7 @@
   :group 'polymode  :type 'object)
 
 (define-polymode poly-c++r-mode pm-config/C++R)
-(add-to-list 'auto-mode-alist '("cppR" . poly-c++r-mode))
+(add-to-list 'auto-mode-alist '("\\.cppR" . poly-c++r-mode))
 
 
 

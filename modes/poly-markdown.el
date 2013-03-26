@@ -12,13 +12,14 @@
   (pm-inner-submode-auto "markdown"
                          :head-reg "^[ \t]*```[{ \t]*\\w.*$"
                          :tail-reg "^[ \t]*```[ \t]*$"
-                         :retriever-regexp "```[ \t]*{?\\(\\w+\\)")
+                         :retriever-regexp "```[ \t]*{?\\(\\w+\\)"
+                         :font-lock-narrow t)
   "Noweb typical chunk."
   :group 'polymode
   :type 'object)
 
 (define-polymode poly-markdown-mode pm-config/markdown)
-(add-to-list 'auto-mode-alist '("md" . poly-markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md" . poly-markdown-mode))
 
 (provide 'poly-markdown)
 
