@@ -73,8 +73,8 @@ todo: more to come on this ... need to define object hierarchy for the full stor
 
 ## Warning!
 
-   * Tested with Emacs 24.3.1 and unlikely to work with Emacses younger
-     than 24.2 because of the heavy use pattern matching and eieio.
+   * Tested with Emacs 24.3.1 and unlikely to work with Emacses older
+     than 24.2 because of the heavy use of pattern matching and eieio.
    
 Many things still don't work as expected. For example:
     
