@@ -60,20 +60,20 @@ Not effective after loading the polymode library."
     (define-key map [menu-bar Polymode]
       (cons "Polymode"
 	    (let ((map (make-sparse-keymap "Polymode")))
-              (define-key-after map [goto-prev]
+              (define-key-after map [next]
 		'(menu-item "Next chunk" polymode-next-chunk))
-	      (define-key-after map [goto-prev]
+	      (define-key-after map [previous]
 		'(menu-item "Previous chunk" polymode-previous-chunk))
-              (define-key-after map [goto-prev]
-		'(menu-item "Next chunk same type" polymode-next-chunk-same-type))
-	      (define-key-after map [goto-prev]
-		'(menu-item "Previous chunk same type" polymode-previous-chunk-same-type))
+              (define-key-after map [next-same]
+	        '(menu-item "Next chunk same type" polymode-next-chunk-same-type))
+	      (define-key-after map [previous-same]
+	        '(menu-item "Previous chunk same type" polymode-previous-chunk-same-type))
 	      (define-key-after map [mark]
-		'(menu-item "Mark or extend chunk" polymode-mark-or-extend-chunk))
+	        '(menu-item "Mark or extend chunk" polymode-mark-or-extend-chunk))
 	      (define-key-after map [kill]
-		'(menu-item "Kill chunk" polymode-kill-chunk))
-	      (define-key-after map [new]
-		'(menu-item "Insert new chunk" polymode-insert-new-chunk))
+	        '(menu-item "Kill chunk" polymode-kill-chunk))
+	      (define-key-after map [insert]
+	        '(menu-item "Insert new chunk" polymode-insert-new-chunk))
 	      map)))
     map)
   "The default minor mode keymap that is active in all polymode
