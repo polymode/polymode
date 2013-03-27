@@ -323,15 +323,18 @@ warnign."
 
 (defvar polymode-highlight-chunks t)
 
+(defun pm--sel-buf ()
+  (unless pm--ignore-post-command-hook
+    (let ((*span* (pm/get-innermost-span))
+          (pm--can-move-overlays t))
+      (pm/select-buffer (car (last *span*)) *span*)
+      (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*)))))
+
 (defun polymode-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
 This funciton is placed in local post-command hook."
   (condition-case error
-      (unless pm--ignore-post-command-hook
-        (let ((*span* (pm/get-innermost-span))
-              (pm--can-move-overlays t))
-          (pm/select-buffer (car (last *span*)) *span*)
-          (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*))))
+      (pm--sel-buf)
     (error (message "polymode error: %s"
                     (error-message-string error)))))
 
@@ -540,6 +543,7 @@ Return newlly created buffer."
                   (eq mode (buffer-local-value 'polymode-major-mode bf)))
         return bf))
 
+;; This doesn't work in 24.2, pcase bug :(
 (defun pm--set-submode-buffer (obj type buff)
   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
     (pcase (list type head-mode tail-mode)
