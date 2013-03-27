@@ -4,6 +4,7 @@
 (eval-when-compile (require 'cl))
 (require 'font-lock)
 (require 'eieio)
+(require 'color)
 (require 'eieio-base)
 (require 'eieio-custom)
 (require 'polymode-classes)
@@ -338,33 +339,12 @@ This funciton is placed in local post-command hook."
     (error (message "polymode error: %s"
                     (error-message-string error)))))
 
-
-
-(defun pm/transform-color-value (color prop)
-  "Darken or lighten a specific COLOR multiplicatively by PROP.
-
-On dark backgrounds, values of PROP > 1 generate lighter colors
-than COLOR and < 1, darker. On light backgrounds, do it the other
-way around.
-
-Colors are in hex RGB format #RRGGBB
-
-   (pm/transform-color-value (face-background 'default) 1.1)
-"
-  (let* ((st (substring color 1))
-         (RGB (list (substring st 0 2)
-                    (substring st 2 4)
-                    (substring st 4 6))))
-    (when (eq (frame-parameter nil 'background-mode) 'light)
-      (setq prop (/ 1 prop)))
-    (when (< prop 0)
-      (message "background value should be non-negative" )
-      (setq prop 1))
-    (concat "#"
-            (mapconcat (lambda (n)
-                         (format "%02x"
-                                 (min 255 (max 0 (round (* prop (string-to-number n 16)))))))
-                       RGB ""))))
+(defun pm--lighten-background (prop)
+  ;; if > lighten on dark backgroun. Oposite on light.
+  (color-lighten-name (face-background 'default) 
+                      (if (eq (frame-parameter nil 'background-mode) 'light)
+                          (- prop) ;; darken
+                        prop)))
 
 (defun pm--adjust-chunk-overlay (beg end &optional buffer)
   ;; super duper internal function
@@ -379,11 +359,10 @@ Colors are in hex RGB format #RRGGBB
             (if o
                 (move-overlay o  beg end )
               (let ((o (make-overlay beg end nil nil t))
-                    (face (if (numberp background)
-                              (cons 'background-color
-                                    (pm/transform-color-value (face-background 'default)
-                                                              background))
-                            background)))
+                    (face (or (and (numberp background)
+                                   (cons 'background-color
+                                         (pm--lighten-background background)))
+                              background)))
                 (overlay-put o 'polymode 'polymode-major-mode)
                 (overlay-put o 'face face)
                 (overlay-put o 'evaporate t)))))))))

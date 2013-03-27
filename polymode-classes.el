@@ -133,10 +133,10 @@ are not known in advance. For example org-mode, markdown.")
     :documentation
     "Background configuration of the inner submode chunks. If nil
     no highlighting occurs. If a face, use that face. If a
-    number, values > 1 are used to lighten the theme on dark
-    backgrounds and darken on light background. If < 1 darken on
-    dark backgrounds and lighten on light backgrounds. Also see,
-    `pm/transform-color-value'."))
+    number, it is a percentage by which to lighten/darken the
+    background. If positive it used to lighten background on dark
+    themes and darken on light thems. If < 0, darken in dark
+    thems and lighten in light thems."))
   
   "Represents a simple submode. Usually used for the definition
 of the base submodes (aka host submodes associated with the base
@@ -144,7 +144,7 @@ buffer).")
 
 (defclass pm-inner-submode (pm-submode)
   ((background
-    :initform 1.12)
+    :initform 3)
    (head-mode
     :initarg :head-mode
     :type symbol
