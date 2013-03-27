@@ -18,6 +18,7 @@ are unique.
 
 ```{r test, echo=-3}
 x = 2
+
 #'#' 1/sqrt(2 * pi) * exp(-x^2/2)
 dnorm(x)
 ```
