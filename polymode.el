@@ -485,6 +485,7 @@ Colors are in hex RGB format #RRGGBB
 
 (defvar pm--killed-once nil)
 (make-variable-buffer-local 'pm--killed-once)
+(defvar polymode-mode nil)
 
 (defun pm--create-indirect-buffer (mode)
   "Create indirect buffer with major MODE and initialize appropriately.
