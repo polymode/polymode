@@ -120,10 +120,10 @@ return an error."
                (name (concat "auto-submode:" str)))
           (setq submode
                 (or (loop for obj in (oref config :auto-submodes)
-                          when  (equal name (aref obj object-name))
+                          when  (equal name (object-name-string obj))
                           return obj)
-                    (let ((new-obj (clone proto
-                                          name :mode (pm-get-mode-symbol-from-name str))))
+                    (let ((new-obj (clone proto name
+                                          :mode (pm-get-mode-symbol-from-name str))))
                       (object-add-to-list config :auto-submodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))
