@@ -152,7 +152,9 @@
   "Ess help R chunk")
 
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
-(add-hook 'ess-help-mode-hook 'poly-ess-help+r-mode)
+(add-hook 'ess-help-mode-hook '(lambda ()
+                                 (when (string= ess-dialect "R")
+                                   (poly-ess-help+r-mode))))
 
 
 (defun pm--Rd-examples-head-matcher (ahead)
