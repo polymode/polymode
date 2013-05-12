@@ -159,6 +159,20 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
              (funcall (oref pm/config :minor-mode-name))
              buff)))))
 
+
+(defgeneric pm/get-adj-face (submode &optional type))
+(defmethod pm/get-adj-face ((submode pm-submode) &optional type)
+  (oref submode :adj-face))
+(defmethod pm/get-adj-face ((submode pm-inner-submode) &optional type)
+  (setq type (or type pm/type))
+  (cond ((eq type 'head)
+         (oref submode :head-adj-face))
+        ((eq type 'tail)
+         (if (eq 'head (oref pm/submode :tail-adj-face))
+             (oref pm/submode :head-adj-face)
+           (oref pm/submode :tail-adj-face)))
+        (t (oref pm/submode :adj-face))))
+
 (defgeneric pm/get-span (submode &optional pos)
   "Ask a submode for the span at point.
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE

@@ -125,7 +125,6 @@
 (defcustom  pm-submode/C++R
   (pm-inner-submode "C++R"
                     :mode 'R-mode
-                    :background 1.1
                     :head-reg 'pm--C++R-head-matcher
                     :tail-reg 'pm--C++R-tail-matcher
                     :protect-indent-line-function t)

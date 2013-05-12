@@ -30,6 +30,15 @@
   "Hook run by `pm/install-mode' in each indirect buffer.
 It is run after all the indirect buffers have been set up.")
 
+(defface polymode-head-face
+  '((default (:inherit font-lock-type-face)))
+  "Face used as a default adjustment face for chunks' head and
+tail.
+
+See documentation of slot `head-adj-face' in `pm-inner-submode'
+class."
+  :group 'polymode)
+
 (defvar pm/config nil)
 (make-variable-buffer-local 'pm/config)
 
@@ -286,25 +295,26 @@ in polymode buffers."
       (save-window-excursion
         (pm/map-over-spans
          (lambda ()
-           (when (and font-lock-mode font-lock-keywords)
-               (let ((sbeg (nth 1 *span*))
-                     (send (nth 2 *span*)))
+           (let ((sbeg (nth 1 *span*))
+                 (send (nth 2 *span*)))
+             (when (and font-lock-mode font-lock-keywords)
+               (when parse-sexp-lookup-properties
+                 (pm--comment-region 1 sbeg))
+               (unwind-protect 
+                   (if (oref pm/submode :font-lock-narrow)
+                       (save-restriction
+                         (narrow-to-region sbeg send)
+                         (funcall pm--fontify-region-original
+                                  (max sbeg beg) (min send end) verbose))
+                     (funcall pm--fontify-region-original
+                              (max sbeg beg) (min send end) verbose))
                  (when parse-sexp-lookup-properties
-                   (pm--comment-region 1 sbeg))
-                 (unwind-protect 
-                     (if (oref pm/submode :font-lock-narrow)
-                         (save-restriction
-                           (narrow-to-region sbeg send)
-                           (funcall pm--fontify-region-original
-                                    (max sbeg beg) (min send end) verbose))
-                       (funcall pm--fontify-region-original
-                                (max sbeg beg) (min send end) verbose))
-                   (when parse-sexp-lookup-properties
-                     (pm--uncomment-region 1 sbeg))
-                   (pm--adjust-chunk-background sbeg send)
-                   (put-text-property beg end 'fontified t)
-                   ))))
-           beg end)))
+                   (pm--uncomment-region 1 sbeg))
+                 ))
+             (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
+             (put-text-property beg end 'fontified t)
+             ))
+         beg end)))
     (unless modified
       (restore-buffer-modified-p nil))))
 
@@ -348,24 +358,21 @@ This funciton is placed in local post-command hook."
                           (- prop) ;; darken
                         prop)))
 
-(defun pm--adjust-chunk-background (beg end)
+(defun pm--adjust-chunk-face (beg end face)
+  ;; adjust chunk face (called from pm/fontify-region)
   (interactive "r")
-  ;; super duper internal function
-  ;; should be used only after pm/select-buffer
-  (when (eq pm/type 'body)
-    (let ((background (oref pm/submode :background))
-          pchange) ;; in Current buffer !!
-      (when background
-        (with-current-buffer (current-buffer)
-          (let ((bg-face (or (and (numberp background)
-                                  (cons 'background-color
-                                        (pm--lighten-background background)))
-                             background)))
-            (while (not (eq pchange end))
-              (setq pchange (next-single-property-change beg 'face nil end))
-              (put-text-property beg pchange 'face
-                                 `(,bg-face ,@(get-text-property beg 'face)))
-              (setq beg pchange))))))))
+  (when face
+    (with-current-buffer (current-buffer)
+      (let ((face (or (and (numberp face)
+                           (cons 'background-color
+                                 (pm--lighten-background face)))
+                      face))
+            (pchange nil))
+        (while (not (eq pchange end))
+          (setq pchange (next-single-property-change beg 'face nil end))
+          (put-text-property beg pchange 'face
+                             `(,face ,@(get-text-property beg 'face)))
+          (setq beg pchange))))))
 
 ;; (defun pm--adjust-chunk-overlay (beg end &optional buffer)
 ;;   ;; super duper internal function
