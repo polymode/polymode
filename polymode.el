@@ -30,15 +30,6 @@
   "Hook run by `pm/install-mode' in each indirect buffer.
 It is run after all the indirect buffers have been set up.")
 
-(defface polymode-head-face
-  '((default (:inherit font-lock-type-face)))
-  "Face used as a default adjustment face for chunks' head and
-tail.
-
-See documentation of slot `head-adj-face' in `pm-inner-submode'
-class."
-  :group 'polymode)
-
 (defvar pm/config nil)
 (make-variable-buffer-local 'pm/config)
 
