@@ -24,7 +24,7 @@ Current buffer is setup as the base buffer.")
                   (eq polymode-major-mode base-mode))
         (let ((polymode-mode t)) ;;major-modes might check it 
           (funcall base-mode)))
-      ;; fixme:maybe: inconsistencies?
+      ;; fixme: maybe: inconsistencies?
       ;; 1)  not calling pm/install-buffer on base-buffer
       ;; But, we are not creating/installing a new buffer here .. so it is a
       ;; different thing .. and is probably ok
@@ -77,7 +77,8 @@ For this method to work correctly, SUBMODE's class should define
     (unless (buffer-live-p buff)
       (pm/install-buffer submode type)
       (setq buff (pm/get-buffer submode type)))
-    (pm--select-buffer buff)))
+    (pm--select-buffer buff)
+    (pm--transfer-vars-from-base)))
 
 ;; (pm--select-buffer (pm/get-buffer submode (car span))))
 
@@ -138,7 +139,7 @@ span TYPE. Should return newly installed/retrieved buffer.")
   "Independently on the TYPE call `pm/create-indirect-buffer'
 create and install a new buffer in slot :buffer of SUBMODE."
   (oset submode :buffer
-        (pm--submode-create-buffer-maybe submode type)))
+        (pm--create-submode-buffer-maybe submode type)))
 
 (defmethod pm/install-buffer ((submode pm-inner-submode) type)
   "Depending of the TYPE install an indirect buffer into

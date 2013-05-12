@@ -405,9 +405,12 @@ This funciton is placed in local post-command hook."
       (goto-char point)
       ;; Avoid the display jumping around.
       (when visible
-        (set-window-start (get-buffer-window buffer t) window-start))
-      )))
+        (set-window-start (get-buffer-window buffer t) window-start)))))
 
+(defun pm--transfer-vars-from-base ()
+  (let ((bb (pm/base-buffer)))
+    (dolist (var '(buffer-file-name))
+      (set var (buffer-local-value var bb)))))
 
 (defun pm--setup-buffer (&optional buffer)
   ;; general buffer setup, should work for indirect and base buffers alike
