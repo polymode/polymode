@@ -35,8 +35,7 @@ Current buffer is setup as the base buffer.")
       (setq pm/submode submode)
       (setq pm/type 'base)
       ;; if base-mode is nil 
-      (pm--setup-buffer)
-    )))
+      (pm--setup-buffer))))
   
                           
 (defmethod pm/initialize ((config pm-config-one))
@@ -128,7 +127,6 @@ return an error."
                       (object-add-to-list config :auto-submodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))
-
 
 
 (defgeneric pm/install-buffer (submode &optional type)

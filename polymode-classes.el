@@ -1,3 +1,4 @@
+
 ;;; ROOT CLASS
 (defclass polymode (eieio-instance-inheritor) ()
   "Root polymode class.")
@@ -76,17 +77,15 @@ submode. For example noweb.")
   "Configuration for a polymode that allows multiple submodes
 that are known in advance. For a variaty of web-modes.")
 
-
-
 (defclass pm-config-multi-auto (pm-config-multi)
   ((auto-submode-name
     :initarg :auto-submode-name
     :type symbol
     :custom symbol
     :documentation
-    "Symbol of auto submode. At run time this object is cloned
-     and placed in :auto-submodes with coresponding :mode slot
-     initialized at run time.")
+    "Name of auto-submode (a symbol). At run time this object is
+     cloned and placed in :auto-submodes with coresponding :mode
+     slot initialized at run time.")
    (auto-submodes
     :initarg :auto-submodes
     :type list
@@ -99,7 +98,6 @@ that are known in advance. For a variaty of web-modes.")
 are not known in advance. For example org-mode, markdown.")
 
 
-
 ;;; SUBMODE
 (defclass pm-submode (polymode)
   ((mode
@@ -110,7 +108,7 @@ are not known in advance. For example org-mode, markdown.")
    (protect-indent-line-function
     :initarg :protect-indent-line-function
     :type boolean
-    :initform nil
+    :initform t
     :custom boolean
     :documentation
     "Whether to modify local `indent-line-function' by narrowing
@@ -190,7 +188,7 @@ buffer).")
     :documentation "Regexp for chunk end (aka tail)")
    (head-adj-face
     :initarg :head-adj-face
-    :initform polymode-head-face
+    :initform font-lock-type-face
     :type (or null number face list)
     :custom (or null number face list)
     :documentation

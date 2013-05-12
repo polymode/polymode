@@ -333,8 +333,6 @@ warnign."
 (defun pm--restore-ignore ()
   (setq pm--ignore-post-command-hook nil))
 
-(defvar polymode-highlight-chunks t)
-
 ;; This function is for debug convenience only in order to avoid limited debug
 ;; context in polymode-select-buffer
 (defun pm--sel-buf ()
