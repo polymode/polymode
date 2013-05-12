@@ -289,7 +289,6 @@ in polymode buffers."
            (when (and font-lock-mode font-lock-keywords)
                (let ((sbeg (nth 1 *span*))
                      (send (nth 2 *span*)))
-                 (pm--adjust-chunk-overlay sbeg send buff) ;; set in original buffer!
                  (when parse-sexp-lookup-properties
                    (pm--comment-region 1 sbeg))
                  (unwind-protect 
@@ -301,9 +300,11 @@ in polymode buffers."
                        (funcall pm--fontify-region-original
                                 (max sbeg beg) (min send end) verbose))
                    (when parse-sexp-lookup-properties
-                     (pm--uncomment-region 1 sbeg))))))
+                     (pm--uncomment-region 1 sbeg))
+                   (pm--adjust-chunk-background sbeg send)
+                   (put-text-property beg end 'fontified t)
+                   ))))
            beg end)))
-    (put-text-property beg end 'fontified t)
     (unless modified
       (restore-buffer-modified-p nil))))
 
@@ -324,12 +325,13 @@ warnign."
 
 (defvar polymode-highlight-chunks t)
 
+;; This function is for debug convenience only in order to avoid limited debug
+;; context in polymode-select-buffer
 (defun pm--sel-buf ()
   (unless pm--ignore-post-command-hook
     (let ((*span* (pm/get-innermost-span))
           (pm--can-move-overlays t))
-      (pm/select-buffer (car (last *span*)) *span*)
-      (pm--adjust-chunk-overlay (nth 1 *span*) (nth 2 *span*)))))
+      (pm/select-buffer (car (last *span*)) *span*))))
 
 (defun polymode-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
@@ -346,26 +348,45 @@ This funciton is placed in local post-command hook."
                           (- prop) ;; darken
                         prop)))
 
-(defun pm--adjust-chunk-overlay (beg end &optional buffer)
+(defun pm--adjust-chunk-background (beg end)
+  (interactive "r")
   ;; super duper internal function
   ;; should be used only after pm/select-buffer
   (when (eq pm/type 'body)
-    (let ((background (oref pm/submode :background))) ;; in Current buffer !!
-      (with-current-buffer (or buffer (current-buffer))
-        (when background
-          (let* ((OS (overlays-in  beg end))
-                 (o (some (lambda (o) (and (overlay-get o 'polymode) o))
-                          OS)))
-            (if o
-                (move-overlay o  beg end )
-              (let ((o (make-overlay beg end nil nil t))
-                    (face (or (and (numberp background)
-                                   (cons 'background-color
-                                         (pm--lighten-background background)))
-                              background)))
-                (overlay-put o 'polymode 'polymode-major-mode)
-                (overlay-put o 'face face)
-                (overlay-put o 'evaporate t)))))))))
+    (let ((background (oref pm/submode :background))
+          pchange) ;; in Current buffer !!
+      (when background
+        (with-current-buffer (current-buffer)
+          (let ((bg-face (or (and (numberp background)
+                                  (cons 'background-color
+                                        (pm--lighten-background background)))
+                             background)))
+            (while (not (eq pchange end))
+              (setq pchange (next-single-property-change beg 'face nil end))
+              (put-text-property beg pchange 'face
+                                 `(,bg-face ,@(get-text-property beg 'face)))
+              (setq beg pchange))))))))
+
+;; (defun pm--adjust-chunk-overlay (beg end &optional buffer)
+;;   ;; super duper internal function
+;;   ;; should be used only after pm/select-buffer
+;;   (when (eq pm/type 'body)
+;;     (let ((background (oref pm/submode :background))) ;; in Current buffer !!
+;;       (with-current-buffer (or buffer (current-buffer))
+;;         (when background
+;;           (let* ((OS (overlays-in  beg end))
+;;                  (o (some (lambda (o) (and (overlay-get o 'polymode) o))
+;;                           OS)))
+;;             (if o
+;;                 (move-overlay o  beg end )
+;;               (let ((o (make-overlay beg end nil nil t))
+;;                     (face (or (and (numberp background)
+;;                                    (cons 'background-color
+;;                                          (pm--lighten-background background)))
+;;                               background)))
+;;                 (overlay-put o 'polymode 'polymode-major-mode)
+;;                 (overlay-put o 'face face)
+;;                 (overlay-put o 'evaporate t)))))))))
 
 (defun pm--adjust-visual-line-mode (new-vlm)
   (when (not (eq visual-line-mode vlm))
@@ -497,8 +518,10 @@ Return newlly created buffer."
            (file (buffer-file-name))
            (base-name (buffer-name))
            (jit-lock-mode nil)
-           (coding buffer-file-coding-system)
-           (tbf (get-buffer-create "*pm-tmp*")))
+           (coding buffer-file-coding-system))
+
+      ;; (dbg (current-buffer) file)
+      ;; (backtrace)
 
       (with-current-buffer new-buffer
         (let ((polymode-mode t)) ;;major-modes might check it
