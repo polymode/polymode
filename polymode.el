@@ -111,7 +111,6 @@ Return, how many chucks actually jumped over."
   (interactive "p")
   (polymode-next-chunk (- N)))
   
-
 (defun polymode-next-chunk-same-type (&optional N)
   "Go to next COUNT chunk.
 Return, how many chucks actually jumped over."
@@ -261,7 +260,11 @@ the current innermost span."
 (defvar pm--fontify-region-original nil
   "Fontification function normally used by the buffer's major mode.
 Used internaly to cahce font-lock-fontify-region-function.  Buffer local.")
-(make-variable-buffer-local 'multi-fontify-region-original)
+(make-variable-buffer-local 'pm--fontify-region-original)
+
+(defvar pm--syntax-begin-function-original nil)
+(make-variable-buffer-local 'pm--syntax-begin-function-original)
+
 
 (defun pm/fontify-region (beg end &optional verbose)
   "Polymode font-lock fontification function.
@@ -272,43 +275,44 @@ A fontification mechanism should call
 `font-lock-fontify-region-function' (`jit-lock-function' does
 that). If it does not, the fontification will probably be screwed
 in polymode buffers."
-  (let* ((modified (buffer-modified-p))
-         (buffer-undo-list t)
-	 (inhibit-read-only t)
+  (let* ((buffer-undo-list t)
 	 (inhibit-point-motion-hooks t)
-	 (inhibit-modification-hooks t)
          (font-lock-dont-widen t)
-         (buff (current-buffer))
-	 deactivate-mark)
-    ;; (with-silent-modifications
-    (font-lock-unfontify-region beg end)
-    (save-excursion
-      (save-window-excursion
-        (pm/map-over-spans
-         (lambda ()
-           (let ((sbeg (nth 1 *span*))
-                 (send (nth 2 *span*)))
-             (when (and font-lock-mode font-lock-keywords)
-               (when parse-sexp-lookup-properties
-                 (pm--comment-region 1 sbeg))
-               (unwind-protect 
-                   (if (oref pm/submode :font-lock-narrow)
-                       (save-restriction
-                         (narrow-to-region sbeg send)
-                         (funcall pm--fontify-region-original
-                                  (max sbeg beg) (min send end) verbose))
-                     (funcall pm--fontify-region-original
-                              (max sbeg beg) (min send end) verbose))
+         (buff (current-buffer)))
+    (with-silent-modifications
+      (font-lock-unfontify-region beg end)
+      (save-excursion
+        (save-window-excursion
+          (pm/map-over-spans
+           (lambda ()
+             (let ((sbeg (nth 1 *span*))
+                   (send (nth 2 *span*)))
+               (when (and font-lock-mode font-lock-keywords)
                  (when parse-sexp-lookup-properties
-                   (pm--uncomment-region 1 sbeg))
-                 ))
-             (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
-             (put-text-property beg end 'fontified t)
-             ))
-         beg end)))
-    (unless modified
-      (restore-buffer-modified-p nil))))
+                   (pm--comment-region 1 sbeg))
+                 (unwind-protect 
+                     (if (oref pm/submode :font-lock-narrow)
+                         (save-restriction
+                           (narrow-to-region sbeg send)
+                           (funcall pm--fontify-region-original
+                                    (max sbeg beg) (min send end) verbose))
+                       (funcall pm--fontify-region-original
+                                (max sbeg beg) (min send end) verbose))
+                   (when parse-sexp-lookup-properties
+                     (pm--uncomment-region 1 sbeg))
+                   ))
+               (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
+               (put-text-property beg end 'fontified t)))
+           beg end))))))
 
+(defun pm/syntax-begin-function ()
+  (goto-char
+   (max (cadr (pm/get-innermost-span))
+        (if pm--syntax-begin-function-original
+            (save-excursion
+              (funcall pm--syntax-begin-function-original)
+              (point))
+          (point-min)))))
 
 ;;; INTERNALS
 (defun pm--get-available-mode (mode)
@@ -348,7 +352,7 @@ This funciton is placed in local post-command hook."
                         prop)))
 
 (defun pm--adjust-chunk-face (beg end face)
-  ;; adjust chunk face (called from pm/fontify-region)
+  ;; propertize 'face of the region by adding chunk specific configuration
   (interactive "r")
   (when face
     (with-current-buffer (current-buffer)
@@ -430,9 +434,8 @@ This funciton is placed in local post-command hook."
       (set var (buffer-local-value var bb)))))
 
 (defun pm--setup-buffer (&optional buffer)
-  ;; general buffer setup, should work for indirect and base buffers alike
-  ;; assumes pm/config and pm/submode is already in place
-  ;; return buffer
+  ;; General buffer setup, should work for indirect and base buffers
+  ;; alike. Assumes pm/config and pm/submode is already in place. Return buffer.
   (let ((buff (or buffer (current-buffer))))
     (with-current-buffer buff
       ;; Don't let parse-partial-sexp get fooled by syntax outside
@@ -447,7 +450,12 @@ This funciton is placed in local post-command hook."
         (setq pm--fontify-region-original
               font-lock-fontify-region-function)
         (set (make-local-variable 'font-lock-fontify-region-function)
-             #'pm/fontify-region))
+             #'pm/fontify-region)
+        (setq pm--syntax-begin-function-original
+              (or syntax-begin-function ;; Emacs > 23.3
+                  font-lock-beginning-of-syntax-function))
+        (set (make-local-variable 'syntax-begin-function)
+             #'pm/syntax-begin-function))
 
       (set (make-local-variable 'polymode-mode) t)
 
