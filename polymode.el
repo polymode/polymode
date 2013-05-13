@@ -303,7 +303,9 @@ in polymode buffers."
                    ))
                (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
                (put-text-property beg end 'fontified t)))
-           beg end))))))
+           beg end)
+          ;; needed to avoid moving last fontified buffer to second place
+          (bury-buffer))))))
 
 (defun pm/syntax-begin-function ()
   (goto-char
