@@ -78,29 +78,11 @@ For this method to work correctly, SUBMODE's class should define
     (unless (buffer-live-p buff)
       (pm/install-buffer submode type)
       (setq buff (pm/get-buffer submode type)))
-    (put-text-property (nth 1 span) (nth 2 span) 'inner-submode nil)
     (pm--select-buffer buff)))
 
 (defmethod pm/select-buffer ((submode pm-inner-submode) span)
   (call-next-method)
-  (pm--transfer-vars-from-base)
-  ;; might be needed by external applications like flyspell
-  (put-text-property (nth 1 span) (nth 2 span) 'inner-submode t))
-
-;; (pm--select-buffer (pm/get-buffer submode (car span))))
-
-;; (defmethod pm/select-buffer ((submode pm-inner-submode) span)
-;;   "Select the buffer associated with SUBMODE.
-;; Install a new indirect buffer if it is not already installed.
-
-;; For this method to work correctly, SUBMODE's class should define
-;; `pm/install-buffer' and `pm/get-buffer' methods."
-;;   (let* ((type (car span))
-;;          (buff (pm/get-buffer submode type)))
-;;     (unless (buffer-live-p buff)
-;;       (pm/install-buffer submode type)
-;;       (setq buff (pm/get-buffer submode type)))
-;;     (pm--select-buffer buff)))
+  (pm--transfer-vars-from-base))
 
 (defun pm-get-mode-symbol-from-name (str)
   "Default mode function guesser.

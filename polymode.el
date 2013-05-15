@@ -307,6 +307,9 @@ in polymode buffers."
                      (pm--uncomment-region 1 sbeg))
                    ))
                (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
+               ;; might be needed by external applications like flyspell
+               (put-text-property sbeg send 'inner-submode
+                                  (object-of-class-p pm/submode 'pm-inner-submode))
                (put-text-property beg end 'fontified t)))
            beg end)
           ;; needed to avoid moving last fontified buffer to second place
