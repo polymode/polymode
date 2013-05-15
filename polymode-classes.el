@@ -196,10 +196,19 @@ buffer).")
    (tail-adj-face
     :initarg :tail-adj-face
     :initform nil
-    :type symbol
-    :custom symbol
+    :type (or null number face list)
+    :custom (or null number face list)
     :documentation
-    "Can be a number, list or face."))
+    "Can be a number, list or face. If nil, take the
+configuration from :head-adj-face.")
+   (indent-auto-insert
+    :initarg :indent-auto-insert
+    :initform nil
+    :type (or null string)
+    :custom (or null string)
+    :documentation
+    "String auto-inserted by `pm/indent-line' during
+indentation."))
   
   "Representation of an inner (aka child) submode in a buffer.")
 

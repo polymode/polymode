@@ -10,8 +10,8 @@
 
 (defcustom  pm-submode/noweb
   (pm-inner-submode "noweb"
-                    :head-reg  "^<<\\(.*\\)>>="
-                    :tail-reg    "^\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
+                    :head-reg  "<<\\(.*\\)>>="
+                    :tail-reg    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
   "Noweb typical chunk."
   :group 'polymode
   :type 'object)

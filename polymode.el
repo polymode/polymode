@@ -1,7 +1,8 @@
 ;;; polymode.el --- support for multiple major modes
 ;; Author: Vitalie Spinu
 
-(eval-when-compile (require 'cl))
+(eval-when-compile
+  (require 'cl))
 (require 'font-lock)
 (require 'eieio)
 (require 'color)
@@ -262,6 +263,10 @@ the current innermost span."
 Used internaly to cahce font-lock-fontify-region-function.  Buffer local.")
 (make-variable-buffer-local 'pm--fontify-region-original)
 
+(defvar pm--indent-line-function-original nil
+  "Used internally toprotect buffer's `indent-line-function'.")
+(make-variable-buffer-local 'pm--indent-line-function-original)
+
 (defvar pm--syntax-begin-function-original nil)
 (make-variable-buffer-local 'pm--syntax-begin-function-original)
 
@@ -315,6 +320,7 @@ in polymode buffers."
               (funcall pm--syntax-begin-function-original)
               (point))
           (point-min)))))
+
 
 ;;; INTERNALS
 (defun pm--get-available-mode (mode)
@@ -466,15 +472,8 @@ This funciton is placed in local post-command hook."
       ;; handle indentation.
       (when (and indent-line-function ; not that it should ever be nil...
                  (oref pm/submode :protect-indent-line-function))
-        (set (make-local-variable 'indent-line-function)
-             `(lambda ()
-                (let ((span (pm/get-innermost-span)))
-                  (unwind-protect
-                      (save-restriction
-                        (pm--comment-region  1 (nth 1 span))
-                        (pm/narrow-to-span span)
-                        (,indent-line-function))
-                    (pm--uncomment-region 1 (nth 1 span)))))))
+        (setq pm--indent-line-function-original indent-line-function)
+        (set (make-local-variable 'indent-line-function) 'pm/indent-line))
 
       ;; Kill the base buffer along with the indirect one; careful not
       ;; to infloop.
@@ -642,7 +641,6 @@ Return newlly created buffer."
     (let ((elapsed  (time-to-seconds (time-subtract (current-time) start))))
       (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
 
-
 (defun pm--comment-region (beg end)
   ;; mark as syntactic comment
   (when (> end 1)
@@ -658,8 +656,7 @@ Return newlly created buffer."
           (add-text-properties (1- end) end
                                (list 'syntax-table (cons 12 ch-end)
                                      'rear-nonsticky t
-                                     'polymode-comment 'end))
-          )))))
+                                     'polymode-comment 'end)))))))
 
 (defun pm--uncomment-region (beg end)
   ;; remove all syntax-table properties. Should not cause any problem as it is
@@ -671,7 +668,6 @@ Return newlly created buffer."
         ;; (remove-text-properties beg (1+ beg) props)
         ;; (remove-text-properties end (1- end) props)
         ))))
-
 
 (defmacro define-polymode (mode config &optional keymap &rest body)
   "Define a new polymode MODE.

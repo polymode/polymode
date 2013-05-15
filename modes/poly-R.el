@@ -11,7 +11,8 @@
 (defcustom pm-submode/noweb+R
   (clone pm-submode/noweb
          :mode 'R-mode
-         :protect-indent-line-function t)
+         :protect-indent-line-function t
+         :indent-auto-insert "{")
   "Noweb for R"
   :group 'polymode :type 'object)
 

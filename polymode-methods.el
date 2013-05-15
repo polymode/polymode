@@ -359,7 +359,58 @@ tail -  tail span"
                 (functionp tail-matcher))
            (pm--span-at-point-fun-fun head-matcher tail-matcher))
           (t (error "head and tail matchers should be either regexp strings or functions")))))
-       
+
+
+
+;;; INDENT-LINE
+(defgeneric pm/indent-line (&optional submode span)
+  "Indent current line.
+Protect and call original indentation function associated with
+the submode.")
+
+(defun pm--indent-line (span &optional istr)
+  ;; istr is auto-indent string
+  (unwind-protect
+      (save-restriction
+        (when istr
+            (save-excursion
+              (goto-char (cadr span))
+              (insert (propertize istr 'auto-indent t))))
+          (pm--comment-region  1 (nth 1 span))
+          (pm/narrow-to-span span)
+          (funcall pm--indent-line-function-original))
+      (pm--uncomment-region 1 (nth 1 span))
+      (when istr
+        (save-excursion
+          (goto-char (cadr span))
+          (delete-region (point)
+                         (next-single-char-property-change
+                          (point) 'auto-indent nil
+                          (+ (point) (length istr) 5)))))))
+
+(defmethod pm/indent-line ()
+  (let ((span (pm/get-innermost-span)))
+    (pm/indent-line (car (last span)) span)))
+
+(defmethod pm/indent-line ((submode pm-submode) &optional span)
+  (pm--indent-line span))
+
+(defmethod pm/indent-line ((submode pm-inner-submode) &optional span)
+  "Indent line in inner submodes.
+When point is at the beginning of head or tail, use parent chunk
+to indent."
+    (if (or (not (memq (car span) '(head tail)))
+            (not (eq (point) (cadr span)))
+            (eq (point) (point-min)))
+        (pm--indent-line span (oref submode :indent-auto-insert))
+      (progn
+        (backward-char)
+        (let ((parent-span (pm/get-innermost-span)))
+          (setf (nth 2 parent-span) (1+ (nth 2 parent-span)))
+          (pm/select-buffer (car (last parent-span)) parent-span)
+          (forward-char)
+          (pm--indent-line parent-span (oref submode :indent-auto-insert))))))
+
                      
 ;; (defun pm--test-ff ()
 ;;   (interactive)
