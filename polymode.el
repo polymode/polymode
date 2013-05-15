@@ -801,6 +801,14 @@ BODY contains code to execute each time the mode is enabled. It
 
        (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
 
+
+
+;;; COMPATIBILITY
+
+(defun pm--flyspel-dont-highlight-in-submodes (beg end poss)
+  (or (get-text-property beg 'inner-submode)
+      (get-text-property beg 'inner-submode)))
+
 
 ;;; FONT-LOCK
 ;; indulge elisp font-lock :) 

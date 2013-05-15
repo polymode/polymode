@@ -34,7 +34,9 @@ Current buffer is setup as the base buffer.")
       (setq pm/config config)
       (setq pm/submode submode)
       (setq pm/type 'base)
-      ;; if base-mode is nil 
+      ;; base specific config and setup
+      (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-submodes nil t)
+      ;; general setup
       (pm--setup-buffer))))
   
                           
@@ -76,8 +78,14 @@ For this method to work correctly, SUBMODE's class should define
     (unless (buffer-live-p buff)
       (pm/install-buffer submode type)
       (setq buff (pm/get-buffer submode type)))
-    (pm--select-buffer buff)
-    (pm--transfer-vars-from-base)))
+    (put-text-property (nth 1 span) (nth 2 span) 'inner-submode nil)
+    (pm--select-buffer buff)))
+
+(defmethod pm/select-buffer ((submode pm-inner-submode) span)
+  (call-next-method)
+  (pm--transfer-vars-from-base)
+  ;; might be needed by external applications like flyspell
+  (put-text-property (nth 1 span) (nth 2 span) 'inner-submode t))
 
 ;; (pm--select-buffer (pm/get-buffer submode (car span))))
 
