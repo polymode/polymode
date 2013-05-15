@@ -241,7 +241,6 @@ the current innermost span."
           (goto-char (max 1 (1- (nth 1 *span*)))) ;; enter previous chunk
         (goto-char (nth 2 *span*))))));))
 
-
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
   (interactive)

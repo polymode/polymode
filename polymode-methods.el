@@ -147,7 +147,6 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
              (funcall (oref pm/config :minor-mode-name))
              buff)))))
 
-
 (defgeneric pm/get-adj-face (submode &optional type))
 (defmethod pm/get-adj-face ((submode pm-submode) &optional type)
   (oref submode :adj-face))
@@ -207,7 +206,6 @@ point."
         (setcar (last span) (oref config :base-submode)))
       span))
 
-
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
         (proto (symbol-value (oref config :auto-submode-name))))
@@ -218,9 +216,8 @@ point."
           (if (and span-other
                    (> (cadr span-other) (cadr span)))
               span-other
-            (append span (list config))))
+            (append span (list config)))) ;fixme: this returns config as last object
       span-other)))
-
 
 (defmethod pm/get-span ((submode pm-inner-submode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
@@ -353,54 +350,69 @@ tail -  tail span"
 
 
 ;;; INDENT-LINE
-(defgeneric pm/indent-line (&optional submode span)
+
+(defgeneric pm/indent-line (submode &optional span)
   "Indent current line.
 Protect and call original indentation function associated with
 the submode.")
 
-(defun pm--indent-line (span &optional istr)
+(defun pm--indent-line (span)
   ;; istr is auto-indent string
   (unwind-protect
       (save-restriction
-        (when istr
-            (save-excursion
-              (goto-char (cadr span))
-              (insert (propertize istr 'auto-indent t))))
           (pm--comment-region  1 (nth 1 span))
           (pm/narrow-to-span span)
           (funcall pm--indent-line-function-original))
-      (pm--uncomment-region 1 (nth 1 span))
-      (when istr
-        (save-excursion
-          (goto-char (cadr span))
-          (delete-region (point)
-                         (next-single-char-property-change
-                          (point) 'auto-indent nil
-                          (+ (point) (length istr) 5)))))))
+      (pm--uncomment-region 1 (nth 1 span))))
 
-(defmethod pm/indent-line ()
+(defun pm/indent-line ()
   (let ((span (pm/get-innermost-span)))
     (pm/indent-line (car (last span)) span)))
 
 (defmethod pm/indent-line ((submode pm-submode) &optional span)
   (pm--indent-line span))
-
+  
 (defmethod pm/indent-line ((submode pm-inner-submode) &optional span)
   "Indent line in inner submodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
-    (if (or (not (memq (car span) '(head tail)))
-            (not (eq (point) (cadr span)))
-            (eq (point) (point-min)))
-        (pm--indent-line span (oref submode :indent-auto-insert))
-      (progn
-        (backward-char)
-        (let ((parent-span (pm/get-innermost-span)))
-          (setf (nth 2 parent-span) (1+ (nth 2 parent-span)))
-          (pm/select-buffer (car (last parent-span)) parent-span)
-          (forward-char)
-          (pm--indent-line parent-span (oref submode :indent-auto-insert))))))
+  ;; sloppy work,
+  ;; assumes multiline chunks and single-line head/tail
+  ;; assumes current buffer is the correct buffer
+  (let ((pos (point))
+        shift delta)
+    (cond ((or (eq 'head (car span))
+               (eq 'tail (car span)))
+            ;; use parent's indentation function
+           (back-to-indentation)
+           (setq delta (- pos (point)))
+           (backward-char)
+           (let ((parent-span (pm/get-innermost-span)))
+             (pm/select-buffer (car (last parent-span)) parent-span)
+             (forward-char)
+             (pm--indent-line parent-span)
+             (when (eq 'tail (car span))
+               (setq shift (pm--get-head-shift parent-span))
+               (indent-to (+ shift (- (point) (point-at-bol))))))
+           (if (> delta 0)
+               (goto-char (+ (point) delta))))
+           (t
+            (setq shift (pm--get-head-shift span))
+            (pm--indent-line span)
+            (setq delta (- (point) (point-at-bol)))
+            (beginning-of-line)
+            (indent-to shift)
+            (goto-char (+ (point) delta))))))
 
+(defmethod pm/indent-line ((submode pm-config-multi-auto) &optional span)
+  (pm/select-buffer submode span)
+  (pm/indent-line pm/submode span))
+
+(defun pm--get-head-shift (span)
+  (save-excursion
+    (goto-char (cadr span))
+    (back-to-indentation)
+    (- (point) (point-at-bol))))
                      
 ;; (defun pm--test-ff ()
 ;;   (interactive)
