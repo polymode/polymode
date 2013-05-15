@@ -22,18 +22,18 @@ NumericVector stl_sort(NumericVector x) {
    return y;
 } 
  
-/*** R
-library(rbenchmark)
-set.seed(123)
-z <- rnorm(100000)
-x <- rnorm(100)
+   /*** R
+   library(rbenchmark)
+   set.seed(123)
+   z <- rnorm(100000)
+   x <- rnorm(100)
 
-# check that stl_sort is the same as sort
-stopifnot(all.equal(stl_sort(x), sort(x)))
-
-# benchmark stl_sort and sort
-benchmark(stl_sort(z), sort(z), order="relative")[,1:4]
-*/
+   ## check that stl_sort is the same as sort
+   stopifnot(all.equal(stl_sort(x), sort(x)))
+   
+   ## benchmark stl_sort and sort
+   benchmark(stl_sort(z), sort(z), order="relative")[,1:4]
+   */
 
 /**
  * Consider the problem of sorting the first `n` elements of a given vector.

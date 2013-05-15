@@ -351,7 +351,7 @@ tail -  tail span"
 
 ;;; INDENT-LINE
 
-(defgeneric pm/indent-line (submode &optional span)
+(defgeneric pm/indent-line (&optional submode span)
   "Indent current line.
 Protect and call original indentation function associated with
 the submode.")
@@ -365,7 +365,7 @@ the submode.")
           (funcall pm--indent-line-function-original))
       (pm--uncomment-region 1 (nth 1 span))))
 
-(defun pm/indent-line ()
+(defmethod pm/indent-line ()
   (let ((span (pm/get-innermost-span)))
     (pm/indent-line (car (last span)) span)))
 
