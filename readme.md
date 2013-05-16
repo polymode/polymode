@@ -15,8 +15,8 @@ awesome idea.
 
 ## Installation 
 
-The project is in a vyyyyyyery early alpha stage and it is not, as yet, available in
-melpa repo. You will have to install it manually:
+The project is in an alpha stage and it is not, as yet, available in melpa
+repo. You will have to install it manually:
 
 ```sh
 git clone https://github.com/vitoshka/polymode.git
@@ -37,7 +37,9 @@ Require any polymode bundles that you are interested in:
 (require 'poly-markdown)
 ```
 
-etc
+Note that for the full use of poly-markdown modes you will need
+[markdown-mode.el](http://jblevins.org/projects/markdown-mode/). It is also
+available from MELPA repository.
 
 
 ## Polymodes activation
@@ -47,7 +49,7 @@ with emacs usual conventions.
 
 There are two main ways to activate emacs mode. 
 
-   1. By registering a file extension. Some of the file extensions are already
+   1. _By registering a file extension_. Some of the file extensions are already
 defined for you "Rmd", "Snw", "Rcpp", "cppR", "Rhtml" etc. You can find some
 examples in `tests` sub-directory. Of course you can always set your own
 extensions by adding them to `auto-mode-alist`.
@@ -63,29 +65,29 @@ extensions by adding them to `auto-mode-alist`.
    ```
 
 
-## Naming conventions 
+<!-- ## Naming conventions  -->
 
-The core polymode object and modes are usually named as "engine+submode", or
-"base_mode+submode" like "noweb+R", "markdown+R", "C++R" and "R++C". 
+<!-- The core polymode object and modes are usually named as "engine+submode", or -->
+<!-- "base_mode+submode" like "noweb+R", "markdown+R", "C++R" and "R++C".  -->
 
-todo: more to come on this ... need to define object hierarchy for the full story.
+<!-- todo: more to come on this ... need to define object hierarchy for the full story. -->
 
 
-## Warning!
+## Warning
 
    * Tested with Emacs 24.3.1 and unlikely to work with Emacses older
      than 24.2 because of the heavy use of pattern matching and eieio.
    
-Many things still don't work as expected. For example:
+Some things still don't work as expected. For example:
     
    * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
    * Customization interface is not working as expected (an eieio bug) and is
-     not tested. Moreover the interface is likely to change slightly so don't
-     even try it.
-   * No literate programming backends. This will be part of another package.
-   * Occasional problems with font-lock inflooping, May be messages like `Error
-     during redisplay: (jit-lock-function 163) signaled (args-out-of-range 1
-     142)`. Please report.
+     not tested. 
+   * No literate programming backends (in the sense of weavers, tanglers and
+     exporters).
+   * Occasional problems with font-lock. Messages like `Error during
+     redisplay: (jit-lock-function 163) signaled (args-out-of-range 1
+     142)` are posible.
      
      
 ## Screenshots
