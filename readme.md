@@ -30,7 +30,7 @@ Add "polymode" directory and "polymode/modes" to your emacs path:
               load-path))
 ```
 
-Require any polymode bundles that you are interested in:
+Require any polymode bundles that you are interested in. For example:
 
 ```lisp
 (require 'poly-R)

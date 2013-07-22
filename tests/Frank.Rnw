@@ -1,0 +1,80 @@
+% Usage: knitr an
+\documentclass{article}
+\usepackage{relsize,setspace}  % used by latex(describe( ))
+\usepackage{needspace}
+\usepackage{longtable,epic}    % used by print(..., latex=TRUE)
+\usepackage{url}               % used in bibliography
+\usepackage[superscript,nomove]{cite} % use if \cite is used and superscripts wanted
+% Remove nomove if you want superscripts after punctuation in citations
+\usepackage{lscape}            % for landscape mode tables
+\textwidth 6.75in              % set dimensions before fancyhdr 
+\textheight 9.25in
+\topmargin -.875in
+\oddsidemargin -.125in
+\evensidemargin -.125in
+\usepackage{fancyhdr} % this and next line are for fancy headers/footers
+\pagestyle{fancy}
+\newcommand{\bc}{\begin{center}}  % abbreviate
+\newcommand{\ec}{\end{center}}
+\newcommand{\code}[1]{{\smaller\texttt{#1}}}
+\newcommand{\R}{{\normalfont\textsf{R}}{}}
+\newcommand{\vr}[1]{\texttt{#1}}
+\newcommand{\mc}[2]{\multicolumn{#1}{c}{#2}}
+\title{Analysis of Race and Severe Aortic Stenosis}
+\author{Frank Harrell\\\smaller Department of Biostatistics\\\smaller Vanderbilt University School of Medicine}
+\begin{document}
+\maketitle
+\tableofcontents
+
+<<echo=FALSE>>=
+knitrSet()
+require(rms)
+@
+
+\section{Univariable Descriptive Statistics}
+<<describe,results='asis'>>=
+Load(ras)
+ras <-
+  within(ras, {
+    label(age) <- 'Age'
+    diabetes <- ifelse(diabetes.after.review=='No', 0,
+                       ifelse(diabetes.after.review=='Yes', 1,
+                              ifelse(diabetes.search=='No', 0,
+                                     ifelse(diabetes.search=='Yes', 1,
+                                            NA))))
+    htn <- ifelse(htn.after.review=='No', 0,
+                  ifelse(htn.after.review=='Yes', 1,
+                         ifelse(htn.search=='No', 0,
+                                ifelse(htn.search=='Yes', 1,
+                                       NA))))
+    dialysis <- ifelse(dialysis.after.review=='No', 0,
+                       ifelse(dialysis.after.review=='Yes', 1,
+                              ifelse(dialysis.search=='No', 0,
+                                     NA)))
+   cad <- ifelse(cad.after.review=='No', 0,
+                 ifelse(cad.after.review=='Yes', 1,
+                        ifelse(cad.search=='No', 0,
+                               ifelse(cad.search=='Yes', 1,
+                                      NA))))
+    gender <- factor(ifelse(gender=='Female', 'Female',
+                            ifelse(gender=='Male', 'Male',
+                                   NA)))
+    })
+latex(describe(ras), file='')
+@
+\section{Missing Data}
+Let's look at patterns of missing values, especially which variables
+are missing on the same patients.
+<<naclus,top=2>>=
+r <- subset(ras, select=c(gender,race,age,bmi,ldl,diabetes,htn,dialysis,
+                   cad,statin,sasr,sas.etiology,creatinine))
+dd <- datadist(r)
+n <- naclus(subset(r, select=-sas.etiology))
+naplot(n, which='na per obs')
+<<naplot,top=2,rt=1,ps=8>>=
+options(datadist='dd')
+naplot(n, which='mean na')
+<<naplot2>>=
+plot(n)
+@ 
+\end{document}
