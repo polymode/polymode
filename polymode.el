@@ -170,6 +170,26 @@ Return, how many chucks actually jumped over."
      (polymode-kill-chunk))
     (_ (error "canoot find chunk to kill"))))
 
+(defun polymode-kill-chunk ()
+  "Kill current chunk"
+  (interactive)
+  (pcase (pm/get-innermost-span)
+    (`(,(or `nil `base) ,beg ,end ,_) (delete-region beg end))
+    (`(body ,beg ,end ,_)
+     (goto-char beg)
+     (pm--kill-span '(body))
+     (pm--kill-span '(head tail))
+     (pm--kill-span '(head tail)))
+    (`(tail ,beg ,end ,_)
+     (if (eq beg (point-min))
+         (delete-region beg end)
+       (goto-char (1- beg))
+       (polymode-kill-chunk)))
+    (`(head ,_ ,end ,_)
+     (goto-char end)
+     (polymode-kill-chunk))
+    (_ (error "canoot find chunk to kill"))))
+
 
 (defun polymode-toggle-chunk-narrowing ()
   "Toggle narrowing of the current chunk."
@@ -555,30 +575,64 @@ Return newlly created buffer."
                   (eq mode (buffer-local-value 'polymode-major-mode bf)))
         return bf))
 
-;; This doesn't work in 24.2, pcase bug :(
+;; ;; This doesn't work in 24.2, pcase bug ((void-variable xcar))
+;; ;; Other pcases in this file don't throw this error
+;; (defun pm--set-submode-buffer (obj type buff)
+;;   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
+;;     (pcase (list type head-mode tail-mode)
+;;       (`(body body ,(or `nil `body))
+;;        (setq buffer buff
+;;              head-buffer buff
+;;              tail-buffer buff))
+;;       (`(body ,_ body)
+;;        (setq buffer buff
+;;              tail-buffer buff))
+;;       (`(body ,_ ,_ )
+;;        (setq buffer buff))
+;;       (`(head ,_ ,(or `nil `head))
+;;        (setq head-buffer buff
+;;              tail-buffer buff))
+;;       (`(head ,_ ,_)
+;;        (setq head-buffer buff))
+;;       (`(tail ,_ ,(or `nil `head))
+;;        (setq tail-buffer buff
+;;              head-buffer buff))
+;;       (`(tail ,_ ,_)
+;;        (setq tail-buffer buff))
+;;       (_ (error "type must be one of 'body 'head and 'tail")))))
+
+;; this is a literal transcript of the pcase above
 (defun pm--set-submode-buffer (obj type buff)
   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
-    (pcase (list type head-mode tail-mode)
-      (`(body body ,(or `nil `body))
+    (cond
+     ((and (eq type 'body)
+           (eq head-mode 'body)
+           (or (null tail-mode)
+               (eq tail-mode 'body)))
+      (setq buffer buff
+            head-buffer buff
+            tail-buffer buff))
+     ((and (eq type 'body)
+           (eq tail-mode 'body))
        (setq buffer buff
-             head-buffer buff
              tail-buffer buff))
-      (`(body ,_ body)
-       (setq buffer buff
-             tail-buffer buff))
-      (`(body ,_ ,_ )
-       (setq buffer buff))
-      (`(head ,_ ,(or `nil `head))
-       (setq head-buffer buff
-             tail-buffer buff))
-      (`(head ,_ ,_)
-       (setq head-buffer buff))
-      (`(tail ,_ ,(or `nil `head))
-       (setq tail-buffer buff
-             head-buffer buff))
-      (`(tail ,_ ,_)
-       (setq tail-buffer buff))
-      (_ (error "type must be one of 'body 'head and 'tail")))))
+     ((eq type 'body)
+      (setq buffer buff))
+     ((and (eq type 'head)
+           (or (null tail-mode)
+               (eq tail-mode 'head)))
+      (setq head-buffer buff
+            tail-buffer buff))
+     ((eq type 'head)
+      (setq head-buffer buff))
+     ((and (eq type 'tail)
+           (or (null tail-mode)
+               (eq tail-mode 'head)))
+      (setq tail-buffer buff
+            head-buffer buff))
+     ((eq type 'tail)
+      (setq tail-buffer buff))
+     (t (error "type must be one of 'body 'head and 'tail")))))
 
 (defun pm--get-submode-mode (obj type)
   (with-slots (mode head-mode tail-mode) obj
