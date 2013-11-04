@@ -3,6 +3,7 @@
 (defclass polymode (eieio-instance-inheritor) ()
   "Root polymode class.")
 
+
 ;;; CONFIG
 (defclass pm-config (polymode) 
   ((base-submode-name
@@ -50,6 +51,7 @@
 variable `pm/config' instantiated from this class or a subclass
 of this class.")
 
+
 (defclass pm-config-one (pm-config)
   ((inner-submode-name
     :initarg :inner-submode-name
@@ -74,8 +76,9 @@ submode. For example noweb.")
      with this configuration. At initialization time, all of
      these are cloned and plased in :inner-submodes slot."))
   
-  "Configuration for a polymode that allows multiple submodes
-that are known in advance. For a variaty of web-modes.")
+  "Configuration for a polymode that allows multiple known in
+advance submodes.")
+
 
 (defclass pm-config-multi-auto (pm-config-multi)
   ((auto-submode-name
@@ -94,11 +97,12 @@ that are known in advance. For a variaty of web-modes.")
     "List of submodes that are auto-generated in pm/get-span
     method for this class."))
   
-  "Configuration for a polymode that allows multiple submode that
-are not known in advance. For example org-mode, markdown.")
+  "Configuration for a polymode that allows multiple submodes
+that are not known in advance. Examples are org-mode and markdown.")
 
 
-;;; SUBMODE
+
+;;; SUBMODE CLASSES
 (defclass pm-submode (polymode)
   ((mode
     :initarg :mode

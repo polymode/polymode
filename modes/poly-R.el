@@ -1,5 +1,12 @@
 (require 'poly-base)
 
+(defcustom pm-config/R
+  (pm-config-one "R"
+                 :base-submode-name 'pm-base/R
+                 :inner-submode-name 'pm-submode/fundamental)
+  "HTML typical configuration"
+  :group 'polymode :type 'object)
+
 ;; NOWEB
 (require 'poly-noweb)
 (defcustom pm-config/noweb+R
@@ -108,13 +115,6 @@
   (let ((end (or (ignore-errors (scan-sexps (point) 1))
                  (buffer-end 1))))
     (cons (max 1 (- end 1)) end)))
-
-(defcustom pm-config/R
-  (pm-config-one "R"
-                 :base-submode-name 'pm-base/R
-                 :inner-submode-name 'pm-submode/fundamental)
-  "HTML typical configuration"
-  :group 'polymode :type 'object)
 
 (defcustom pm-config/R+C++
   (clone pm-config/R "R+C++" :inner-submode-name 'pm-submode/R+C++)
