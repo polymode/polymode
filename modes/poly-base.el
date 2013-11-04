@@ -59,6 +59,12 @@ is in place at that time."
   :group 'base-submodes
   :type 'object)
 
+(defcustom pm-base/yaml
+  (pm-submode "text"
+              :mode 'yaml-mode)
+  "YAML submode"
+  :group 'base-submodes
+  :type 'object)
 
 ;; CONFIG
 (defcustom pm-config/brew
@@ -74,6 +80,14 @@ is in place at that time."
                  :base-submode-name 'pm-base/html
                  :inner-submode-name 'pm-submode/fundamental)
   "HTML typical configuration"
+  :group 'polymode :type 'object)
+
+
+(defcustom pm-config/markdown
+  (pm-config-one "markdown"
+                 :base-submode-name 'pm-base/markdown
+                 :inner-submode-name 'pm-submode/fundamental)
+  "Markdown typcal configuration"
   :group 'polymode :type 'object)
 
 
