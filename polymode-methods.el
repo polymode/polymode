@@ -45,6 +45,12 @@ Current buffer is setup as the base buffer.")
   (eval `(oset config :inner-submodes
                (list (clone ,(oref config :inner-submode-name))))))
 
+(defmethod pm/initialize ((config pm-config-multi))
+  (call-next-method)
+  (oset config :inner-submodes
+        (mapcar (lambda (sub-name)
+                  (clone (symbol-value sub-name)))
+                (oref config :inner-submode-names))))
 
 (defgeneric pm/get-buffer (submode &optional span-type)
   "Get the indirect buffer associated with SUBMODE and
@@ -205,6 +211,9 @@ point."
                  (null (car span))) ; submodes can compute the base span by returning nil
         (setcar (last span) (oref config :base-submode)))
       span))
+
+;; No need for this, basic method iterates through :inner-submodes anyhow.
+;; (defmethod pm/get-span ((config pm-config-multi) &optional pos))
 
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
