@@ -34,30 +34,26 @@
 (add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
 
 
-;; Rapport template
-;; Example: https://github.com/Rapporter/rapport/blob/master/inst/templates/Minimal.tpl
+
+;; RAPPORT
 (defcustom pm-config/rapport
-  (clone pm-config/markdown "rapport" :inner-submode-name 'pm-submode/rapport)
+  (clone pm-config/markdown "RAPPORT"
+         :inner-submode-names '(pm-submode/brew+R
+                                pm-submode/rapport+YAML))
   "Rapport template configuration"
   :group 'polymode  :type 'object)
-(defcustom  pm-submode/rapport
-  (pm-inner-submode "rapport"
+
+(defcustom  pm-submode/rapport+YAML
+  (pm-inner-submode "rapport+YAML"
                     :mode 'yaml-mode
                     :head-reg "<!--head"
                     :tail-reg "head-->"
                     :protect-indent-line-function t)
-  "YAML header"
+  "YAML header in Rapport files"
   :group 'polymode  :type 'object)
-(defcustom  pm-submode/rapport
-  (pm-inner-submode "rapport"
-                    :mode 'R-mode
-                    :head-reg "<%[=%]?"
-                    :tail-reg "[#=%=-]?%>"
-                    :protect-indent-line-function t)
-  "R chunk"
-  :group 'polymode  :type 'object)
+
 (define-polymode poly-rapport-mode pm-config/rapport)
-(add-to-list 'auto-mode-alist '("\\.tpl" . poly-rapport-mode))
+(add-to-list 'auto-mode-alist '("\\.rapport" . poly-rapport-mode))
 
 
 
