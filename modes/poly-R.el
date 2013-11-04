@@ -37,7 +37,7 @@
 
 ;; RAPPORT
 (defcustom pm-config/rapport
-  (clone pm-config/markdown "RAPPORT"
+  (clone pm-config/markdown "rapport"
          :inner-submode-names '(pm-submode/brew+R
                                 pm-submode/rapport+YAML))
   "Rapport template configuration"
