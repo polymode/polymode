@@ -52,7 +52,11 @@
   "YAML header in Rapport files"
   :group 'polymode  :type 'object)
 
-(define-polymode poly-rapport-mode pm-config/rapport)
+(define-polymode poly-rapport-mode pm-config/rapport nil
+  ;; get rid of awfull hooks
+  (remove-hook 'window-configuration-change-hook 'markdown-fontify-buffer-wiki-links t)
+  (remove-hook 'after-change-functions 'markdown-check-change-for-wiki-link t))
+
 (add-to-list 'auto-mode-alist '("\\.rapport" . poly-rapport-mode))
 
 
@@ -79,7 +83,8 @@
 
 ;;; R-brew
 (defcustom pm-config/brew+R
-  (clone pm-config/brew "brew+R" :inner-submode-name 'pm-submode/brew+R)
+  (clone pm-config/brew "brew+R"
+         :inner-submode-name 'pm-submode/brew+R)
   "Brew + R configuration"
   :group 'polymode  :type 'object)
 
