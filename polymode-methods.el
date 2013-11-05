@@ -39,7 +39,6 @@ Current buffer is setup as the base buffer.")
       ;; general setup
       (pm--setup-buffer))))
   
-                          
 (defmethod pm/initialize ((config pm-config-one))
   (call-next-method)
   (eval `(oset config :inner-submodes
@@ -197,10 +196,24 @@ point."
         (widen)
         (dolist (sm smodes)
           (setq val (pm/get-span sm pos))
-          (if (and val (>= (nth 1 val) start))
-              (setq span val
-                    start (nth 1 val)
-                    end (nth 2 val)))))
+          (when (and val
+                     (or (> (nth 1 val) start)
+                         (< (nth 2 val) end)))
+            (if (or (car val)
+                    (null span))
+                (setq span val
+                      start (nth 1 val)
+                      end (nth 2 val))
+              ;; nil car means outer submode (usually base). And it can be an
+              ;; intersection of spans returned by 2 different neighbour inner
+              ;; submodes. See rapport mode for an example
+              (setq start (max (nth 1 val)
+                               (nth 1 span))
+                    end (min (nth 2 val)
+                             (nth 2 span)))
+              (setcar (cdr span) start)
+              (setcar (cddr span) end)
+              ))))
       (unless (and (<= start end) (<= pos end) (>= pos start))
         (error "Bad polymode selection: %s, %s"
                (list start end) pos))
@@ -212,7 +225,8 @@ point."
         (setcar (last span) (oref config :base-submode)))
       span))
 
-;; No need for this, basic method iterates through :inner-submodes anyhow.
+;; No need for this one so far. Basic method iterates through :inner-submodes
+;; anyhow.
 ;; (defmethod pm/get-span ((config pm-config-multi) &optional pos))
 
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
@@ -223,7 +237,8 @@ point."
                                        (oref proto :tail-reg)
                                        pos)))
           (if (and span-other
-                   (> (cadr span-other) (cadr span)))
+                   (or (> (nth 1 span-other) (nth 1 span))
+                       (< (nth 2 span-other) (nth 2 span))))
               span-other
             (append span (list config)))) ;fixme: this returns config as last object
       span-other)))
