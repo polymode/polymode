@@ -239,7 +239,13 @@ point."
           (if (and span-other
                    (or (> (nth 1 span-other) (nth 1 span))
                        (< (nth 2 span-other) (nth 2 span))))
-              span-other
+              ;; treat intersections with the base mode
+              (if (car span-other)
+                  span-other ;not base
+                ;; at this stage, car span should better be nil; no explicit check here.
+                (setcar (cdr span-other) (max (nth 1 span-other) (nth 1 span)))
+                (setcar (cddr span-other) (min (nth 2 span-other) (nth 2 span)))
+                span-other)
             (append span (list config)))) ;fixme: this returns config as last object
       span-other)))
 

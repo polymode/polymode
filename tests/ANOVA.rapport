@@ -42,6 +42,8 @@ inputs:
   standalone: yes
 head-->
 
+
+
 <%=
 panderOptions('table.split.table', Inf)
 d <- structure(data.frame(resp, fac), .Names = c(resp.iname, fac.name))
@@ -53,6 +55,19 @@ fac.plu <- switch(fac.ilen, '', 's')%>
 # Introduction
 
 **Analysis of Variance** or **ANOVA** is a statistical procedure that tests equality of means for several samples. It was first introduced in 1921 by famous English statistician Sir Ronald Aylmer Fisher.
+
+
+```r
+
+test <- markdown(chunk)
+
+```
+
+```r
+sdf <- 343
+ 
+sfsdfds
+```
 
 # Model Overview
 
