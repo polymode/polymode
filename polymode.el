@@ -233,6 +233,7 @@ Return, how many chucks actually jumped over."
   (pm/get-span pm/config pos))
 
 (defvar pm--can-narrow? t)
+
 (defun pm/map-over-spans (fun beg end &optional count backward?)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args. It is executed with point at the
@@ -727,8 +728,8 @@ Return newlly created buffer."
 
 (defmacro define-polymode (mode config &optional keymap &rest body)
   "Define a new polymode MODE.
-This defines command MODE and (by default) an indicator variable
-MODE that is t when MODE is active and nil othervise.
+This macro defines command MODE and an indicator variable MODE
+that is t when MODE is active and nil othervise.
 
 MODE command is similar to standard emacs major modes and it can
 be used in `auto-mode-alist'. Standard hook MODE-hook is run at
@@ -738,21 +739,21 @@ argument is supplied. See below.
 
 MODE command can also be use as a minor mode. Current major mode
 is not reinitialized if it coincides with the :mode slot of
-CONFIG object or if :mode slot is nil.
+CONFIG object or if the :mode slot is nil.
 
-Optional KEYMAP is the default keymap bound to the mode keymap.
-  If nil, no new keymap is created and MODE uses `polymode-mode-map'.
-  If t, a new keymap is created with name MODE-MAP that inherits
-  form `polymode-mode-map'.
-  Otherwise it should be a variable name (whose value is a keymap),
-  or an alist of binding arguments passed to `easy-mmode-define-keymap' and 
+Optional KEYMAP is the default keymap bound to the mode
+  keymap. If nil, no new keymap is created and MODE uses
+  `polymode-mode-map'. If t, a new keymap is created with name
+  MODE-MAP that inherits form `polymode-mode-map'. Otherwise it
+  should be a variable name (whose value is a keymap), or an
+  alist of binding arguments passed to `easy-mmode-define-keymap'
+  and
 
-BODY contains code to execute each time the mode is enabled. It
-  is executed after the complete initialization of the
-  polymode (`pm/initialize') and before running MODE-hook. Before
-  the actual body code, you can write keyword arguments,
-  i.e. alternating keywords and values.  These following special
-  keywords are supported:
+BODY contains code to be executed after the complete
+  initialization of the polymode (`pm/initialize') and before
+  running MODE-hook. Before the actual body code, you can write
+  keyword arguments, i.e. alternating keywords and values.  These
+  following special keywords are supported:
 
 :lighter SPEC   Optional LIGHTER is displayed in the mode line when
                 the mode is on. If omitted, it defaults to
@@ -814,7 +815,7 @@ BODY contains code to execute each time the mode is enabled. It
        (defvar ,mode nil ,(format "Non-nil if %s is enabled." pretty-name))
        (make-variable-buffer-local ',mode)
 
-       ;; The actual function.
+       ;; The actual function:
        (defun ,mode (&optional arg) ,(format "%s\n\n\\{%s}"
                                              (concat pretty-name ".")
                                              (or keymap-sym
@@ -845,8 +846,7 @@ BODY contains code to execute each time the mode is enabled. It
          ;; Return the new setting.
          ,mode)
 
-       ;; Autoloading a define-minor-mode autoloads everything
-       ;; up-to-here.
+       ;;  autoloads everything up-to-here.
        :autoload-end
        
        ;; Define the minor-mode keymap.
