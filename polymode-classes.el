@@ -45,7 +45,19 @@
     :initform '()
     :type list
     :documentation
-    "Holds all buffers associated with current buffer"))
+    "Holds all buffers associated with current buffer")
+   (init-functions
+    :initarg :init-functions
+    :initform '()
+    :type list
+    :documentation
+    "List of functions to run at the initialization time.
+All init-functions in the inheritance chain are called. Parents
+hooks first. So, if current config object C inherits from object
+B, which in turn inherits from object A. Then A's init-functions
+are called first, then B's and then C's.
+
+Either customize this slot or use `object-add-to-list' function."))
   
   "Configuration for a polymode. Each polymode buffer contains a local
 variable `pm/config' instantiated from this class or a subclass

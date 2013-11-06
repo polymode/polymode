@@ -34,10 +34,17 @@ Current buffer is setup as the base buffer.")
       (setq pm/config config)
       (setq pm/submode submode)
       (setq pm/type 'base)
-      ;; base specific config and setup
       (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-submodes nil t)
-      ;; general setup
-      (pm--setup-buffer))))
+      (prog1 (pm--setup-buffer) ; general setup for base and submode buffers
+        (let ((PI pm/config) IFs)
+          ;; aggregate and run hooks; parents first
+          (while PI
+            (setq IFs (append (and (slot-boundp PI :init-functions) ; don't cascade
+                                   (oref PI :init-functions))
+                              IFs)
+                  PI (and (slot-boundp PI :parent-instance)
+                          (oref PI :parent-instance))))
+          (run-hooks 'IFs))))))
   
 (defmethod pm/initialize ((config pm-config-one))
   (call-next-method)
