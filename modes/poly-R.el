@@ -52,10 +52,7 @@
   "YAML header in Rapport files"
   :group 'polymode  :type 'object)
 
-(define-polymode poly-rapport-mode pm-config/rapport nil
-  ;; get rid of awfull hooks
-  (remove-hook 'window-configuration-change-hook 'markdown-fontify-buffer-wiki-links t)
-  (remove-hook 'after-change-functions 'markdown-check-change-for-wiki-link t))
+(define-polymode poly-rapport-mode pm-config/rapport nil)
 
 (add-to-list 'auto-mode-alist '("\\.rapport" . poly-rapport-mode))
 
