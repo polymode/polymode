@@ -335,7 +335,7 @@ in polymode buffers."
                (when (and font-lock-mode font-lock-keywords)
                  (when parse-sexp-lookup-properties
                    (pm--comment-region 1 sbeg))
-                 (unwind-protect 
+                 (condition-case err
                      (if (oref pm/submode :font-lock-narrow)
                          (save-restriction
                            ;; fixme: optimization oportunity: Cache chunk state
@@ -348,12 +348,16 @@ in polymode buffers."
                                     (max sbeg beg) (min send end) verbose))
                        (funcall pm--fontify-region-original
                                 (max sbeg beg) (min send end) verbose))
-                   (when parse-sexp-lookup-properties
-                     (pm--uncomment-region 1 sbeg))))
+                   (error (message "polymode font-lock error: %s (beg: %s end: %s)"
+                                   (error-message-string err) beg end)))
+                 (when parse-sexp-lookup-properties
+                   (pm--uncomment-region 1 sbeg)))
                (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
                ;; might be needed by external applications like flyspell
+               ;; fixme: this should be in a more generic place like pm/get-span
                (put-text-property sbeg send 'inner-submode
                                   (object-of-class-p pm/submode 'pm-inner-submode))
+               ;; even if failed, set to t to avoid infloop
                (put-text-property beg end 'fontified t)))
            beg end)
           ;; needed to avoid moving last fontified buffer to second place
