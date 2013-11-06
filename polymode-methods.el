@@ -1,5 +1,22 @@
+;;; HOW IT WORKS
+;; poly-XXX-mode function (as created by define-polymode) clones at run-time and
+;; calls pm/initialize on pm/config which is dispatched accordingly to the type
+;; of pm/config, then runs poly-XXX-mode-hook.
+;;
+;; pm/initialize in turn, assigns the config object to local pm/config and
+;; initialize base-mode by running the actual base-mode function, cloning and
+;; setting pm/submode (held in :base-submode-name slot of pm/config), setting
+;; pm/type to 'base, running pm/config's :init-functions. Finally pm/initialize runs
+;; pm--setup-buffer which is common for all buffers.
+;;
+;; pm--setup-buffer sets font-lock, and other workarounds.
+;;
+;; Instalation and initialization of submodes (indirect buffers) is done by
+;; pm/install-buffer generic, which is called dynamically in pm/select-buffer
+;; generic on first need (usually by font-lock).
 
-;;;; INTERFACE
+
+;;; INITIALIZATION
 (defgeneric pm/initialize (config)
   "Initialize current buffer with CONFIG.
 
@@ -13,7 +30,7 @@ Current buffer is setup as the base buffer.")
 (defmethod pm/initialize ((config pm-config))
   ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ... 
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
-  ;; For time baing never reinstall twice
+  ;; Temporary fix: don't install twice
   (unless pm/config
     (let* ((submode (clone (symbol-value (oref config :base-submode-name))
                            :buffer (current-buffer)))
@@ -58,6 +75,9 @@ Current buffer is setup as the base buffer.")
                   (clone (symbol-value sub-name)))
                 (oref config :inner-submode-names))))
 
+
+
+;;; BUFFERS
 (defgeneric pm/get-buffer (submode &optional span-type)
   "Get the indirect buffer associated with SUBMODE and
 SPAN-TYPE. Should return nil if buffer has not yet been
@@ -159,6 +179,8 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
              (funcall (oref pm/config :minor-mode-name))
              buff)))))
 
+
+;;; FACES
 (defgeneric pm/get-adj-face (submode &optional type))
 (defmethod pm/get-adj-face ((submode pm-submode) &optional type)
   (oref submode :adj-face))
@@ -172,6 +194,8 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
            (oref pm/submode :tail-adj-face)))
         (t (oref pm/submode :adj-face))))
 
+
+;;; SPAN MANIPULATION
 (defgeneric pm/get-span (submode &optional pos)
   "Ask a submode for the span at point.
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE
