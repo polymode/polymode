@@ -232,6 +232,26 @@ Return, how many chucks actually jumped over."
 (defun pm/get-innermost-span (&optional pos)
   (pm/get-span pm/config pos))
 
+(defvar pm--ignore-post-command-hook nil)
+(defun pm--restore-ignore ()
+  (setq pm--ignore-post-command-hook nil))
+
+;; This function is for debug convenience only in order to avoid limited debug
+;; context in polymode-select-buffer
+(defun pm--sel-buf ()
+  (unless pm--ignore-post-command-hook
+    (let ((*span* (pm/get-innermost-span))
+          (pm--can-move-overlays t))
+      (pm/select-buffer (car (last *span*)) *span*))))
+
+(defun polymode-select-buffer ()
+  "Select the appropriate (indirect) buffer corresponding to point's context.
+This funciton is placed in local post-command hook."
+  (condition-case error
+      (pm--sel-buf)
+    (error (message "polymode error: %s"
+                    (error-message-string error)))))
+
 (defvar pm--can-narrow? t)
 
 (defun pm/map-over-spans (fun beg end &optional count backward?)
@@ -318,14 +338,18 @@ in polymode buffers."
                  (unwind-protect 
                      (if (oref pm/submode :font-lock-narrow)
                          (save-restriction
+                           ;; fixme: optimization oportunity: Cache chunk state
+                           ;; in text properties. For big chunks font-lock
+                           ;; fontifies it by smaller segments, thus
+                           ;; pm/fontify-region is called multiple times per
+                           ;; chunk and spans are computed each time.
                            (narrow-to-region sbeg send)
                            (funcall pm--fontify-region-original
                                     (max sbeg beg) (min send end) verbose))
                        (funcall pm--fontify-region-original
                                 (max sbeg beg) (min send end) verbose))
                    (when parse-sexp-lookup-properties
-                     (pm--uncomment-region 1 sbeg))
-                   ))
+                     (pm--uncomment-region 1 sbeg))))
                (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
                ;; might be needed by external applications like flyspell
                (put-text-property sbeg send 'inner-submode
@@ -354,26 +378,6 @@ warnign."
       mode
     (message "Cannot find " mode " function, using 'fundamental-mode instead")
     'fundamental-mode))
-
-(defvar pm--ignore-post-command-hook nil)
-(defun pm--restore-ignore ()
-  (setq pm--ignore-post-command-hook nil))
-
-;; This function is for debug convenience only in order to avoid limited debug
-;; context in polymode-select-buffer
-(defun pm--sel-buf ()
-  (unless pm--ignore-post-command-hook
-    (let ((*span* (pm/get-innermost-span))
-          (pm--can-move-overlays t))
-      (pm/select-buffer (car (last *span*)) *span*))))
-
-(defun polymode-select-buffer ()
-  "Select the appropriate (indirect) buffer corresponding to point's context.
-This funciton is placed in local post-command hook."
-  (condition-case error
-      (pm--sel-buf)
-    (error (message "polymode error: %s"
-                    (error-message-string error)))))
 
 (defun pm--lighten-background (prop)
   ;; if > lighten on dark backgroun. Oposite on light.
@@ -512,8 +516,7 @@ This funciton is placed in local post-command hook."
       ;;           t t)
       
       (when pm--dbg-hook
-        (add-hook 'post-command-hook
-                  'polymode-select-buffer nil t))
+        (add-hook 'post-command-hook 'polymode-select-buffer nil t))
       (object-add-to-list pm/config :buffers (current-buffer)))
     buff))
 
