@@ -216,15 +216,19 @@ Should return nil if there is no SUBMODE specific span around POS.")
 Return a cons (submode . span), for which START is closest to
 POS (and before it); i.e. the innermost span.  POS defaults to
 point."
-    ;; fixme: base should be last, to take advantage of the submodes computation
-    (let ((smodes (cons (oref config :base-submode) 
-                        (oref config :inner-submodes)))
-          (start (point-min))
-          (end (point-max))
-          (pos (or pos (point)))
-          span val)
-      (save-restriction
-        (widen)
+    (save-restriction
+      (widen)
+      ;; fixme: base should be last, to take advantage of the submodes computation
+      (let* ((smodes (cons (oref config :base-submode)
+                           (oref config :inner-submodes)))
+             (start (point-min))
+             (end (point-max))
+             (pos (or pos (point)))
+             (span (list nil start end nil))
+             val)
+        ;; (save-restriction
+        ;;   (widen)
+
         (dolist (sm smodes)
           (setq val (pm/get-span sm pos))
           (when (and val
@@ -244,17 +248,14 @@ point."
                              (nth 2 span)))
               (setcar (cdr span) start)
               (setcar (cddr span) end)
-              ))))
-      (unless (and (<= start end) (<= pos end) (>= pos start))
-        (error "Bad polymode selection: %s, %s"
-               (list start end) pos))
-      ;; fixme: why is this here?
-      ;; (if (= start end)
-      ;;     (setq end (1+ end)))
-      (when (and span
-                 (null (car span))) ; submodes can compute the base span by returning nil
-        (setcar (last span) (oref config :base-submode)))
-      span))
+              )))
+        ;; )
+        (unless (and (<= start end) (<= pos end) (>= pos start))
+          (error "Bad polymode selection: %s, %s"
+                 (list start end) pos))
+        (when (null (car span)) ; submodes can compute the base span by returning nil
+          (setcar (last span) (oref config :base-submode)))
+        span)))
 
 ;; No need for this one so far. Basic method iterates through :inner-submodes
 ;; anyhow.
