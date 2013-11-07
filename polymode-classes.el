@@ -121,14 +121,21 @@ that are not known in advance. Examples are org-mode and markdown.")
     :type symbol
     :initform nil
     :custom symbol)
-   (protect-indent-line-function
-    :initarg :protect-indent-line-function
+   (protect-indent-line
+    :initarg :protect-indent-line
     :type boolean
     :initform t
     :custom boolean
     :documentation
     "Whether to modify local `indent-line-function' by narrowing
     to current span first")
+   (indent-offset
+    :initarg :indent-offset
+    :type integer
+    :initform 0
+    :documentation
+    "Offset to add when indenting chunk's line. Takes efeect only
+    when :protect-indent-line is non-nil.")
    (font-lock-narrow
     :initarg :font-lock-narrow
     :type boolean

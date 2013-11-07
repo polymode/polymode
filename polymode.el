@@ -502,7 +502,7 @@ warnign."
       ;; should normally just bind `indent-line-function' to
       ;; handle indentation.
       (when (and indent-line-function ; not that it should ever be nil...
-                 (oref pm/submode :protect-indent-line-function))
+                 (oref pm/submode :protect-indent-line))
         (setq pm--indent-line-function-original indent-line-function)
         (set (make-local-variable 'indent-line-function) 'pm/indent-line))
 

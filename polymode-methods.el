@@ -428,6 +428,7 @@ the submode.")
       (pm--uncomment-region 1 (nth 1 span))))
 
 (defmethod pm/indent-line ()
+  "Indent line dispatcher"
   (let ((span (pm/get-innermost-span)))
     (pm/indent-line (car (last span)) span)))
 
@@ -438,14 +439,14 @@ the submode.")
   "Indent line in inner submodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
-  ;; sloppy work,
-  ;; assumes multiline chunks and single-line head/tail
-  ;; assumes current buffer is the correct buffer
+  ;; sloppy work:
+  ;; Assumes multiline chunks and single-line head/tail.
+  ;; Assumes current buffer is the correct buffer.
   (let ((pos (point))
         shift delta)
     (cond ((or (eq 'head (car span))
                (eq 'tail (car span)))
-            ;; use parent's indentation function
+            ;; use parent's indentation function in head and tail
            (back-to-indentation)
            (setq delta (- pos (point)))
            (backward-char)
@@ -459,13 +460,15 @@ to indent."
            (if (> delta 0)
                (goto-char (+ (point) delta))))
            (t
-            (setq shift (pm--get-head-shift span))
+            (setq shift (+ (pm--get-head-shift span)
+                           (oref submode :indent-offset)))
             (pm--indent-line span)
             (setq delta (- (point) (point-at-bol)))
             (beginning-of-line)
             (indent-to shift)
             (goto-char (+ (point) delta))))))
 
+;; fixme: This one is nowhere used?
 (defmethod pm/indent-line ((submode pm-config-multi-auto) &optional span)
   (pm/select-buffer submode span)
   (pm/indent-line pm/submode span))

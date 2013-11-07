@@ -17,8 +17,7 @@
 
 (defcustom pm-submode/noweb+R
   (clone pm-submode/noweb
-         :mode 'R-mode
-         :protect-indent-line-function t)
+         :mode 'R-mode)
   "Noweb for R"
   :group 'polymode :type 'object)
 
@@ -47,8 +46,7 @@
   (pm-inner-submode "rapport+YAML"
                     :mode 'yaml-mode
                     :head-reg "<!--head"
-                    :tail-reg "head-->"
-                    :protect-indent-line-function t)
+                    :tail-reg "head-->")
   "YAML header in Rapport files"
   :group 'polymode  :type 'object)
 
@@ -68,8 +66,7 @@
   (pm-inner-submode "html+R"
                     :mode 'R-mode
                     :head-reg "<!--[ \t]*begin.rcode"
-                    :tail-reg "end.rcode[ \t]*-->"
-                    :protect-indent-line-function t)
+                    :tail-reg "end.rcode[ \t]*-->")
   "HTML KnitR submode."
   :group 'polymode  :type 'object)
 
@@ -89,8 +86,7 @@
   (pm-inner-submode "brew+R"
                     :mode 'R-mode
                     :head-reg "<%[=%]?"
-                    :tail-reg "[#=%=-]?%>"
-                    :protect-indent-line-function t)
+                    :tail-reg "[#=%=-]?%>")
   "Brew R chunk."
   :group 'polymode  :type 'object)
 
@@ -125,8 +121,7 @@
                     :head-mode 'base
                     :head-reg 'pm--R+C++-head-matcher
                     :tail-reg 'pm--R+C++-tail-matcher
-                    :font-lock-narrow nil
-                    :protect-indent-line-function t)
+                    :font-lock-narrow nil)
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
@@ -156,8 +151,7 @@
   (pm-inner-submode "C++R"
                     :mode 'R-mode
                     :head-reg 'pm--C++R-head-matcher
-                    :tail-reg 'pm--C++R-tail-matcher
-                    :protect-indent-line-function t)
+                    :tail-reg 'pm--C++R-tail-matcher)
   "HTML KnitR chunk."
   :group 'polymode  :type 'object)
 
@@ -177,7 +171,7 @@
                     :mode 'R-mode
                     :head-reg "^Examples:"
                     :tail-reg "\\'"
-                    :protect-indent-line-function t)
+                    :indent-offset 5)
   "Ess help R chunk")
 
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
@@ -207,8 +201,7 @@
                     :mode 'R-mode
                     :head-mode 'base
                     :head-reg 'pm--Rd-examples-head-matcher
-                    :tail-reg 'pm--Rd-examples-tail-matcher
-                    :protect-indent-line-function t)
+                    :tail-reg 'pm--Rd-examples-tail-matcher)
   "Rd examples chunk.")
 
 (define-polymode poly-Rd-mode pm-config/Rd)
