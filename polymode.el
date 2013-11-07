@@ -352,7 +352,7 @@ in polymode buffers."
                                    (error-message-string err) beg end)))
                  (when parse-sexp-lookup-properties
                    (pm--uncomment-region 1 sbeg)))
-               (pm--adjust-chunk-face sbeg send (pm/get-adj-face pm/submode))
+               (pm--adjust-chunk-face sbeg send (pm/get-adjust-face pm/submode))
                ;; might be needed by external applications like flyspell
                ;; fixme: this should be in a more generic place like pm/get-span
                (put-text-property sbeg send 'inner-submode

@@ -181,18 +181,18 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
 
 
 ;;; FACES
-(defgeneric pm/get-adj-face (submode &optional type))
-(defmethod pm/get-adj-face ((submode pm-submode) &optional type)
-  (oref submode :adj-face))
-(defmethod pm/get-adj-face ((submode pm-inner-submode) &optional type)
+(defgeneric pm/get-adjust-face (submode &optional type))
+(defmethod pm/get-adjust-face ((submode pm-submode) &optional type)
+  (oref submode :adjust-face))
+(defmethod pm/get-adjust-face ((submode pm-inner-submode) &optional type)
   (setq type (or type pm/type))
   (cond ((eq type 'head)
-         (oref submode :head-adj-face))
+         (oref submode :head-adjust-face))
         ((eq type 'tail)
-         (if (eq 'head (oref pm/submode :tail-adj-face))
-             (oref pm/submode :head-adj-face)
-           (oref pm/submode :tail-adj-face)))
-        (t (oref pm/submode :adj-face))))
+         (if (eq 'head (oref pm/submode :tail-adjust-face))
+             (oref pm/submode :head-adjust-face)
+           (oref pm/submode :tail-adjust-face)))
+        (t (oref pm/submode :adjust-face))))
 
 
 ;;; SPAN MANIPULATION
@@ -460,9 +460,10 @@ to indent."
            (if (> delta 0)
                (goto-char (+ (point) delta))))
            (t
-            (setq shift (+ (pm--get-head-shift span)
-                           (oref submode :indent-offset)))
+            (setq shift (pm--get-head-shift span))
             (pm--indent-line span)
+            (when (= (current-column) 0)
+              (setq shift (+ shift (oref submode :indent-offset))))
             (setq delta (- (point) (point-at-bol)))
             (beginning-of-line)
             (indent-to shift)
