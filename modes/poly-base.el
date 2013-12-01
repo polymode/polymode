@@ -24,7 +24,7 @@ is in place at that time."
   :type 'object)
 
 (defcustom pm-base/markdown
-  (pm-submode "latex"
+  (pm-submode "Markdown"
               :mode 'markdown-mode)
   "Markdown base submode"
   :group 'base-submodes
@@ -60,7 +60,7 @@ is in place at that time."
   :type 'object)
 
 (defcustom pm-base/yaml
-  (pm-submode "text"
+  (pm-submode "YAML"
               :mode 'yaml-mode)
   "YAML submode"
   :group 'base-submodes
@@ -92,5 +92,3 @@ is in place at that time."
 
 
 (provide 'poly-base)
-
-
