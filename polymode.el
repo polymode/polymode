@@ -741,23 +741,15 @@ that is t when MODE is active and nil othervise.
 MODE command is similar to standard emacs major modes and it can
 be used in `auto-mode-alist'. Standard hook MODE-hook is run at
 the end of the initialization of each polymode buffer, indirect
-and base alike. MODE-map is created only if nontrivial KEYMAP
-argument is supplied. See below.
+and base alike. Additionally MODE-map is created based on the
+CONFIG's :map slot and the value of the :keymap argument; see
+below.
 
 CONFIG is a name of a config object representing the mode.
 
 MODE command can also be use as a minor mode. Current major mode
 is not reinitialized if it coincides with the :mode slot of
 CONFIG object or if the :mode slot is nil.
-
-KEYMAP (optional) is the default keymap bound to the mode
-  keymap. If nil, no new keymap is created and MODE uses
-  `polymode-mode-map'. If t or an alist (of bindings suitable to
-  be passed to `easy-mmode-define-keymap') a new keymap is
-  created with name MODE-MAP that inherits from
-  `polymode-mode-map'. If a symbol, it should be a variable whose
-  value is a keymap. No MODE-MAP is automatically created in the
-  latter case.
 
 BODY contains code to be executed after the complete
   initialization of the polymode (`pm/initialize') and before
@@ -770,9 +762,22 @@ BODY contains code to be executed after the complete
                 the :lighter slot of CONFIG object.
 :keymap MAP	Same as the KEYMAP argument.
 
+                If nil, a new MODE-map keymap is created what
+                directly inherits from the keymap defined by
+                the :map slot of CONFIG object. In most cases it
+                is a simple map inheriting form
+                `polymode-mode-map'. If t or an alist (of
+                bindings suitable to be passed to
+                `easy-mmode-define-keymap') a keymap MODE-MAP is
+                build by mergin this alist with the :map
+                specification of the CONFIG object. If a symbol,
+                it should be a variable whose value is a
+                keymap. No MODE-MAP is automatically created in
+                the latter case and :map slot of the CONFIG
+                object is ignored.
+
 :after-hook     A single lisp form which is evaluated after the mode hooks
-                have been run.  It should not be quoted.
-"
+                have been run.  It should not be quoted."
   (declare 
    (debug (&define name name
                    [&optional [&not keywordp] sexp]
@@ -793,7 +798,7 @@ BODY contains code to be executed after the complete
          (modefun mode)          ;The minor mode function name we're defining.
 	 (after-hook nil)
 	 (hook (intern (concat mode-name "-hook")))
-	 keyw keymap-sym tmp)
+	 keyw keymap-sym key-alist tmp)
 
     ;; Check keys.
     (while (keywordp (setq keyw (car body)))
@@ -810,14 +815,26 @@ BODY contains code to be executed after the complete
     ;;   (setq group
     ;;         `(:group ',(intern (replace-regexp-in-string
     ;;     			"-mode\\'" "" mode-name)))))
+    (unless (keymapp keymap)
+      ;; keymap is either nil or list
+      (setq key-alist keymap)
+      (let* ((pi (symbol-value config))
+             map mm-name)
+        (while pi
+          (setq map (and (slot-boundp pi :map)
+                         (oref pi :map)))
+          (if (and (symbolp map)
+                   (keymapp (symbol-value map)))
+              (setq keymap  (symbol-value map)
+                    pi nil)
+            ;; go down to next parent
+            (setq pi (and (slot-boundp pi :parent-instance)
+                          (oref pi :parent-instance))
+                  key-alist (append key-alist map))))))
+
     (unless keymap
-      (setq keymap 'polymode-mode-map))
-    (when (or (eq keymap t)
-              (listp keymap))
-      (if (eq keymap t) (setq keymap nil))
-      (let ((map-name (concat mode-name "-map")))
-        (setq keymap-sym (intern map-name))))
-    
+      (setq keymap polymode-mode-map))
+    (setq keymap-sym (intern (concat mode-name "-map")))
 
     `(progn
        ;; Define the variable to enable or disable the mode.
@@ -860,11 +877,11 @@ BODY contains code to be executed after the complete
        :autoload-end
        
        ;; Define the minor-mode keymap.
-       ,(when keymap-sym
-          `(defvar ,keymap-sym
-             (easy-mmode-define-keymap ,keymap nil nil '(:inherit ,polymode-mode-map))
-             ,(format "Keymap for %s." pretty-name)))
-
+       (defvar ,keymap-sym
+         (easy-mmode-define-keymap ',key-alist nil nil '(:inherit ,keymap))
+         ,(format "Keymap for %s." pretty-name)
+         )
+       
        (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
 
 

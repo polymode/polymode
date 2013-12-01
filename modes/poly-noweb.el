@@ -3,7 +3,8 @@
 (defcustom pm-config/noweb
   (pm-config-one "noweb"
                  :base-submode-name 'pm-base/latex
-                 :inner-submode-name 'pm-submode/noweb)
+                 :inner-submode-name 'pm-submode/noweb
+                 :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymode
   :type 'object)

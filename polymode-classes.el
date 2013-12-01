@@ -46,6 +46,20 @@
     :type list
     :documentation
     "Holds all buffers associated with current buffer")
+   (map
+    :initarg :map
+    :initform 'polymode-mode-map
+    :type (or symbol list)
+    "Has a similar role as the :keymap argument in `define-polymode'
+with the difference that this argument is inherited through
+cloning but :keymap argument is not. That is, child objects
+derived through clone will inherit the :map argument of its
+parents as follows. If :map is nil or an alist of keys, the
+parent is inspected for :map argument and the keys are
+merged. If :map is a symbol, it should be a keymap, in which case
+this keymap is used and no parents are further inspected for :map
+slot. If :map is an alist it should be suitable to be passed to
+`easy-mmode-define-keymap'.")
    (init-functions
     :initarg :init-functions
     :initform '()
