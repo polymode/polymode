@@ -744,22 +744,25 @@ the end of the initialization of each polymode buffer, indirect
 and base alike. MODE-map is created only if nontrivial KEYMAP
 argument is supplied. See below.
 
+CONFIG is a name of a config object representing the mode.
+
 MODE command can also be use as a minor mode. Current major mode
 is not reinitialized if it coincides with the :mode slot of
 CONFIG object or if the :mode slot is nil.
 
-Optional KEYMAP is the default keymap bound to the mode
+KEYMAP (optional) is the default keymap bound to the mode
   keymap. If nil, no new keymap is created and MODE uses
-  `polymode-mode-map'. If t, a new keymap is created with name
-  MODE-MAP that inherits form `polymode-mode-map'. Otherwise it
-  should be a variable name (whose value is a keymap), or an
-  alist of binding arguments passed to `easy-mmode-define-keymap'
-  and
+  `polymode-mode-map'. If t or an alist (of bindings suitable to
+  be passed to `easy-mmode-define-keymap') a new keymap is
+  created with name MODE-MAP that inherits from
+  `polymode-mode-map'. If a symbol, it should be a variable whose
+  value is a keymap. No MODE-MAP is automatically created in the
+  latter case.
 
 BODY contains code to be executed after the complete
   initialization of the polymode (`pm/initialize') and before
   running MODE-hook. Before the actual body code, you can write
-  keyword arguments, i.e. alternating keywords and values.  These
+  keyword arguments, i.e. alternating keywords and values.  The
   following special keywords are supported:
 
 :lighter SPEC   Optional LIGHTER is displayed in the mode line when
