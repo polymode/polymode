@@ -17,22 +17,16 @@
   :group 'polymode
   :type 'object)
 
-(defvar poly-noweb-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "<" 'poly-noweb-electric-<)
-    map)
-  "Poly noweb mode keymap")
 
-(define-polymode poly-noweb-mode pm-config/noweb
-  '(([?<] . poly-noweb-electric-<)))
+(define-polymode poly-noweb-mode pm-config/noweb)
 
-(defun ess-noweb-electric-< (arg)
-  "Auto insert noweb chunk if at bol. 
-If given an numerical argument, it simply insert `<'.
-Otherwise and if at the beginning of a line in a documentation chunk:
-insert \"<<>>=\", a closing \"@\" and a newline if necessary."
+(defun poly-noweb-electric-< (arg)
+  "Auto insert noweb chunk if at bol followed by white space.
+If given an numerical argument, it simply insert `<'. Otherwise,
+if at the beginning of a line in a base chunk insert \"<<>>=\", a
+closing \"@\" and a newline if necessary."
   (interactive "P")
-  (if arg
+  (if (or arg (not (eq pm/type 'base)))
       (self-insert-command (if (numberp arg) arg 1))
     (if (not (looking-back "^[ \t]*"))
         (self-insert-command 1)

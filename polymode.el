@@ -879,8 +879,7 @@ BODY contains code to be executed after the complete
        ;; Define the minor-mode keymap.
        (defvar ,keymap-sym
          (easy-mmode-define-keymap ',key-alist nil nil '(:inherit ,keymap))
-         ,(format "Keymap for %s." pretty-name)
-         )
+         ,(format "Keymap for %s." pretty-name))
        
        (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
 
