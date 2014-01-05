@@ -103,6 +103,6 @@ Some things still don't work as expected. For example:
 
 <img src="img/Rmd.png" width="350px"/>
 
+### markdown+R+YAML
 
-
-
+<img src="img/rapport.png" width="350px"/>
