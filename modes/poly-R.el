@@ -91,6 +91,7 @@
 
 (define-polymode poly-doc+r-mode pm-config/doc+R)
 (add-to-list 'auto-mode-alist '("\\.Rasciidoc" . poly-doc+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Rtxt" . poly-doc+r-mode))
 
 
 
