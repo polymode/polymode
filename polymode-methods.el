@@ -130,7 +130,7 @@ return an error."
   (if (null (car span))
       (pm/select-buffer (oref config :basemode) span)
     (let ((type (car span))
-          (proto (symbol-value (oref config :auto-submode-name)))
+          (proto (symbol-value (oref config :auto-innermode-name)))
           submode)
       (save-excursion
         (goto-char (cadr span))
@@ -139,14 +139,14 @@ return an error."
         (re-search-forward (oref proto :retriever-regexp))
         (let* ((str (or (match-string-no-properties (oref proto :retriever-num))
                         (error "retriever subexpression didn't match")))
-               (name (concat "auto-submode:" str)))
+               (name (concat "auto-innermode:" str)))
           (setq submode
-                (or (loop for obj in (oref config :auto-submodes)
+                (or (loop for obj in (oref config :auto-innermodes)
                           when  (equal name (object-name-string obj))
                           return obj)
                     (let ((new-obj (clone proto name
                                           :mode (pm-get-mode-symbol-from-name str))))
-                      (object-add-to-list config :auto-submodes new-obj)
+                      (object-add-to-list config :auto-innermodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))
 
@@ -263,7 +263,7 @@ point."
 
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
-        (proto (symbol-value (oref config :auto-submode-name))))
+        (proto (symbol-value (oref config :auto-innermode-name))))
     (if (oref proto :head-reg)
         (let ((span (pm--span-at-point (oref proto :head-reg)
                                        (oref proto :tail-reg)

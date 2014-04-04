@@ -3,13 +3,13 @@
 (defcustom pm-config/noweb
   (pm-config-one "noweb"
                  :basemode-name 'pm-base/latex
-                 :innermode-name 'pm-submode/noweb
+                 :innermode-name 'pm-inner/noweb
                  :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom  pm-submode/noweb
+(defcustom  pm-inner/noweb
   (pm-innermode "noweb"
                 :head-reg  "<<\\(.*\\)>>="
                 :tail-reg    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")

@@ -107,21 +107,21 @@ advance submodes.")
 
 
 (defclass pm-config-multi-auto (pm-config-multi)
-  ((auto-submode-name
-    :initarg :auto-submode-name
+  ((auto-innermode-name
+    :initarg :auto-innermode-name
     :type symbol
     :custom symbol
     :documentation
-    "Name of auto-submode (a symbol). At run time this object is
-     cloned and placed in :auto-submodes with coresponding :mode
-     slot initialized at run time.")
-   (auto-submodes
-    :initarg :auto-submodes
+    "Name of pm-innermode-auto object (a symbol). At run time
+     this object is cloned and placed in :auto-innermodes with
+     coresponding :mode slot initialized at run time.")
+   (auto-innermodes
+    :initarg :auto-innermodes
     :type list
     :initform '()
     :documentation
-    "List of submodes that are auto-generated in pm/get-span
-    method for this class."))
+    "List of innermode objects that are auto-generated in
+    pm/get-span method for this class."))
   
   "Configuration for a polymode that allows multiple submodes
 that are not known in advance. Examples are org-mode and markdown.")
@@ -177,9 +177,14 @@ that are not known in advance. Examples are org-mode and markdown.")
     negative - darken in dark thems and lighten in light
     thems."))
   
-  "Represents a simple submode. Usually used for the definition
-of the base submodes (aka host submodes associated with the base
-buffer).")
+  "Representatioin of the submode object.")
+
+(defclass pm-basemode (pm-submode)
+  ()
+  "Representation of the basemode objects. Basemodes are the
+  main (parent) modes in the buffer. For example for a the
+  web-mdoe the basemode is `html-mode', for nowweb mode the base
+  mode is usually `latex-mode', etc.")
 
 (defclass pm-innermode (pm-submode)
   ((adjust-face
@@ -240,7 +245,7 @@ buffer).")
     "Can be a number, list or face. If nil, take the
 configuration from :head-adjust-face."))
   
-  "Representation of an inner (aka child) submode in a buffer.")
+  "Representation of an inner submode in a buffer.")
 
 (defclass pm-innermode-auto (pm-innermode)
   ((retriever-regexp

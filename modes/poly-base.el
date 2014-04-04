@@ -3,7 +3,7 @@
 
 ;; BASE MODES
 (defcustom pm-base/blank
-  (pm-submode "blank")
+  (pm-basemode "blank")
   "Blank submode. This is the default :basemode for all pm-config objects.
 On initalisation this submode sets :mode to whatever major-mode
 is in place at that time."
@@ -11,42 +11,42 @@ is in place at that time."
   :type 'object)
 
 (defcustom pm-base/fundamental
-  (pm-submode "fundamental"
+  (pm-basemode "fundamental"
               :mode 'fundamental-mode)
   "Fundamental base mode"
   :group 'polymode-basemodes
   :type 'object)
 
 (defcustom pm-base/latex
-  (pm-submode "latex"
+  (pm-basemode "latex"
               :mode 'latex-mode)
   "Latex base submode"
   :group 'polymode-basemodes
   :type 'object)
 
 (defcustom pm-base/markdown
-  (pm-submode "Markdown"
+  (pm-basemode "Markdown"
               :mode 'markdown-mode)
   "Markdown base submode"
   :group 'polymode-basemodes
   :type 'object)
 
 (defcustom pm-base/html
-  (pm-submode "html"
+  (pm-basemode "html"
               :mode 'html-mode)
   "HTML base submode"
   :group 'polymode-basemodes
   :type 'object)
 
 (defcustom pm-base/R
-  (pm-submode "R"
+  (pm-basemode "R"
               :mode 'R-mode)
   "R base submode"
   :group 'polymode-basemodes
   :type 'object)
 
 (defcustom pm-base/C++
-  (pm-submode "C++"
+  (pm-basemode "C++"
               :mode 'c++-mode
               :font-lock-narrow nil)
   "C++ base submode"
@@ -54,14 +54,14 @@ is in place at that time."
   :type 'object)
 
 (defcustom pm-base/text
-  (pm-submode "text"
+  (pm-basemode "text"
               :mode 'text-mode)
   "Text base submode"
   :group 'polymode-basemodes
   :type 'object)
 
 (defcustom pm-base/yaml
-  (pm-submode "YAML"
+  (pm-basemode "YAML"
               :mode 'yaml-mode)
   "YAML submode"
   :group 'polymode-basemodes
@@ -75,7 +75,7 @@ is in place at that time."
 (defcustom pm-config/brew
   (pm-config-one "brew"
                  :basemode-name 'pm-base/text
-                 :innermode-name 'pm-submode/fundamental)
+                 :innermode-name 'pm-inner/fundamental)
   "Typical Brew configuration"
   :group 'polymode-config
   :type 'object)
@@ -83,7 +83,7 @@ is in place at that time."
 (defcustom pm-config/html
   (pm-config-one "html"
                  :basemode-name 'pm-base/html
-                 :innermode-name 'pm-submode/fundamental)
+                 :innermode-name 'pm-inner/fundamental)
   "HTML typical configuration"
   :group 'polymode-config
   :type 'object)
@@ -91,7 +91,7 @@ is in place at that time."
 (defcustom pm-config/C++
   (pm-config-one "C++"
                  :basemode-name 'pm-base/C++
-                 :innermode-name 'pm-submode/fundamental)
+                 :innermode-name 'pm-inner/fundamental)
   "C++ typical configuration"
   :group 'polymode-config
   :type 'object)

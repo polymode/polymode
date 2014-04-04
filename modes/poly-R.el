@@ -3,7 +3,7 @@
 (defcustom pm-config/R
   (pm-config-one "R"
                  :basemode-name 'pm-base/R
-                 :innermode-name 'pm-submode/fundamental)
+                 :innermode-name 'pm-inner/fundamental)
   "HTML typical configuration"
   :group 'polymode
   :type 'object)
@@ -12,13 +12,13 @@
 (require 'poly-noweb)
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
-         :innermode-name 'pm-submode/noweb+R)
+         :innermode-name 'pm-inner/noweb+R)
   "Noweb for R configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom pm-submode/noweb+R
-  (clone pm-submode/noweb
+(defcustom pm-inner/noweb+R
+  (clone pm-inner/noweb
          :mode 'R-mode)
   "Noweb for R"
   :group 'polymode
@@ -40,13 +40,13 @@
 ;; RAPPORT
 (defcustom pm-config/rapport
   (clone pm-config/markdown "rapport"
-         :innermode-names '(pm-submode/brew+R
-                                pm-submode/rapport+YAML))
+         :innermode-names '(pm-inner/brew+R
+                                pm-inner/rapport+YAML))
   "Rapport template configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom  pm-submode/rapport+YAML
+(defcustom  pm-inner/rapport+YAML
   (pm-innermode "rapport+YAML"
                     :mode 'yaml-mode
                     :head-reg "<!--head"
@@ -63,12 +63,12 @@
 
 ;; HTML
 (defcustom pm-config/html+R
-  (clone pm-config/html "html+R" :innermode-name 'pm-submode/html+R)
+  (clone pm-config/html "html+R" :innermode-name 'pm-inner/html+R)
   "HTML + R configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom  pm-submode/html+R
+(defcustom  pm-inner/html+R
   (pm-innermode "html+R"
                     :mode 'R-mode
                     :head-reg "<!--[ \t]*begin.rcode"
@@ -85,12 +85,12 @@
 ;;; R-brew
 (defcustom pm-config/brew+R
   (clone pm-config/brew "brew+R"
-         :innermode-name 'pm-submode/brew+R)
+         :innermode-name 'pm-inner/brew+R)
   "Brew + R configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom  pm-submode/brew+R
+(defcustom  pm-inner/brew+R
   (pm-innermode "brew+R"
                     :mode 'R-mode
                     :head-reg "<%[=%]?"
@@ -121,12 +121,12 @@
     (cons (max 1 (1- end)) end)))
 
 (defcustom pm-config/R+C++
-  (clone pm-config/R "R+C++" :innermode-name 'pm-submode/R+C++)
+  (clone pm-config/R "R+C++" :innermode-name 'pm-inner/R+C++)
   "R + C++ configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom  pm-submode/R+C++
+(defcustom  pm-inner/R+C++
   (pm-innermode "R+C++"
                     :mode 'c++-mode
                     :head-mode 'base
@@ -155,12 +155,12 @@
     (cons (match-beginning 0) (match-end 0))))
 
 (defcustom pm-config/C++R
-  (clone pm-config/C++ "C++R" :innermode-name 'pm-submode/C++R)
+  (clone pm-config/C++ "C++R" :innermode-name 'pm-inner/C++R)
   "R + C++ configuration"
   :group 'polymode
   :type 'object)
 
-(defcustom  pm-submode/C++R
+(defcustom  pm-inner/C++R
   (pm-innermode "C++R"
                     :mode 'R-mode
                     :head-reg 'pm--C++R-head-matcher
@@ -177,10 +177,10 @@
 ;;; R help
 (defvar pm-config/ess-help+R
   (pm-config-one "ess-R-help"
-                 :innermode-name 'pm-submode/ess-help+R)
+                 :innermode-name 'pm-inner/ess-help+R)
   "ess-R-help")
 
-(defvar  pm-submode/ess-help+R
+(defvar  pm-inner/ess-help+R
   (pm-innermode "ess-help+R"
                     :mode 'R-mode
                     :head-reg "^Examples:"
@@ -207,10 +207,10 @@
 
 (defvar pm-config/Rd
   (pm-config-one "R-documentation"
-                 :innermode-name 'pm-submode/Rd)
+                 :innermode-name 'pm-inner/Rd)
   "R submode for Rd files")
 
-(defvar  pm-submode/Rd
+(defvar  pm-inner/Rd
   (pm-innermode "R+C++"
                     :mode 'R-mode
                     :head-mode 'base
