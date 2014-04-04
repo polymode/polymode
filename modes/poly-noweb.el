@@ -2,17 +2,17 @@
 
 (defcustom pm-config/noweb
   (pm-config-one "noweb"
-                 :base-submode-name 'pm-base/latex
-                 :inner-submode-name 'pm-submode/noweb
+                 :basemode-name 'pm-base/latex
+                 :innermode-name 'pm-submode/noweb
                  :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymode
   :type 'object)
 
 (defcustom  pm-submode/noweb
-  (pm-inner-submode "noweb"
-                    :head-reg  "<<\\(.*\\)>>="
-                    :tail-reg    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
+  (pm-innermode "noweb"
+                :head-reg  "<<\\(.*\\)>>="
+                :tail-reg    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
   "Noweb typical chunk."
   :group 'polymode
   :type 'object)
@@ -33,8 +33,8 @@ closing \"@\" and a newline if necessary."
       (insert "<<")
       (save-excursion
         (insert ">>=\n\n@ ")
-            (unless(looking-at "\\s *$")
-                (newline)))
-          (ess-noweb-update-chunk-vector))))
+        (unless(looking-at "\\s *$")
+          (newline)))
+      (ess-noweb-update-chunk-vector))))
 
 (provide 'poly-noweb)

@@ -2,24 +2,27 @@
 
 (defcustom pm-config/R
   (pm-config-one "R"
-                 :base-submode-name 'pm-base/R
-                 :inner-submode-name 'pm-submode/fundamental)
+                 :basemode-name 'pm-base/R
+                 :innermode-name 'pm-submode/fundamental)
   "HTML typical configuration"
-  :group 'polymode :type 'object)
+  :group 'polymode
+  :type 'object)
 
 ;; NOWEB
 (require 'poly-noweb)
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
-         :inner-submode-name 'pm-submode/noweb+R)
+         :innermode-name 'pm-submode/noweb+R)
   "Noweb for R configuration"
-  :group 'polymode :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (defcustom pm-submode/noweb+R
   (clone pm-submode/noweb
          :mode 'R-mode)
   "Noweb for R"
-  :group 'polymode :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
 (add-to-list 'auto-mode-alist '("\\.Snw" . poly-noweb+r-mode))
@@ -37,18 +40,20 @@
 ;; RAPPORT
 (defcustom pm-config/rapport
   (clone pm-config/markdown "rapport"
-         :inner-submode-names '(pm-submode/brew+R
+         :innermode-names '(pm-submode/brew+R
                                 pm-submode/rapport+YAML))
   "Rapport template configuration"
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (defcustom  pm-submode/rapport+YAML
-  (pm-inner-submode "rapport+YAML"
+  (pm-innermode "rapport+YAML"
                     :mode 'yaml-mode
                     :head-reg "<!--head"
                     :tail-reg "head-->")
   "YAML header in Rapport files"
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (define-polymode poly-rapport-mode pm-config/rapport nil)
 
@@ -58,17 +63,19 @@
 
 ;; HTML
 (defcustom pm-config/html+R
-  (clone pm-config/html "html+R" :inner-submode-name 'pm-submode/html+R)
+  (clone pm-config/html "html+R" :innermode-name 'pm-submode/html+R)
   "HTML + R configuration"
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (defcustom  pm-submode/html+R
-  (pm-inner-submode "html+R"
+  (pm-innermode "html+R"
                     :mode 'R-mode
                     :head-reg "<!--[ \t]*begin.rcode"
                     :tail-reg "end.rcode[ \t]*-->")
   "HTML KnitR submode."
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (define-polymode poly-html+r-mode pm-config/html+R)
 (add-to-list 'auto-mode-alist '("\\.Rhtml" . poly-html+r-mode))
@@ -78,17 +85,19 @@
 ;;; R-brew
 (defcustom pm-config/brew+R
   (clone pm-config/brew "brew+R"
-         :inner-submode-name 'pm-submode/brew+R)
+         :innermode-name 'pm-submode/brew+R)
   "Brew + R configuration"
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (defcustom  pm-submode/brew+R
-  (pm-inner-submode "brew+R"
+  (pm-innermode "brew+R"
                     :mode 'R-mode
                     :head-reg "<%[=%]?"
                     :tail-reg "[#=%=-]?%>")
   "Brew R chunk."
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (define-polymode poly-brew+r-mode pm-config/brew+R)
 (add-to-list 'auto-mode-alist '("\\.Rbrew" . poly-brew+r-mode))
@@ -99,31 +108,34 @@
 ;;; R+C++
 ;; todo: move into :matcher-subexp functionality?
 (defun pm--R+C++-head-matcher (ahead)
-  (when (re-search-forward "cppFunction *( *\\(['\"]\n\\)"
+  (when (re-search-forward "cppFunction(\\(['\"]\n\\)"
                            nil t ahead)
     (cons (match-beginning 1) (match-end 1))))
 
 (defun pm--R+C++-tail-matcher (ahead)
   (when (< ahead 0)
     (goto-char (car (pm--R+C++-head-matcher -1))))
+  (goto-char (max 1 (1- (point))))
   (let ((end (or (ignore-errors (scan-sexps (point) 1))
                  (buffer-end 1))))
-    (cons (max 1 (- end 1)) end)))
+    (cons (max 1 (1- end)) end)))
 
 (defcustom pm-config/R+C++
-  (clone pm-config/R "R+C++" :inner-submode-name 'pm-submode/R+C++)
+  (clone pm-config/R "R+C++" :innermode-name 'pm-submode/R+C++)
   "R + C++ configuration"
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (defcustom  pm-submode/R+C++
-  (pm-inner-submode "R+C++"
+  (pm-innermode "R+C++"
                     :mode 'c++-mode
                     :head-mode 'base
                     :head-reg 'pm--R+C++-head-matcher
                     :tail-reg 'pm--R+C++-tail-matcher
                     :font-lock-narrow nil)
   "HTML KnitR chunk."
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (define-polymode poly-r+c++-mode pm-config/R+C++)
 (add-to-list 'auto-mode-alist '("\\.Rcpp" . poly-r+c++-mode))
@@ -143,17 +155,19 @@
     (cons (match-beginning 0) (match-end 0))))
 
 (defcustom pm-config/C++R
-  (clone pm-config/C++ "C++R" :inner-submode-name 'pm-submode/C++R)
+  (clone pm-config/C++ "C++R" :innermode-name 'pm-submode/C++R)
   "R + C++ configuration"
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (defcustom  pm-submode/C++R
-  (pm-inner-submode "C++R"
+  (pm-innermode "C++R"
                     :mode 'R-mode
                     :head-reg 'pm--C++R-head-matcher
                     :tail-reg 'pm--C++R-tail-matcher)
   "HTML KnitR chunk."
-  :group 'polymode  :type 'object)
+  :group 'polymode
+  :type 'object)
 
 (define-polymode poly-c++r-mode pm-config/C++R)
 (add-to-list 'auto-mode-alist '("\\.cppR" . poly-c++r-mode))
@@ -163,11 +177,11 @@
 ;;; R help
 (defvar pm-config/ess-help+R
   (pm-config-one "ess-R-help"
-                 :inner-submode-name 'pm-submode/ess-help+R)
+                 :innermode-name 'pm-submode/ess-help+R)
   "ess-R-help")
 
 (defvar  pm-submode/ess-help+R
-  (pm-inner-submode "ess-help+R"
+  (pm-innermode "ess-help+R"
                     :mode 'R-mode
                     :head-reg "^Examples:"
                     :tail-reg "\\'"
@@ -193,11 +207,11 @@
 
 (defvar pm-config/Rd
   (pm-config-one "R-documentation"
-                 :inner-submode-name 'pm-submode/Rd)
+                 :innermode-name 'pm-submode/Rd)
   "R submode for Rd files")
 
 (defvar  pm-submode/Rd
-  (pm-inner-submode "R+C++"
+  (pm-innermode "R+C++"
                     :mode 'R-mode
                     :head-mode 'base
                     :head-reg 'pm--Rd-examples-head-matcher

@@ -5,7 +5,7 @@
 ;;
 ;; pm/initialize in turn, assigns the config object to local pm/config and
 ;; initialize base-mode by running the actual base-mode function, cloning and
-;; setting pm/submode (held in :base-submode-name slot of pm/config), setting
+;; setting pm/submode (held in :basemode-name slot of pm/config), setting
 ;; pm/type to 'base, running pm/config's :init-functions. Finally pm/initialize runs
 ;; pm--setup-buffer which is common for all buffers.
 ;;
@@ -20,7 +20,7 @@
 (defgeneric pm/initialize (config)
   "Initialize current buffer with CONFIG.
 
-First initialize the :base-submode and :inner-submodes slots of
+First initialize the :basemode and :innermodes slots of
 CONFIG object ...
 
 Current buffer is setup as the base buffer.")
@@ -32,7 +32,7 @@ Current buffer is setup as the base buffer.")
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
   (unless pm/config
-    (let* ((submode (clone (symbol-value (oref config :base-submode-name))
+    (let* ((submode (clone (symbol-value (oref config :basemode-name))
                            :buffer (current-buffer)))
            ;; set if nil, to allow unspecified base submodes to be used in minor modes
            (base-mode (or (oref submode :mode)
@@ -47,7 +47,7 @@ Current buffer is setup as the base buffer.")
       ;; different thing .. and is probably ok
       ;; 2)  not calling config's :minor-mode-name (polymode function).
       ;; But polymode function calls pm/initialize... so I guess it is ok
-      (oset config :base-submode submode)
+      (oset config :basemode submode)
       (setq pm/config config)
       (setq pm/submode submode)
       (setq pm/type 'base)
@@ -65,15 +65,15 @@ Current buffer is setup as the base buffer.")
   
 (defmethod pm/initialize ((config pm-config-one))
   (call-next-method)
-  (eval `(oset config :inner-submodes
-               (list (clone ,(oref config :inner-submode-name))))))
+  (eval `(oset config :innermodes
+               (list (clone ,(oref config :innermode-name))))))
 
 (defmethod pm/initialize ((config pm-config-multi))
   (call-next-method)
-  (oset config :inner-submodes
+  (oset config :innermodes
         (mapcar (lambda (sub-name)
                   (clone (symbol-value sub-name)))
-                (oref config :inner-submode-names))))
+                (oref config :innermode-names))))
 
 
 
@@ -86,7 +86,7 @@ installed. Also see `pm/get-span'.")
 (defmethod pm/get-buffer ((submode pm-submode) &optional type)
   (oref submode :buffer))
 
-(defmethod pm/get-buffer ((submode pm-inner-submode) &optional type)
+(defmethod pm/get-buffer ((submode pm-innermode) &optional type)
   (cond ((eq 'body type) (oref submode :buffer))
         ((eq 'head type) (oref submode :head-buffer))
         ((eq 'tail type) (oref submode :tail-buffer))
@@ -112,7 +112,7 @@ For this method to work correctly, SUBMODE's class should define
       (setq buff (pm/get-buffer submode type)))
     (pm--select-buffer buff)))
 
-(defmethod pm/select-buffer ((submode pm-inner-submode) span)
+(defmethod pm/select-buffer ((submode pm-innermode) span)
   (call-next-method)
   (pm--transfer-vars-from-base))
 
@@ -128,7 +128,7 @@ return an error."
 
 (defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
   (if (null (car span))
-      (pm/select-buffer (oref config :base-submode) span)
+      (pm/select-buffer (oref config :basemode) span)
     (let ((type (car span))
           (proto (symbol-value (oref config :auto-submode-name)))
           submode)
@@ -161,7 +161,7 @@ create and install a new buffer in slot :buffer of SUBMODE."
   (oset submode :buffer
         (pm--create-submode-buffer-maybe submode type)))
 
-(defmethod pm/install-buffer ((submode pm-inner-submode) type)
+(defmethod pm/install-buffer ((submode pm-innermode) type)
   "Depending of the TYPE install an indirect buffer into
 slot :buffer of SUBMODE. Create this buffer if does not exist."
   (pm--set-submode-buffer submode type
@@ -184,7 +184,7 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
 (defgeneric pm/get-adjust-face (submode &optional type))
 (defmethod pm/get-adjust-face ((submode pm-submode) &optional type)
   (oref submode :adjust-face))
-(defmethod pm/get-adjust-face ((submode pm-inner-submode) &optional type)
+(defmethod pm/get-adjust-face ((submode pm-innermode) &optional type)
   (setq type (or type pm/type))
   (cond ((eq type 'head)
          (oref submode :head-adjust-face))
@@ -219,8 +219,8 @@ point."
     (save-restriction
       (widen)
       ;; fixme: base should be last, to take advantage of the submodes computation
-      (let* ((smodes (cons (oref config :base-submode)
-                           (oref config :inner-submodes)))
+      (let* ((smodes (cons (oref config :basemode)
+                           (oref config :innermodes)))
              (start (point-min))
              (end (point-max))
              (pos (or pos (point)))
@@ -254,10 +254,10 @@ point."
           (error "Bad polymode selection: %s, %s"
                  (list start end) pos))
         (when (null (car span)) ; submodes can compute the base span by returning nil
-          (setcar (last span) (oref config :base-submode)))
+          (setcar (last span) (oref config :basemode)))
         span)))
 
-;; No need for this one so far. Basic method iterates through :inner-submodes
+;; No need for this one so far. Basic method iterates through :innermodes
 ;; anyhow.
 ;; (defmethod pm/get-span ((config pm-config-multi) &optional pos))
 
@@ -281,7 +281,7 @@ point."
             (append span (list config)))) ;fixme: this returns config as last object
       span-other)))
 
-(defmethod pm/get-span ((submode pm-inner-submode) &optional pos)
+(defmethod pm/get-span ((submode pm-innermode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a submode object
 in this case."
@@ -435,7 +435,7 @@ the submode.")
 (defmethod pm/indent-line ((submode pm-submode) &optional span)
   (pm--indent-line span))
   
-(defmethod pm/indent-line ((submode pm-inner-submode) &optional span)
+(defmethod pm/indent-line ((submode pm-innermode) &optional span)
   "Indent line in inner submodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."

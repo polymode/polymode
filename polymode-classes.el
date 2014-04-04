@@ -6,8 +6,8 @@
 
 ;;; CONFIG
 (defclass pm-config (polymode) 
-  ((base-submode-name
-    :initarg :base-submode-name
+  ((basemode-name
+    :initarg :basemode-name
     :initform 'pm-base/blank
     :type symbol
     :custom symbol
@@ -29,17 +29,17 @@
     :type string
     :custom string
     :documentation "Modline lighter.")
-   (base-submode
-    :initarg :base-submode
+   (basemode
+    :initarg :basemode
     :type (or null pm-submode)
     :documentation
     "Instantiated submode")
-   (inner-submodes
-    :initarg :inner-submodes
+   (innermodes
+    :initarg :innermodes
     :type list
     :initform '()
     :documentation
-    "List of submodes objects that inherit from `pm-inner-submode'")
+    "List of submodes objects that inherit from `pm-innermode'")
    (buffers
     :initarg :buffers
     :initform '()
@@ -79,28 +79,28 @@ of this class.")
 
 
 (defclass pm-config-one (pm-config)
-  ((inner-submode-name
-    :initarg :inner-submode-name
+  ((innermode-name
+    :initarg :innermode-name
     :type symbol
     :custom symbol
     :documentation
     "Symbol of the submode. At run time this object is cloned
-     and placed in :inner-submodes slot."))
+     and placed in :innermodes slot."))
   
   "Configuration for a simple polymode that allows only one
 submode. For example noweb.")
 
 
 (defclass pm-config-multi (pm-config)
-  ((inner-submode-names
-    :initarg :inner-submode-names
+  ((innermode-names
+    :initarg :innermode-names
     :type list
     :custom list
     :initform nil
     :documentation
     "List of names of the submode objects that are associated
      with this configuration. At initialization time, all of
-     these are cloned and plased in :inner-submodes slot."))
+     these are cloned and plased in :innermodes slot."))
   
   "Configuration for a polymode that allows multiple known in
 advance submodes.")
@@ -181,7 +181,7 @@ that are not known in advance. Examples are org-mode and markdown.")
 of the base submodes (aka host submodes associated with the base
 buffer).")
 
-(defclass pm-inner-submode (pm-submode)
+(defclass pm-innermode (pm-submode)
   ((adjust-face
     :initform 2)
    (head-mode
@@ -242,7 +242,7 @@ configuration from :head-adjust-face."))
   
   "Representation of an inner (aka child) submode in a buffer.")
 
-(defclass pm-inner-submode-auto (pm-inner-submode)
+(defclass pm-innermode-auto (pm-innermode)
   ((retriever-regexp
     :initarg :retriever-regexp
     :type (or null string)

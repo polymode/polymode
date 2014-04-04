@@ -2,7 +2,7 @@
 
 (defcustom pm-config/markdown
   (pm-config-multi-auto "markdown"
-                        :base-submode-name 'pm-base/markdown
+                        :basemode-name 'pm-base/markdown
                         :auto-submode-name 'pm-submode/markdown
                         :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown typical configuration"
@@ -10,7 +10,7 @@
   :type 'object)
 
 (defcustom  pm-submode/markdown
-  (pm-inner-submode-auto "markdown"
+  (pm-innermode-auto "markdown"
                          :head-reg "^[ \t]*```[{ \t]*\\w.*$"
                          :tail-reg "^[ \t]*```[ \t]*$"
                          :retriever-regexp "```[ \t]*{?\\(\\w+\\)"

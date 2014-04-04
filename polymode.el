@@ -1,6 +1,9 @@
 ;;; polymode.el --- support for multiple major modes
 ;; Author: Vitalie Spinu
 
+;; todo:
+;; See: http://www.russet.org.uk/blog/2979
+
 (eval-when-compile
   (require 'cl))
 (require 'font-lock)
@@ -16,12 +19,16 @@
   :link '(emacs-commentary-link "polymode")
   :group 'tools)
 
-(defgroup base-submodes nil
-  "Base Submodes"
+(defgroup polymode-basemodes nil
+  "Polymode Base Submode Objects"
   :group 'polymode)
 
-(defgroup submodes nil
-  "Children Submodes"
+(defgroup polymode-config nil
+  "Polymode Configuration Objects"
+  :group 'polymode)
+
+(defgroup polymode-innermodes nil
+  "Polymode Submode Objects"
   :group 'polymode)
 
 (defvar polymode-select-mode-hook nil
@@ -355,8 +362,8 @@ in polymode buffers."
                (pm--adjust-chunk-face sbeg send (pm/get-adjust-face pm/submode))
                ;; might be needed by external applications like flyspell
                ;; fixme: this should be in a more generic place like pm/get-span
-               (put-text-property sbeg send 'inner-submode
-                                  (object-of-class-p pm/submode 'pm-inner-submode))
+               (put-text-property sbeg send 'innermode
+                                  (object-of-class-p pm/submode 'pm-innermode))
                ;; even if failed, set to t to avoid infloop
                (put-text-property beg end 'fontified t)))
            beg end)
@@ -527,6 +534,7 @@ warnign."
 (defvar pm--killed-once nil)
 (make-variable-buffer-local 'pm--killed-once)
 (defvar polymode-mode nil)
+(defvar pm--ib-prefix "")
 
 (defun pm--create-indirect-buffer (mode)
   "Create indirect buffer with major MODE and initialize appropriately.
@@ -546,7 +554,7 @@ Return newlly created buffer."
     (let* ((config (buffer-local-value 'pm/config (current-buffer)))
            (new-name
             (generate-new-buffer-name 
-             (format "%s[%s]" (buffer-name)
+             (format "%s%s[%s]" pm--ib-prefix (buffer-name)
                      (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
            (new-buffer (make-indirect-buffer (current-buffer)  new-name))
            ;; (hook pm/indirect-buffer-hook)
@@ -658,7 +666,7 @@ Return newlly created buffer."
                     (or (eq tail-mode 'base)
                         (and (null tail-mode)
                              (eq head-mode 'base)))))
-           (oref (oref pm/config :base-submode) :mode))
+           (oref (oref pm/config :basemode) :mode))
           ((eq type 'head)
            (oref obj :head-mode))
           ((eq type 'tail)
@@ -888,8 +896,8 @@ BODY contains code to be executed after the complete
 ;;; COMPATIBILITY
 
 (defun pm--flyspel-dont-highlight-in-submodes (beg end poss)
-  (or (get-text-property beg 'inner-submode)
-      (get-text-property beg 'inner-submode)))
+  (or (get-text-property beg 'innermode)
+      (get-text-property beg 'innermode)))
 
 
 ;;; FONT-LOCK
