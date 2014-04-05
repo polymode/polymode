@@ -3,7 +3,7 @@
 (defcustom pm-config/markdown
   (pm-config-multi-auto "markdown"
                         :basemode-name 'pm-base/markdown
-                        :auto-submode-name 'pm-inner/markdown
+                        :auto-innermode-name 'pm-inner/markdown
                         :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown typical configuration"
   :group 'polymode
