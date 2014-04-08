@@ -18,8 +18,8 @@ Here is polymode class hierarchy:
   |    +--polymode
   |         +--pm-submode
   |         |    +--pm-basemode
-  |         |    +--pm-innermode
-  |         |         +--pm-innermode-auto
+  |         |    +--pm-chunkmode
+  |         |         +--pm-chunkmode-auto
   |         +--pm-config
   |              +--pm-config-multi
   |              |    +--pm-config-multi-auto
@@ -57,22 +57,22 @@ The most important slots of root config class `pm-config` are:
 Currently there are three types of config objects:
 
 - `pm-config-one` - Used for polymdoes with only one predefined inner mode. It
-  extends `pm-config` with one slot - `innermode-name` which is a name of the
-  innermode (objects of class `pm-innermode`). 
+  extends `pm-config` with one slot - `chunkmode-name` which is a name of the
+  chunkmode (objects of class `pm-chunkmode`). 
 - `pm-config-multi` - Used for polymodes with multiple predefined inner
   modes. It extends `pm-config` with `innermost-names` list which contains names
-  of predefined innermodes.
+  of predefined chunkmodes.
 - `pm-config-multi-auto` - used for polymodes with multiple dymamically
-  discoveroble innermodes (examples are `org-mode` and `markdown-mode`). It
+  discoveroble chunkmodes (examples are `org-mode` and `markdown-mode`). It
   extends `pm-config-multi` with `auto-mode-name` (name of the object of class
-  `pm-innermode-auto`) and `auto-innermodes` (a dynamically updated list of
-  "pm-innermode" objects)
+  `pm-chunkmode-auto`) and `auto-chunkmodes` (a dynamically updated list of
+  "pm-chunkmode" objects)
 
 
 ## Submodes
 
-Submodes (basemodes and innermodes) are objects that encapsulate functionality
-of the polymode submodes. The root class for all submodes, `pm-submode`,
+Submodes (basemodes and chunkmodes) are objects that encapsulate functionality
+of the polymode's submodes. The root class for all submodes, `pm-submode`,
 contains among other slots:
 
 - mode - holds the symbol of coresponding emacs mode (like `html-mode`,
@@ -88,17 +88,17 @@ Currently, there are three types of submode objects:
   buffer. Currently it doesn't add any new slots to its parent class
   `pm-submode`.
 
-- `pm-innermode` - Represents the inner modes. Various code modes in markdown,
-  noweb modes or org mode are examples. `pm-innermode` extends `pm-submode` with
+- `pm-chunkmode` - Represents the inner modes. Various code modes in markdown,
+  noweb modes or org mode are examples. `pm-chunkmode` extends `pm-submode` with
   additional slots, most importantly:
 
     * head-mode/tail-mode: emacs-modes for header/tail of the chunk
     * head-reg/tail-reg: regular expressions or functions to detect the header/tail
     * head-buffer/tail-buffer*
 
-- `pm-innermode-auto` - Represents innermodes for which the mode type is not
+- `pm-chunkmode-auto` - Represents chunkmodes for which the mode type is not
   predefined and should be computed. Examples are code chunks of org and
-  markdown modes. This class extends `pm-innermode` with `retriver-regexp`,
+  markdown modes. This class extends `pm-chunkmode` with `retriver-regexp`,
   `retriver-num` and `retriver-function` which are used to retrive the mode name
   from the header of the inner chunk.
 
@@ -117,4 +117,4 @@ todo:
 
 todo:
 
-For now see the header of [polymode-methods.el](polymode-methods.el).
+For now, see the header of [polymode-methods.el](polymode-methods.el).

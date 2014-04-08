@@ -18,4 +18,3 @@ poly-markdown+r-mode RET` should do the job.
 ## [1] 5.551e-17
 ```
 
-sfdsf 

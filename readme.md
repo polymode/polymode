@@ -88,8 +88,11 @@ Some things still don't work as expected. For example:
    * Occasional problems with font-lock. Messages like `Error during
      redisplay: (jit-lock-function 163) signaled (args-out-of-range 1
      142)` are posible.
-     
-     
+
+## Developing with Polymode
+
+[development.md](development.md)
+
 ## Screenshots
 
 ### Ess-help buffer
@@ -106,3 +109,4 @@ Some things still don't work as expected. For example:
 ### markdown+R+YAML
 
 <img src="img/rapport.png" width="350px"/>
+
