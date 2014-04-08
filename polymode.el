@@ -57,14 +57,23 @@ Not effective after loading the polymode library."
   (let ((map (make-sparse-keymap)))
     (define-key map polymode-prefix-key
       (let ((map (make-sparse-keymap)))
+        ;; navigation
 	(define-key map "\C-n" 'polymode-next-chunk)
 	(define-key map "\C-p" 'polymode-previous-chunk)
         (define-key map "\C-\M-n" 'polymode-next-chunk-same-type)
 	(define-key map "\C-\M-p" 'polymode-previous-chunk-same-type)
+        ;; chunk manipulation
         (define-key map "\M-k" 'polymode-kill-chunk)
         (define-key map "\M-m" 'polymode-mark-or-extend-chunk)
         (define-key map "\C-t" 'polymode-toggle-chunk-narrowing)
 	(define-key map "\M-i" 'polymode-insert-new-chunk)
+        ;; backends
+        (define-key map "e" 'polymode-export)
+        (define-key map "E" 'polymode-set-exporter)
+        (define-key map "w" 'polymode-weave)
+        (define-key map "W" 'polymode-set-weaver)
+        (define-key map "t" 'polymode-tangle)
+        (define-key map "T" 'polymode-set-tangler)
 	map))
     (define-key map [menu-bar Polymode]
       (cons "Polymode"

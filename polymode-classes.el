@@ -29,23 +29,53 @@
     :type string
     :custom string
     :documentation "Modline lighter.")
+   (exporters
+    :initarg :exporters
+    :initform '()
+    :type list
+    :custom list
+    :documentation
+    "List of names of polymode exporters available for this polymode.")
+   (current-exporter
+    :initarg :current-exporter
+    :initform nil
+    :type (or null symbol)
+    :custom symbol
+    :documentation
+    "Current exporter. If non-nil this is the default exporter
+    for this polymode. Can be dynamically set with `polymode-set-exporter'")
+   (weavers
+    :initarg :weavers
+    :initform '()
+    :type list
+    :custom list
+    :documentation
+    "List of names of polymode weavers available for this polymode.")
+   (current-weaver
+    :initarg :current-weaver
+    :initform nil
+    :type (or null symbol)
+    :custom symbol
+    :documentation
+    "Current weaver. If non-nil this is the default exporter for
+    this polymode. Can be dynamically set with `polymode-set-weaver'")
    (basemode
     :initarg :basemode
     :type (or null pm-submode)
     :documentation
-    "Instantiated submode")
-   (innermodes
-    :initarg :innermodes
+    "Instantiated submode object of class `pm-submode'. Dynamically populated.")
+   (chunkmodes
+    :initarg :chunkmodes
     :type list
     :initform '()
     :documentation
-    "List of submodes objects that inherit from `pm-innermode'")
+    "List of submodes objects that inherit from `pm-chunkmode'. Dynamically populated.")
    (buffers
     :initarg :buffers
     :initform '()
     :type list
     :documentation
-    "Holds all buffers associated with current buffer")
+    "Holds all buffers associated with current buffer. Dynamically populated.")
    (map
     :initarg :map
     :initform 'polymode-mode-map
@@ -273,7 +303,6 @@ configuration from :head-adjust-face."))
     the head of the submode chunk. fixme: elaborate"))
 
   "Representation of an inner submode")
-
 
 
 (provide 'polymode-classes)
