@@ -20,7 +20,7 @@
 (defgeneric pm/initialize (config)
   "Initialize current buffer with CONFIG.
 
-First initialize the :basemode and :innermodes slots of
+First initialize the :basemode and :chunkmodes slots of
 CONFIG object ...
 
 Current buffer is setup as the base buffer.")
@@ -65,15 +65,15 @@ Current buffer is setup as the base buffer.")
   
 (defmethod pm/initialize ((config pm-config-one))
   (call-next-method)
-  (eval `(oset config :innermodes
-               (list (clone ,(oref config :innermode-name))))))
+  (eval `(oset config :chunkmodes
+               (list (clone ,(oref config :chunkmode-name))))))
 
 (defmethod pm/initialize ((config pm-config-multi))
   (call-next-method)
-  (oset config :innermodes
+  (oset config :chunkmodes
         (mapcar (lambda (sub-name)
                   (clone (symbol-value sub-name)))
-                (oref config :innermode-names))))
+                (oref config :chunkmode-names))))
 
 
 
@@ -86,7 +86,7 @@ installed. Also see `pm/get-span'.")
 (defmethod pm/get-buffer ((submode pm-submode) &optional type)
   (oref submode :buffer))
 
-(defmethod pm/get-buffer ((submode pm-innermode) &optional type)
+(defmethod pm/get-buffer ((submode pm-chunkmode) &optional type)
   (cond ((eq 'body type) (oref submode :buffer))
         ((eq 'head type) (oref submode :head-buffer))
         ((eq 'tail type) (oref submode :tail-buffer))
@@ -112,7 +112,7 @@ For this method to work correctly, SUBMODE's class should define
       (setq buff (pm/get-buffer submode type)))
     (pm--select-buffer buff)))
 
-(defmethod pm/select-buffer ((submode pm-innermode) span)
+(defmethod pm/select-buffer ((submode pm-chunkmode) span)
   (call-next-method)
   (pm--transfer-vars-from-base))
 
@@ -130,7 +130,7 @@ return an error."
   (if (null (car span))
       (pm/select-buffer (oref config :basemode) span)
     (let ((type (car span))
-          (proto (symbol-value (oref config :auto-innermode-name)))
+          (proto (symbol-value (oref config :auto-chunkmode-name)))
           submode)
       (save-excursion
         (goto-char (cadr span))
@@ -139,14 +139,14 @@ return an error."
         (re-search-forward (oref proto :retriever-regexp))
         (let* ((str (or (match-string-no-properties (oref proto :retriever-num))
                         (error "retriever subexpression didn't match")))
-               (name (concat "auto-innermode:" str)))
+               (name (concat "auto-chunkmode:" str)))
           (setq submode
-                (or (loop for obj in (oref config :auto-innermodes)
+                (or (loop for obj in (oref config :auto-chunkmodes)
                           when  (equal name (object-name-string obj))
                           return obj)
                     (let ((new-obj (clone proto name
                                           :mode (pm-get-mode-symbol-from-name str))))
-                      (object-add-to-list config :auto-innermodes new-obj)
+                      (object-add-to-list config :auto-chunkmodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))
 
@@ -161,7 +161,7 @@ create and install a new buffer in slot :buffer of SUBMODE."
   (oset submode :buffer
         (pm--create-submode-buffer-maybe submode type)))
 
-(defmethod pm/install-buffer ((submode pm-innermode) type)
+(defmethod pm/install-buffer ((submode pm-chunkmode) type)
   "Depending of the TYPE install an indirect buffer into
 slot :buffer of SUBMODE. Create this buffer if does not exist."
   (pm--set-submode-buffer submode type
@@ -184,7 +184,7 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
 (defgeneric pm/get-adjust-face (submode &optional type))
 (defmethod pm/get-adjust-face ((submode pm-submode) &optional type)
   (oref submode :adjust-face))
-(defmethod pm/get-adjust-face ((submode pm-innermode) &optional type)
+(defmethod pm/get-adjust-face ((submode pm-chunkmode) &optional type)
   (setq type (or type pm/type))
   (cond ((eq type 'head)
          (oref submode :head-adjust-face))
@@ -220,7 +220,7 @@ point."
       (widen)
       ;; fixme: base should be last, to take advantage of the submodes computation
       (let* ((smodes (cons (oref config :basemode)
-                           (oref config :innermodes)))
+                           (oref config :chunkmodes)))
              (start (point-min))
              (end (point-max))
              (pos (or pos (point)))
@@ -257,13 +257,13 @@ point."
           (setcar (last span) (oref config :basemode)))
         span)))
 
-;; No need for this one so far. Basic method iterates through :innermodes
+;; No need for this one so far. Basic method iterates through :chunkmodes
 ;; anyhow.
 ;; (defmethod pm/get-span ((config pm-config-multi) &optional pos))
 
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
-        (proto (symbol-value (oref config :auto-innermode-name))))
+        (proto (symbol-value (oref config :auto-chunkmode-name))))
     (if (oref proto :head-reg)
         (let ((span (pm--span-at-point (oref proto :head-reg)
                                        (oref proto :tail-reg)
@@ -281,7 +281,7 @@ point."
             (append span (list config)))) ;fixme: this returns config as last object
       span-other)))
 
-(defmethod pm/get-span ((submode pm-innermode) &optional pos)
+(defmethod pm/get-span ((submode pm-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a submode object
 in this case."
@@ -435,7 +435,7 @@ the submode.")
 (defmethod pm/indent-line ((submode pm-submode) &optional span)
   (pm--indent-line span))
   
-(defmethod pm/indent-line ((submode pm-innermode) &optional span)
+(defmethod pm/indent-line ((submode pm-chunkmode) &optional span)
   "Indent line in inner submodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."

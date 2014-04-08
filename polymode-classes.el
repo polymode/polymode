@@ -79,48 +79,48 @@ of this class.")
 
 
 (defclass pm-config-one (pm-config)
-  ((innermode-name
-    :initarg :innermode-name
+  ((chunkmode-name
+    :initarg :chunkmode-name
     :type symbol
     :custom symbol
     :documentation
     "Symbol of the submode. At run time this object is cloned
-     and placed in :innermodes slot."))
+     and placed in :chunkmodes slot."))
   
   "Configuration for a simple polymode that allows only one
 submode. For example noweb.")
 
 
 (defclass pm-config-multi (pm-config)
-  ((innermode-names
-    :initarg :innermode-names
+  ((chunkmode-names
+    :initarg :chunkmode-names
     :type list
     :custom list
     :initform nil
     :documentation
     "List of names of the submode objects that are associated
      with this configuration. At initialization time, all of
-     these are cloned and plased in :innermodes slot."))
+     these are cloned and plased in :chunkmodes slot."))
   
   "Configuration for a polymode that allows multiple known in
 advance submodes.")
 
 
 (defclass pm-config-multi-auto (pm-config-multi)
-  ((auto-innermode-name
-    :initarg :auto-innermode-name
+  ((auto-chunkmode-name
+    :initarg :auto-chunkmode-name
     :type symbol
     :custom symbol
     :documentation
-    "Name of pm-innermode-auto object (a symbol). At run time
-     this object is cloned and placed in :auto-innermodes with
+    "Name of pm-chunkmode-auto object (a symbol). At run time
+     this object is cloned and placed in :auto-chunkmodes with
      coresponding :mode slot initialized at run time.")
-   (auto-innermodes
-    :initarg :auto-innermodes
+   (auto-chunkmodes
+    :initarg :auto-chunkmodes
     :type list
     :initform '()
     :documentation
-    "List of innermode objects that are auto-generated in
+    "List of chunkmode objects that are auto-generated in
     pm/get-span method for this class."))
   
   "Configuration for a polymode that allows multiple submodes
@@ -186,7 +186,7 @@ that are not known in advance. Examples are org-mode and markdown.")
   web-mdoe the basemode is `html-mode', for nowweb mode the base
   mode is usually `latex-mode', etc.")
 
-(defclass pm-innermode (pm-submode)
+(defclass pm-chunkmode (pm-submode)
   ((adjust-face
     :initform 2)
    (head-mode
@@ -247,7 +247,7 @@ configuration from :head-adjust-face."))
   
   "Representation of an inner submode in a buffer.")
 
-(defclass pm-innermode-auto (pm-innermode)
+(defclass pm-chunkmode-auto (pm-chunkmode)
   ((retriever-regexp
     :initarg :retriever-regexp
     :type (or null string)

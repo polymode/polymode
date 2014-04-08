@@ -75,25 +75,25 @@ is in place at that time."
 (defcustom pm-config/brew
   (pm-config-one "brew"
                  :basemode-name 'pm-base/text
-                 :innermode-name 'pm-inner/fundamental)
+                 :chunkmode-name 'pm-chunk/fundamental)
   "Typical Brew configuration"
-  :group 'polymode-config
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom pm-config/html
   (pm-config-one "html"
                  :basemode-name 'pm-base/html
-                 :innermode-name 'pm-inner/fundamental)
+                 :chunkmode-name 'pm-chunk/fundamental)
   "HTML typical configuration"
-  :group 'polymode-config
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom pm-config/C++
   (pm-config-one "C++"
                  :basemode-name 'pm-base/C++
-                 :innermode-name 'pm-inner/fundamental)
+                 :chunkmode-name 'pm-chunk/fundamental)
   "C++ typical configuration"
-  :group 'polymode-config
+  :group 'polymode-configs
   :type 'object)
 
 

@@ -19,15 +19,15 @@
   :link '(emacs-commentary-link "polymode")
   :group 'tools)
 
+(defgroup polymode-configs nil
+  "Polymode Configuration Objects"
+  :group 'polymode)
+
 (defgroup polymode-basemodes nil
   "Polymode Base Submode Objects"
   :group 'polymode)
 
-(defgroup polymode-config nil
-  "Polymode Configuration Objects"
-  :group 'polymode)
-
-(defgroup polymode-innermodes nil
+(defgroup polymode-chunkmodes nil
   "Polymode Submode Objects"
   :group 'polymode)
 
@@ -362,8 +362,8 @@ in polymode buffers."
                (pm--adjust-chunk-face sbeg send (pm/get-adjust-face pm/submode))
                ;; might be needed by external applications like flyspell
                ;; fixme: this should be in a more generic place like pm/get-span
-               (put-text-property sbeg send 'innermode
-                                  (object-of-class-p pm/submode 'pm-innermode))
+               (put-text-property sbeg send 'chunkmode
+                                  (object-of-class-p pm/submode 'pm-chunkmode))
                ;; even if failed, set to t to avoid infloop
                (put-text-property beg end 'fontified t)))
            beg end)
@@ -896,8 +896,8 @@ BODY contains code to be executed after the complete
 ;;; COMPATIBILITY
 
 (defun pm--flyspel-dont-highlight-in-submodes (beg end poss)
-  (or (get-text-property beg 'innermode)
-      (get-text-property beg 'innermode)))
+  (or (get-text-property beg 'chunkmode)
+      (get-text-property beg 'chunkmode)))
 
 
 ;;; FONT-LOCK
