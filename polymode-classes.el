@@ -103,7 +103,11 @@ hooks first. So, if current config object C inherits from object
 B, which in turn inherits from object A. Then A's init-functions
 are called first, then B's and then C's.
 
-Either customize this slot or use `object-add-to-list' function."))
+Either customize this slot or use `object-add-to-list' function.")
+   (-hist
+    :initform '()
+    :type list
+    :documentation "Internal. Used to store various user history values."))
   
   "Configuration for a polymode. Each polymode buffer contains a local
 variable `pm/config' instantiated from this class or a subclass
