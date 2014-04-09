@@ -78,6 +78,7 @@ Not effective after loading the polymode library."
         (define-key map "W" 'polymode-set-weaver)
         (define-key map "t" 'polymode-tangle)
         (define-key map "T" 'polymode-set-tangler)
+        ;; todo: add polymode-goto-process-buffer
 	map))
     (define-key map [menu-bar Polymode]
       (cons "Polymode"

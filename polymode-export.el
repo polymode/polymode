@@ -49,9 +49,8 @@
 (defvar pm--export:to-hist nil)
 
 (defun polymode-export (&optional from to)
-  ;; with arg, select :from spec
+  "todo:"
   ;; todo: '(16) should allow for edditing :from command
-  ;; todo: store last specs in exporter
   (interactive "P")
   (let* ((exporter (symbol-value (or (oref pm/config :exporter)
                                      (polymode-set-exporter))))
@@ -153,10 +152,8 @@ When DEFAULT? is non-nil, also make EXPORTER the default exporter for each polym
             (progn
               (pop-to-buffer pm--input-buffer)
               (display-buffer (find-file-noselect ofile 'nowarn)))
-          (kill-buffer )
           (display-buffer (current-buffer))
-          (error "Bumps while exporting: %s" name))))
-    (kill-buffer buff)))
+          (error "Bumps while exporting: %s" name))))))
 
 (defun pm-default-export-function (command from to)
   "Run command interactively.
@@ -165,9 +162,8 @@ user interaction. This is a default function in all exporters
 that call a shell command"
   ;; simplified version of TeX-run-TeX
   (require 'comint)
-  (let* (;(default TeX-command-default)
-         (name (format "%s-->%s" from to))
-         (buffer (get-buffer-create (format "*%s*" name)))
+  (let* ((name "*polymode export*")
+         (buffer (get-buffer-create name))
          (process nil)
          (command-buff (current-buffer))
          (ofile pm--export-output-file)
@@ -176,7 +172,7 @@ that call a shell command"
     (with-current-buffer buffer
       (read-only-mode -1)
       (erase-buffer)
-      (insert "Exporting " name " with command:\n     " command "\n")
+      (insert "Exporting " from "-->" to " with command:\n     " command "\n")
       (comint-exec buffer name shell-file-name nil
                    (list shell-command-switch command))
       (comint-mode)
