@@ -6,13 +6,17 @@
 
 (eval-when-compile
   (require 'cl))
+
 (require 'font-lock)
-(require 'eieio)
 (require 'color)
+
+(require 'eieio)
 (require 'eieio-base)
 (require 'eieio-custom)
-(require 'polymode-classes)
-(require 'polymode-methods)
+
+(load "polymode-classes")
+(load "polymode-methods")
+(load "polymode-export")
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"
@@ -688,9 +692,33 @@ Return newlly created buffer."
 ;;   (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
 ;;   (oref pm-submode/noweb-R :head-buffer))
 
-(define-minor-mode polymode-minor-mode
-  "Polymode minor mode, used to make everything work."
-  nil " PM" polymode-mode-map)
+(defun pm--oref-with-parents (object slot)
+  "Merge slots SLOT from the OBJECT and all its parent instances."
+  (let (VALS)
+    (while object
+      (setq VALS (append (and (slot-boundp object slot) ; don't cascade
+                              (eieio-oref object slot))
+                         VALS)
+            object (and (slot-boundp object :parent-instance)
+                        (oref object :parent-instance))))
+    VALS))
+
+(defun pm--abrev-names (list abrev-regexp)
+  "Abreviate names in list by replacing abrev-regexp with empty string."
+  (mapcar (lambda (nm)
+            (let ((str-nm (if (symbolp nm)
+                              (symbol-name nm)
+                            nm)))
+              (propertize (replace-regexp-in-string abrev-regexp "" str-nm)
+                          :orig str-nm)))
+          list))
+
+(defun pm--oset-hist (key val)
+  (oset pm/config -hist
+        (plist-put (oref pm/config -hist) key val)))
+
+(defun pm--oref-hist (key)
+  (plist-get (oref pm/config -hist) key))
 
 (defun pm--map-over-spans-highlight ()
   (interactive)
@@ -750,6 +778,8 @@ Return newlly created buffer."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
+
+;;; DEFINE
 (defmacro define-polymode (mode config &optional keymap &rest body)
   "Define a new polymode MODE.
 This macro defines command MODE and an indicator variable MODE
@@ -901,9 +931,13 @@ BODY contains code to be executed after the complete
        (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
 
 
+(define-minor-mode polymode-minor-mode
+  "Polymode minor mode, used to make everything work."
+  nil " PM" polymode-mode-map)
+
+
 
 ;;; COMPATIBILITY
-
 (defun pm--flyspel-dont-highlight-in-submodes (beg end poss)
   (or (get-text-property beg 'chunkmode)
       (get-text-property beg 'chunkmode)))

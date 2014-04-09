@@ -13,46 +13,37 @@
     :type list
     :custom list
     :documentation
-    "Input specifications. A list of lists of the form (from-id extension doc commmand).")
+    "Input specifications. A list of lists of the form (from-id
+    extension doc commmand).")
    (to
     :initarg :to
     :initform '() 
     :type list
     :custom list
     :documentation
-    "Output specifications. A list of the list of the form (to-id extension doc %t-spec).")
+    "Output specifications. A list of the list of the form (to-id
+    extension doc %t-spec).")
    (function
     :initarg :function
     :init-value nil
     :type (or null function)
     :documentation
     "Function to process the commmand. Must take 3 arguments
-COMMAND, FROM and TO. COMMAND is the 4th argument of :from spec
-with all the formats substituted. FROM is the id of the :from
-spec, TO is the id of the :to spec.")
+     COMMAND, FROM and TO. COMMAND is the 4th argument of :from
+     spec with all the formats substituted. FROM is the id of
+     requested :from spec, TO is the id of the :to spec.")
    (sentinel
     :initarg :sentinel
     :init-value nil
     :type (or null function)
     :documentation
-    "Sentinel function to be called by :function if shell call is involved."))
+    "Optional sentinel function to be called by :function when a
+    shell call is involved.")
+   )
   "Root exporter class.")
-
 
 
 ;; UI
-(defun polymode-set-exporter ()
-  (interactive)
-  (unless pm/config
-    (error "No pm/config object found. Not in polymode buffer?"))
-  (let* ((exporters (pm--abrev-names
-                     (delete-dups (pm--oref-with-parents pm/config :exporters))
-                     "pm-exporter/"))
-         (choice (ido-read-internal exporters "Choose exporter: " nil))
-         (out (intern (get-text-property 0 :orig choice))))
-    (oset pm/config :exporter out)
-    out))
-
 (defvar pm--exporter-hist nil)
 (defvar pm--export:from-hist nil)
 (defvar pm--export:to-hist nil)
@@ -62,9 +53,8 @@ spec, TO is the id of the :to spec.")
   ;; todo: '(16) should allow for edditing :from command
   ;; todo: store last specs in exporter
   (interactive "P")
-  (let* ((exporter (or pm-exporter/pandoc
-                       (oref pm/config :exporter)
-                       (polymode-set-exporter)))
+  (let* ((exporter (symbol-value (or (oref pm/config :exporter)
+                                     (polymode-set-exporter))))
          (e:from (oref exporter :from))
          (e:to (oref exporter :to))
          (from-opts (mapcar (lambda (el)
@@ -76,26 +66,30 @@ spec, TO is the id of the :to spec.")
                           (oref exporter :to)))
          (from
           (cond ((null from)
-                 ;; select based on 
-                 (let* ((fname (file-name-nondirectory buffer-file-name))
-                        (out (cl-rassoc-if
-                              (lambda (el) (string-match-p (car el) fname))
-                              e:from)))
-                   (if out
-                       (car out)
-                     (let* ((prompt (format "No input spec for '%s' in %s exporter. Choose one: "
-                                            (file-name-extension fname)
-                                            ;; object-name returns clutter like "#<pm-exporter pandoc>"
-                                            ;; use internal implementation: 
-                                            (aref exporter object-name))))
-                       (get-text-property 1 :id
-                                          (ido-completing-read prompt from-opts nil t nil
-                                                               'pm--export:from-hist))))))
+                 (let ((fname (file-name-nondirectory buffer-file-name)))
+                   (or (and (pm--oref-hist :export-from)
+                            (get-text-property 0 :id (pm--oref-hist :export-from)))
+                       (car (cl-rassoc-if (lambda (el)
+                                            (string-match-p (car el) fname))
+                                          e:from))
+                       (let* ((prompt (format "No input spec for '%s'. Choose one: "
+                                              (file-name-extension fname)
+                                              ;; object-name returns clutter like "#<pm-exporter pandoc>"
+                                              ;; use internal implementation:
+                                              (if (fboundp 'eieio--object-name)
+                                                  (eieio--object-name exporter)
+                                                (aref exporter object-name))))
+                              (sel (ido-completing-read prompt from-opts nil t nil
+                                                        'pm--export:from-hist
+                                                        (pm--oref-hist :export-from))))
+                         (pm--oset-hist :export-from sel)
+                         (get-text-property 0 :id sel)))))
                 ;; C-u, force a :from spec
-                ((eq from '(4))
-                 (get-text-property 1 :id
-                                    (ido-completing-read "Choose output spec: "
-                                                         from-opts nil t nil 'pm--export:from-hist)))
+                ((equal from '(4))
+                 (let ((sel (ido-completing-read "Input type: " from-opts nil t nil
+                                                 'pm--export:from-hist (pm--oref-hist :export-from)) ))
+                   (pm--oset-hist :export-from sel)
+                   (get-text-property 1 :id sel)))
                 ((stringp from)
                  (if (assoc from e:from)
                      from
@@ -104,9 +98,10 @@ spec, TO is the id of the :to spec.")
                 ))
          (to
           (cond ((null to)
-                 (get-text-property 1 :id
-                                    (ido-completing-read "Choose output spec: "
-                                                         to-opts nil t nil 'pm--export:to-hist)))
+                 (let ((sel (ido-completing-read "Choose output spec: " to-opts nil t nil
+                                                 'pm--export:to-hist (pm--oref-hist :export-to))))
+                   (pm--oset-hist :export-to sel)
+                   (get-text-property 1 :id sel)))
                 ((stringp to)
                  (if (assoc to e:to)
                      to
@@ -125,9 +120,29 @@ spec, TO is the id of the :to spec.")
     (set (make-local-variable 'pm--export-output-file) to-file)
     (funcall (oref exporter :function) command from to)))
 
+(defmacro polymode-register-exporter (exporter default? &rest configs)
+  "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
+When DEFAULT? is non-nil, also make EXPORTER the default exporter for each polymode in CONFIGS."
+  `(dolist (pm ,configs)
+     (object-add-to-list pm :exporters ,exporter)
+     (when ,default? (oset pm :exporter ,exporter))))
+
+(defun polymode-set-exporter ()
+  (interactive)
+  (unless pm/config
+    (error "No pm/config object found. Not in polymode buffer?"))
+  (let* ((exporters (pm--abrev-names
+                     (delete-dups (pm--oref-with-parents pm/config :exporters))
+                     "pm-exporter/"))
+         (sel (ido-completing-read "No default exporter. Choose one: " exporters nil t nil
+                                   'pm--exporter-hist (oref pm/config :exporter)))
+         (out (intern (get-text-property 0 :orig sel))))
+    (oset pm/config :exporter out)
+    out))
+
 
 ;;; UTILS
-(defun pm-export-default-sentinel (process name)
+(defun pm-default-export-sentinel (process name)
   "default sentinel function"
   (let ((buff (process-buffer process)))
     (with-current-buffer buff
@@ -143,7 +158,7 @@ spec, TO is the id of the :to spec.")
           (error "Bumps while exporting: %s" name))))
     (kill-buffer buff)))
 
-(defun pm-export-default-function (command from to)
+(defun pm-default-export-function (command from to)
   "Run command interactively.
 Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
@@ -156,8 +171,7 @@ that call a shell command"
          (process nil)
          (command-buff (current-buffer))
          (ofile pm--export-output-file)
-         (sentinel-function (oref pm-exporter/pandoc
-                                  ;; (oref pm/config :exporter)
+         (sentinel-function (oref (symbol-value (oref pm/config :exporter))
                                   :sentinel)))
     (with-current-buffer buffer
       (read-only-mode -1)
@@ -174,26 +188,6 @@ that call a shell command"
       (set-marker (process-mark process) (point-max)))
     (pop-to-buffer buffer)))
 
-
-(defun pm--oref-with-parents (object slot)
-  (let (VALS)
-    (while object
-      (setq VALS (append (and (slot-boundp object slot) ; don't cascade
-                              (oref object slot))
-                         VALS)
-            object (and (slot-boundp object :parent-instance)
-                        (oref object :parent-instance))))
-    VALS))
-
-(defun pm--abrev-names (list abrev-regexp)
-  (mapcar (lambda (nm)
-            (let ((str-nm (if (symbolp nm)
-                              (symbol-name nm)
-                            nm)))
-              (propertize (replace-regexp-in-string abrev-regexp "" str-nm)
-                          :orig str-nm)))
-          list))
-    
 
 
 ;;; GLOBAL EXPORTERS
@@ -244,7 +238,7 @@ that call a shell command"
                  ("s5"  	"html"  "S5 HTML slide show" "s5")
                  ("rtf"  	"rtf"  "rich text format" "rtf")
                  )
-               :function 'pm-export-default-function
-               :sentinel 'pm-export-default-sentinel)
+               :function 'pm-default-export-function
+               :sentinel 'pm-default-export-sentinel)
   "Pandoc exporter"
   :group 'polymode-export)
