@@ -66,8 +66,8 @@
          (from
           (cond ((null from)
                  (let ((fname (file-name-nondirectory buffer-file-name)))
-                   (or (and (pm--oref-hist :export-from)
-                            (get-text-property 0 :id (pm--oref-hist :export-from)))
+                   (or (and (pm--get-hist :export-from)
+                            (get-text-property 0 :id (pm--get-hist :export-from)))
                        (car (cl-rassoc-if (lambda (el)
                                             (string-match-p (car el) fname))
                                           e:from))
@@ -80,14 +80,14 @@
                                                 (aref exporter object-name))))
                               (sel (ido-completing-read prompt from-opts nil t nil
                                                         'pm--export:from-hist
-                                                        (pm--oref-hist :export-from))))
-                         (pm--oset-hist :export-from sel)
+                                                        (pm--get-hist :export-from))))
+                         (pm--put-hist :export-from sel)
                          (get-text-property 0 :id sel)))))
                 ;; C-u, force a :from spec
                 ((equal from '(4))
                  (let ((sel (ido-completing-read "Input type: " from-opts nil t nil
-                                                 'pm--export:from-hist (pm--oref-hist :export-from)) ))
-                   (pm--oset-hist :export-from sel)
+                                                 'pm--export:from-hist (pm--get-hist :export-from)) ))
+                   (pm--put-hist :export-from sel)
                    (get-text-property 1 :id sel)))
                 ((stringp from)
                  (if (assoc from e:from)
@@ -98,8 +98,8 @@
          (to
           (cond ((null to)
                  (let ((sel (ido-completing-read "Choose output spec: " to-opts nil t nil
-                                                 'pm--export:to-hist (pm--oref-hist :export-to))))
-                   (pm--oset-hist :export-to sel)
+                                                 'pm--export:to-hist (pm--get-hist :export-to))))
+                   (pm--put-hist :export-to sel)
                    (get-text-property 1 :id sel)))
                 ((stringp to)
                  (if (assoc to e:to)

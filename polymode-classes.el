@@ -107,7 +107,9 @@ Either customize this slot or use `object-add-to-list' function.")
    (-hist
     :initform '()
     :type list
-    :documentation "Internal. Used to store various user history values."))
+    :documentation "Internal. Used to store various user history
+    values. Use `pm--get-hist' and `pm--put-hist' to place key
+    value pairs into this list."))
   
   "Configuration for a polymode. Each polymode buffer contains a local
 variable `pm/config' instantiated from this class or a subclass

@@ -714,11 +714,11 @@ Return newlly created buffer."
                           :orig str-nm)))
           list))
 
-(defun pm--oset-hist (key val)
+(defun pm--put-hist (key val)
   (oset pm/config -hist
         (plist-put (oref pm/config -hist) key val)))
 
-(defun pm--oref-hist (key)
+(defun pm--get-hist (key)
   (plist-get (oref pm/config -hist) key))
 
 (defun pm--map-over-spans-highlight ()
