@@ -31,19 +31,20 @@
     :documentation "Modline lighter.")
    (exporters
     :initarg :exporters
-    :initform '()
+    :initform '(pm-exporter/pandoc)
     :type list
     :custom list
     :documentation
     "List of names of polymode exporters available for this polymode.")
-   (current-exporter
-    :initarg :current-exporter
+   (exporter
+    :initarg :exporter
     :initform nil
     :type (or null symbol)
     :custom symbol
     :documentation
-    "Current exporter. If non-nil this is the default exporter
-    for this polymode. Can be dynamically set with `polymode-set-exporter'")
+    "Current exporter name. If non-nil should be the name of the
+    default exporter for this polymode. Can be set with
+    `polymode-set-exporter' command.")
    (weavers
     :initarg :weavers
     :initform '()
@@ -51,14 +52,15 @@
     :custom list
     :documentation
     "List of names of polymode weavers available for this polymode.")
-   (current-weaver
-    :initarg :current-weaver
+   (weaver
+    :initarg :weaver
     :initform nil
     :type (or null symbol)
     :custom symbol
     :documentation
-    "Current weaver. If non-nil this is the default exporter for
-    this polymode. Can be dynamically set with `polymode-set-weaver'")
+    "Current weaver name. If non-nil this is the default weaver
+    for this polymode. Can be dynamically set with
+    `polymode-set-weaver'")
    (basemode
     :initarg :basemode
     :type (or null pm-submode)
