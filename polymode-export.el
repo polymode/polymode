@@ -2,7 +2,7 @@
   "Polymode Exporters"
   :group 'polymode)
 
-(defcustom polymode-export-output-file-format "%s[exported]"
+(defcustom polymode-exporter-output-file-format "%s[exported]"
   "Format of the exported files.
 %s is substituted with the current file name sans extension.")
 
@@ -13,33 +13,45 @@
     :type list
     :custom list
     :documentation
-    "Input specifications. A list of lists of the form (from-id
-    extension doc commmand).")
+    "Input specifications. A list of lists of the form (id reg doc commmand).
+	ID is the unique identifier of the spec. REG is a regexp
+	that is used to identify if current file can be exported
+	with this spec. DOC is a short help string shown during
+	interactive export. COMMMAND is the actual exporter
+	specific command. It can contain the following format
+	specs:
+
+	%i - replaced with the input file
+	%o - replaced with the ouput file
+	%t - replaced with the 4th element of the :to spec.
+     ")
    (to
     :initarg :to
     :initform '() 
     :type list
     :custom list
     :documentation
-    "Output specifications. A list of the list of the form (to-id
-    extension doc %t-spec).")
+    "Output specifications. A list of the list of the form (id ext doc %t-spec).
+	EXT is the *exact* extension (not a regexp) of the ouput
+	file. %t-spec is a string what is used to format :from
+	spec commmand.")
    (function
     :initarg :function
-    :init-value nil
+    :initform nil
     :type (or null function)
     :documentation
     "Function to process the commmand. Must take 3 arguments
-     COMMAND, FROM and TO. COMMAND is the 4th argument of :from
-     spec with all the formats substituted. FROM is the id of
-     requested :from spec, TO is the id of the :to spec.")
+     COMMAND, FROM-ID and TO-ID. COMMAND is the 4th argument
+     of :from spec with all the formats substituted. FROM-ID is
+     the id of requested :from spec, TO-ID is the id of the :to
+     spec.")
    (sentinel
     :initarg :sentinel
-    :init-value nil
+    :initform nil
     :type (or null function)
     :documentation
     "Optional sentinel function to be called by :function when a
-    shell call is involved.")
-   )
+    shell call is involved."))
   "Root exporter class.")
 
 
@@ -108,7 +120,7 @@
                 (t (error "'to' argument must be nil or a string"))))
          (from-spec (assoc from e:from))
          (to-spec (assoc to e:to))
-         (to-file (concat (format polymode-export-output-file-format
+         (to-file (concat (format polymode-exporter-output-file-format
                                   (file-name-base buffer-file-name))
                           "." (nth 1 to-spec)))
          (command (format-spec (nth 3 from-spec)
@@ -121,7 +133,8 @@
 
 (defmacro polymode-register-exporter (exporter default? &rest configs)
   "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
-When DEFAULT? is non-nil, also make EXPORTER the default exporter for each polymode in CONFIGS."
+When DEFAULT? is non-nil, also make EXPORTER the default exporter
+for each polymode in CONFIGS."
   `(dolist (pm ,configs)
      (object-add-to-list pm :exporters ,exporter)
      (when ,default? (oset pm :exporter ,exporter))))
