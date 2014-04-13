@@ -17,6 +17,7 @@
 (load "polymode-classes")
 (load "polymode-methods")
 (load "polymode-export")
+(load "polymode-weave")
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"

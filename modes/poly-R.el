@@ -229,4 +229,68 @@
 (define-polymode poly-Rd-mode pm-config/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
 
+
+
+;; R SHELL WEAVERS
+(defcustom pm-weaver/knitR
+  (pm-weaver "knitr"
+            :from-to
+            '(("latex" "\\.\\(tex\\|rnw\\)^" "tex" "LaTeX" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("html" "\\.x?html?^" "html" "HTML" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("markdown" "\\.r?md^" "md" "Markdown" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("brew" "\\.r?brew^" "brew" "Brew" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("asciidoc" "\\.asciidoc^" "txt" "AsciiDoc" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("textile" "\\.textile^" "textile" "Textile" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")))
+  "Shell knitR weaver."
+  :group 'polymode-weave
+  :type 'object)
+
+(polymode-register-weaver pm-weaver/knitR nil
+                          pm-config/noweb+R pm-config/markdown
+                          pm-config/rapport pm-config/html+R)
+
+(defcustom pm-weaver/Sweave
+  (pm-weaver "sweave" :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)^" "tex" "LaTeX" "R CMD Sweave %i")))
+  "Shell 'Sweave' weaver."
+  :group 'polymode-weave
+  :type 'object)
+
+(polymode-register-weaver pm-weaver/Sweave nil
+                          pm-config/noweb+R)
+
+;; (oref pm-config/rapport :weavers)
+;; (oref pm-config/noweb+R :weavers)
+
+
+
+;; R ESS WEAVERS
+(defcustom pm-weaver/ESS-knitR
+  (pm-weaver "ESS-knitR"
+             :from-to
+             '(("latex" "\\.\\(tex\\|rnw\\)^" "tex" "LaTeX" nil)
+               ("html" "\\.x?html?^" "html" "HTML" nil)
+               ("markdown" "\\.r?md^" "md" "Markdown" nil)
+               ("rst" "\\.rst" "rst" "ReStructuredText" nil)
+               ("brew" "\\.r?brew^" "brew" "Brew" nil)
+               ("asciidoc" "\\.asciidoc^" "txt" "AsciiDoc" nil)
+               ("textile" "\\.textile^" "textile" "Textile" nil)))
+  "ESS knitR weaver."
+  :group 'polymode-weave
+  :type 'object)
+
+(polymode-register-weaver pm-weaver/ESS-knitR nil
+                          pm-config/noweb+R pm-config/markdown
+                          pm-config/rapport pm-config/html+R)
+
+(defcustom pm-weaver/ESS-Sweave
+  (pm-weaver "ESS-Sweave" :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)^" "tex" "LaTeX" nil)))
+  "ESS 'Sweave' weaver."
+  :group 'polymode-weave
+  :type 'object)
+
+(polymode-register-weaver pm-weaver/ESS-Sweave nil
+                          pm-config/noweb+R)
+
+
 (provide 'poly-R)

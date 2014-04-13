@@ -8,23 +8,23 @@
 
 (defclass pm-weaver (polymode)
   ((from-to
-    :initarg :from
+    :initarg :from-to
     :initform '()
     :type list
     :custom list
     :documentation
-    "Input specifications. A list of lists of the form (id reg-from ext-to doc commmand).
-	ID is the unique identifier of the spec. REG-FROM is a
-	regexp that is used to identify if current file can be
-	weaved with this spec. EXT-TO is the *exact* (not regexp)
-	extension of the output file. DOC is a short help string
-	shown during interactive weaving. COMMMAND is the actual
-	weaver specific command. It can contain the following
-	format specs:
+    "Input specifications. A list of lists of the form
 
+          (id reg-from ext-to doc commmand)
+
+     ID is the unique identifier of the spec. REG-FROM is a regexp
+     that is used to identify if current file can be weaved with this
+     spec. EXT-TO is the *exact* (not regexp) extension of the output
+     file. DOC is a short help string shown during interactive
+     weaving. COMMMAND is the actual weaver specific command. It can
+     contain the following format specs:
 	%i - replaced with the input file
-	%o - replaced with the ouput file
-     ")
+	%o - replaced with the ouput file.")
    (function
     :initarg :function
     :initform nil
@@ -108,9 +108,9 @@
   "Add WEAVER to :weavers slot of all config objects in CONFIGS.
 When DEFAULT? is non-nil, also make weaver the default WEAVER for
 each polymode in CONFIGS."
-  `(dolist (pm ,configs)
-     (object-add-to-list pm :weavers ,weaver)
-     (when ,default? (oset pm :weaver ,weaver))))
+  `(dolist (pm ',configs)
+     (object-add-to-list (symbol-value pm) :weavers ',weaver)
+     (when ,default? (oset (symbol-value pm) :weaver ',weaver))))
 
 
 (defun polymode-set-weaver ()
