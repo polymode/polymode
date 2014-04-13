@@ -128,7 +128,7 @@
                                      (cons ?o to-file)
                                      (cons ?t (nth 3 to-spec))))))
     ;; compunicate with sentinel with local vars to avoid needless clutter
-    (set (make-local-variable 'pm--export-output-file) to-file)
+    (set (make-local-variable 'pm--output-file) to-file)
     (funcall (oref exporter :function) command from to)))
 
 (defmacro polymode-register-exporter (exporter default? &rest configs)
@@ -155,48 +155,20 @@ for each polymode in CONFIGS."
 
 ;;; UTILS
 (defun pm-default-export-sentinel (process name)
-  "default sentinel function"
-  (let ((buff (process-buffer process)))
-    (with-current-buffer buff
-      (goto-char (point-min))
-      (let ((case-fold-search t)
-            (ofile pm--export-output-file))
-        (if (not (re-search-forward "error" nil 'no-error))
-            (progn
-              (pop-to-buffer pm--input-buffer)
-              (display-buffer (find-file-noselect ofile 'nowarn)))
-          (display-buffer (current-buffer))
-          (error "Bumps while exporting: %s" name))))))
+  "Default exporter sentinel."
+  (pm--run-command-sentinel process name t "exporting"))
 
 (defun pm-default-export-function (command from to)
-  "Run command interactively.
+  "Run exporting command interactively.
 Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
 that call a shell command"
-  ;; simplified version of TeX-run-TeX
-  (require 'comint)
-  (let* ((name "*polymode export*")
-         (buffer (get-buffer-create name))
-         (process nil)
-         (command-buff (current-buffer))
-         (ofile pm--export-output-file)
-         (sentinel-function (oref (symbol-value (oref pm/config :exporter))
-                                  :sentinel)))
-    (with-current-buffer buffer
-      (read-only-mode -1)
-      (erase-buffer)
-      (insert "Exporting " from "-->" to " with command:\n     " command "\n")
-      (comint-exec buffer name shell-file-name nil
-                   (list shell-command-switch command))
-      (comint-mode)
-      (setq process (get-buffer-process buffer))
-      (set-process-sentinel process sentinel-function)
-      ;; communicate with sentinel
-      (set (make-local-variable 'pm--export-output-file) ofile)
-      (set (make-local-variable 'pm--input-buffer) command-buff)
-      (set-marker (process-mark process) (point-max)))
-    (pop-to-buffer buffer)))
-
+  (pm--run-command command
+                   (oref (symbol-value (oref pm/config :exporter))
+                         :sentinel)  
+                   "*polymode export*"
+                   (concat "Exporting " from "-->" to
+                           " with command:\n     " command "\n")))
 
 
 ;;; GLOBAL EXPORTERS

@@ -100,7 +100,7 @@
                                (list (cons ?i (file-name-nondirectory buffer-file-name))
                                      (cons ?o file)))))
     ;; compunicate with sentinel with local vars to avoid needless clutter
-    (set (make-local-variable 'pm--weave-output-file) to-file)
+    (set (make-local-variable 'pm--output-file) to-file)
     (funcall (oref weaver :function) command from-to)))
 
 
@@ -127,10 +127,23 @@ each polymode in CONFIGS."
     out))
 
 
-;; todo: unify with exporter functionality
-(defun pm-default-export-sentinel (process name))
+
+;; UTILS
+(defun pm-default-weave-sentinel (process name)
+  "Default weaver sentinel."
+  (pm--run-command-sentinel process name t "weaving"))
 
-(defun pm-default-export-function (command from to))
+(defun pm-default-weave-function (command from to)
+  "Run weaving command interactively.
+Run command in a buffer (in comint-shell-mode) so that it accepts
+user interaction. This is a default function in all weavers
+that call a shell command"
+  (pm--run-command command
+                   (oref (symbol-value (oref pm/config :weaver))
+                         :sentinel)  
+                   "*polymode weave*"
+                   (concat "weaveng " from "-->" to
+                           " with command:\n     " command "\n")))
 
 
 

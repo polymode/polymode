@@ -779,6 +779,46 @@ Return newlly created buffer."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
+(defun pm--run-command (command sentinel buff-name message)
+  "Run command interactively.
+Run command in a buffer (in comint-shell-mode) so that it accepts
+user interaction."
+  ;; simplified version of TeX-run-TeX
+  (require 'comint)
+  (let* ((buffer (get-buffer-create buff-name))
+         (process nil)
+         (command-buff (current-buffer))
+         (ofile pm--output-file))
+    (with-current-buffer buffer
+      (read-only-mode -1)
+      (erase-buffer)
+      (insert message)
+      (comint-exec buffer buff-name shell-file-name nil
+                   (list shell-command-switch command))
+      (comint-mode)
+      (setq process (get-buffer-process buffer))
+      (set-process-sentinel process sentinel)
+      ;; communicate with sentinel
+      (set (make-local-variable 'pm--output-file) ofile)
+      (set (make-local-variable 'pm--input-buffer) command-buff)
+      (set-marker (process-mark process) (point-max)))
+    (pop-to-buffer buffer)))
+
+(defun pm--run-command-sentinel (process name display? message)
+  (let ((buff (process-buffer process)))
+    (with-current-buffer buff
+      (goto-char (point-min))
+      (let ((case-fold-search t)
+            (ofile pm--output-file))
+        (if (not (re-search-forward "error" nil 'no-error))
+            (progn
+              (pop-to-buffer pm--input-buffer)
+              (when display?
+                (display-buffer (find-file-noselect ofile 'nowarn)))
+              buff)
+          (display-buffer (current-buffer))
+          (error "Bumps while %s: %s" message name))))))
+
 
 ;;; DEFINE
 (defmacro define-polymode (mode config &optional keymap &rest body)
