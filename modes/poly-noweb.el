@@ -2,8 +2,8 @@
 
 (defcustom pm-config/noweb
   (pm-config-one "noweb"
-                 :basemode-name 'pm-base/latex
-                 :chunkmode-name 'pm-chunk/noweb
+                 :basemode 'pm-base/latex
+                 :chunkmode 'pm-chunk/noweb
                  :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymode

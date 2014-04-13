@@ -2,8 +2,8 @@
 
 (defcustom pm-config/R
   (pm-config-one "R"
-                 :basemode-name 'pm-base/R
-                 :chunkmode-name 'pm-chunk/fundamental)
+                 :basemode 'pm-base/R
+                 :chunkmode 'pm-chunk/fundamental)
   "HTML typical configuration"
   :group 'polymode
   :type 'object)
@@ -12,7 +12,7 @@
 (require 'poly-noweb)
 (defcustom pm-config/noweb+R
   (clone pm-config/noweb
-         :chunkmode-name 'pm-chunk/noweb+R)
+         :chunkmode 'pm-chunk/noweb+R)
   "Noweb for R configuration"
   :group 'polymode
   :type 'object)
@@ -40,8 +40,8 @@
 ;; RAPPORT
 (defcustom pm-config/rapport
   (clone pm-config/markdown "rapport"
-         :chunkmode-names '(pm-chunk/brew+R
-                            pm-chunk/rapport+YAML))
+         :chunkmodes '(pm-chunk/brew+R
+                       pm-chunk/rapport+YAML))
   "Rapport template configuration"
   :group 'polymode
   :type 'object)
@@ -63,7 +63,7 @@
 
 ;; HTML
 (defcustom pm-config/html+R
-  (clone pm-config/html "html+R" :chunkmode-name 'pm-chunk/html+R)
+  (clone pm-config/html "html+R" :chunkmode 'pm-chunk/html+R)
   "HTML + R configuration"
   :group 'polymode
   :type 'object)
@@ -85,7 +85,7 @@
 ;;; R-brew
 (defcustom pm-config/brew+R
   (clone pm-config/brew "brew+R"
-         :chunkmode-name 'pm-chunk/brew+R)
+         :chunkmode 'pm-chunk/brew+R)
   "Brew + R configuration"
   :group 'polymode
   :type 'object)
@@ -121,7 +121,7 @@
     (cons (max 1 (1- end)) end)))
 
 (defcustom pm-config/R+C++
-  (clone pm-config/R "R+C++" :chunkmode-name 'pm-chunk/R+C++)
+  (clone pm-config/R "R+C++" :chunkmode 'pm-chunk/R+C++)
   "R + C++ configuration"
   :group 'polymode
   :type 'object)
@@ -155,7 +155,7 @@
     (cons (match-beginning 0) (match-end 0))))
 
 (defcustom pm-config/C++R
-  (clone pm-config/C++ "C++R" :chunkmode-name 'pm-chunk/C++R)
+  (clone pm-config/C++ "C++R" :chunkmode 'pm-chunk/C++R)
   "R + C++ configuration"
   :group 'polymode
   :type 'object)
@@ -177,7 +177,7 @@
 ;;; R help
 (defvar pm-config/ess-help+R
   (pm-config-one "ess-R-help"
-                 :chunkmode-name 'pm-chunk/ess-help+R)
+                 :chunkmode 'pm-chunk/ess-help+R)
   "ess-R-help")
 
 (defvar  pm-chunk/ess-help+R
@@ -207,7 +207,7 @@
 
 (defvar pm-config/Rd
   (pm-config-one "R-documentation"
-                 :chunkmode-name 'pm-chunk/Rd)
+                 :chunkmode 'pm-chunk/Rd)
   "R submode for Rd files")
 
 (defvar  pm-chunk/Rd

@@ -74,24 +74,24 @@ is in place at that time."
 ;; objects are defined in mode-specific files (e.g. poly-R.el, poly-markdown.el etc).
 (defcustom pm-config/brew
   (pm-config-one "brew"
-                 :basemode-name 'pm-base/text
-                 :chunkmode-name 'pm-chunk/fundamental)
+                 :basemode 'pm-base/text
+                 :chunkmode 'pm-chunk/fundamental)
   "Typical Brew configuration"
   :group 'polymode-configs
   :type 'object)
 
 (defcustom pm-config/html
   (pm-config-one "html"
-                 :basemode-name 'pm-base/html
-                 :chunkmode-name 'pm-chunk/fundamental)
+                 :basemode 'pm-base/html
+                 :chunkmode 'pm-chunk/fundamental)
   "HTML typical configuration"
   :group 'polymode-configs
   :type 'object)
 
 (defcustom pm-config/C++
   (pm-config-one "C++"
-                 :basemode-name 'pm-base/C++
-                 :chunkmode-name 'pm-chunk/fundamental)
+                 :basemode 'pm-base/C++
+                 :chunkmode 'pm-chunk/fundamental)
   "C++ typical configuration"
   :group 'polymode-configs
   :type 'object)

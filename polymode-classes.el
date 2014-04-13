@@ -6,16 +6,16 @@
 
 ;;; CONFIG
 (defclass pm-config (polymode) 
-  ((basemode-name
-    :initarg :basemode-name
+  ((basemode
+    :initarg :basemode
     :initform 'pm-base/blank
     :type symbol
     :custom symbol
     :documentation
     "Symbol pointing to an object of class pm-submode
     representing the base submode.")
-   (minor-mode-name
-    :initarg :minor-mode-name
+   (minor-mode
+    :initarg :minor-mode
     :initform 'polymode-minor-mode
     :type symbol
     :custom symbol
@@ -61,49 +61,47 @@
     "Current weaver name. If non-nil this is the default weaver
     for this polymode. Can be dynamically set with
     `polymode-set-weaver'")
-   (basemode
-    :initarg :basemode
-    :type (or null pm-submode)
-    :documentation
-    "Instantiated submode object of class `pm-submode'. Dynamically populated.")
-   (chunkmodes
-    :initarg :chunkmodes
-    :type list
-    :initform '()
-    :documentation
-    "List of submodes objects that inherit from `pm-chunkmode'. Dynamically populated.")
-   (buffers
-    :initarg :buffers
-    :initform '()
-    :type list
-    :documentation
-    "Holds all buffers associated with current buffer. Dynamically populated.")
    (map
     :initarg :map
     :initform 'polymode-mode-map
     :type (or symbol list)
-    "Has a similar role as the :keymap argument in `define-polymode'
-with the difference that this argument is inherited through
-cloning but :keymap argument is not. That is, child objects
-derived through clone will inherit the :map argument of its
-parents as follows. If :map is nil or an alist of keys, the
-parent is inspected for :map argument and the keys are
-merged. If :map is a symbol, it should be a keymap, in which case
-this keymap is used and no parents are further inspected for :map
-slot. If :map is an alist it should be suitable to be passed to
-`easy-mmode-define-keymap'.")
+    "Has a similar role as the :keymap argument in
+     `define-polymode' with the difference that this argument is
+     inherited through cloning but :keymap argument is not. That
+     is, child objects derived through clone will inherit
+     the :map argument of its parents as follows. If :map is nil
+     or an alist of keys, the parent is inspected for :map
+     argument and the keys are merged. If :map is a symbol, it
+     should be a keymap, in which case this keymap is used and no
+     parents are further inspected for :map slot. If :map is an
+     alist it should be suitable to be passed to
+     `easy-mmode-define-keymap'.")
    (init-functions
     :initarg :init-functions
     :initform '()
     :type list
     :documentation
     "List of functions to run at the initialization time.
-All init-functions in the inheritance chain are called. Parents
-hooks first. So, if current config object C inherits from object
-B, which in turn inherits from object A. Then A's init-functions
-are called first, then B's and then C's.
+     All init-functions in the inheritance chain are called. Parents
+     hooks first. So, if current config object C inherits from object
+     B, which in turn inherits from object A. Then A's init-functions
+     are called first, then B's and then C's.
 
-Either customize this slot or use `object-add-to-list' function.")
+     Either customize this slot or use `object-add-to-list' function.")
+   (-basemode
+    :type (or null pm-submode)
+    :documentation
+    "Instantiated submode object of class `pm-submode'. Dynamically populated.")
+   (-chunkmodes
+    :type list
+    :initform '()
+    :documentation
+    "List of submodes objects that inherit from `pm-chunkmode'. Dynamically populated.")
+   (-buffers
+    :initform '()
+    :type list
+    :documentation
+    "Holds all buffers associated with current buffer. Dynamically populated.")
    (-hist
     :initform '()
     :type list
@@ -117,44 +115,43 @@ of this class.")
 
 
 (defclass pm-config-one (pm-config)
-  ((chunkmode-name
-    :initarg :chunkmode-name
+  ((chunkmode
+    :initarg :chunkmode
     :type symbol
     :custom symbol
     :documentation
     "Symbol of the submode. At run time this object is cloned
-     and placed in :chunkmodes slot."))
+     and placed in -chunkmodes slot."))
   
   "Configuration for a simple polymode that allows only one
 submode. For example noweb.")
 
 
 (defclass pm-config-multi (pm-config)
-  ((chunkmode-names
-    :initarg :chunkmode-names
+  ((chunkmodes
+    :initarg :chunkmodes
     :type list
     :custom list
     :initform nil
     :documentation
     "List of names of the submode objects that are associated
      with this configuration. At initialization time, all of
-     these are cloned and plased in :chunkmodes slot."))
+     these are cloned and plased in -chunkmodes slot."))
   
   "Configuration for a polymode that allows multiple known in
 advance submodes.")
 
 
 (defclass pm-config-multi-auto (pm-config-multi)
-  ((auto-chunkmode-name
-    :initarg :auto-chunkmode-name
+  ((auto-chunkmode
+    :initarg :auto-chunkmode
     :type symbol
     :custom symbol
     :documentation
     "Name of pm-chunkmode-auto object (a symbol). At run time
-     this object is cloned and placed in :auto-chunkmodes with
+     this object is cloned and placed in -auto-chunkmodes with
      coresponding :mode slot initialized at run time.")
-   (auto-chunkmodes
-    :initarg :auto-chunkmodes
+   (-auto-chunkmodes
     :type list
     :initform '()
     :documentation

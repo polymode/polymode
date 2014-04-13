@@ -5,7 +5,7 @@
 ;;
 ;; pm/initialize in turn, assigns the config object to local pm/config and
 ;; initialize base-mode by running the actual base-mode function, cloning and
-;; setting pm/submode (held in :basemode-name slot of pm/config), setting
+;; setting pm/submode (held in :basemode slot of pm/config), setting
 ;; pm/type to 'base, running pm/config's :init-functions. Finally pm/initialize runs
 ;; pm--setup-buffer which is common for all buffers.
 ;;
@@ -20,7 +20,7 @@
 (defgeneric pm/initialize (config)
   "Initialize current buffer with CONFIG.
 
-First initialize the :basemode and :chunkmodes slots of
+First initialize the -basemode and -chunkmodes slots of
 CONFIG object ...
 
 Current buffer is setup as the base buffer.")
@@ -32,7 +32,7 @@ Current buffer is setup as the base buffer.")
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
   (unless pm/config
-    (let* ((submode (clone (symbol-value (oref config :basemode-name))
+    (let* ((submode (clone (symbol-value (oref config :basemode))
                            :buffer (current-buffer)))
            ;; set if nil, to allow unspecified base submodes to be used in minor modes
            (base-mode (or (oref submode :mode)
@@ -45,9 +45,9 @@ Current buffer is setup as the base buffer.")
       ;; 1)  not calling pm/install-buffer on base-buffer
       ;; But, we are not creating/installing a new buffer here .. so it is a
       ;; different thing .. and is probably ok
-      ;; 2)  not calling config's :minor-mode-name (polymode function).
+      ;; 2)  not calling config's :minor-mode (polymode function).
       ;; But polymode function calls pm/initialize... so I guess it is ok
-      (oset config :basemode submode)
+      (oset config -basemode submode)
       (setq pm/config config)
       (setq pm/submode submode)
       (setq pm/type 'base)
@@ -65,15 +65,15 @@ Current buffer is setup as the base buffer.")
   
 (defmethod pm/initialize ((config pm-config-one))
   (call-next-method)
-  (eval `(oset config :chunkmodes
-               (list (clone ,(oref config :chunkmode-name))))))
+  (eval `(oset config -chunkmodes
+               (list (clone ,(oref config :chunkmode))))))
 
 (defmethod pm/initialize ((config pm-config-multi))
   (call-next-method)
-  (oset config :chunkmodes
+  (oset config -chunkmodes
         (mapcar (lambda (sub-name)
                   (clone (symbol-value sub-name)))
-                (oref config :chunkmode-names))))
+                (oref config :chunkmodes))))
 
 
 
@@ -128,9 +128,9 @@ return an error."
 
 (defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
   (if (null (car span))
-      (pm/select-buffer (oref config :basemode) span)
+      (pm/select-buffer (oref config -basemode) span)
     (let ((type (car span))
-          (proto (symbol-value (oref config :auto-chunkmode-name)))
+          (proto (symbol-value (oref config :auto-chunkmode)))
           submode)
       (save-excursion
         (goto-char (cadr span))
@@ -141,12 +141,12 @@ return an error."
                         (error "retriever subexpression didn't match")))
                (name (concat "auto-chunkmode:" str)))
           (setq submode
-                (or (loop for obj in (oref config :auto-chunkmodes)
+                (or (loop for obj in (oref config -auto-chunkmodes)
                           when  (equal name (object-name-string obj))
                           return obj)
                     (let ((new-obj (clone proto name
                                           :mode (pm-get-mode-symbol-from-name str))))
-                      (object-add-to-list config :auto-chunkmodes new-obj)
+                      (object-add-to-list config -auto-chunkmodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))
 
@@ -176,7 +176,7 @@ slot :buffer of SUBMODE. Create this buffer if does not exist."
              (setq pm/submode submode)
              (setq pm/type type)
              (pm--setup-buffer)
-             (funcall (oref pm/config :minor-mode-name))
+             (funcall (oref pm/config :minor-mode))
              buff)))))
 
 
@@ -219,8 +219,8 @@ point."
     (save-restriction
       (widen)
       ;; fixme: base should be last, to take advantage of the submodes computation
-      (let* ((smodes (cons (oref config :basemode)
-                           (oref config :chunkmodes)))
+      (let* ((smodes (cons (oref config -basemode)
+                           (oref config -chunkmodes)))
              (start (point-min))
              (end (point-max))
              (pos (or pos (point)))
@@ -254,16 +254,16 @@ point."
           (error "Bad polymode selection: %s, %s"
                  (list start end) pos))
         (when (null (car span)) ; submodes can compute the base span by returning nil
-          (setcar (last span) (oref config :basemode)))
+          (setcar (last span) (oref config -basemode)))
         span)))
 
-;; No need for this one so far. Basic method iterates through :chunkmodes
+;; No need for this one so far. Basic method iterates through -chunkmodes
 ;; anyhow.
 ;; (defmethod pm/get-span ((config pm-config-multi) &optional pos))
 
 (defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
-        (proto (symbol-value (oref config :auto-chunkmode-name))))
+        (proto (symbol-value (oref config :auto-chunkmode))))
     (if (oref proto :head-reg)
         (let ((span (pm--span-at-point (oref proto :head-reg)
                                        (oref proto :tail-reg)

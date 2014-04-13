@@ -542,7 +542,7 @@ warnign."
       
       (when pm--dbg-hook
         (add-hook 'post-command-hook 'polymode-select-buffer nil t))
-      (object-add-to-list pm/config :buffers (current-buffer)))
+      (object-add-to-list pm/config '-buffers (current-buffer)))
     buff))
 
 (defvar pm--killed-once nil)
@@ -600,7 +600,7 @@ Return newlly created buffer."
 (make-variable-buffer-local 'polymode-major-mode)
 
 (defun pm--get-indirect-buffer-of-mode (mode)
-  (loop for bf in (oref pm/config :buffers)
+  (loop for bf in (oref pm/config -buffers)
         when (and (buffer-live-p bf)
                   (eq mode (buffer-local-value 'polymode-major-mode bf)))
         return bf))
@@ -680,7 +680,7 @@ Return newlly created buffer."
                     (or (eq tail-mode 'base)
                         (and (null tail-mode)
                              (eq head-mode 'base)))))
-           (oref (oref pm/config :basemode) :mode))
+           (oref (oref pm/config -basemode) :mode))
           ((eq type 'head)
            (oref obj :head-mode))
           ((eq type 'tail)
@@ -943,7 +943,7 @@ BODY contains code to be executed after the complete
            (let ((,last-message (current-message)))
              (unless pm/config ;; don't reinstall for time being
                (let ((config (clone ,config)))
-                 (oset config :minor-mode-name ',mode)
+                 (oset config :minor-mode ',mode)
                  (pm/initialize config)))
              ;; set our "minor" mode
              (setq ,mode t)

@@ -2,8 +2,8 @@
 
 (defcustom pm-config/markdown
   (pm-config-multi-auto "markdown"
-                        :basemode-name 'pm-base/markdown
-                        :auto-chunkmode-name 'pm-chunk/markdown
+                        :basemode 'pm-base/markdown
+                        :auto-chunkmode 'pm-chunk/markdown
                         :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown typical configuration"
   :group 'polymode-configs
