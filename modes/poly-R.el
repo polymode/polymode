@@ -5,7 +5,7 @@
                  :basemode 'pm-base/R
                  :chunkmode 'pm-chunk/fundamental)
   "HTML typical configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 ;; NOWEB
@@ -14,14 +14,14 @@
   (clone pm-config/noweb
          :chunkmode 'pm-chunk/noweb+R)
   "Noweb for R configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom pm-chunk/noweb+R
   (clone pm-chunk/noweb
          :mode 'R-mode)
   "Noweb for R"
-  :group 'polymode
+  :group 'polymode-chunkmodes
   :type 'object)
 
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
@@ -43,7 +43,7 @@
          :chunkmodes '(pm-chunk/brew+R
                        pm-chunk/rapport+YAML))
   "Rapport template configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom  pm-chunk/rapport+YAML
@@ -52,7 +52,7 @@
                 :head-reg "<!--head"
                 :tail-reg "head-->")
   "YAML header in Rapport files"
-  :group 'polymode
+  :group 'polymode-chunkmodes
   :type 'object)
 
 (define-polymode poly-rapport-mode pm-config/rapport nil)
@@ -65,7 +65,7 @@
 (defcustom pm-config/html+R
   (clone pm-config/html "html+R" :chunkmode 'pm-chunk/html+R)
   "HTML + R configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom  pm-chunk/html+R
@@ -74,7 +74,7 @@
                 :head-reg "<!--[ \t]*begin.rcode"
                 :tail-reg "end.rcode[ \t]*-->")
   "HTML KnitR submode."
-  :group 'polymode
+  :group 'polymode-chunkmodes
   :type 'object)
 
 (define-polymode poly-html+r-mode pm-config/html+R)
@@ -87,7 +87,7 @@
   (clone pm-config/brew "brew+R"
          :chunkmode 'pm-chunk/brew+R)
   "Brew + R configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom  pm-chunk/brew+R
@@ -96,7 +96,7 @@
                 :head-reg "<%[=%]?"
                 :tail-reg "[#=%=-]?%>")
   "Brew R chunk."
-  :group 'polymode
+  :group 'polymode-chunkmodes
   :type 'object)
 
 (define-polymode poly-brew+r-mode pm-config/brew+R)
@@ -123,7 +123,7 @@
 (defcustom pm-config/R+C++
   (clone pm-config/R "R+C++" :chunkmode 'pm-chunk/R+C++)
   "R + C++ configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom  pm-chunk/R+C++
@@ -134,7 +134,7 @@
                 :tail-reg 'pm--R+C++-tail-matcher
                 :font-lock-narrow nil)
   "HTML KnitR chunk."
-  :group 'polymode
+  :group 'polymode-chunkmodes
   :type 'object)
 
 (define-polymode poly-r+c++-mode pm-config/R+C++)
@@ -157,7 +157,7 @@
 (defcustom pm-config/C++R
   (clone pm-config/C++ "C++R" :chunkmode 'pm-chunk/C++R)
   "R + C++ configuration"
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (defcustom  pm-chunk/C++R
@@ -166,7 +166,7 @@
                 :head-reg 'pm--C++R-head-matcher
                 :tail-reg 'pm--C++R-tail-matcher)
   "HTML KnitR chunk."
-  :group 'polymode
+  :group 'polymode-configs
   :type 'object)
 
 (define-polymode poly-c++r-mode pm-config/C++R)
@@ -175,18 +175,22 @@
 
 
 ;;; R help
-(defvar pm-config/ess-help+R
+(defcustom pm-config/ess-help+R
   (pm-config-one "ess-R-help"
                  :chunkmode 'pm-chunk/ess-help+R)
-  "ess-R-help")
+  "ess-R-help"
+  :group 'polymode-configs
+  :type 'object)
 
-(defvar  pm-chunk/ess-help+R
+(defcustom  pm-chunk/ess-help+R
   (pm-chunkmode "ess-help+R"
                 :mode 'R-mode
                 :head-reg "^Examples:"
                 :tail-reg "\\'"
                 :indent-offset 5)
-  "Ess help R chunk")
+  "Ess help R chunk"
+  :group 'polymode-chunkmodes
+  :type 'object)
 
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
 (add-hook 'ess-help-mode-hook '(lambda ()
@@ -205,18 +209,22 @@
                  (buffer-end 1))))
     (cons (max 1 (- end 1)) end)))
 
-(defvar pm-config/Rd
+(defcustom pm-config/Rd
   (pm-config-one "R-documentation"
                  :chunkmode 'pm-chunk/Rd)
-  "R submode for Rd files")
+  "R submode for Rd files"
+  :group 'polymode-configs
+  :type 'object)
 
-(defvar  pm-chunk/Rd
+(defcustom pm-chunk/Rd
   (pm-chunkmode "R+C++"
                 :mode 'R-mode
                 :head-mode 'base
                 :head-reg 'pm--Rd-examples-head-matcher
                 :tail-reg 'pm--Rd-examples-tail-matcher)
-  "Rd examples chunk.")
+  "Rd examples chunk."
+  :group 'polymode-chunkmodes
+  :type 'object)
 
 (define-polymode poly-Rd-mode pm-config/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
