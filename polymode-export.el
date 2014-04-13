@@ -135,9 +135,9 @@
   "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
 When DEFAULT? is non-nil, also make EXPORTER the default exporter
 for each polymode in CONFIGS."
-  `(dolist (pm ,configs)
-     (object-add-to-list pm :exporters ,exporter)
-     (when ,default? (oset pm :exporter ,exporter))))
+  `(dolist (pm ',configs)
+     (object-add-to-list (symbol-value pm) :exporters ',exporter)
+     (when ,default? (oset (symbol-value pm) :exporter ',exporter))))
 
 (defun polymode-set-exporter ()
   (interactive)
@@ -222,4 +222,5 @@ that call a shell command"
                :function 'pm-default-export-function
                :sentinel 'pm-default-export-sentinel)
   "Pandoc exporter"
-  :group 'polymode-export)
+  :group 'polymode-export
+  :type 'object)
