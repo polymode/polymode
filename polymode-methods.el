@@ -146,7 +146,7 @@ return an error."
                           return obj)
                     (let ((new-obj (clone proto name
                                           :mode (pm-get-mode-symbol-from-name str))))
-                      (object-add-to-list config -auto-chunkmodes new-obj)
+                      (object-add-to-list config '-auto-chunkmodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))
 
