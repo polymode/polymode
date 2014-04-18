@@ -810,15 +810,17 @@ user interaction."
     (with-current-buffer buff
       (goto-char (point-min))
       (let ((case-fold-search t)
-            (ofile pm--output-file))
+            (ofile pm--output-file)
+            (ifile pm--input-buffer))
         (if (not (re-search-forward "error" nil 'no-error))
             (progn
-              (pop-to-buffer pm--input-buffer)
+              (bury-buffer)
+              (pop-to-buffer ifile)
               (when display?
                 (display-buffer (find-file-noselect ofile 'nowarn)))
-              buff)
+              ofile)
           (display-buffer (current-buffer))
-          (error "Bumps while %s: %s" message name))))))
+          (error "Bumps while %s (%s)" message name))))))
 
 
 ;;; DEFINE

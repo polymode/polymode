@@ -2,9 +2,11 @@
   "Polymode Weavers"
   :group 'polymode)
 
-(defcustom polymode-weaver-output-file-format "%s[weaved]"
+(defcustom polymode-weave-output-file-format "%s[weaved]"
   "Format of the weaved files.
-%s is substituted with the current file name sans extension.")
+%s is substituted with the current file name sans extension."
+  :group 'polymode-weave
+  :type 'string)
 
 (defclass pm-weaver (polymode)
   ((from-to
@@ -27,48 +29,63 @@
 	%o - replaced with the ouput file.")
    (function
     :initarg :function
-    :initform nil
-    :type (or null function)
+    :initform (lambda (command id)
+                (error "No weaving function declared for this weaver"))
+    :type (or symbol function)
     :documentation
     "Function to process the commmand. Must take 2 arguments
      COMMAND, ID. COMMAND is the 5th argument of :from spec with
      all the formats substituted. ID is the id of requested :from
-     spec.")
-   (sentinel
-    :initarg :sentinel
-    :initform nil
-    :type (or null function)
-    :documentation
-    "Optional sentinel function to be called by :function when a
-    shell call is involved."))
+     spec."))
   "Root weaver class.")
 
+(defclass pm-callback-weaver (pm-weaver)
+  ((callback
+    :initarg :callback
+    :initform (lambda (&optional rest)
+                (error "No callback defined for this weaver."))
+    :type (or symbol function)
+    :documentation
+    "Callback function to be called by :function when a shell
+    call is involved. There is no default callback."))
+  "Class to represent weavers that call processes spanned by
+  emacs. Callback should return the output file name.")
+
+(defclass pm-shell-weaver (pm-weaver)
+  ((function
+    :initform 'pm-default-shell-weave-function)
+   (sentinel
+    :initarg :sentinel
+    :initform 'pm-default-shell-weave-sentinel
+    :type (or symbol function)
+    :documentation
+    "Optional sentinel function to be called by :function when a
+    shell call is involved. Sentinel must return the output file
+    name."))
+  "Class to represent weavers that call external processes.")
 
 
-;; UI
-(defvar pm--weaver-hist nil)
-(defvar pm--weave:from-to-hist nil)
+;;; METHODS
+(defgeneric pm-weave (weaver &optional from-to)
+  "Weave current FILE with WEAVER.")
 
-(defun polymode-weave (&optional from-to)
-  "todo:"
-  (interactive "P")
-  (let* ((weaver (symbol-value (or (oref pm/config :weaver)
-                                   (polymode-set-weaver))))
-         (w:from-to (oref weaver :from-to))
+(defmethod pm-weave ((weaver pm-weaver) &optional from-to)
+  (let* ((w:from-to (oref weaver :from-to))
          (opts (mapcar (lambda (el)
-                         (propertize (format "%s (%s)" (nth 3 el) (nth 1 el))
-                                     :id (car el)))
-                       (oref weaver :from-to)))
+                         (propertize (format "%s" (nth 3 el)) :id (car el)))
+                       w:from-to))
          (wname (if (fboundp 'eieio--object-name)
                     (eieio--object-name weaver)
                   (aref weaver object-name)))
          (from-to
           (cond ((null from-to)
                  (let ((fname (file-name-nondirectory buffer-file-name))
-                       (hist-from-to (pm--get-hist :weave-from-to)))
+                       (hist-from-to (pm--get-hist :weave-from-to))
+                       (case-fold-search t))
                    (or (and hist-from-to
                             (get-text-property 0 :id  hist-from-to))
                        (car (cl-rassoc-if (lambda (el)
+                                            ;; (dbg (car el) fname)
                                             (string-match-p (car el) fname))
                                           w:from-to))
                        (let* ((prompt (format "No intpu-output spec for '%s'. Choose one: "
@@ -90,19 +107,31 @@
                  (if (assoc from-to w:from-to)
                      from-to
                    (error "Cannot find input-output spec '%s' in %s weaver" from-to wname)))
-                (t (error "'from-to' argument must be nil, universal argument or a string"))
-                ))
+                (t (error "'from-to' argument must be nil, universal argument or a string"))))
          (from-to-spec (assoc from-to w:from-to))
          (file (concat (format polymode-weave-output-file-format
                                (file-name-base buffer-file-name))
-                       "." (nth 2 to-spec)))
+                       "." (nth 2 from-to-spec)))
          (command (format-spec (nth 4 from-to-spec)
                                (list (cons ?i (file-name-nondirectory buffer-file-name))
                                      (cons ?o file)))))
     ;; compunicate with sentinel with local vars to avoid needless clutter
-    (set (make-local-variable 'pm--output-file) to-file)
+    (set (make-local-variable 'pm--output-file) file)
     (funcall (oref weaver :function) command from-to)))
 
+
+;; UI
+(defvar pm--weaver-hist nil)
+(defvar pm--weave:from-to-hist nil)
+
+(defun polymode-weave (&optional from-to)
+  "todo:
+See `pm-weave' generic.
+FROM-TO ignored as yet"
+  (interactive "P")
+  (let ((w (symbol-value (or (oref pm/config :weaver)
+                             (polymode-set-weaver)))))
+    (pm-weave w from-to)))
 
 (defmacro polymode-register-weaver (weaver default? &rest configs)
   "Add WEAVER to :weavers slot of all config objects in CONFIGS.
@@ -121,19 +150,20 @@ each polymode in CONFIGS."
                      (delete-dups (pm--oref-with-parents pm/config :weavers))
                      "pm-weaver/"))
          (sel (ido-completing-read "No default weaver. Choose one: " weavers nil t nil
-                                   'pm--weaver-hist (oref pm/config :weaver)))
+                                   'pm--weaver-hist (car pm--weaver-hist)))
          (out (intern (get-text-property 0 :orig sel))))
     (oset pm/config :weaver out)
     out))
 
 
+
 
 ;; UTILS
-(defun pm-default-weave-sentinel (process name)
+(defun pm-default-shell-weave-sentinel (process name)
   "Default weaver sentinel."
   (pm--run-command-sentinel process name t "weaving"))
 
-(defun pm-default-weave-function (command from to)
+(defun pm-default-shell-weave-function (command from-to)
   "Run weaving command interactively.
 Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all weavers
@@ -142,8 +172,5 @@ that call a shell command"
                    (oref (symbol-value (oref pm/config :weaver))
                          :sentinel)  
                    "*polymode weave*"
-                   (concat "weaveng " from "-->" to
-                           " with command:\n     " command "\n")))
-
-
-
+                   (concat "weaving " from-to " with command:\n     "
+                           command "\n")))

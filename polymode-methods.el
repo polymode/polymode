@@ -116,8 +116,8 @@ For this method to work correctly, SUBMODE's class should define
   (call-next-method)
   (pm--transfer-vars-from-base))
 
-(defun pm-get-mode-symbol-from-name (str)
-  "Default mode function guesser.
+(defun pm--get-mode-symbol-from-name (str)
+  "Gues and return mode function.
 Return major mode function constructed from STR by appending
 '-mode' if needed. If the constructed symbol is not a function
 return an error."
@@ -145,7 +145,7 @@ return an error."
                           when  (equal name (object-name-string obj))
                           return obj)
                     (let ((new-obj (clone proto name
-                                          :mode (pm-get-mode-symbol-from-name str))))
+                                          :mode (pm--get-mode-symbol-from-name str))))
                       (object-add-to-list config '-auto-chunkmodes new-obj)
                       new-obj)))))
       (pm/select-buffer submode span))))

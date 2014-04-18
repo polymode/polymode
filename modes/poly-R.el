@@ -233,15 +233,15 @@
 
 ;; R SHELL WEAVERS
 (defcustom pm-weaver/knitR
-  (pm-weaver "knitr"
+  (pm-shell-weaver "knitr"
             :from-to
-            '(("latex" "\\.\\(tex\\|rnw\\)^" "tex" "LaTeX" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-              ("html" "\\.x?html?^" "html" "HTML" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-              ("markdown" "\\.r?md^" "md" "Markdown" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+            '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("markdown" "\\.r?md\\'" "md" "Markdown" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
               ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-              ("brew" "\\.r?brew^" "brew" "Brew" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-              ("asciidoc" "\\.asciidoc^" "txt" "AsciiDoc" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-              ("textile" "\\.textile^" "textile" "Textile" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")))
+              ("brew" "\\.r?brew\\'" "brew" "Brew" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
+              ("textile" "\\.textile\\'" "textile" "Textile" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")))
   "Shell knitR weaver."
   :group 'polymode-weave
   :type 'object)
@@ -251,7 +251,10 @@
                           pm-config/rapport pm-config/html+R)
 
 (defcustom pm-weaver/Sweave
-  (pm-weaver "sweave" :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)^" "tex" "LaTeX" "R CMD Sweave %i")))
+  (pm-shell-weaver "sweave"
+                  :from-to
+                  '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'"
+                     "tex" "LaTeX" "R CMD Sweave %i --options=\"output='%o'\"")))
   "Shell 'Sweave' weaver."
   :group 'polymode-weave
   :type 'object)
@@ -265,32 +268,65 @@
 
 
 ;; R ESS WEAVERS
-(defcustom pm-weaver/ESS-knitR
-  (pm-weaver "ESS-knitR"
-             :from-to
-             '(("latex" "\\.\\(tex\\|rnw\\)^" "tex" "LaTeX" nil)
-               ("html" "\\.x?html?^" "html" "HTML" nil)
-               ("markdown" "\\.r?md^" "md" "Markdown" nil)
-               ("rst" "\\.rst" "rst" "ReStructuredText" nil)
-               ("brew" "\\.r?brew^" "brew" "Brew" nil)
-               ("asciidoc" "\\.asciidoc^" "txt" "AsciiDoc" nil)
-               ("textile" "\\.textile^" "textile" "Textile" nil)))
+(defcustom pm-weaver/knitR-ESS
+  (pm-callback-weaver "knitR-ESS"
+                      :from-to
+                      '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "library(knitr); knit('%i', output='%o')")
+                        ("html" "\\.x?html?\\'" "html" "HTML" "library(knitr); knit('%i', output='%o')")
+                        ("markdown" "\\.r?md\\'" "md" "Markdown" "library(knitr); knit('%i', output='%o')")
+                        ("rst" "\\.rst\\'" "rst" "ReStructuredText" "library(knitr); knit('%i', output='%o')")
+                        ("brew" "\\.r?brew\\'" "brew" "Brew" "library(knitr); knit('%i', output='%o')")
+                        ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "library(knitr); knit('%i', output='%o')")
+                        ("textile" "\\.textile\\'" "textile" "Textile" "library(knitr); knit('%i', output='%o')"))
+                      :function 'pm--run-command-in-ESS
+                      :callback 'pm--ESS-callback)
   "ESS knitR weaver."
   :group 'polymode-weave
   :type 'object)
 
-(polymode-register-weaver pm-weaver/ESS-knitR nil
+(polymode-register-weaver pm-weaver/knitR-ESS nil
                           pm-config/noweb+R pm-config/markdown
                           pm-config/rapport pm-config/html+R)
 
-(defcustom pm-weaver/ESS-Sweave
-  (pm-weaver "ESS-Sweave" :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)^" "tex" "LaTeX" nil)))
+(defcustom pm-weaver/Sweave-ESS
+  (pm-callback-weaver "ESS-Sweave"
+                      :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'" "tex"
+                                  "LaTeX" "Sweave('%i', output='%o')"))
+             :function 'pm--run-command-in-ESS
+             :callback 'pm--ESS-callback)
   "ESS 'Sweave' weaver."
   :group 'polymode-weave
   :type 'object)
 
-(polymode-register-weaver pm-weaver/ESS-Sweave nil
+(polymode-register-weaver pm-weaver/Sweave-ESS nil
                           pm-config/noweb+R)
 
+(declare-function ess-async-command nil)
+(declare-function ess-force-buffer-current nil)
+(declare-function ess-process-get nil)
+(declare-function ess-process-put nil)
+(declare-function comint-next-prompt nil)
+
+(defun pm--ESS-callback (proc string)
+  (let ((ofile (process-get proc 'pm-output-file)))
+   (with-current-buffer (process-buffer proc)
+     (when (string-match-p "Error\\(:\\| +in\\)" string)
+       (error "Errors durring weaving.")))
+   (display-buffer (find-file-noselect ofile 'nowarn))
+   ofile))
+
+(defun pm--run-command-in-ESS (command &optional from to)
+  (require 'ess)
+  (let ((ess-eval-visibly t)
+        ;; R specific, should change eventually
+        (ess-dialect "R")
+        (weaver (symbol-value (oref pm/config :weaver))))
+    (ess-force-buffer-current)
+    (ess-process-put 'pm-output-file pm--output-file)
+    (ess-process-put 'callbacks (list (oref weaver :callback)))
+    (ess-process-put 'interruptable? t)
+    (ess-process-put 'running-async? t)
+    ;; (dbg command)
+    (ess-eval-linewise command)))
 
 (provide 'poly-R)

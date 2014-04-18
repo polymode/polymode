@@ -4,7 +4,9 @@
 
 (defcustom polymode-exporter-output-file-format "%s[exported]"
   "Format of the exported files.
-%s is substituted with the current file name sans extension.")
+%s is substituted with the current file name sans extension."
+  :group 'polymode-export
+  :type 'string)
 
 (defclass pm-exporter (polymode)
   ((from
@@ -147,7 +149,7 @@ for each polymode in CONFIGS."
                      (delete-dups (pm--oref-with-parents pm/config :exporters))
                      "pm-exporter/"))
          (sel (ido-completing-read "No default exporter. Choose one: " exporters nil t nil
-                                   'pm--exporter-hist (oref pm/config :exporter)))
+                                   'pm--exporter-hist (car pm--exporter-hist)))
          (out (intern (get-text-property 0 :orig sel))))
     (oset pm/config :exporter out)
     out))
