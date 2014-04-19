@@ -986,6 +986,11 @@ BODY contains code to be executed after the complete
   (or (get-text-property beg 'chunkmode)
       (get-text-property beg 'chunkmode)))
 
+(defun pm--object-name (object)
+  (if (fboundp 'eieio--object-name)
+      (eieio--object-name object)
+    (aref object object-name)))
+
 
 ;;; FONT-LOCK
 ;; indulge elisp font-lock :) 

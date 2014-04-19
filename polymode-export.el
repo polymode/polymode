@@ -39,22 +39,64 @@
 	spec commmand.")
    (function
     :initarg :function
-    :initform nil
-    :type (or null function)
+    :initform (lambda (command from to)
+                (error "Function not defined for this exporter"))
+    :type (or symbol function)
     :documentation
     "Function to process the commmand. Must take 3 arguments
      COMMAND, FROM-ID and TO-ID. COMMAND is the 4th argument
      of :from spec with all the formats substituted. FROM-ID is
      the id of requested :from spec, TO-ID is the id of the :to
-     spec.")
+     spec."))
+  "Root exporter class.")
+
+(defclass pm-callback-exporter (pm-exporter)
+  ((callback
+    :initarg :callback
+    :initform (lambda (&optional rest)
+                (error "No callback defined for this exporter."))
+    :type (or symbol function)
+    :documentation
+    "Callback function to be called by :function when a shell
+    call is involved. There is no default callback."))
+  "Class to represent exporters that call processes spanned by
+  emacs. Callback should return the output file name.")
+
+(defclass pm-shell-exporter (pm-exporter)
+  ((function
+    :initform 'pm-default-shell-export-function)
    (sentinel
     :initarg :sentinel
-    :initform nil
-    :type (or null function)
+    :initform 'pm-default-export-sentinel
+    :type (or symbol function)
     :documentation
-    "Optional sentinel function to be called by :function when a
-    shell call is involved."))
-  "Root exporter class.")
+    "Sentinel function to be called by :function when a shell
+    call is involved. Sentinel should return the output file
+    name."))
+  "Class to represent exporters that call external processes.")
+
+
+;;; METHODS
+(defgeneric pm-export (exporter from to &optional ifile)
+  "Weave current FILE with EXPORTER.")
+
+(defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
+  (let ((from-spec (assoc from (oref exporter :from)))
+        (to-spec (assoc to (oref exporter :to)))
+        (ofile (concat (format polymode-exporter-output-file-format
+                               (file-name-base buffer-file-name))
+                       "." (nth 1 to-spec)))
+        (ifile (or ifile (file-name-nondirectory buffer-file-name)))
+        (command (format-spec (nth 3 from-spec)
+                              (list (cons ?i ifile)
+                                    (cons ?o ofile)
+                                    (cons ?t (nth 3 to-spec))))))
+    ;; compunicate with sentinel and callback with local vars in order to
+    ;; avoid needless clutter
+    ;; fixme: use -hist
+    (set (make-local-variable 'pm--output-file) ofile)
+    (set (make-local-variable 'pm--input-file) ifile)
+    (funcall (oref exporter :function) command from to)))
 
 
 ;; UI
@@ -64,8 +106,8 @@
 
 (defun polymode-export (&optional from to)
   "todo:"
-  ;; todo: '(16) should allow for edditing :from command
   (interactive "P")
+  ;; todo: '(16) should allow for edditing :from command
   (let* ((exporter (symbol-value (or (oref pm/config :exporter)
                                      (polymode-set-exporter))))
          (e:from (oref exporter :from))
@@ -85,7 +127,14 @@
                        (car (cl-rassoc-if (lambda (el)
                                             (string-match-p (car el) fname))
                                           e:from))
-                       (let* ((prompt (format "No input spec for '%s'. Choose one: "
+                       ;; guess from weaver
+                       (let ((weaver (symbol-value (or (oref pm/config :weaver)
+                                                       (polymode-set-weaver)))))
+                         (cl-loop for w in (oref weaver :from-to)
+                                  for e in e:from
+                                  if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
+                                  return (cons (car w) (car e))))
+                       (let* ((prompt (format "No exporter spec for '%s'. Choose one: "
                                               (file-name-extension fname)
                                               ;; object-name returns clutter like "#<pm-exporter pandoc>"
                                               ;; use internal implementation:
@@ -119,19 +168,11 @@
                  (if (assoc to e:to)
                      to
                    (error "Cannot find output spec '%s' in %s exporter" to (object-name exporter))))
-                (t (error "'to' argument must be nil or a string"))))
-         (from-spec (assoc from e:from))
-         (to-spec (assoc to e:to))
-         (to-file (concat (format polymode-exporter-output-file-format
-                                  (file-name-base buffer-file-name))
-                          "." (nth 1 to-spec)))
-         (command (format-spec (nth 3 from-spec)
-                               (list (cons ?i (file-name-nondirectory buffer-file-name))
-                                     (cons ?o to-file)
-                                     (cons ?t (nth 3 to-spec))))))
-    ;; compunicate with sentinel with local vars to avoid needless clutter
-    (set (make-local-variable 'pm--output-file) to-file)
-    (funcall (oref exporter :function) command from to)))
+                (t (error "'to' argument must be nil or a string")))))
+    (if (consp from)
+        ;; run through weaver
+        (pm-weave (oref pm/config :weaver) (car from) (cons from to))
+      (pm-export exporter from to))))
 
 (defmacro polymode-register-exporter (exporter default? &rest configs)
   "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
@@ -160,7 +201,7 @@ for each polymode in CONFIGS."
   "Default exporter sentinel."
   (pm--run-command-sentinel process name t "exporting"))
 
-(defun pm-default-export-function (command from to)
+(defun pm-default-shell-export-function (command from to)
   "Run exporting command interactively.
 Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters

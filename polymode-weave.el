@@ -59,24 +59,79 @@
     :initform 'pm-default-shell-weave-sentinel
     :type (or symbol function)
     :documentation
-    "Optional sentinel function to be called by :function when a
-    shell call is involved. Sentinel must return the output file
+    "Sentinel function to be called by :function when a shell
+    call is involved. Sentinel must return the output file
     name."))
   "Class to represent weavers that call external processes.")
 
 
 ;;; METHODS
-(defgeneric pm-weave (weaver &optional from-to)
-  "Weave current FILE with WEAVER.")
+(defgeneric pm-weave (weaver from-to &optional export ifile)
+  "Weave current FILE with WEAVER.
+EXPORT must be a list of the form (FROM TO) sutable for call of
+`polymode-export'. If EXPORT is provided corresponding
+exporter (from to) specification will be called.")
 
-(defmethod pm-weave ((weaver pm-weaver) &optional from-to)
-  (let* ((w:from-to (oref weaver :from-to))
+(defmethod pm-weave ((weaver pm-weaver) from-to &optional export ifile)
+  (let ((from-to-spec (assoc from-to (oref weaver :from-to))))
+    (if from-to-spec
+        (let* ((ofile (concat (format polymode-weave-output-file-format
+                                      (file-name-base buffer-file-name))
+                              "." (nth 2 from-to-spec)))
+               (ifile (or ifile
+                          (file-name-nondirectory buffer-file-name)))
+               (command (format-spec (nth 4 from-to-spec)
+                                     (list (cons ?i ifile)
+                                           (cons ?o ofile)))))
+          ;; compunicate with sentinel and callback with local vars in order to
+          ;; avoid needless clutter
+          (set (make-local-variable 'pm--output-file) ofile)
+          (set (make-local-variable 'pm--input-file) ifile)
+          (if export
+              (let ((wfile (funcall (oref weaver :function) command from-to)))
+                (pm-export (oref pm/config :exporter) (car export) (cdr export) wfile))
+            (funcall (oref weaver :function) command from-to)))
+      (error "from-to spec '%s' is not supported by weaver '%s'"
+             from-to (pm--object-name weaver)))))
+
+(defmacro pm--weave-and-export (slot)
+  `(if export
+       (let ((sentinel1 (oref weaver ,slot)))
+         (condition-case err
+             (let (sentinel2 `(lambda (proc name)
+                                (let ((wfile (funcall ,sentinel1 proc name)))
+                                  (pm-export (oref pm/config :exporter)
+                                             ,(car export) ,(cdr export)
+                                             wfile))))
+               (oset weaver ,slot sentinel2)
+               (call-next-method weaver from-to nil ifile))
+           (error (oset weaver ,slot sentinel1)
+                  (signal (car err) (cdr err))))
+         (oset weaver ,slot sentinel1))     
+     (call-next-method weaver from-to nil ifile)))
+
+(defmethod pm-weave ((weaver pm-shell-weaver) from-to &optional export ifile)
+  (pm--weave-and-export :sentinel))
+(defmethod pm-weave ((weaver pm-callback-weaver) from-to &optional export)
+  (pm--weave-and-export :callback))
+
+
+;; UI
+(defvar pm--weaver-hist nil)
+(defvar pm--weave:from-to-hist nil)
+
+(defun polymode-weave (&optional from-to)
+  "todo:
+See `pm-weave' generic.
+FROM-TO ignored as yet"
+  (interactive "P")
+  (let* ((weaver (symbol-value (or (oref pm/config :weaver)
+                                   (polymode-set-weaver))))
+         (w:from-to (oref weaver :from-to))
          (opts (mapcar (lambda (el)
                          (propertize (format "%s" (nth 3 el)) :id (car el)))
                        w:from-to))
-         (wname (if (fboundp 'eieio--object-name)
-                    (eieio--object-name weaver)
-                  (aref weaver object-name)))
+         (wname (pm--object-name weaver))
          (from-to
           (cond ((null from-to)
                  (let ((fname (file-name-nondirectory buffer-file-name))
@@ -107,31 +162,8 @@
                  (if (assoc from-to w:from-to)
                      from-to
                    (error "Cannot find input-output spec '%s' in %s weaver" from-to wname)))
-                (t (error "'from-to' argument must be nil, universal argument or a string"))))
-         (from-to-spec (assoc from-to w:from-to))
-         (file (concat (format polymode-weave-output-file-format
-                               (file-name-base buffer-file-name))
-                       "." (nth 2 from-to-spec)))
-         (command (format-spec (nth 4 from-to-spec)
-                               (list (cons ?i (file-name-nondirectory buffer-file-name))
-                                     (cons ?o file)))))
-    ;; compunicate with sentinel with local vars to avoid needless clutter
-    (set (make-local-variable 'pm--output-file) file)
-    (funcall (oref weaver :function) command from-to)))
-
-
-;; UI
-(defvar pm--weaver-hist nil)
-(defvar pm--weave:from-to-hist nil)
-
-(defun polymode-weave (&optional from-to)
-  "todo:
-See `pm-weave' generic.
-FROM-TO ignored as yet"
-  (interactive "P")
-  (let ((w (symbol-value (or (oref pm/config :weaver)
-                             (polymode-set-weaver)))))
-    (pm-weave w from-to)))
+                (t (error "'from-to' argument must be nil, universal argument or a string")))))
+    (pm-weave weaver from-to)))
 
 (defmacro polymode-register-weaver (weaver default? &rest configs)
   "Add WEAVER to :weavers slot of all config objects in CONFIGS.
@@ -154,7 +186,6 @@ each polymode in CONFIGS."
          (out (intern (get-text-property 0 :orig sel))))
     (oset pm/config :weaver out)
     out))
-
 
 
 
