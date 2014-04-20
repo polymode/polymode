@@ -216,7 +216,7 @@ that call a shell command"
 
 ;;; GLOBAL EXPORTERS
 (defcustom pm-exporter/pandoc
-  (pm-exporter "pandoc"
+  (pm-shell-exporter "pandoc"
                :from
                '(;; ("json"	"\\.json\\'" "JSON native AST"	"pandoc %i -f json -t %t -o %o")
                  ("markdown"	"\\.md\\'" "pandoc's markdown" 	"pandoc %i -f markdown -t %t -o %o")
