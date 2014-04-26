@@ -87,33 +87,42 @@ exporter (from to) specification will be called.")
           ;; avoid needless clutter
           (set (make-local-variable 'pm--output-file) ofile)
           (set (make-local-variable 'pm--input-file) ifile)
-          (if export
-              (let ((wfile (funcall (oref weaver :function) command from-to)))
-                (pm-export (oref pm/config :exporter) (car export) (cdr export) wfile))
-            (funcall (oref weaver :function) command from-to)))
+          (let ((wfile (funcall (oref weaver :function) command from-to)))
+            (if export    
+                (pm-export (symbol-value (oref pm/config :exporter))
+                           (car export) (cdr export) wfile)
+              (and wfile (pm--display-file wfile)))))
       (error "from-to spec '%s' is not supported by weaver '%s'"
              from-to (pm--object-name weaver)))))
 
-(defmacro pm--weave-and-export (slot)
-  `(if export
-       (let ((sentinel1 (oref weaver ,slot)))
-         (condition-case err
-             (let (sentinel2 `(lambda (proc name)
-                                (let ((wfile (funcall ,sentinel1 proc name)))
-                                  (pm-export (oref pm/config :exporter)
+(defun pm--display-file (ofile)
+  (display-buffer (find-file-noselect ofile 'nowarn)))
+
+(defmacro pm--weave-wrap-callback (slot)
+  ;; replace weaver :sentinel or :callback temporally in order to export as a
+  ;; followup step or display the result
+  `(let ((sentinel1 (oref weaver ,slot)))
+    (condition-case err
+        (let ((sentinel2 (if export
+                             `(lambda (proc name)
+                                (let ((wfile (,sentinel1 proc name)))
+                                  (pm-export (symbol-value (oref pm/config :exporter))
                                              ,(car export) ,(cdr export)
-                                             wfile))))
-               (oset weaver ,slot sentinel2)
-               (call-next-method weaver from-to nil ifile))
-           (error (oset weaver ,slot sentinel1)
-                  (signal (car err) (cdr err))))
-         (oset weaver ,slot sentinel1))     
-     (call-next-method weaver from-to nil ifile)))
+                                             wfile)))
+                           `(lambda (proc name)
+                              (let ((wfile (,sentinel1 proc name)))
+                                (pm--display-file wfile))))))
+          (oset weaver ,slot sentinel2)
+          (call-next-method weaver from-to export ifile))
+      (error (oset weaver ,slot sentinel1)
+             (signal (car err) (cdr err))))
+    (oset weaver ,slot sentinel1)))
 
 (defmethod pm-weave ((weaver pm-shell-weaver) from-to &optional export ifile)
-  (pm--weave-and-export :sentinel))
-(defmethod pm-weave ((weaver pm-callback-weaver) from-to &optional export)
-  (pm--weave-and-export :callback))
+  (pm--weave-wrap-callback :sentinel))
+
+(defmethod pm-weave ((weaver pm-callback-weaver) from-to &optional export ifile)
+  (pm--weave-wrap-callback :callback))
 
 
 ;; UI
@@ -192,7 +201,7 @@ each polymode in CONFIGS."
 ;; UTILS
 (defun pm-default-shell-weave-sentinel (process name)
   "Default weaver sentinel."
-  (pm--run-command-sentinel process name t "weaving"))
+  (pm--run-command-sentinel process name "weaving"))
 
 (defun pm-default-shell-weave-function (command from-to)
   "Run weaving command interactively.

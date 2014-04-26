@@ -312,7 +312,6 @@
    (with-current-buffer (process-buffer proc)
      (when (string-match-p "Error\\(:\\| +in\\)" string)
        (error "Errors durring weaving.")))
-   (display-buffer (find-file-noselect ofile 'nowarn))
    ofile))
 
 (defun pm--run-command-in-ESS (command &optional from to)
@@ -326,7 +325,6 @@
     (ess-process-put 'callbacks (list (oref weaver :callback)))
     (ess-process-put 'interruptable? t)
     (ess-process-put 'running-async? t)
-    ;; (dbg command)
     (ess-eval-linewise command)))
 
 (provide 'poly-R)

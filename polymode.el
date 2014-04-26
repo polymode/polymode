@@ -803,11 +803,16 @@ user interaction."
       (set (make-local-variable 'pm--output-file) ofile)
       (set (make-local-variable 'pm--input-buffer) command-buff)
       (set-marker (process-mark process) (point-max)))
-    (pop-to-buffer buffer)))
+    ;; fixme: pop only after a timeout? or never?
+    (pop-to-buffer buffer)
+    nil))
 
-(defun pm--run-command-sentinel (process name display? message)
+
+(defun pm--run-command-sentinel (process name message)
   (let ((buff (process-buffer process)))
     (with-current-buffer buff
+      ;; fixme: remove this later
+      (sit-for 1)
       (goto-char (point-min))
       (let ((case-fold-search t)
             (ofile pm--output-file)
@@ -816,8 +821,6 @@ user interaction."
             (progn
               (bury-buffer)
               (pop-to-buffer ifile)
-              (when display?
-                (display-buffer (find-file-noselect ofile 'nowarn)))
               ofile)
           (display-buffer (current-buffer))
           (error "Bumps while %s (%s)" message name))))))

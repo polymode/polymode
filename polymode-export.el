@@ -81,22 +81,46 @@
   "Weave current FILE with EXPORTER.")
 
 (defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
-  (let ((from-spec (assoc from (oref exporter :from)))
-        (to-spec (assoc to (oref exporter :to)))
-        (ofile (concat (format polymode-exporter-output-file-format
-                               (file-name-base buffer-file-name))
-                       "." (nth 1 to-spec)))
-        (ifile (or ifile (file-name-nondirectory buffer-file-name)))
-        (command (format-spec (nth 3 from-spec)
-                              (list (cons ?i ifile)
-                                    (cons ?o ofile)
-                                    (cons ?t (nth 3 to-spec))))))
+  (let* ((from-spec (assoc from (oref exporter :from)))
+         (to-spec (assoc to (oref exporter :to)))
+         (ofile (concat (format polymode-exporter-output-file-format
+                                (file-name-base buffer-file-name))
+                        "." (nth 1 to-spec)))
+         (ifile (or ifile (file-name-nondirectory buffer-file-name)))
+         (command (format-spec (nth 3 from-spec)
+                               (list (cons ?i ifile)
+                                     (cons ?o ofile)
+                                     (cons ?t (nth 3 to-spec))))))
+    (unless to-spec
+      (error "'to' spec %s is not defined for this exporter '%s'"
+             to (pm--object-name exporter)))
     ;; compunicate with sentinel and callback with local vars in order to
     ;; avoid needless clutter
     ;; fixme: use -hist
     (set (make-local-variable 'pm--output-file) ofile)
     (set (make-local-variable 'pm--input-file) ifile)
-    (funcall (oref exporter :function) command from to)))
+    (let ((ofile  (funcall (oref exporter :function) command from to)))
+      (and ofile (stringp ofile) (pm--display-file ofile)))))
+
+(defmacro pm--export-wrap-callback (slot)
+  ;; replace exporter's :sentinel or :callback temporally in order to display
+  ;; the output buffer
+  `(let ((sentinel1 (oref exporter ,slot)))
+     (condition-case err
+         (let ((sentinel2 `(lambda (proc name)
+                             (let ((efile (,sentinel1 proc name)))
+                               (pm--display-file efile)))))
+           (oset exporter ,slot sentinel2)
+           (call-next-method exporter from to ifile))
+       (error (oset exporter ,slot sentinel1)
+              (signal (car err) (cdr err))))
+     (oset exporter ,slot sentinel1)))
+
+(defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
+  (pm--export-wrap-callback :callback))
+
+(defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
+  (pm--export-wrap-callback :sentinel))
 
 
 ;; UI
@@ -127,7 +151,7 @@
                        (car (cl-rassoc-if (lambda (el)
                                             (string-match-p (car el) fname))
                                           e:from))
-                       ;; guess from weaver
+                       ;; guess from weaver and return a cons of (weaver-id . exporter-id)
                        (let ((weaver (symbol-value (or (oref pm/config :weaver)
                                                        (polymode-set-weaver)))))
                          (cl-loop for w in (oref weaver :from-to)
@@ -171,7 +195,7 @@
                 (t (error "'to' argument must be nil or a string")))))
     (if (consp from)
         ;; run through weaver
-        (pm-weave (oref pm/config :weaver) (car from) (cons from to))
+        (pm-weave (symbol-value (oref pm/config :weaver)) (car from) (cons (cdr from) to))
       (pm-export exporter from to))))
 
 (defmacro polymode-register-exporter (exporter default? &rest configs)
@@ -199,7 +223,7 @@ for each polymode in CONFIGS."
 ;;; UTILS
 (defun pm-default-export-sentinel (process name)
   "Default exporter sentinel."
-  (pm--run-command-sentinel process name t "exporting"))
+  (pm--run-command-sentinel process name "exporting"))
 
 (defun pm-default-shell-export-function (command from to)
   "Run exporting command interactively.
@@ -207,8 +231,7 @@ Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
 that call a shell command"
   (pm--run-command command
-                   (oref (symbol-value (oref pm/config :exporter))
-                         :sentinel)  
+                   (oref (symbol-value (oref pm/config :exporter)) :sentinel)  
                    "*polymode export*"
                    (concat "Exporting " from "-->" to
                            " with command:\n     " command "\n")))
@@ -262,7 +285,7 @@ that call a shell command"
                  ("s5"  	"html"  "S5 HTML slide show" "s5")
                  ("rtf"  	"rtf"  "rich text format" "rtf")
                  )
-               :function 'pm-default-export-function
+               :function 'pm-default-shell-export-function
                :sentinel 'pm-default-export-sentinel)
   "Pandoc exporter"
   :group 'polymode-export
