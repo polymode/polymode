@@ -83,10 +83,10 @@
 (defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
   (let* ((from-spec (assoc from (oref exporter :from)))
          (to-spec (assoc to (oref exporter :to)))
-         (ofile (concat (format polymode-exporter-output-file-format
-                                (file-name-base buffer-file-name))
-                        "." (nth 1 to-spec)))
          (ifile (or ifile (file-name-nondirectory buffer-file-name)))
+         (ofile (concat (format polymode-exporter-output-file-format
+                                (file-name-base ifile))
+                        "." (nth 1 to-spec)))
          (command (format-spec (nth 3 from-spec)
                                (list (cons ?i ifile)
                                      (cons ?o ofile)
@@ -109,7 +109,8 @@
      (condition-case err
          (let ((sentinel2 `(lambda (proc name)
                              (let ((efile (,sentinel1 proc name)))
-                               (pm--display-file efile)))))
+                               (pm--display-file efile)
+                               efile))))
            (oset exporter ,slot sentinel2)
            (call-next-method exporter from to ifile))
        (error (oset exporter ,slot sentinel1)
@@ -145,7 +146,8 @@
                           (oref exporter :to)))
          (from
           (cond ((null from)
-                 (let ((fname (file-name-nondirectory buffer-file-name)))
+                 (let ((fname (file-name-nondirectory buffer-file-name))
+                       (case-fold-search  t))
                    (or (and (pm--get-hist :export-from)
                             (get-text-property 0 :id (pm--get-hist :export-from)))
                        (car (cl-rassoc-if (lambda (el)
@@ -155,10 +157,13 @@
                        (let ((weaver (symbol-value (or (oref pm/config :weaver)
                                                        (polymode-set-weaver)))))
                          (cl-loop for w in (oref weaver :from-to)
-                                  for e in e:from
-                                  if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
-                                  return (cons (car w) (car e))))
-                       (let* ((prompt (format "No exporter spec for '%s'. Choose one: "
+                                  ;; weaver intput extension matches the filename
+                                  if (string-match-p (nth 1 w) fname) 
+                                  return (cl-loop for e in e:from
+                                                  ;; input exporter extensnion matches weaver output extension
+                                                  if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
+                                                  return (cons (car w) (car e)))))
+                       (let* ((prompt (format "No matching input spec for exporter '%s'. Choose one: "
                                               (file-name-extension fname)
                                               ;; object-name returns clutter like "#<pm-exporter pandoc>"
                                               ;; use internal implementation:
@@ -184,7 +189,7 @@
                 ))
          (to
           (cond ((null to)
-                 (let ((sel (ido-completing-read "Choose output spec: " to-opts nil t nil
+                 (let ((sel (ido-completing-read "Export to: " to-opts nil t nil
                                                  'pm--export:to-hist (pm--get-hist :export-to))))
                    (pm--put-hist :export-to sel)
                    (get-text-property 1 :id sel)))

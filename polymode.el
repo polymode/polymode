@@ -803,8 +803,6 @@ user interaction."
       (set (make-local-variable 'pm--output-file) ofile)
       (set (make-local-variable 'pm--input-buffer) command-buff)
       (set-marker (process-mark process) (point-max)))
-    ;; fixme: pop only after a timeout? or never?
-    (pop-to-buffer buffer)
     nil))
 
 
@@ -814,14 +812,9 @@ user interaction."
       ;; fixme: remove this later
       (sit-for 1)
       (goto-char (point-min))
-      (let ((case-fold-search t)
-            (ofile pm--output-file)
-            (ifile pm--input-buffer))
+      (let ((case-fold-search t))
         (if (not (re-search-forward "error" nil 'no-error))
-            (progn
-              (bury-buffer)
-              (pop-to-buffer ifile)
-              ofile)
+            pm--output-file
           (display-buffer (current-buffer))
           (error "Bumps while %s (%s)" message name))))))
 

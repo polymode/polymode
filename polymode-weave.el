@@ -88,10 +88,14 @@ exporter (from to) specification will be called.")
           (set (make-local-variable 'pm--output-file) ofile)
           (set (make-local-variable 'pm--input-file) ifile)
           (let ((wfile (funcall (oref weaver :function) command from-to)))
-            (if export    
-                (pm-export (symbol-value (oref pm/config :exporter))
-                           (car export) (cdr export) wfile)
-              (and wfile (pm--display-file wfile)))))
+            (when wfile 
+              (if export    
+                  (pm-export (symbol-value (oref pm/config :exporter))
+                             (car export) (cdr export) wfile)
+                ;; display the file only when the worker returns the
+                ;; file. Sentinel and callback based weavers return nil.
+                (pm--display-file wfile)
+                wfile))))
       (error "from-to spec '%s' is not supported by weaver '%s'"
              from-to (pm--object-name weaver)))))
 
@@ -106,14 +110,17 @@ exporter (from to) specification will be called.")
         (let ((sentinel2 (if export
                              `(lambda (proc name)
                                 (let ((wfile (,sentinel1 proc name)))
-                                  (pm-export (symbol-value (oref pm/config :exporter))
+                                  ;;; we don't return file here, kinda okward
+                                  (pm-export (symbol-value ',(oref pm/config :exporter))
                                              ,(car export) ,(cdr export)
                                              wfile)))
                            `(lambda (proc name)
                               (let ((wfile (,sentinel1 proc name)))
-                                (pm--display-file wfile))))))
+                                (pm--display-file wfile)
+                                wfile)))))
           (oset weaver ,slot sentinel2)
-          (call-next-method weaver from-to export ifile))
+          ;; don't pass EXPORT argument! exporter is called  sentinel 
+          (call-next-method weaver from-to nil ifile))
       (error (oset weaver ,slot sentinel1)
              (signal (car err) (cdr err))))
     (oset weaver ,slot sentinel1)))
@@ -152,7 +159,7 @@ FROM-TO ignored as yet"
                                             ;; (dbg (car el) fname)
                                             (string-match-p (car el) fname))
                                           w:from-to))
-                       (let* ((prompt (format "No intpu-output spec for '%s'. Choose one: "
+                       (let* ((prompt (format "No intpu-output spec for weaver '%s'. Choose one: "
                                               (file-name-extension fname)
                                               wname))
                               (sel (ido-completing-read prompt opts nil t nil
