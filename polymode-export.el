@@ -25,6 +25,7 @@
 
 	%i - replaced with the input file
 	%o - replaced with the ouput file
+        %O - replaced with the base output file name (no dir, no extension)
 	%t - replaced with the 4th element of the :to spec.
      ")
    (to
@@ -90,6 +91,7 @@
          (command (format-spec (nth 3 from-spec)
                                (list (cons ?i ifile)
                                      (cons ?o ofile)
+                                     (cons ?O (file-name-base ofile))
                                      (cons ?t (nth 3 to-spec))))))
     (unless to-spec
       (error "'to' spec %s is not defined for this exporter '%s'"
@@ -99,6 +101,8 @@
     ;; fixme: use -hist
     (set (make-local-variable 'pm--output-file) ofile)
     (set (make-local-variable 'pm--input-file) ifile)
+    (message "Exporting '%s' with '%s' exporter ..."
+             (file-name-nondirectory ifile) (pm--object-name exporter))
     (let ((ofile  (funcall (oref exporter :function) command from to)))
       (and ofile (stringp ofile) (pm--display-file ofile)))))
 
@@ -130,11 +134,27 @@
 (defvar pm--export:to-hist nil)
 
 (defun polymode-export (&optional from to)
-  "todo:"
+  "Export current file.
+
+FROM and TO are the from-id and to-id in the definition of the
+current exporter. If current exporter hasn't been set yet, call
+`polymode-set-exporter' before exporting.
+
+If called interactively with C-u argument, ask for the FROM type
+interactively, otherwise FROM and TO are determined automatically
+from the current exporter specification and current file
+extension.  See `pm-exporter' for the precise specification.
+
+If called interactively with C-u C-u argument, set new exporter
+first with `polymode-set-exporter'."
   (interactive "P")
   ;; todo: '(16) should allow for edditing :from command
-  (let* ((exporter (symbol-value (or (oref pm/config :exporter)
-                                     (polymode-set-exporter))))
+  (let* ((exporter (symbol-value
+                    (if (equal from '(16))
+                        (polymode-set-exporter)
+                      (or (oref pm/config :exporter)
+                          (polymode-set-exporter)))))
+         (fname (file-name-nondirectory buffer-file-name))
          (e:from (oref exporter :from))
          (e:to (oref exporter :to))
          (from-opts (mapcar (lambda (el)
@@ -145,9 +165,8 @@
                                         :id (car el)))
                           (oref exporter :to)))
          (from
-          (cond ((null from)
-                 (let ((fname (file-name-nondirectory buffer-file-name))
-                       (case-fold-search  t))
+          (cond ((or (null from) (equal from '(16)))
+                 (let ((case-fold-search  t))
                    (or (and (pm--get-hist :export-from)
                             (get-text-property 0 :id (pm--get-hist :export-from)))
                        (car (cl-rassoc-if (lambda (el)
@@ -295,3 +314,5 @@ that call a shell command"
   "Pandoc exporter"
   :group 'polymode-export
   :type 'object)
+
+

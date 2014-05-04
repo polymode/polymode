@@ -27,7 +27,6 @@
 \tableofcontents
 
 <<echo=FALSE>>=
-knitrSet()
 require(rms)
 @
 

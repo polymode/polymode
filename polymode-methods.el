@@ -506,5 +506,3 @@ to indent."
 ;;     (message "%s" span)))
 
               
-
-(provide 'polymode-methods)

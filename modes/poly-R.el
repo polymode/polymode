@@ -1,3 +1,34 @@
+;;; poly-R.el --- Popymodes for R
+;;
+;; Filename: poly-R.el
+;; Author: Spinu Vitalie
+;; Maintainer: Spinu Vitalie
+;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
+;; Version: 1.0
+;; URL: https://github.com/vitoshka/polymode
+;; Keywords: emacs
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (require 'poly-base)
 
 (defcustom pm-config/R
@@ -24,16 +55,15 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
-(add-to-list 'auto-mode-alist '("\\.Snw" . poly-noweb+r-mode))
-(add-to-list 'auto-mode-alist '("\\.Rnw" . poly-noweb+r-mode))
 
 
 
 ;; MARKDOWN
 (require 'poly-markdown)
+;;;###autoload
 (define-polymode poly-markdown+r-mode pm-config/markdown :lighter " Rmd")
-(add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
 
 
 
@@ -55,9 +85,10 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-(define-polymode poly-rapport-mode pm-config/rapport nil)
 
-(add-to-list 'auto-mode-alist '("\\.rapport" . poly-rapport-mode))
+
+;;;###autoload
+(define-polymode poly-rapport-mode pm-config/rapport nil)
 
 
 
@@ -77,8 +108,8 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-html+r-mode pm-config/html+R)
-(add-to-list 'auto-mode-alist '("\\.Rhtml" . poly-html+r-mode))
 
 
 
@@ -99,9 +130,8 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-brew+r-mode pm-config/brew+R)
-(add-to-list 'auto-mode-alist '("\\.Rbrew" . poly-brew+r-mode))
-
 
 
 
@@ -137,8 +167,8 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-r+c++-mode pm-config/R+C++)
-(add-to-list 'auto-mode-alist '("\\.Rcpp" . poly-r+c++-mode))
 
 
 
@@ -169,8 +199,8 @@
   :group 'polymode-configs
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-c++r-mode pm-config/C++R)
-(add-to-list 'auto-mode-alist '("\\.cppR" . poly-c++r-mode))
 
 
 
@@ -192,6 +222,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
 (add-hook 'ess-help-mode-hook '(lambda ()
                                  (when (string= ess-dialect "R")
@@ -226,6 +257,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
+;;;###autoload
 (define-polymode poly-Rd-mode pm-config/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
 

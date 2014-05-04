@@ -26,7 +26,8 @@
      weaving. COMMMAND is the actual weaver specific command. It can
      contain the following format specs:
 	%i - replaced with the input file
-	%o - replaced with the ouput file.")
+	%o - replaced with the ouput file.
+        %O - replaced with the base output file name (no dir, no extension)")
    (function
     :initarg :function
     :initform (lambda (command id)
@@ -82,11 +83,14 @@ exporter (from to) specification will be called.")
                           (file-name-nondirectory buffer-file-name)))
                (command (format-spec (nth 4 from-to-spec)
                                      (list (cons ?i ifile)
+                                           (cons ?O (file-name-base ofile))
                                            (cons ?o ofile)))))
           ;; compunicate with sentinel and callback with local vars in order to
           ;; avoid needless clutter
           (set (make-local-variable 'pm--output-file) ofile)
           (set (make-local-variable 'pm--input-file) ifile)
+          (message "Weaving '%s' with '%s' weaver ..."
+                   (file-name-nondirectory ifile) (pm--object-name weaver))
           (let ((wfile (funcall (oref weaver :function) command from-to)))
             (when wfile 
               (if export    
@@ -119,7 +123,7 @@ exporter (from to) specification will be called.")
                                 (pm--display-file wfile)
                                 wfile)))))
           (oset weaver ,slot sentinel2)
-          ;; don't pass EXPORT argument! exporter is called  sentinel 
+          ;; don't pass EXPORT argument, it is called from sentinel 
           (call-next-method weaver from-to nil ifile))
       (error (oset weaver ,slot sentinel1)
              (signal (car err) (cdr err))))

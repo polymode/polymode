@@ -1,4 +1,3 @@
-
 ## Overview
 
 Polymode is an emacs package that offers support for multiple major modes inside
@@ -49,12 +48,21 @@ with emacs usual conventions.
 
 There are two main ways to activate emacs mode. 
 
-   1. _By registering a file extension_. Some of the file extensions are already
-defined for you "Rmd", "Snw", "Rcpp", "cppR", "Rhtml" etc. You can find some
-examples in `tests` sub-directory. Of course you can always set your own
-extensions by adding them to `auto-mode-alist`.
+   1. _By registering a file extension_ by adding the to `auto-mode-alist`. Have
+      a look at [polymode-configuration.el](polymode-configuration.el) and pick
+      the once you are using. Example are:
 
-   1. By setting local mode variable in you file. This is how you would activate C++R mode:
+    ```lisp
+    ;;; MARKDOWN
+    (add-to-list 'auto-mode-alist '("\\.md" . poly-markdown-mode))
+
+    ;;; R related modes
+    (add-to-list 'auto-mode-alist '("\\.Snw" . poly-noweb+r-mode))
+    (add-to-list 'auto-mode-alist '("\\.Rnw" . poly-noweb+r-mode))
+    (add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
+    ```
+
+   1. _By setting local mode variable in you file_:
    
    ```c++
    // -*- mode: poly-C++R -*-
@@ -64,30 +72,18 @@ extensions by adding them to `auto-mode-alist`.
    ## -*- mode: poly-brew+R; -*-
    ```
 
-
-<!-- ## Naming conventions  -->
-
-<!-- The core polymode object and modes are usually named as "engine+submode", or -->
-<!-- "base_mode+submode" like "noweb+R", "markdown+R", "C++R" and "R++C".  -->
-
-<!-- todo: more to come on this ... need to define object hierarchy for the full story. -->
-
-
 ## Warning
 
-   * Tested with Emacs 24.3.1 and unlikely to work with Emacses older
-     than 24.2 because of the heavy use of pattern matching and eieio.
-   
+  * Tested with Emacs 24.3.1
+  * Does not work in emacs devel. They removed jit-lock from indirect buffers
+    recenly. I am looking for workarounds.
+
+
 Some things still don't work as expected. For example:
     
    * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
    * Customization interface is not working as expected (an eieio bug) and is
      not tested. 
-   * No literate programming backends (in the sense of weavers, tanglers and
-     exporters).
-   * Occasional problems with font-lock. Messages like `Error during
-     redisplay: (jit-lock-function 163) signaled (args-out-of-range 1
-     142)` are posible.
 
 ## Developing with Polymode
 

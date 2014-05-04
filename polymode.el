@@ -1,5 +1,44 @@
-;;; polymode.el --- support for multiple major modes
-;; Author: Vitalie Spinu
+;;; polymode.el --- Versatile multiple modes mode with extensive literate programming support 
+;;
+;; Filename: polymode.el
+;; Author: Spinu Vitalie
+;; Maintainer: Spinu Vitalie
+;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
+;; Version: 1.0
+;; Package-Requires: ((markdown-mode "2.0") (emacs "24"))
+;; URL: https://github.com/vitoshka/polymode
+;; Keywords: emacs
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;  Extensible, very fast, objected oriented multimode specifically designed for
+;;  literate programming. Provides support for weaving, tangling and export.
+;; 
+;;   See https://github.com/vitoshka/polymode for usage and
+;;   https://github.com/vitoshka/polymode/development.md for how to create your
+;;   own modes.
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; todo:
 ;; See: http://www.russet.org.uk/blog/2979
@@ -79,6 +118,7 @@ Not effective after loading the polymode library."
         (define-key map "W" 'polymode-set-weaver)
         (define-key map "t" 'polymode-tangle)
         (define-key map "T" 'polymode-set-tangler)
+        (define-key map "$" 'polymode-show-process-buffer)
         ;; todo: add polymode-goto-process-buffer
 	map))
     (define-key map [menu-bar Polymode]
@@ -780,6 +820,17 @@ Return newlly created buffer."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
+(defvar-local pm--process-buffer nil)
+
+(defun polymode-show-process-buffer ()
+  (interactive)
+  (let ((buf (cl-loop for b being the buffers
+                      if (buffer-local-value 'pm--process-buffer b)
+                      return b)))
+    (if buf
+        (pop-to-buffer buf)
+      (message "No polymode process buffers found."))))
+
 (defun pm--run-command (command sentinel buff-name message)
   "Run command interactively.
 Run command in a buffer (in comint-shell-mode) so that it accepts
@@ -791,6 +842,7 @@ user interaction."
          (command-buff (current-buffer))
          (ofile pm--output-file))
     (with-current-buffer buffer
+      (setq pm--process-buffer t)
       (read-only-mode -1)
       (erase-buffer)
       (insert message)

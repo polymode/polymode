@@ -309,5 +309,3 @@ configuration from :head-adjust-face."))
 
   "Representation of an inner submode")
 
-
-(provide 'polymode-classes)
