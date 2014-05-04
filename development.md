@@ -17,13 +17,22 @@ Here is polymode class hierarchy:
   +--eieio-instance-inheritor
   |    +--polymode
   |         +--pm-submode
-  |         |    +--pm-basemode
   |         |    +--pm-chunkmode
-  |         |         +--pm-chunkmode-auto
+  |         |    |    +--pm-chunkmode-auto
+  |         |    +--pm-basemode
   |         +--pm-config
-  |              +--pm-config-multi
-  |              |    +--pm-config-multi-auto
-  |              +--pm-config-one
+  |         |    +--pm-config-multi
+  |         |    |    +--pm-config-multi-auto
+  |         |    +--pm-config-one
+  |         |
+  |         |
+  |         +--pm-weaver
+  |         |    +--pm-shell-weaver
+  |         |    +--pm-callback-weaver
+  |         +--pm-exporter
+  |              +--pm-shell-exporter
+  |              +--pm-callback-exporter
+
 ```
 
 *Note:* Each `eieio` class has a coresponding constructor whose docstring

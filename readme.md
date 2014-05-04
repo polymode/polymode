@@ -1,21 +1,17 @@
 ## Overview
 
 Polymode is an emacs package that offers support for multiple major modes inside
-a single emacs buffer. It is lightweight and fully object oriented, specifically
-designed for quick addition of new polymodes.
+a single emacs buffer. Polymode is lightweight, object oriented and was
+specifically designed for quick and easy addition of new polymodes.
 
-Technically speaking, polymode doesn't keep its modes in a single emacs buffer
-but in several indirect buffers, actually as many as different modes are there
-in a file. Consequently, polymode is as fast as switching buffers because it
-never re-installs major modes. I am very much indebted to Dave Love's
-[multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) for this
-awesome idea.
-
+Polymodes also provides highly configurable facilities for literate
+programming. Exporters, weavers and tanglers organically integrate into polymode
+system and are easy to create and extend.
 
 ## Installation 
 
-The project is in an alpha stage and it is not, as yet, available in melpa
-repo. You will have to install it manually:
+The project will be soon available on MELPA. For now you will have to install it
+manually:
 
 ```sh
 git clone https://github.com/vitoshka/polymode.git
@@ -71,6 +67,38 @@ There are two main ways to activate emacs mode.
    ```sh
    ## -*- mode: poly-brew+R; -*-
    ```
+
+## Basic Usage
+
+All keys start with the prefix defined in `polymode-prefix-key`, default is
+<kbd>M-n</kbd>. The `polymode-mode-map` is the parent of all polymodes' maps:
+
+```
+ ;; BACKENDS
+ <kbd>E</kbd> 'polymode-export)
+ <kbd>E</kbd> 'polymode-set-exporter)
+ 
+ <kbd>w</kbd> 'polymode-weave)
+ <kbd>W</kbd> 'polymode-set-weaver)
+ 
+ <kbd>t</kbd> 'polymode-tangle) ;; not implemented yet
+ <kbd>T</kbd> 'polymode-set-tangler) ;; not implemented yet
+ 
+ <kbd>$</kbd> 'polymode-show-process-buffer)
+
+ ;; NAVIGATION
+ <kbd>\C-n</kbd> 'polymode-next-chunk)
+ <kbd>\C-p</kbd> 'polymode-previous-chunk)
+ <kbd>"\C-\M-n</kbd> 'polymode-next-chunk-same-type
+ <kbd>"\C-\M-p</kbd> 'polymode-previous-chunk-same-type
+
+ ;; MANIPULATION
+ <kbd>\M-k</kbd> 'polymode-kill-chunk)
+ <kbd>\M-m</kbd> 'polymode-mark-or-extend-chunk)
+ <kbd>\C-t</kbd> 'polymode-toggle-chunk-narrowing)
+ <kbd>\M-i</kbd> 'polymode-insert-new-chunk)
+
+```
 
 ## Warning
 
