@@ -73,32 +73,29 @@ There are two main ways to activate emacs mode.
 All keys start with the prefix defined in `polymode-prefix-key`, default is
 <kbd>M-n</kbd>. The `polymode-mode-map` is the parent of all polymodes' maps:
 
-```
- ;; BACKENDS
- <kbd>E</kbd> 'polymode-export)
- <kbd>E</kbd> 'polymode-set-exporter)
+ * BACKENDS
+ <kbd>E</kbd> `polymode-export`
+ <kbd>E</kbd> `polymode-set-exporter`
  
- <kbd>w</kbd> 'polymode-weave)
- <kbd>W</kbd> 'polymode-set-weaver)
+ <kbd>w</kbd> `polymode-weave`
+ <kbd>W</kbd> `polymode-set-weaver`
  
- <kbd>t</kbd> 'polymode-tangle) ;; not implemented yet
- <kbd>T</kbd> 'polymode-set-tangler) ;; not implemented yet
+ <kbd>t</kbd> `polymode-tangle` ;; not implemented yet
+ <kbd>T</kbd> `polymode-set-tangler` ;; not implemented yet
  
- <kbd>$</kbd> 'polymode-show-process-buffer)
+ <kbd>$</kbd> `polymode-show-process-buffer`
 
- ;; NAVIGATION
- <kbd>\C-n</kbd> 'polymode-next-chunk)
- <kbd>\C-p</kbd> 'polymode-previous-chunk)
- <kbd>"\C-\M-n</kbd> 'polymode-next-chunk-same-type
- <kbd>"\C-\M-p</kbd> 'polymode-previous-chunk-same-type
+ * *NAVIGATION
+ <kbd>\C-n</kbd> `polymode-next-chunk`
+ <kbd>\C-p</kbd> `polymode-previous-chunk`
+ <kbd>"\C-\M-n</kbd> `polymode-next-chunk-same-type`
+ <kbd>"\C-\M-p</kbd> `polymode-previous-chunk-same-type`
 
- ;; MANIPULATION
- <kbd>\M-k</kbd> 'polymode-kill-chunk)
- <kbd>\M-m</kbd> 'polymode-mark-or-extend-chunk)
- <kbd>\C-t</kbd> 'polymode-toggle-chunk-narrowing)
- <kbd>\M-i</kbd> 'polymode-insert-new-chunk)
-
-```
+ * MANIPULATION
+ <kbd>\M-k</kbd> `polymode-kill-chunk`
+ <kbd>\M-m</kbd> `polymode-mark-or-extend-chunk`
+ <kbd>\C-t</kbd> `polymode-toggle-chunk-narrowing`
+ <kbd>\M-i</kbd> `polymode-insert-new-chunk`
 
 ## Warning
 

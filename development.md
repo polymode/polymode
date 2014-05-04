@@ -1,7 +1,23 @@
-
 # Developing with Polymode
 
-## Class Hierarchy
+Polymode doesn't keep its modes in a single emacs buffer but in several indirect
+buffers, actually as many as different modes are there in a file. Consequently,
+polymode is as fast as switching buffers because it never re-installs major
+modes. I am very much indebted to Dave Love's
+[multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) for this
+awesome idea.
+
+- [Class Hierarchy](#class-hierarchy)
+- [Polymodes and Configs](#polymodes-and-configs)
+- [Submodes](#submodes)
+- [Defining New Modes](#defining-new-modes)
+  - [One Predefined Innermode](#one-predefined-innermode)
+  - [Multiple Predefined Innermodes](#multiple-predefined-innermodes)
+  - [Multiple Automatically Detected Innermodes](#multiple-automatically-detected-innermodes)
+- [Defining Literate Programming Backends](#defining-backends-weavers-exporters-and-tanglers)
+- [Internals (API)](#internals)
+
+##class Hierarchy
 
 Polymode uses `eieio` to represent its objects. The root class for all polymode
 classes is `eieio-instance-inheritor` which provides, in addition to class
@@ -115,15 +131,21 @@ Currently, there are three types of submode objects:
 ## Defining New Modes
 
 ### One Predefined Innermode
-todo:
-### Multiple Predefined Innermodes
-todo:
-### Multiple Automatically Detected Innermodes
-todo:
 
+(noweb) todo:
+
+### Multiple Predefined Innermodes
+
+(webmode) :todo
+
+### Multiple Automatically Detected Innermodes
+
+(markdown,  org-mode etc) todo:
+
+## Defining Backends: Weavers, Exporters and Tanglers
 
 ## Internals
 
+For now, see the header of [polymode-methods.el](polymode-methods.el).
 todo:
 
-For now, see the header of [polymode-methods.el](polymode-methods.el).
