@@ -111,8 +111,8 @@ All keys start with the prefix defined in `polymode-prefix-key`, default is
 ## Warning
 
   * Tested with Emacs 24.3.1
-  * Does not work in emacs devel. They removed jit-lock from indirect buffers
-    recenly. I am looking for workarounds.
+  * <font color="red"> _Does not work in emacs devel. They removed jit-lock from indirect buffers
+    recenly. I am looking for workarounds._ </font>
 
 
 Some things still don't work as expected. For example:
