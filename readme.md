@@ -1,12 +1,12 @@
 ## Overview
 
 Polymode is an emacs package that offers support for multiple major modes inside
-a single emacs buffer. It is lightweight, object oriented and was designed for
-quick addition of new polymodes.
+a single emacs buffer. It is lightweight, object oriented and easely
+extensible. Creating new polymode commonly takes several lines of declarations.
 
 Polymode also provides highly configurable facilities for literate
 programming. Exporters, weavers and tanglers organically integrate into polymode
-system and are easy to create and extend.
+ecosystem and are easy to create and extend.
 
 ## Installation 
 
@@ -39,10 +39,8 @@ available from MELPA repository.
 
 ## Polymodes activation
 
-Polymode defines emacs major and minor modes that you can use in full compliance
-with emacs usual conventions.
-
-There are two main ways to activate emacs mode. 
+Polymodes can be used in place of emacs major or minor modes alike. There are
+two main ways to activate an emacs mode:
 
    1. _By registering a file extension_ by adding the to `auto-mode-alist`. Have
       a look at [polymode-configuration.el](polymode-configuration.el) and pick
@@ -75,7 +73,7 @@ All keys start with the prefix defined in `polymode-prefix-key`, default is
 
 * BACKENDS
 
-     <kbd>E</kbd> `polymode-export`
+     <kbd>e</kbd> `polymode-export`
 
      <kbd>E</kbd> `polymode-set-exporter`
 
