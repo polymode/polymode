@@ -208,7 +208,6 @@ that are not known in advance. Examples are org-mode and markdown.")
     negative - darken in dark thems and lighten in light
     thems.")
    (-buffer
-    :initarg :buffer
     :type (or null buffer)
     :initform nil))
   
@@ -234,11 +233,10 @@ that are not known in advance. Examples are org-mode and markdown.")
     part of the chunk body. If set to 'base, head is considered
     part of the including base mode.")
    (-head-buffer
-    :initarg :head-buffer
     :type (or null buffer)
     :initform nil
     :documentation
-    "This buffer is set automatically to :buffer if :head-mode is
+    "This buffer is set automatically to -buffer if :head-mode is
     'body, and to base-buffer if :head-mode is 'base")
    (tail-mode
     :initarg :tail-mode
@@ -249,7 +247,6 @@ that are not known in advance. Examples are org-mode and markdown.")
     "If nil, it is the same as :HEAD-MODE. Otherwise, the same
     rules as for the :head-mode apply.")
    (-tail-buffer
-    :initarg :tail-buffer
     :initform nil
     :type (or null buffer))
    (head-reg
