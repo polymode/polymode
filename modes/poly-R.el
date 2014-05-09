@@ -30,6 +30,7 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'poly-base)
+(require 'polymode)
 
 (defcustom pm-config/R
   (pm-config-one "R"
