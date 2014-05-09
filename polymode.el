@@ -872,7 +872,6 @@ user interaction."
 
 
 ;;; DEFINE
-;;;###autoload
 (defmacro define-polymode (mode config &optional keymap &rest body)
   "Define a new polymode MODE.
 This macro defines command MODE and an indicator variable MODE
@@ -977,6 +976,7 @@ BODY contains code to be executed after the complete
     (setq keymap-sym (intern (concat mode-name "-map")))
 
     `(progn
+       :autoload-end
        ;; Define the variable to enable or disable the mode.
        (defvar ,mode nil ,(format "Non-nil if %s is enabled." pretty-name))
        (make-variable-buffer-local ',mode)
