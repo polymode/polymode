@@ -24,13 +24,6 @@ is in place at that time."
   :group 'polymode-basemodes
   :type 'object)
 
-(defcustom pm-base/markdown
-  (pm-basemode "Markdown"
-              :mode 'markdown-mode)
-  "Markdown base submode"
-  :group 'polymode-basemodes
-  :type 'object)
-
 (defcustom pm-base/html
   (pm-basemode "html"
               :mode 'html-mode)
