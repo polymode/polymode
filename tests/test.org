@@ -1,0 +1,25 @@
+* emacs lisp code block
+
+#+begin_src emacs-lisp :var tbl='()
+  (defun all-to-string (tbl)
+    (if (listp tbl)
+        (mapcar #'all-to-string tbl)
+      (if (stringp tbl)
+          tbl
+        (format "%s" tbl))))
+  (all-to-string tbl)
+#+end_src
+
+
+* java code block
+  
+#+begin_src java :classname myfirstjavaprog
+  class myfirstjavaprog
+  {  
+      public static void main(String args[])
+      {
+          System.out.println("Hello World!");
+      }
+  }
+#+end_src
+
