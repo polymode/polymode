@@ -295,12 +295,11 @@ Return, how many chucks actually jumped over."
   (pm/get-span pm/config pos))
 
 (defvar pm--ignore-post-command-hook nil)
-(defun pm--restore-ignore ()
-  (setq pm--ignore-post-command-hook nil))
 
 ;; This function is for debug convenience only in order to avoid limited debug
 ;; context in polymode-select-buffer
 (defun pm--sel-buf ()
+  (interactive)
   (unless pm--ignore-post-command-hook
     (let ((*span* (pm/get-innermost-span))
           (pm--can-move-overlays t))
@@ -435,6 +434,7 @@ in polymode buffers."
           (point-min)))))
 
 
+
 ;;; INTERNALS
 (defun pm--get-available-mode (mode)
   "Check if MODE symbol is defined and is a valid function.
@@ -467,27 +467,6 @@ warnign."
           (put-text-property beg pchange 'face
                              `(,face ,@(get-text-property beg 'face)))
           (setq beg pchange))))))
-
-;; (defun pm--adjust-chunk-overlay (beg end &optional buffer)
-;;   ;; super duper internal function
-;;   ;; should be used only after pm/select-buffer
-;;   (when (eq pm/type 'body)
-;;     (let ((background (oref pm/submode :background))) ;; in Current buffer !!
-;;       (with-current-buffer (or buffer (current-buffer))
-;;         (when background
-;;           (let* ((OS (overlays-in  beg end))
-;;                  (o (some (lambda (o) (and (overlay-get o 'polymode) o))
-;;                           OS)))
-;;             (if o
-;;                 (move-overlay o  beg end )
-;;               (let ((o (make-overlay beg end nil nil t))
-;;                     (face (or (and (numberp background)
-;;                                    (cons 'background-color
-;;                                          (pm--lighten-background background)))
-;;                               background)))
-;;                 (overlay-put o 'polymode 'polymode-major-mode)
-;;                 (overlay-put o 'face face)
-;;                 (overlay-put o 'evaporate t)))))))))
 
 (defun pm--adjust-visual-line-mode (new-vlm)
   (when (not (eq visual-line-mode vlm))
@@ -674,35 +653,35 @@ Return newlly created buffer."
 
 ;; this is a literal transcript of the pcase above
 (defun pm--set-submode-buffer (obj type buff)
-  (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
+  (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
     (cond
      ((and (eq type 'body)
            (eq head-mode 'body)
            (or (null tail-mode)
                (eq tail-mode 'body)))
-      (setq buffer buff
-            head-buffer buff
-            tail-buffer buff))
+      (setq -buffer buff
+            -head-buffer buff
+            -tail-buffer buff))
      ((and (eq type 'body)
            (eq tail-mode 'body))
-       (setq buffer buff
-             tail-buffer buff))
+       (setq -buffer buff
+             -tail-buffer buff))
      ((eq type 'body)
-      (setq buffer buff))
+      (setq -buffer buff))
      ((and (eq type 'head)
            (or (null tail-mode)
                (eq tail-mode 'head)))
-      (setq head-buffer buff
-            tail-buffer buff))
+      (setq -head-buffer buff
+            -tail-buffer buff))
      ((eq type 'head)
-      (setq head-buffer buff))
+      (setq -head-buffer buff))
      ((and (eq type 'tail)
            (or (null tail-mode)
                (eq tail-mode 'head)))
-      (setq tail-buffer buff
+      (setq -tail-buffer buff
             head-buffer buff))
      ((eq type 'tail)
-      (setq tail-buffer buff))
+      (setq -tail-buffer buff))
      (t (error "type must be one of 'body 'head and 'tail")))))
 
 (defun pm--get-submode-mode (obj type)
@@ -728,11 +707,27 @@ Return newlly created buffer."
            (oref obj :tail-mode))
           (t (error "type must be one of 'head 'tail 'body")))))
 
-;; (oref pm-submode/noweb-R :tail-mode)
-;; (oref pm-submode/noweb-R :buffer)
-;; (progn
-;;   (pm--set-submode-buffer pm-submode/noweb-R 'tail (current-buffer))
-;;   (oref pm-submode/noweb-R :head-buffer))
+(defun pm--create-submode-buffer-maybe (submode type)
+  ;; assumes pm/config is set
+  (let ((mode (pm--get-submode-mode submode type)))
+    (or (pm--get-indirect-buffer-of-mode mode)
+        (let ((buff (pm--create-indirect-buffer mode)))
+          (with-current-buffer  buff
+            (setq pm/submode submode)
+            (setq pm/type type)
+            (pm--setup-buffer)
+            (funcall (oref pm/config :minor-mode))
+            buff)))))
+
+(defun pm--get-mode-symbol-from-name (str)
+  "Gues and return mode function.
+Return major mode function constructed from STR by appending
+'-mode' if needed. If the constructed symbol is not a function
+return an error."
+  (let ((mname (if (string-match-p "-mode$" str)
+                   str
+                 (concat str "-mode"))))
+    (pm--get-available-mode (intern mname))))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."
@@ -869,6 +864,7 @@ user interaction."
             pm--output-file
           (display-buffer (current-buffer))
           (error "Bumps while %s (%s)" message name))))))
+
 
 
 ;;; DEFINE
