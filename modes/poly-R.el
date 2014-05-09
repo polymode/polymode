@@ -55,14 +55,14 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-noweb+r-mode "poly-R")
 (define-polymode poly-noweb+r-mode pm-config/noweb+R)
 
 
 
 ;; MARKDOWN
 (require 'poly-markdown)
-;;;###autoload
+;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
 (define-polymode poly-markdown+r-mode pm-config/markdown :lighter " Rmd")
 
 
@@ -87,7 +87,7 @@
 
 
 
-;;;###autoload
+;;;###autoload (autoload 'poly-rapport-mode "poly-R")
 (define-polymode poly-rapport-mode pm-config/rapport nil)
 
 
@@ -108,7 +108,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-html+r-mode "poly-R")
 (define-polymode poly-html+r-mode pm-config/html+R)
 
 
@@ -130,7 +130,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-brew+r-mode "poly-R")
 (define-polymode poly-brew+r-mode pm-config/brew+R)
 
 
@@ -167,7 +167,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-r+c++-mode "poly-R")
 (define-polymode poly-r+c++-mode pm-config/R+C++)
 
 
@@ -199,7 +199,7 @@
   :group 'polymode-configs
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-c++r-mode "poly-R")
 (define-polymode poly-c++r-mode pm-config/C++R)
 
 
@@ -222,7 +222,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-ess-help+r-mode "poly-R")
 (define-polymode poly-ess-help+r-mode pm-config/ess-help+R)
 (add-hook 'ess-help-mode-hook '(lambda ()
                                  (when (string= ess-dialect "R")
@@ -257,7 +257,7 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-Rd-mode "poly-R")
 (define-polymode poly-Rd-mode pm-config/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
 

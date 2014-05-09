@@ -57,7 +57,7 @@
   :group 'polymode-configs
   :type 'object)
 
-;;;###autoload 
+;;;###autoload  (autoload 'poly-markdown-mode "poly-markdown")
 (define-polymode poly-markdown-mode pm-config/markdown)
 
 ;;; FIXES:

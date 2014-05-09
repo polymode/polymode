@@ -49,7 +49,7 @@
   :group 'polymode
   :type 'object)
 
-;;;###autoload
+;;;###autoload (autoload 'poly-noweb-mode "poly-noweb")
 (define-polymode poly-noweb-mode pm-config/noweb)
 
 (defun poly-noweb-electric-< (arg)

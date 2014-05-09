@@ -60,7 +60,7 @@
   :group 'polymode-configs
   :type 'object)
 
-;;;###autoload 
+;;;###autoload  (autoload 'poly-org-mode "poly-org")
 (define-polymode poly-org-mode pm-config/org)
 
 (provide 'poly-org)
