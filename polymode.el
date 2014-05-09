@@ -924,104 +924,100 @@ BODY contains code to be executed after the complete
                    [&rest [keywordp sexp]]
                    def-body)))
 
+  
   (when (keywordp keymap)
-    (push keymap body) (setq keymap nil))
+    (push keymap body)
+    (setq keymap nil))
 
   (let* ((last-message (make-symbol "last-message"))
          (mode-name (symbol-name mode))
          (pretty-name (concat
                        (replace-regexp-in-string "poly-\\|-mode" "" mode-name)
                        " polymode"))
-	 (group nil)
-         (lighter (oref (symbol-value config) :lighter))
+         (keymap-sym (intern (concat mode-name "-map")))
+         (hook (intern (concat mode-name "-hook")))
 	 (extra-keywords nil)
-         (modefun mode)          ;The minor mode function name we're defining.
 	 (after-hook nil)
-	 (hook (intern (concat mode-name "-hook")))
-	 keyw keymap-sym key-alist tmp)
+	 keyw lighter)
 
     ;; Check keys.
     (while (keywordp (setq keyw (car body)))
       (setq body (cdr body))
       (pcase keyw
 	(`:lighter (setq lighter (purecopy (pop body))))
-	;; (`:group (setq group (nconc group (list :group (pop body)))))
 	(`:keymap (setq keymap (pop body)))
 	(`:after-hook (setq after-hook (pop body)))
 	(_ (push keyw extra-keywords) (push (pop body) extra-keywords))))
 
-    ;; (unless group
-    ;;   ;; We might as well provide a best-guess default group.
-    ;;   (setq group
-    ;;         `(:group ',(intern (replace-regexp-in-string
-    ;;     			"-mode\\'" "" mode-name)))))
-    (unless (keymapp keymap)
-      ;; keymap is either nil or list
-      (setq key-alist keymap)
-      (let* ((pi (symbol-value config))
-             map mm-name)
-        (while pi
-          (setq map (and (slot-boundp pi :map)
-                         (oref pi :map)))
-          (if (and (symbolp map)
-                   (keymapp (symbol-value map)))
-              (setq keymap  (symbol-value map)
-                    pi nil)
-            ;; go down to next parent
-            (setq pi (and (slot-boundp pi :parent-instance)
-                          (oref pi :parent-instance))
-                  key-alist (append key-alist map))))))
-
-    (unless keymap
-      (setq keymap polymode-mode-map))
-    (setq keymap-sym (intern (concat mode-name "-map")))
-
     `(progn
        :autoload-end
+
        ;; Define the variable to enable or disable the mode.
-       (defvar ,mode nil ,(format "Non-nil if %s is enabled." pretty-name))
+       (defvar ,mode nil ,(format "Non-nil if %s mode is enabled." pretty-name))
        (make-variable-buffer-local ',mode)
 
-       ;; The actual function:
-       (defun ,mode (&optional arg) ,(format "%s\n\n\\{%s}"
-                                             (concat pretty-name ".")
-                                             (or keymap-sym
-                                                 (and (null keymap)
-                                                      'polymode-mode-map)
-                                                 (and (symbolp keymap)
-                                                      keymap)))
-	 (interactive)
-         (unless ,mode
-           (let ((,last-message (current-message)))
-             (unless pm/config ;; don't reinstall for time being
-               (let ((config (clone ,config)))
-                 (oset config :minor-mode ',mode)
-                 (pm/initialize config)))
-             ;; set our "minor" mode
-             (setq ,mode t)
-             ,@body
-             (run-hooks ',hook)
-             ;; Avoid overwriting a message shown by the body,
-             ;; but do overwrite previous messages.
-             (when (and (called-interactively-p 'any)
-                        (or (null (current-message))
-                            (not (equal ,last-message
-                                        (current-message)))))
-               (message ,(format "%s enabled" pretty-name)))
-             ,@(when after-hook `(,after-hook))
-             (force-mode-line-update)))
-         ;; Return the new setting.
-         ,mode)
+       (let* ((keymap ,keymap)
+              (config ',config)
+              (lighter (or ,lighter
+                           (oref (symbol-value config) :lighter)))
+              key-alist)
 
-       ;;  autoloads everything up-to-here.
-       :autoload-end
-       
-       ;; Define the minor-mode keymap.
-       (defvar ,keymap-sym
-         (easy-mmode-define-keymap ',key-alist nil nil '(:inherit ,keymap))
-         ,(format "Keymap for %s." pretty-name))
-       
-       (add-minor-mode ',mode ',lighter ,(or keymap-sym keymap)))))
+         (unless (keymapp keymap)
+           ;; keymap is either nil or list. Iterate through parents' :map slot
+           ;; and gather keys.
+           (setq key-alist keymap)
+           (let* ((pi (symbol-value config))
+                  map mm-name)
+             (while pi
+               (setq map (and (slot-boundp pi :map)
+                              (oref pi :map)))
+               (if (and (symbolp map)
+                        (keymapp (symbol-value map)))
+                   ;; if one of the parent's :map is a keymap, use it as our
+                   ;; keymap and stop the descent:
+                   (setq keymap  (symbol-value map)
+                         pi nil)
+                 ;; go down to next parent and append the list to key-alist
+                 (setq pi (and (slot-boundp pi :parent-instance)
+                               (oref pi :parent-instance))
+                       key-alist (append key-alist map))))))
+
+         (unless keymap
+           ;; If we couldn't figure out the original keymap:
+           (setq keymap 'polymode-mode-map))
+
+         ;; Define the minor-mode keymap:
+         (defvar ,keymap-sym
+           (easy-mmode-define-keymap key-alist nil nil `(:inherit ,keymap))
+           ,(format "Keymap for %s." pretty-name))
+
+         
+         ;; The actual mode function:
+         (defun ,mode (&optional arg) ,(format "%s.\n\n\\{%s}" pretty-name keymap-sym)
+                (interactive)
+                (unless ,mode
+                  (let ((,last-message (current-message)))
+                    (unless pm/config ;; don't reinstall for time being
+                      (let ((config (clone ,config)))
+                        (oset config :minor-mode ',mode)
+                        (pm/initialize config)))
+                    ;; set our "minor" mode
+                    (setq ,mode t)
+                    ,@body
+                    (run-hooks ',hook)
+                    ;; Avoid overwriting a message shown by the body,
+                    ;; but do overwrite previous messages.
+                    (when (and (called-interactively-p 'any)
+                               (or (null (current-message))
+                                   (not (equal ,last-message
+                                               (current-message)))))
+                      (message ,(format "%s enabled" pretty-name)))
+                    ,@(when after-hook `(,after-hook))
+                    (force-mode-line-update)))
+                ;; Return the new setting.
+                ,mode)
+         
+         (add-minor-mode ',mode lighter ,(or keymap-sym keymap))))))
 
 
 (define-minor-mode polymode-minor-mode
