@@ -73,9 +73,8 @@ installed. Also see `pm/get-span'.")
   (cond ((eq 'body type) (oref submode -buffer))
         ((eq 'head type) (oref submode -head-buffer))
         ((eq 'tail type) (oref submode -tail-buffer))
-        (t (error "Don't know how to select buffer of type" type
-                  "for submode" (object-name submode)
-                  "of class" (class-of submode)))))
+        (t (error "Don't know how to select buffer of type '%s' for submode '%s' of class '%s'"
+                  type (object-name submode) (class-of submode)))))
 
 (defgeneric pm/select-buffer (submode span)
   "Ask SUBMODE to select (make current) its indirect buffer
@@ -359,7 +358,7 @@ tail -  tail span"
           ((and (stringp head-matcher)
                 (functionp tail-matcher))
            (pm--span-at-point-fun-fun
-            (lambda (ahead) (pm--default-matcher hd-matcher ahead))
+            (lambda (ahead) (pm--default-matcher head-matcher ahead))
             tail-matcher))
           ((and (functionp head-matcher)
                 (stringp tail-matcher))
