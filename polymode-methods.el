@@ -1,20 +1,3 @@
-;;; HOW IT WORKS
-;; poly-XXX-mode function (as created by define-polymode) clones at run-time and
-;; calls pm/initialize on pm/config which is dispatched accordingly to the type
-;; of pm/config, then runs poly-XXX-mode-hook.
-;;
-;; pm/initialize in turn, assigns the config object to local pm/config and
-;; initialize base-mode by running the actual base-mode function, cloning and
-;; setting pm/submode (held in :basemode slot of pm/config), setting
-;; pm/type to 'base, running pm/config's :init-functions. Finally pm/initialize runs
-;; pm--setup-buffer which is common for all buffers.
-;;
-;; pm--setup-buffer sets font-lock, and other workarounds.
-;;
-;; Instalation and initialization of submodes (indirect buffers) is done by
-;; pm/install-buffer generic, which is called dynamically in pm/select-buffer
-;; generic on first need (usually by font-lock).
-
 
 ;;; INITIALIZATION
 (defgeneric pm/initialize (config)

@@ -15,9 +15,11 @@ awesome idea.
   - [Multiple Predefined Innermodes](#multiple-predefined-innermodes)
   - [Multiple Automatically Detected Innermodes](#multiple-automatically-detected-innermodes)
 - [Defining Literate Programming Backends](#defining-backends-weavers-exporters-and-tanglers)
-- [Internals (API)](#internals)
+- [Internals](#internals)
+  - [Initialization of polymodes](#initialization-of-polymodes)
+  - [API](#api)
 
-##class Hierarchy
+## Class Hierarchy
 
 Polymode uses `eieio` to represent its objects. The root class for all polymode
 classes is `eieio-instance-inheritor` which provides, in addition to class
@@ -27,7 +29,7 @@ objects at runtime. As polymode uses indirect buffers to implement the
 multi-mode functionality, storing mode functionality in objects (in contrast to
 buffer local variables) is very convenient for moving stuff around.
 
-Here is polymode class hierarchy:
+Current polymode class hierarchy:
 
 ```
   +--eieio-instance-inheritor
@@ -51,7 +53,7 @@ Here is polymode class hierarchy:
 
 ```
 
-*Note:* Each `eieio` class has a coresponding constructor whose docstring
+*Note:* Each `eieio` class has a corresponding constructor whose docstring
 contains a complete description of the class. Use `C-h f pm-foo RET` to inspect
 the documentation of the class. Alternatively, lookup the class definition
 directly in [polymode-classes.el](polymode-classes.el).
@@ -64,8 +66,8 @@ expected). Polymodes can be used in place of major or minor modes, the outcome
 will be identical. Plymodes are defined with `define-polymode`, which see.
 
 Each polymode is represented by a customizable `config` object which fully
-characterizes its behavior. On initialization the "representative" config object
-is cloned in each new buffer.
+characterizes its behavior. On polymode initialization this config object is
+cloned in every new buffer.
 
 The most important slots of root config class `pm-config` are:
 
@@ -100,7 +102,7 @@ Submodes (basemodes and chunkmodes) are objects that encapsulate functionality
 of the polymode's submodes. The root class for all submodes, `pm-submode`,
 contains among other slots:
 
-- mode - holds the symbol of coresponding emacs mode (like `html-mode`,
+- mode - holds the symbol of corresponding emacs mode (like `html-mode`,
 `latex-mode` etc)
 - buffer - holds the base emacs buffer
 - indent-offset, font-lock-narrow etc - configuration options
@@ -132,20 +134,62 @@ Currently, there are three types of submode objects:
 
 ### One Predefined Innermode
 
-(noweb) todo:
+(noweb)
 
 ### Multiple Predefined Innermodes
 
-(webmode) :todo
+(web-mode)
 
 ### Multiple Automatically Detected Innermodes
 
-(markdown,  org-mode etc) todo:
+(markdown,  org-mode etc)
 
 ## Defining Backends: Weavers, Exporters and Tanglers
 
 ## Internals
 
-For now, see the header of [polymode-methods.el](polymode-methods.el).
-todo:
+### Initialization of polymodes
+
+Initialization depends on concrete type of the `pm/config` object, but the main
+steps are described here.
+
+`poly-XXX-mode` is created with `(define-polymode poly-XXX-mode pm-config/XXX)`
+where `pm-config/XXX` is a predefined `pm-config` object representing the mode.
+
+When called, `poly-XXX-mode` clones `pm-config/XXX` object and calls
+`pm/initialize` on it.  In turn, `pm/initialize` performs the following steps:
+
+   1. assign the config object into local `pm/config` variable
+   2. clone the `pm/submode` objects specified by `:basemode` slot of
+   `pm/config`
+   3. initialize base-mode by running the actual function in `:mode` slot of
+   the basemode object. 
+   4. store basemode object into local `pm/submode` variable 
+   5. set local variable `pm/type` to `'base` 
+   6. run `pm/config`'s `:init-functions` as normal hooks
+   7. run `pm--setup-buffer` which is common setup function used internally to
+      set font-lock and a range of workarounds
+   8. run `poly-XXX-mode-hook`.
+
+Discovery of the chunk spans is done by `pm/select-buffer` generic which is
+commonly called first by jit-lock. `pm/select-buffer` fist checks if the
+corresponding `pm-chunkmode` object and associated indirect buffer has been
+already created. If so, `pm/select-buffer` simply selects the buffer. Otherwise,
+it calls `pm/install-buffer` in order to create `pm-chunkmode` object and
+initialize the indirect buffer.
+
+### API
+
+All API functions and methods are named with `pm/` prefix.
+
+Generics:
+
+   - `pm/initialize` 
+   - `pm/get-buffer`
+   - `pm/select-buffer`
+   - `pm/install-buffer`
+   - `pm/get-span`
+   - `pm/indent-line`
+   - `pm/get-adjust-face`
+
 

@@ -191,10 +191,6 @@ that are not known in advance. Examples are org-mode and markdown.")
     :initform t
     :documentation
     "Whether to narrow to span during font lock")
-   (buffer
-    :initarg :buffer
-    :type (or null buffer)
-    :initform nil)
    (adjust-face
     :initarg :adjust-face
     :type (or number face list)
@@ -210,7 +206,11 @@ that are not known in advance. Examples are org-mode and markdown.")
     default chunk background. If positive - lighten the
     background on dark themes and darken on light thems. If
     negative - darken in dark thems and lighten in light
-    thems."))
+    thems.")
+   (-buffer
+    :initarg :buffer
+    :type (or null buffer)
+    :initform nil))
   
   "Representatioin of the submode object.")
 
@@ -233,7 +233,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     "Chunks' header mode. If set to 'body, the head is considered
     part of the chunk body. If set to 'base, head is considered
     part of the including base mode.")
-   (head-buffer
+   (-head-buffer
     :initarg :head-buffer
     :type (or null buffer)
     :initform nil
@@ -248,7 +248,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     :documentation
     "If nil, it is the same as :HEAD-MODE. Otherwise, the same
     rules as for the :head-mode apply.")
-   (tail-buffer
+   (-tail-buffer
     :initarg :tail-buffer
     :initform nil
     :type (or null buffer))
