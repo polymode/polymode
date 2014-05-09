@@ -123,7 +123,7 @@ Some things still don't work as expected. For example:
 
 ## Developing with Polymode
 
-[development.md](development.md)
+See [development](modes).
 
 ## Screenshots
 

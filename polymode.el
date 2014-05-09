@@ -31,17 +31,14 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;; Commentary:
-;;  Extensible, very fast, objected oriented multimode specifically designed for
-;;  literate programming. Provides support for weaving, tangling and export.
+;;  Extensible, fast, objected oriented multimode specifically designed for
+;;  literate programming. Extinsible support for weaving, tangling and export.
 ;; 
-;;   See https://github.com/vitoshka/polymode for usage and
-;;   https://github.com/vitoshka/polymode/development.md for how to create your
-;;   own modes.
+;;   Usage: https://github.com/vitoshka/polymode
+;;   
+;;   Design new polymodes: https://github.com/vitoshka/polymode/modes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; todo:
-;; See: http://www.russet.org.uk/blog/2979
 
 (eval-when-compile
   (require 'cl))
