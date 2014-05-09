@@ -132,6 +132,8 @@
 (defvar pm--exporter-hist nil)
 (defvar pm--export:from-hist nil)
 (defvar pm--export:to-hist nil)
+(defvar pm--output-file)
+(defvar pm--input-file)
 
 (defun polymode-export (&optional from to)
   "Export current file.
@@ -182,7 +184,7 @@ first with `polymode-set-exporter'."
                                                   ;; input exporter extensnion matches weaver output extension
                                                   if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
                                                   return (cons (car w) (car e)))))
-                       (let* ((prompt (format "No matching input spec for exporter '%s'. Choose one: "
+                       (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
                                               (file-name-extension fname)
                                               ;; object-name returns clutter like "#<pm-exporter pandoc>"
                                               ;; use internal implementation:

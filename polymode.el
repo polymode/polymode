@@ -142,6 +142,8 @@ Not effective after loading the polymode library."
 
 
 ;;; COMMANDS
+(defvar *span*)
+
 (defun polymode-next-chunk (&optional N)
   "Go COUNT chunks forwards.
 Return, how many chucks actually jumped over."
@@ -229,25 +231,25 @@ Return, how many chucks actually jumped over."
      (polymode-kill-chunk))
     (_ (error "canoot find chunk to kill"))))
 
-(defun polymode-kill-chunk ()
-  "Kill current chunk"
-  (interactive)
-  (pcase (pm/get-innermost-span)
-    (`(,(or `nil `base) ,beg ,end ,_) (delete-region beg end))
-    (`(body ,beg ,end ,_)
-     (goto-char beg)
-     (pm--kill-span '(body))
-     (pm--kill-span '(head tail))
-     (pm--kill-span '(head tail)))
-    (`(tail ,beg ,end ,_)
-     (if (eq beg (point-min))
-         (delete-region beg end)
-       (goto-char (1- beg))
-       (polymode-kill-chunk)))
-    (`(head ,_ ,end ,_)
-     (goto-char end)
-     (polymode-kill-chunk))
-    (_ (error "canoot find chunk to kill"))))
+;; (defun polymode-kill-chunk ()
+;;   "Kill current chunk"
+;;   (interactive)
+;;   (pcase (pm/get-innermost-span)
+;;     (`(,(or `nil `base) ,beg ,end ,_) (delete-region beg end))
+;;     (`(body ,beg ,end ,_)
+;;      (goto-char beg)
+;;      (pm--kill-span '(body))
+;;      (pm--kill-span '(head tail))
+;;      (pm--kill-span '(head tail)))
+;;     (`(tail ,beg ,end ,_)
+;;      (if (eq beg (point-min))
+;;          (delete-region beg end)
+;;        (goto-char (1- beg))
+;;        (polymode-kill-chunk)))
+;;     (`(head ,_ ,end ,_)
+;;      (goto-char end)
+;;      (polymode-kill-chunk))
+;;     (_ (error "canoot find chunk to kill"))))
 
 
 (defun polymode-toggle-chunk-narrowing ()
@@ -439,7 +441,7 @@ If so, return it, otherwise return 'fundamental-mode with a
 warnign."
   (if (fboundp mode)
       mode
-    (message "Cannot find " mode " function, using 'fundamental-mode instead")
+    (message "Cannot find %s function, using 'fundamental-mode instead" mode)
     'fundamental-mode))
 
 (defun pm--lighten-background (prop)
@@ -465,7 +467,7 @@ warnign."
                              `(,face ,@(get-text-property beg 'face)))
           (setq beg pchange))))))
 
-(defun pm--adjust-visual-line-mode (new-vlm)
+(defun pm--adjust-visual-line-mode (vlm)
   (when (not (eq visual-line-mode vlm))
     (if (null vlm)
         (visual-line-mode -1)
@@ -676,7 +678,7 @@ Return newlly created buffer."
            (or (null tail-mode)
                (eq tail-mode 'head)))
       (setq -tail-buffer buff
-            head-buffer buff))
+            -head-buffer buff))
      ((eq type 'tail)
       (setq -tail-buffer buff))
      (t (error "type must be one of 'body 'head and 'tail")))))
@@ -781,7 +783,7 @@ return an error."
       (setq count (1+ count))
       (forward-char)
       (polymode-select-buffer))
-    (let ((elapsed  (time-to-seconds (time-subtract (current-time) start))))
+    (let ((elapsed  (float-time (time-subtract (current-time) start))))
       (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
 
 (defun pm--comment-region (beg end)
@@ -822,6 +824,11 @@ return an error."
     (if buf
         (pop-to-buffer buf)
       (message "No polymode process buffers found."))))
+
+;; silence the compiler
+(defvar pm--output-file)
+(defvar pm--input-buffer)
+(defvar pm--input-file)
 
 (defun pm--run-command (command sentinel buff-name message)
   "Run command interactively.

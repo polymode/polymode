@@ -73,6 +73,10 @@ EXPORT must be a list of the form (FROM TO) sutable for call of
 `polymode-export'. If EXPORT is provided corresponding
 exporter (from to) specification will be called.")
 
+;; silence the compiler
+(defvar pm--output-file)
+(defvar pm--input-file)
+
 (defmethod pm-weave ((weaver pm-weaver) from-to &optional export ifile)
   (let ((from-to-spec (assoc from-to (oref weaver :from-to))))
     (if from-to-spec
@@ -163,7 +167,7 @@ FROM-TO ignored as yet"
                                             ;; (dbg (car el) fname)
                                             (string-match-p (car el) fname))
                                           w:from-to))
-                       (let* ((prompt (format "No intpu-output spec for weaver '%s'. Choose one: "
+                       (let* ((prompt (format "No intpu-output spec for extension '.%s' in '%s' weaver. Choose one: "
                                               (file-name-extension fname)
                                               wname))
                               (sel (ido-completing-read prompt opts nil t nil
