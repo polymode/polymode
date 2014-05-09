@@ -50,6 +50,12 @@
 (require 'eieio-base)
 (require 'eieio-custom)
 
+
+;; silence the compiler for now
+(defvar pm--output-file nil)
+(defvar pm--input-buffer nil)
+(defvar pm--input-file nil)
+
 (load "polymode-classes")
 (load "polymode-methods")
 (load "polymode-export")
@@ -824,11 +830,6 @@ return an error."
     (if buf
         (pop-to-buffer buf)
       (message "No polymode process buffers found."))))
-
-;; silence the compiler
-(defvar pm--output-file)
-(defvar pm--input-buffer)
-(defvar pm--input-file)
 
 (defun pm--run-command (command sentinel buff-name message)
   "Run command interactively.

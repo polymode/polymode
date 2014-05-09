@@ -132,8 +132,6 @@
 (defvar pm--exporter-hist nil)
 (defvar pm--export:from-hist nil)
 (defvar pm--export:to-hist nil)
-(defvar pm--output-file)
-(defvar pm--input-file)
 
 (defun polymode-export (&optional from to)
   "Export current file.
