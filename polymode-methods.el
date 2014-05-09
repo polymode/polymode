@@ -15,8 +15,8 @@ Current buffer is setup as the base buffer.")
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
   (unless pm/config
-    (let* ((submode (clone (symbol-value (oref config :basemode))
-                           :buffer (current-buffer)))
+    (let* ((submode (clone (symbol-value (oref config :basemode))))
+           (_ (oset submode -buffer (current-buffer)))
            ;; set if nil, to allow unspecified base submodes to be used in minor modes
            (base-mode (or (oref submode :mode)
                           (oset submode :mode major-mode))))
@@ -67,12 +67,12 @@ SPAN-TYPE. Should return nil if buffer has not yet been
 installed. Also see `pm/get-span'.")
 
 (defmethod pm/get-buffer ((submode pm-submode) &optional type)
-  (oref submode :buffer))
+  (oref submode -buffer))
 
 (defmethod pm/get-buffer ((submode pm-chunkmode) &optional type)
-  (cond ((eq 'body type) (oref submode :buffer))
-        ((eq 'head type) (oref submode :head-buffer))
-        ((eq 'tail type) (oref submode :tail-buffer))
+  (cond ((eq 'body type) (oref submode -buffer))
+        ((eq 'head type) (oref submode -head-buffer))
+        ((eq 'tail type) (oref submode -tail-buffer))
         (t (error "Don't know how to select buffer of type" type
                   "for submode" (object-name submode)
                   "of class" (class-of submode)))))
@@ -98,16 +98,6 @@ For this method to work correctly, SUBMODE's class should define
 (defmethod pm/select-buffer ((submode pm-chunkmode) span)
   (call-next-method)
   (pm--transfer-vars-from-base))
-
-(defun pm--get-mode-symbol-from-name (str)
-  "Gues and return mode function.
-Return major mode function constructed from STR by appending
-'-mode' if needed. If the constructed symbol is not a function
-return an error."
-  (let ((mname (if (string-match-p "-mode$" str)
-                   str
-                 (concat str "-mode"))))
-         (pm--get-available-mode (intern mname))))
 
 (defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
   (if (null (car span))
@@ -140,27 +130,16 @@ span TYPE. Should return newly installed/retrieved buffer.")
 
 (defmethod pm/install-buffer ((submode pm-submode) &optional type)
   "Independently on the TYPE call `pm/create-indirect-buffer'
-create and install a new buffer in slot :buffer of SUBMODE."
-  (oset submode :buffer
+create and install a new buffer in slot -buffer of SUBMODE."
+  (oset submode -buffer
         (pm--create-submode-buffer-maybe submode type)))
 
 (defmethod pm/install-buffer ((submode pm-chunkmode) type)
   "Depending of the TYPE install an indirect buffer into
-slot :buffer of SUBMODE. Create this buffer if does not exist."
+slot -buffer of SUBMODE. Create this buffer if does not exist."
   (pm--set-submode-buffer submode type
                           (pm--create-submode-buffer-maybe submode type)))
 
-(defun pm--create-submode-buffer-maybe (submode type)
-  ;; assumes pm/config is set
-  (let ((mode (pm--get-submode-mode submode type)))
-    (or (pm--get-indirect-buffer-of-mode mode)
-        (let ((buff (pm--create-indirect-buffer mode)))
-           (with-current-buffer  buff
-             (setq pm/submode submode)
-             (setq pm/type type)
-             (pm--setup-buffer)
-             (funcall (oref pm/config :minor-mode))
-             buff)))))
 
 
 ;;; FACES
