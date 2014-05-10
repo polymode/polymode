@@ -136,7 +136,7 @@
 (defvar pm--export:from-hist nil)
 (defvar pm--export:to-hist nil)
 (declare-function polymode-set-weaver "polymode-weave")
-(declare-function pm-weaver "polymode-weave")
+(declare-function pm-weave "polymode-weave")
 
 (defun polymode-export (&optional from to)
   "Export current file.

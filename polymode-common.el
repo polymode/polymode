@@ -1,4 +1,4 @@
-;; COMMON INITIALIZATION, UTILITIES and INTERNAL STUFF
+;; COMMON INITIALIZATION, UTILITIES and INTERNALS which didn't fit anywhere else
 
 (eval-when-compile
   (require 'cl))
@@ -290,7 +290,7 @@ user interaction."
     (aref object object-name)))
 
 
-;;; debug stuff
+;;; DEBUG STUFF
 (defun pm--map-over-spans-highlight ()
   (interactive)
   (pm/map-over-spans (lambda ()
@@ -320,175 +320,6 @@ user interaction."
       (polymode-select-buffer))
     (let ((elapsed  (float-time (time-subtract (current-time) start))))
       (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
-
-
-;;; BUFFER INTERNALS
-(defun pm--get-adjusted-background (prop)
-  ;; if > lighten on dark backgroun. Oposite on light.
-  (color-lighten-name (face-background 'default) 
-                      (if (eq (frame-parameter nil 'background-mode) 'light)
-                          (- prop) ;; darken
-                        prop)))
-
-(defun pm--adjust-chunk-face (beg end face)
-  ;; propertize 'face of the region by adding chunk specific configuration
-  (interactive "r")
-  (when face
-    (with-current-buffer (current-buffer)
-      (let ((face (or (and (numberp face)
-                           (cons 'background-color
-                                 (pm--get-adjusted-background face)))
-                      face))
-            (pchange nil))
-        (while (not (eq pchange end))
-          (setq pchange (next-single-property-change beg 'face nil end))
-          (put-text-property beg pchange 'face
-                             `(,face ,@(get-text-property beg 'face)))
-          (setq beg pchange))))))
-
-(defun pm--adjust-visual-line-mode (vlm)
-  (when (not (eq visual-line-mode vlm))
-    (if (null vlm)
-        (visual-line-mode -1)
-      (visual-line-mode 1))))
-
-;; move only in post-command hook, after buffer selection
-(defvar pm--can-move-overlays nil)
-(defun pm--move-overlays-to (new-buff)
-  (when pm--can-move-overlays 
-    (mapc (lambda (o)
-            (move-overlay o (overlay-start o) (overlay-end o) new-buff))
-          (overlays-in 1 (1+ (buffer-size))))))
-
-(defun pm--transfer-vars-from-base ()
-  (let ((bb (pm/base-buffer)))
-    (dolist (var '(buffer-file-name))
-      (set var (buffer-local-value var bb)))))
-
-(defun pm--select-buffer (buffer)
-  (when (and (not (eq buffer (current-buffer)))
-             (buffer-live-p buffer))
-    (let ((point (point))
-          (window-start (window-start))
-          (visible (pos-visible-in-window-p))
-          (oldbuf (current-buffer))
-          (vlm visual-line-mode)
-          (ractive (region-active-p))
-          (mkt (mark t))
-          (bis buffer-invisibility-spec))
-      (pm--move-overlays-to buffer)
-      (switch-to-buffer buffer)
-      (setq buffer-invisibility-spec bis)
-      (pm--adjust-visual-line-mode vlm)
-      (bury-buffer oldbuf)
-      ;; fixme: wha tis the right way to do this ... activate-mark-hook?
-      (if (not ractive)
-          (deactivate-mark)
-        (set-mark mkt)
-        (activate-mark))
-      (goto-char point)
-      ;; Avoid the display jumping around.
-      (when visible
-        (set-window-start (get-buffer-window buffer t) window-start)))))
-
-(defun pm--setup-buffer (&optional buffer)
-  ;; General buffer setup, should work for indirect and base buffers
-  ;; alike. Assumes pm/config and pm/submode is already in place. Return buffer.
-  (let ((buff (or buffer (current-buffer))))
-    (with-current-buffer buff
-      ;; Don't let parse-partial-sexp get fooled by syntax outside
-      ;; the chunk being fontified.
-
-      ;; font-lock, forward-sexp etc should see syntactic comments
-      ;; (set (make-local-variable 'parse-sexp-lookup-properties) t)
-
-      (set (make-local-variable 'font-lock-dont-widen) t)
-      
-      (when pm--dbg-fontlock 
-        (setq pm--fontify-region-original
-              font-lock-fontify-region-function)
-        (set (make-local-variable 'font-lock-fontify-region-function)
-             #'pm/fontify-region)
-        (setq pm--syntax-begin-function-original
-              (or syntax-begin-function ;; Emacs > 23.3
-                  font-lock-beginning-of-syntax-function))
-        (set (make-local-variable 'syntax-begin-function)
-             #'pm/syntax-begin-function))
-
-      (set (make-local-variable 'polymode-mode) t)
-
-      ;; Indentation should first narrow to the chunk.  Modes
-      ;; should normally just bind `indent-line-function' to
-      ;; handle indentation.
-      (when (and indent-line-function ; not that it should ever be nil...
-                 (oref pm/submode :protect-indent-line))
-        (setq pm--indent-line-function-original indent-line-function)
-        (set (make-local-variable 'indent-line-function) 'pm/indent-line))
-
-      ;; Kill the base buffer along with the indirect one; careful not
-      ;; to infloop.
-      ;; (add-hook 'kill-buffer-hook
-      ;;           '(lambda ()
-      ;;              ;; (setq kill-buffer-hook nil) :emacs 24 bug (killing
-      ;;              ;; dead buffer triggers an error)
-      ;;              (let ((base (buffer-base-buffer)))
-      ;;                (if  base
-      ;;                    (unless (buffer-local-value 'pm--killed-once base)
-      ;;                      (kill-buffer base))
-      ;;                  (setq pm--killed-once t))))
-      ;;           t t)
-      
-      (when pm--dbg-hook
-        (add-hook 'post-command-hook 'polymode-select-buffer nil t))
-      (object-add-to-list pm/config '-buffers (current-buffer)))
-    buff))
-
-(defvar pm--ib-prefix "")
-(defun pm--create-indirect-buffer (mode)
-  "Create indirect buffer with major MODE and initialize appropriately.
-
-This is a low lever function which must be called, one way or
-another from `pm/install' method. Among other things store
-`pm/config' from the base buffer (must always exist!) in
-the newly created buffer.
-
-Return newlly created buffer."
-  (unless   (buffer-local-value 'pm/config (pm/base-buffer))
-    (error "`pm/config' not found in the base buffer %s" (pm/base-buffer)))
-  
-  (setq mode (pm--get-available-mode mode))
-
-  (with-current-buffer (pm/base-buffer)
-    (let* ((config (buffer-local-value 'pm/config (current-buffer)))
-           (new-name
-            (generate-new-buffer-name 
-             (format "%s%s[%s]" pm--ib-prefix (buffer-name)
-                     (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
-           (new-buffer (make-indirect-buffer (current-buffer)  new-name))
-           ;; (hook pm/indirect-buffer-hook)
-           (file (buffer-file-name))
-           (base-name (buffer-name))
-           (jit-lock-mode nil)
-           (coding buffer-file-coding-system))
-
-      ;; (dbg (current-buffer) file)
-      ;; (backtrace)
-
-      (with-current-buffer new-buffer
-        (let ((polymode-mode t)) ;;major-modes might check it
-          (funcall mode))
-        (setq polymode-major-mode mode)
-        
-        ;; Avoid the uniqified name for the indirect buffer in the mode line.
-        (when pm--dbg-mode-line
-          (setq mode-line-buffer-identification
-                (propertized-buffer-identification base-name)))
-        (setq pm/config config)
-        (setq buffer-file-coding-system coding)
-        (setq buffer-file-name file)
-        (vc-find-file-hook))
-      new-buffer)))
-
 
 (provide 'polymode-common)
 
