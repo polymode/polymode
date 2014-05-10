@@ -107,9 +107,6 @@ exporter (from to) specification will be called.")
       (error "from-to spec '%s' is not supported by weaver '%s'"
              from-to (pm--object-name weaver)))))
 
-(defun pm--display-file (ofile)
-  (display-buffer (find-file-noselect ofile 'nowarn)))
-
 (defmacro pm--weave-wrap-callback (slot)
   ;; replace weaver :sentinel or :callback temporally in order to export as a
   ;; followup step or display the result

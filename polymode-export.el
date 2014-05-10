@@ -135,6 +135,8 @@
 (defvar pm--exporter-hist nil)
 (defvar pm--export:from-hist nil)
 (defvar pm--export:to-hist nil)
+(declare-function polymode-set-weaver "polymode-weave")
+(declare-function pm-weaver "polymode-weave")
 
 (defun polymode-export (&optional from to)
   "Export current file.
@@ -187,11 +189,7 @@ first with `polymode-set-exporter'."
                                                   return (cons (car w) (car e)))))
                        (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
                                               (file-name-extension fname)
-                                              ;; object-name returns clutter like "#<pm-exporter pandoc>"
-                                              ;; use internal implementation:
-                                              (if (fboundp 'eieio--object-name)
-                                                  (eieio--object-name exporter)
-                                                (aref exporter object-name))))
+                                              (pm--object-name exporter)))
                               (sel (ido-completing-read prompt from-opts nil t nil
                                                         'pm--export:from-hist
                                                         (pm--get-hist :export-from))))
@@ -206,7 +204,8 @@ first with `polymode-set-exporter'."
                 ((stringp from)
                  (if (assoc from e:from)
                      from
-                   (error "Cannot find input spec '%s' in %s exporter" from (object-name exporter))))
+                   (error "Cannot find input spec '%s' in %s exporter"
+                          from (pm--object-name exporter))))
                 (t (error "'from' argument must be nil, universal argument or a string"))
                 ))
          (to
@@ -218,7 +217,8 @@ first with `polymode-set-exporter'."
                 ((stringp to)
                  (if (assoc to e:to)
                      to
-                   (error "Cannot find output spec '%s' in %s exporter" to (object-name exporter))))
+                   (error "Cannot find output spec '%s' in %s exporter"
+                          to (pm--object-name exporter))))
                 (t (error "'to' argument must be nil or a string")))))
     (if (consp from)
         ;; run through weaver

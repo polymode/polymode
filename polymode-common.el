@@ -39,6 +39,9 @@
 
 
 ;;; UTILITIES
+(defun pm--display-file (ofile)
+  (display-buffer (find-file-noselect ofile 'nowarn)))
+
 (defun pm--get-available-mode (mode)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return 'fundamental-mode with a
