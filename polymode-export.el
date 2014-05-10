@@ -1,3 +1,6 @@
+(require 'polymode-common)
+(require 'polymode-classes)
+
 (defgroup polymode-export nil
   "Polymode Exporters"
   :group 'polymode)
@@ -315,4 +318,4 @@ that call a shell command"
   :group 'polymode-export
   :type 'object)
 
-
+(provide 'polymode-export)

@@ -1,3 +1,6 @@
+(require 'polymode-common)
+(require 'polymode-classes)
+
 (defgroup polymode-weave nil
   "Polymode Weavers"
   :group 'polymode)
@@ -226,3 +229,5 @@ that call a shell command"
                    "*polymode weave*"
                    (concat "weaving " from-to " with command:\n     "
                            command "\n")))
+
+(provide 'polymode-weave)

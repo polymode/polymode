@@ -1,3 +1,4 @@
+(require 'polymode-common)
 
 ;;; ROOT CLASS
 (defclass polymode (eieio-instance-inheritor) ()
@@ -306,3 +307,4 @@ configuration from :head-adjust-face."))
 
   "Representation of an inner submode")
 
+(provide 'polymode-classes)
