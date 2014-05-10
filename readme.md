@@ -8,6 +8,13 @@ code.
 Polymode also provides extensible facilities for external literate programming
 tools such as exporting, weaving and tangling.
 
+- [Instalation](#intstalation)
+- [Polymodes Activation](#polymodes-activation)
+- [Basic Usage](#basic-usage)
+- [Warnings](#warning)
+- [Development](modes)
+- [Screenshots](#Screenshots)
+
 ## Installation 
 
 The project will be soon available on MELPA. For now you will have to install it
@@ -108,7 +115,7 @@ All keys start with the prefix defined in `polymode-prefix-key`, default is
     <kbd>M-i</kbd> `polymode-insert-new-chunk`
 
 
-## Warning
+## Warnings
 
   * Tested with Emacs 24.3.1
   * <font color="red"> _Does not work in emacs devel. They removed jit-lock from indirect buffers

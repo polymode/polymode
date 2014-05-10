@@ -30,6 +30,7 @@
 (defvar *span*)
 
 ;; core api from polymode.el, which relies on polymode-methods.el.
+;; fixme: some of these are not api, rename
 (declare-function pm/base-buffer "polymode")
 (declare-function pm/get-innermost-span "polymode")
 (declare-function pm/map-over-spans "polymode")

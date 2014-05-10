@@ -278,7 +278,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     "Can be a number, list or face. If nil, take the
 configuration from :head-adjust-face."))
   
-  "Representation of an inner submode in a buffer.")
+  "Representation of an inner (aka chunk) submode in a buffer.")
 
 (defclass pm-chunkmode-auto (pm-chunkmode)
   ((retriever-regexp

@@ -1,3 +1,5 @@
+_This doc is an early draft._
+
 # Developing with Polymode
 
 Polymode doesn't keep its modes in a single emacs buffer but in several indirect
@@ -11,10 +13,13 @@ awesome idea.
 - [Polymodes and Configs](#polymodes-and-configs)
 - [Submodes](#submodes)
 - [Defining New Modes](#defining-new-modes)
-  - [One Predefined Innermode](#one-predefined-innermode)
-  - [Multiple Predefined Innermodes](#multiple-predefined-innermodes)
-  - [Multiple Automatically Detected Innermodes](#multiple-automatically-detected-innermodes)
+  - [One Predefined Chunkmode](#one-predefined-chunkmode)
+  - [Multiple Predefined Chunkmodes](#multiple-predefined-chunkmodes)
+  - [Multiple Automatically Detected Chunkmodes](#multiple-automatically-detected-chunmodes)
 - [Defining Literate Programming Backends](#defining-backends-weavers-exporters-and-tanglers)
+  - [Weavers](#weavers)
+  - [Exporters](#exporters)
+  - [Tanglers](#tanglers)
 - [Internals](#internals)
   - [Initialization of polymodes](#initialization-of-polymodes)
   - [API](#api)
@@ -83,12 +88,12 @@ The most important slots of root config class `pm-config` are:
 
 Currently there are three types of config objects:
 
-- `pm-config-one` - Used for polymdoes with only one predefined inner mode. It
+- `pm-config-one` - Used for polymdoes with only one predefined chunkmode. It
   extends `pm-config` with one slot - `chunkmode-name` which is a name of the
-  chunkmode (objects of class `pm-chunkmode`). 
+  chunkmode (objects of class `pm-chunkmode`).
 - `pm-config-multi` - Used for polymodes with multiple predefined inner
-  modes. It extends `pm-config` with `innermost-names` list which contains names
-  of predefined chunkmodes.
+  modes. It extends `pm-config` with `chunkmodes` list which contains names of
+  predefined `pm-chunkmode` objects.
 - `pm-config-multi-auto` - used for polymodes with multiple dymamically
   discoveroble chunkmodes (examples are `org-mode` and `markdown-mode`). It
   extends `pm-config-multi` with `auto-mode-name` (name of the object of class
@@ -132,19 +137,26 @@ Currently, there are three types of submode objects:
 
 ## Defining New Modes
 
-### One Predefined Innermode
+### One Predefined Chunkmode
 
 (noweb)
 
-### Multiple Predefined Innermodes
+### Multiple Predefined Chunkmodes
 
 (web-mode)
 
-### Multiple Automatically Detected Innermodes
+### Multiple Automatically Detected Chunkmodes
 
 (markdown,  org-mode etc)
 
-## Defining Backends: Weavers, Exporters and Tanglers
+## Defining Backends
+
+### Weavers
+todo
+### Exporters
+todo
+### Tanglers
+todo
 
 ## Internals
 
@@ -180,7 +192,13 @@ initialize the indirect buffer.
 
 ### API
 
-All API functions and methods are named with `pm/` prefix.
+All API objects, functions and methods are named with `pm/` prefix.
+
+Objects
+
+   - `pm/type`
+   - `pm/submode`
+   - `pm/config`
 
 Generics:
 
@@ -192,4 +210,9 @@ Generics:
    - `pm/indent-line`
    - `pm/get-adjust-face`
 
+Utilities:
+
+   - `pm/get-innermost-span`
+   - `pm/map-over-spans`
+   - `pm/narrow-to-span`
 
