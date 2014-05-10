@@ -5,7 +5,7 @@
 ;; Maintainer: Spinu Vitalie
 ;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
 ;; Version: 1.0
-;; Package-Requires: ((markdown-mode "2.0") (emacs "24"))
+;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/vitoshka/polymode
 ;; Keywords: emacs
 ;;

@@ -30,6 +30,7 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'polymode)
+(require 'markdown-mode)
 
 (defcustom pm-base/markdown
   (pm-basemode "Markdown"
