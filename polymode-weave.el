@@ -76,7 +76,7 @@ EXPORT must be a list of the form (FROM TO) sutable for call of
 `polymode-export'. If EXPORT is provided corresponding
 exporter (from to) specification will be called.")
 
-
+(declare-function pm-export "polymode-export")
 (defmethod pm-weave ((weaver pm-weaver) from-to &optional export ifile)
   (let ((from-to-spec (assoc from-to (oref weaver :from-to))))
     (if from-to-spec

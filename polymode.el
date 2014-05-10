@@ -237,6 +237,15 @@ Return, how many chucks actually jumped over."
   (interactive)
   (error "Not implemented yet"))
 
+(defun polymode-show-process-buffer ()
+  (interactive)
+  (let ((buf (cl-loop for b being the buffers
+                      if (buffer-local-value 'pm--process-buffer b)
+                      return b)))
+    (if buf
+        (pop-to-buffer buf)
+      (message "No polymode process buffers found."))))
+
 
 ;;; CORE
 (defsubst pm/base-buffer ()
