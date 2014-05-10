@@ -1,12 +1,12 @@
 ## Overview
 
-Polymode is an emacs package that offers support for multiple major modes inside
-a single emacs buffer. It is lightweight, object oriented and easely
-extensible. Creating new polymode commonly takes several lines of declarations.
+Polymode is an emacs package that offers generic support for multiple major
+modes inside a single emacs buffer. It is lightweight, object oriented and
+highly extensible. Creating new polymodes commonly takes just several lines of
+code.
 
-Polymode also provides highly configurable facilities for literate
-programming. Exporters, weavers and tanglers organically integrate into polymode
-ecosystem and are easy to create and extend.
+Polymode also provides extensible facilities for external literate programming
+tools such as exporting, weaving and tangling.
 
 ## Installation 
 
