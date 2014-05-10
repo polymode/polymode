@@ -127,18 +127,22 @@ See [development](modes).
 
 ## Screenshots
 
-### Ess-help buffer
-
-<img src="img/ess-help.png" width="350px"/>
-
-### C++R
-<img src="img/cppR.png" width="350px"/>
-
 ### markdown+R
 
-<img src="img/Rmd.png" width="350px"/>
+<img src="img/Rmd.png" width="400px"/>
 
 ### markdown+R+YAML
 
-<img src="img/rapport.png" width="350px"/>
+<img src="img/rapport.png" width="400px"/>
+
+### org mode
+
+<img src="img/org.png" width="400px"/>
+
+### Ess-help buffer
+
+<img src="img/ess-help.png" width="400px"/>
+
+### C++R
+<img src="img/cppR.png" width="400px"/>
 
