@@ -9,6 +9,7 @@ modes. I am very much indebted to Dave Love's
 [multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) for this
 awesome idea.
 
+- [Glossary of Terms](#glossary-of-terms)
 - [Class Hierarchy](#class-hierarchy)
 - [Polymodes and Configs](#polymodes-and-configs)
 - [Submodes](#submodes)
@@ -23,6 +24,17 @@ awesome idea.
 - [Internals](#internals)
   - [Initialization of polymodes](#initialization-of-polymodes)
   - [API](#api)
+
+## Glossary of Terms
+
+_naming conventions are subject to change_
+
+ - span:
+ - chunk:
+ - polymode:
+ - submode:
+ - basemode:
+ - chunkmode:
 
 ## Class Hierarchy
 
@@ -60,8 +72,9 @@ Current polymode class hierarchy:
 
 *Note:* Each `eieio` class has a corresponding constructor whose docstring
 contains a complete description of the class. Use `C-h f pm-foo RET` to inspect
-the documentation of the class. Alternatively, lookup the class definition
-directly in [polymode-classes.el](polymode-classes.el).
+the documentation of the class (available in recent emacses
+only). Alternatively, lookup the class definition directly in
+[polymode-classes.el](polymode-classes.el).
 
 ## Polymodes and Configs
 

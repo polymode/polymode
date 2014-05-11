@@ -386,6 +386,7 @@ in polymode buffers."
 
 
 ;;; DEFINE
+;;;###autoload
 (defmacro define-polymode (mode config &optional keymap &rest body)
   "Define a new polymode MODE.
 This macro defines command MODE and an indicator variable MODE

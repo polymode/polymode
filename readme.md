@@ -17,6 +17,9 @@ tools such as exporting, weaving and tangling.
 
 ## Installation 
 
+*_Polymode does't work in emacs devel. They removed jit-lock support for
+ indirect buffers recenly. I am looking for workarounds._*
+
 The project will be soon available on MELPA. For now you will have to install it
 manually:
 
@@ -50,8 +53,8 @@ Polymodes can be used in place of emacs major or minor modes alike. There are
 two main ways to activate an emacs mode:
 
    1. _By registering a file extension_ by adding the to `auto-mode-alist`. Have
-      a look at [polymode-configuration.el](polymode-configuration.el) and pick
-      the once you are using. Example are:
+      a look at [polymode-configuration.el](polymode-configuration.el) for more
+      examples.
 
     ```lisp
     ;;; MARKDOWN
@@ -75,8 +78,9 @@ two main ways to activate an emacs mode:
 
 ## Basic Usage
 
-All keys start with the prefix defined in `polymode-prefix-key`, default is
-<kbd>M-n</kbd>. The `polymode-mode-map` is the parent of all polymodes' maps:
+All polymode keys start with the prefix defined by `polymode-prefix-key`,
+default is <kbd>M-n</kbd>. The `polymode-mode-map` is the parent of all
+polymodes' maps:
 
 * BACKENDS
 

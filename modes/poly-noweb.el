@@ -69,7 +69,6 @@ closing \"@\" and a newline if necessary."
           (newline)))
       (ess-noweb-update-chunk-vector))))
 
-
 (defcustom pm-exporter/pdflatex
   (pm-shell-exporter "pdflatex"
                      :from
