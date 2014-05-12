@@ -9,19 +9,22 @@ Polymode also provides extensible facilities for external literate programming
 tools such as exporting, weaving and tangling.
 
 - [Instalation](#intstalation)
-- [Polymodes Activation](#polymodes-activation)
+- [Polymodes Activation](#activation-of-polymodes)
 - [Basic Usage](#basic-usage)
 - [Warnings](#warning)
 - [Development](modes)
 - [Screenshots](#Screenshots)
 
-## Installation 
+## Installation
 
-*_Polymode does't work in emacs devel. They removed jit-lock support for
- indirect buffers recenly. I am looking for workarounds._*
+*_Polymode does't work in emacs devel. Jit-lock support for indirect buffers was
+ recenly removed. I am looking for workarounds._*
 
-The project will be soon available on MELPA. For now you will have to install it
-manually:
+### From [MELPA](https://github.com/milkypostman/melpa)
+
+<kbd>M-x</kbd> `package-install` `polymode`.
+
+### Manually for Development
 
 ```sh
 git clone https://github.com/vitoshka/polymode.git
@@ -42,15 +45,11 @@ Require any polymode bundles that you are interested in. For example:
 (require 'poly-markdown)
 ```
 
-Note that for the full use of poly-markdown modes you will need
-[markdown-mode.el](http://jblevins.org/projects/markdown-mode/). It is also
-available from MELPA repository.
+## Activation of Polymodes
 
-
-## Polymodes activation
-
-Polymodes can be used in place of emacs major or minor modes alike. There are
-two main ways to activate an emacs mode:
+Polymodes are functions just like ordinary emacs modes. The can be used in place
+of emacs major or minor modes alike. There are two main ways to automatically
+activate  emacs (poly)modes:
 
    1. _By registering a file extension_ by adding the to `auto-mode-alist`. Have
       a look at [polymode-configuration.el](polymode-configuration.el) for more
@@ -60,13 +59,13 @@ two main ways to activate an emacs mode:
     ;;; MARKDOWN
     (add-to-list 'auto-mode-alist '("\\.md" . poly-markdown-mode))
 
-    ;;; R related modes
+    ;;; R modes
     (add-to-list 'auto-mode-alist '("\\.Snw" . poly-noweb+r-mode))
     (add-to-list 'auto-mode-alist '("\\.Rnw" . poly-noweb+r-mode))
     (add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
     ```
 
-   1. _By setting local mode variable in you file_:
+   2. _By setting local mode variable in you file_:
    
    ```c++
    // -*- mode: poly-C++R -*-
@@ -75,6 +74,7 @@ two main ways to activate an emacs mode:
    ```sh
    ## -*- mode: poly-brew+R; -*-
    ```
+
 
 ## Basic Usage
 
@@ -122,8 +122,7 @@ polymodes' maps:
 ## Warnings
 
   * Tested with Emacs 24.3.1
-  * <font color="red"> _Does not work in emacs devel. They removed jit-lock from indirect buffers
-    recenly. I am looking for workarounds._ </font>
+  * _Does not work in emacs devel._
 
 
 Some things still don't work as expected. For example:
