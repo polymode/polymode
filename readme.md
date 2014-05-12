@@ -51,9 +51,7 @@ Polymodes are functions just like ordinary emacs modes. The can be used in place
 of emacs major or minor modes alike. There are two main ways to automatically
 activate  emacs (poly)modes:
 
-   1. _By registering a file extension_ by adding the to `auto-mode-alist`. Have
-      a look at [polymode-configuration.el](polymode-configuration.el) for more
-      examples.
+   1. _By registering a file extension by adding modes to `auto-mode-alist`_:
 
     ```lisp
     ;;; MARKDOWN
@@ -65,7 +63,10 @@ activate  emacs (poly)modes:
     (add-to-list 'auto-mode-alist '("\\.Rmd" . poly-markdown+r-mode))
     ```
 
-   2. _By setting local mode variable in you file_:
+    See [polymode-configuration.el](polymode-configuration.el) for more
+    examples.
+
+2. _By setting local mode variable in you file_:
    
    ```c++
    // -*- mode: poly-C++R -*-
@@ -124,12 +125,13 @@ polymodes' maps:
   * Tested with Emacs 24.3.1
   * _Does not work in emacs devel._
 
-
 Some things still don't work as expected. For example:
     
    * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
    * Customization interface is not working as expected (an eieio bug) and is
      not tested. 
+   * Indentation and font-lock is not always right and requires some more
+     tweaking. This is especially true for complex modes like `c-mode`.
 
 ## Developing with Polymode
 
