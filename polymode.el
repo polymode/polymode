@@ -1,4 +1,4 @@
-;;; polymode.el --- Versatile multiple modes mode with extensive literate programming support 
+;;; polymode.el --- Versatile multiple modes with extensive literate programming support 
 ;;
 ;; Filename: polymode.el
 ;; Author: Spinu Vitalie
