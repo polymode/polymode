@@ -29,6 +29,13 @@ is in place at that time."
   :group 'polymode-basemodes
   :type 'object)
 
+(defcustom pm-base/doc
+  (pm-submode "doc"
+              :mode 'doc-mode)
+  "AsciiDoc base submode"
+  :group 'base-submodes
+  :type 'object)
+
 (defcustom pm-base/R
   (pm-basemode "R"
               :mode 'R-mode)
@@ -78,6 +85,13 @@ is in place at that time."
   "HTML typical configuration"
   :group 'polymode-configs
   :type 'object)
+
+(defcustom pm-config/doc
+  (pm-config-one "doc"
+                 :base-submode-name 'pm-base/doc
+                 :inner-submode-name 'pm-submode/fundamental)
+  "AsciiDoc typical configuration"
+  :group 'polymode :type 'object)
 
 (defcustom pm-config/C++
   (pm-config-one "C++"

@@ -113,6 +113,26 @@
 
 
 
+;; AsciiDoc
+(defcustom pm-config/doc+R
+  (clone pm-config/doc "doc+R" :inner-submode-name 'pm-submode/doc+R)
+  "AsciiDoc + R configuration"
+  :group 'polymode  :type 'object)
+
+(defcustom  pm-submode/doc+R
+  (pm-inner-submode "doc+R"
+                    :mode 'R-mode
+                    :head-reg "//begin.rcode"
+                    :tail-reg "//end.rcode")
+  "AsciiDoc KnitR submode."
+  :group 'polymode  :type 'object)
+
+(define-polymode poly-doc+r-mode pm-config/doc+R)
+(add-to-list 'auto-mode-alist '("\\.Rasciidoc" . poly-doc+r-mode))
+(add-to-list 'auto-mode-alist '("\\.Rtxt" . poly-doc+r-mode))
+
+
+
 ;;; R-brew
 (defcustom pm-config/brew+R
   (clone pm-config/brew "brew+R"
