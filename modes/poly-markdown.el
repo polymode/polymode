@@ -43,7 +43,7 @@
   (pm-chunkmode-auto "markdown"
                      :head-reg "^[ \t]*```[{ \t]*\\w.*$"
                      :tail-reg "^[ \t]*```[ \t]*$"
-                     :retriever-regexp "```[ \t]*{?\\(\\w+\\)"
+                     :retriever-regexp "```[ \t]*{?\\(\\(\\w\\|\\s_\\)+\\)"
                      :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'polymode-chunkmodes
