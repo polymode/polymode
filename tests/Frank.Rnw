@@ -64,16 +64,22 @@ latex(describe(ras), file='')
 \section{Missing Data}
 Let's look at patterns of missing values, especially which variables
 are missing on the same patients.
+
 <<naclus,top=2>>=
 r <- subset(ras, select=c(gender,race,age,bmi,ldl,diabetes,htn,dialysis,
                    cad,statin,sasr,sas.etiology,creatinine))
 dd <- datadist(r)
 n <- naclus(subset(r, select=-sas.etiology))
 naplot(n, which='na per obs')
+@
+
 <<naplot,top=2,rt=1,ps=8>>=
 options(datadist='dd')
 naplot(n, which='mean na')
+@
+
 <<naplot2>>=
 plot(n)
 @ 
+
 \end{document}

@@ -1,5 +1,3 @@
-(require 'polymode)
-
 
 ;; BASE MODES
 (defcustom pm-base/blank

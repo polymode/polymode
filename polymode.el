@@ -48,6 +48,8 @@
 (require 'polymode-methods)
 (require 'polymode-export)
 (require 'polymode-weave)
+;; load all base submodes
+(require 'poly-base)
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"
