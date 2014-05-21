@@ -36,7 +36,7 @@
   (pm-basemode "Markdown"
                :mode 'markdown-mode)
   "Markdown base submode"
-  :group 'polymode-basemodes
+  :group 'basemodes
   :type 'object)
 
 (defcustom  pm-chunk/markdown
@@ -46,7 +46,7 @@
                      :retriever-regexp "```[ \t]*{?\\(\\(\\w\\|\\s_\\)+\\)"
                      :font-lock-narrow t)
   "Markdown typical chunk."
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 (defcustom pm-poly/markdown
@@ -55,7 +55,7 @@
                         :auto-chunkmode 'pm-chunk/markdown
                         :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown typical configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-markdown-mode "poly-markdown")

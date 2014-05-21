@@ -36,7 +36,7 @@
                  :basemode 'pm-base/R
                  :chunkmode 'pm-chunk/fundamental)
   "HTML typical configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 ;; NOWEB
@@ -45,14 +45,14 @@
   (clone pm-poly/noweb
          :chunkmode 'pm-chunk/noweb+R)
   "Noweb for R configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom pm-chunk/noweb+R
   (clone pm-chunk/noweb
          :mode 'R-mode)
   "Noweb for R"
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-noweb+r-mode "poly-R")
@@ -73,7 +73,7 @@
          :chunkmodes '(pm-chunk/brew+R
                        pm-chunk/rapport+YAML))
   "Rapport template configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-chunk/rapport+YAML
@@ -82,7 +82,7 @@
                 :head-reg "<!--head"
                 :tail-reg "head-->")
   "YAML header in Rapport files"
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 
@@ -96,7 +96,7 @@
 (defcustom pm-poly/html+R
   (clone pm-poly/html "html+R" :chunkmode 'pm-chunk/html+R)
   "HTML + R configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-chunk/html+R
@@ -105,7 +105,7 @@
                 :head-reg "<!--[ \t]*begin.rcode"
                 :tail-reg "end.rcode[ \t]*-->")
   "HTML KnitR submode."
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-html+r-mode "poly-R")
@@ -118,7 +118,7 @@
   (clone pm-poly/brew "brew+R"
          :chunkmode 'pm-chunk/brew+R)
   "Brew + R configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-chunk/brew+R
@@ -127,7 +127,7 @@
                 :head-reg "<%[=%]?"
                 :tail-reg "[#=%=-]?%>")
   "Brew R chunk."
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-brew+r-mode "poly-R")
@@ -153,7 +153,7 @@
 (defcustom pm-poly/R+C++
   (clone pm-poly/R "R+C++" :chunkmode 'pm-chunk/R+C++)
   "R + C++ configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-chunk/R+C++
@@ -164,7 +164,7 @@
                 :tail-reg 'pm--R+C++-tail-matcher
                 :font-lock-narrow nil)
   "HTML KnitR chunk."
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-r+c++-mode "poly-R")
@@ -187,7 +187,7 @@
 (defcustom pm-poly/C++R
   (clone pm-poly/C++ "C++R" :chunkmode 'pm-chunk/C++R)
   "R + C++ configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-chunk/C++R
@@ -196,7 +196,7 @@
                 :head-reg 'pm--C++R-head-matcher
                 :tail-reg 'pm--C++R-tail-matcher)
   "HTML KnitR chunk."
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-c++r-mode "poly-R")
@@ -209,7 +209,7 @@
   (pm-polymode-one "ess-R-help"
                  :chunkmode 'pm-chunk/ess-help+R)
   "ess-R-help"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-chunk/ess-help+R
@@ -219,7 +219,7 @@
                 :tail-reg "\\'"
                 :indent-offset 5)
   "Ess help R chunk"
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-ess-help+r-mode "poly-R")
@@ -244,7 +244,7 @@
   (pm-polymode-one "R-documentation"
                  :chunkmode 'pm-chunk/Rd)
   "R submode for Rd files"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 (defcustom pm-chunk/Rd
@@ -254,7 +254,7 @@
                 :head-reg 'pm--Rd-examples-head-matcher
                 :tail-reg 'pm--Rd-examples-tail-matcher)
   "Rd examples chunk."
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-Rd-mode "poly-R")

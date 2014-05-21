@@ -56,15 +56,15 @@
   :link '(emacs-commentary-link "polymode")
   :group 'tools)
 
-(defgroup polymode-configs nil
+(defgroup polymodes nil
   "Polymode Configuration Objects"
   :group 'polymode)
 
-(defgroup polymode-basemodes nil
+(defgroup basemodes nil
   "Polymode Base Submode Objects"
   :group 'polymode)
 
-(defgroup polymode-chunkmodes nil
+(defgroup chunkmodes nil
   "Polymode Submode Objects"
   :group 'polymode)
 

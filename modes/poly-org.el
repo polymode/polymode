@@ -36,7 +36,7 @@
   (pm-basemode "Org mode"
                :mode 'org-mode)
   "Org base submode"
-  :group 'polymode-basemodes
+  :group 'basemodes
   :type 'object)
 
 (defcustom  pm-chunk/org
@@ -49,7 +49,7 @@
                      :indent-offset org-edit-src-content-indentation
                      :font-lock-narrow t)
   "Org typical chunk."
-  :group 'polymode-chunkmodes
+  :group 'chunkmodes
   :type 'object)
 
 (defcustom pm-poly/org
@@ -57,7 +57,7 @@
                         :basemode 'pm-base/org
                         :auto-chunkmode 'pm-chunk/org)
   "Org typical configuration"
-  :group 'polymode-configs
+  :group 'polymodes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-org-mode "poly-org")
