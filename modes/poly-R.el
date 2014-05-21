@@ -56,14 +56,14 @@
   :type 'object)
 
 ;;;###autoload (autoload 'poly-noweb+r-mode "poly-R")
-(define-polymode poly-noweb+r-mode pm-poly/noweb+R)
+(define-polymode poly-noweb+r-mode pm-poly/noweb+R :lighter " PM-Rnw")
 
 
 
 ;; MARKDOWN
 (require 'poly-markdown)
 ;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
-(define-polymode poly-markdown+r-mode pm-poly/markdown :lighter " Rmd")
+(define-polymode poly-markdown+r-mode pm-poly/markdown :lighter " PM-Rmd")
 
 
 

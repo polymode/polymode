@@ -68,14 +68,15 @@
     :type (or symbol list)
     "Has a similar role as the :keymap argument in
      `define-polymode' with the difference that this argument is
-     inherited through cloning but :keymap argument is not. That
+     inherited through cloning, but :keymap argument is not. That
      is, child objects derived through clone will inherit
-     the :map argument of its parents as follows. If :map is nil
-     or an alist of keys, the parent is inspected for :map
-     argument and the keys are merged. If :map is a symbol, it
-     should be a keymap, in which case this keymap is used and no
-     parents are further inspected for :map slot. If :map is an
-     alist it should be suitable to be passed to
+     the :map argument of its parents through the following
+     scheme: if :map is nil or an alist of keys, the parent is
+     inspected for :map argument and the keys are merged
+     recursively from parent to parent till a symbol :map slot is
+     met. If :map is a symbol, it must be a keymap, in which case
+     this keymap is used and no parents are further inspected
+     for :map slot. If :map is an alist it must be suitable for
      `easy-mmode-define-keymap'.")
    (init-functions
     :initarg :init-functions

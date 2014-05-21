@@ -492,18 +492,18 @@ BODY contains code to be executed after the complete
                               (oref pi :map)))
                (if (and (symbolp map)
                         (keymapp (symbol-value map)))
-                   ;; if one of the parent's :map is a keymap, use it as our
-                   ;; keymap and stop the descent:
+                   ;; If one of the parent's :map is a keymap, use it as our
+                   ;; keymap and stop further descent.
                    (setq keymap  (symbol-value map)
                          pi nil)
-                 ;; go down to next parent and append the list to key-alist
+                 ;; Descend to next parent and append the key list to key-alist
                  (setq pi (and (slot-boundp pi :parent-instance)
                                (oref pi :parent-instance))
                        key-alist (append key-alist map))))))
 
          (unless keymap
            ;; If we couldn't figure out the original keymap:
-           (setq keymap 'polymode-mode-map))
+           (setq keymap polymode-mode-map))
 
          ;; Define the minor-mode keymap:
          (defvar ,keymap-sym
@@ -536,7 +536,7 @@ BODY contains code to be executed after the complete
                 ;; Return the new setting.
                 ,mode)
          
-         (add-minor-mode ',mode lighter ,(or keymap-sym keymap))))))
+         (add-minor-mode ',mode lighter ,keymap-sym)))))
 
 
 (define-minor-mode polymode-minor-mode
