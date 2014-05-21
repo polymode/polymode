@@ -2,17 +2,17 @@
 
 
 ;;; INITIALIZATION
-(defgeneric pm/initialize (config)
+(defgeneric pm-initialize (config)
   "Initialize current buffer with CONFIG.
 
 First initialize the -basemode and -chunkmodes slots of
 CONFIG object ...
 
 Current buffer is setup as the base buffer.")
-;; (defmethod pm/initialize ((config pm-config))
+;; (defmethod pm-initialize ((config pm-config))
 ;;   (pm--setup-buffer (current-buffer)))
 
-(defmethod pm/initialize ((config pm-config))
+(defmethod pm-initialize ((config pm-config))
   ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ... 
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
@@ -27,11 +27,11 @@ Current buffer is setup as the base buffer.")
         (let ((polymode-mode t)) ;;major-modes might check it 
           (funcall base-mode)))
       ;; fixme: maybe: inconsistencies?
-      ;; 1)  not calling pm/install-buffer on base-buffer
+      ;; 1)  not calling pm-install-buffer on base-buffer
       ;; But, we are not creating/installing a new buffer here .. so it is a
       ;; different thing .. and is probably ok
       ;; 2)  not calling config's :minor-mode (polymode function).
-      ;; But polymode function calls pm/initialize... so I guess it is ok
+      ;; But polymode function calls pm-initialize... so I guess it is ok
       (oset config -basemode submode)
       (setq pm/config config)
       (setq pm/submode submode)
@@ -48,12 +48,12 @@ Current buffer is setup as the base buffer.")
                           (oref PI :parent-instance))))
           (run-hooks 'IFs))))))
 
-(defmethod pm/initialize ((config pm-config-one))
+(defmethod pm-initialize ((config pm-config-one))
   (call-next-method)
   (eval `(oset config -chunkmodes
                (list (clone ,(oref config :chunkmode))))))
 
-(defmethod pm/initialize ((config pm-config-multi))
+(defmethod pm-initialize ((config pm-config-multi))
   (call-next-method)
   (oset config -chunkmodes
         (mapcar (lambda (sub-name)
@@ -63,46 +63,46 @@ Current buffer is setup as the base buffer.")
 
 
 ;;; BUFFERS
-(defgeneric pm/get-buffer (submode &optional span-type)
+(defgeneric pm-get-buffer (submode &optional span-type)
   "Get the indirect buffer associated with SUBMODE and
 SPAN-TYPE. Should return nil if buffer has not yet been
-installed. Also see `pm/get-span'.")
+installed. Also see `pm-get-span'.")
 
-(defmethod pm/get-buffer ((submode pm-submode) &optional type)
+(defmethod pm-get-buffer ((submode pm-submode) &optional type)
   (oref submode -buffer))
 
-(defmethod pm/get-buffer ((submode pm-chunkmode) &optional type)
+(defmethod pm-get-buffer ((submode pm-chunkmode) &optional type)
   (cond ((eq 'body type) (oref submode -buffer))
         ((eq 'head type) (oref submode -head-buffer))
         ((eq 'tail type) (oref submode -tail-buffer))
         (t (error "Don't know how to select buffer of type '%s' for submode '%s' of class '%s'"
                   type (pm--object-name submode) (class-of submode)))))
 
-(defgeneric pm/select-buffer (submode span)
+(defgeneric pm-select-buffer (submode span)
   "Ask SUBMODE to select (make current) its indirect buffer
 corresponding to the type of the SPAN returned by
-`pm/get-span'.")
+`pm-get-span'.")
 
-(defmethod pm/select-buffer ((submode pm-submode) span)
+(defmethod pm-select-buffer ((submode pm-submode) span)
   "Select the buffer associated with SUBMODE.
 Install a new indirect buffer if it is not already installed.
 
 For this method to work correctly, SUBMODE's class should define
-`pm/install-buffer' and `pm/get-buffer' methods."
+`pm-install-buffer' and `pm-get-buffer' methods."
   (let* ((type (car span))
-         (buff (pm/get-buffer submode type)))
+         (buff (pm-get-buffer submode type)))
     (unless (buffer-live-p buff)
-      (pm/install-buffer submode type)
-      (setq buff (pm/get-buffer submode type)))
+      (pm-install-buffer submode type)
+      (setq buff (pm-get-buffer submode type)))
     (pm--select-buffer buff)))
 
-(defmethod pm/select-buffer ((submode pm-chunkmode) span)
+(defmethod pm-select-buffer ((submode pm-chunkmode) span)
   (call-next-method)
   (pm--transfer-vars-from-base))
 
-(defmethod pm/select-buffer ((config pm-config-multi-auto) &optional span)
+(defmethod pm-select-buffer ((config pm-config-multi-auto) &optional span)
   (if (null (car span))
-      (pm/select-buffer (oref config -basemode) span)
+      (pm-select-buffer (oref config -basemode) span)
     (let ((type (car span))
           (proto (symbol-value (oref config :auto-chunkmode)))
           submode)
@@ -122,20 +122,20 @@ For this method to work correctly, SUBMODE's class should define
                                           :mode (pm--get-mode-symbol-from-name str))))
                       (object-add-to-list config '-auto-chunkmodes new-obj)
                       new-obj)))))
-      (pm/select-buffer submode span))))
+      (pm-select-buffer submode span))))
 
 
-(defgeneric pm/install-buffer (submode &optional type)
+(defgeneric pm-install-buffer (submode &optional type)
   "Ask SUBMODE to install an indirect buffer corresponding to
 span TYPE. Should return newly installed/retrieved buffer.")
 
-(defmethod pm/install-buffer ((submode pm-submode) &optional type)
+(defmethod pm-install-buffer ((submode pm-submode) &optional type)
   "Independently on the TYPE call `pm/create-indirect-buffer'
 create and install a new buffer in slot -buffer of SUBMODE."
   (oset submode -buffer
         (pm--create-submode-buffer-maybe submode type)))
 
-(defmethod pm/install-buffer ((submode pm-chunkmode) type)
+(defmethod pm-install-buffer ((submode pm-chunkmode) type)
   "Depending of the TYPE install an indirect buffer into
 slot -buffer of SUBMODE. Create this buffer if does not exist."
   (pm--set-submode-buffer submode type
@@ -241,7 +241,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
       (when (and indent-line-function ; not that it should ever be nil...
                  (oref pm/submode :protect-indent-line))
         (setq pm--indent-line-function-original indent-line-function)
-        (set (make-local-variable 'indent-line-function) 'pm/indent-line))
+        (set (make-local-variable 'indent-line-function) 'pm-indent-line))
 
       ;; Kill the base buffer along with the indirect one; careful not
       ;; to infloop.
@@ -310,23 +310,23 @@ Return newlly created buffer."
 
 
 ;;; SPAN MANIPULATION
-(defgeneric pm/get-span (submode &optional pos)
+(defgeneric pm-get-span (submode &optional pos)
   "Ask a submode for the span at point.
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE
 is a symbol representing the type of the span surrounding
 POS (head, tail, body, inline etc). BEG and END are the
 coordinates of the span. OBJECT is a sutable object which is
 'responsable' for this span. That is, OBJECT could be dispached
-upon with `pm/select-buffer' or other methods form the interface.
+upon with `pm-select-buffer' or other methods form the interface.
 
 Should return nil if there is no SUBMODE specific span around POS.")
 
-(defmethod pm/get-span (submode &optional pos)
+(defmethod pm-get-span (submode &optional pos)
   "Simply return nil. Base mode usually do/can not compute the span"
   nil)
 
-(defmethod pm/get-span ((config pm-config) &optional pos)
-  "Apply pm/get-span on every element of submodes slot of config object.
+(defmethod pm-get-span ((config pm-config) &optional pos)
+  "Apply pm-get-span on every element of submodes slot of config object.
 Return a cons (submode . span), for which START is closest to
 POS (and before it); i.e. the innermost span.  POS defaults to
 point."
@@ -344,7 +344,7 @@ point."
       ;;   (widen)
 
       (dolist (sm smodes)
-        (setq val (pm/get-span sm pos))
+        (setq val (pm-get-span sm pos))
         (when (and val
                    (or (> (nth 1 val) start)
                        (< (nth 2 val) end)))
@@ -373,9 +373,9 @@ point."
 
 ;; No need for this one so far. Basic method iterates through -chunkmodes
 ;; anyhow.
-;; (defmethod pm/get-span ((config pm-config-multi) &optional pos))
+;; (defmethod pm-get-span ((config pm-config-multi) &optional pos))
 
-(defmethod pm/get-span ((config pm-config-multi-auto) &optional pos)
+(defmethod pm-get-span ((config pm-config-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
         (proto (symbol-value (oref config :auto-chunkmode))))
     (if (oref proto :head-reg)
@@ -395,7 +395,7 @@ point."
             (append span (list config)))) ;fixme: this returns config as last object
       span-other)))
 
-(defmethod pm/get-span ((submode pm-chunkmode) &optional pos)
+(defmethod pm-get-span ((submode pm-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a submode object
 in this case."
@@ -524,7 +524,7 @@ tail -  tail span"
 
 
 ;;; INDENT
-(defgeneric pm/indent-line (&optional submode span)
+(defgeneric pm-indent-line (&optional submode span)
   "Indent current line.
 Protect and call original indentation function associated with
 the submode.")
@@ -538,15 +538,15 @@ the submode.")
         (funcall pm--indent-line-function-original))
     (pm--uncomment-region 1 (nth 1 span))))
 
-(defmethod pm/indent-line ()
+(defmethod pm-indent-line ()
   "Indent line dispatcher"
   (let ((span (pm/get-innermost-span)))
-    (pm/indent-line (car (last span)) span)))
+    (pm-indent-line (car (last span)) span)))
 
-(defmethod pm/indent-line ((submode pm-submode) &optional span)
+(defmethod pm-indent-line ((submode pm-submode) &optional span)
   (pm--indent-line span))
 
-(defmethod pm/indent-line ((submode pm-chunkmode) &optional span)
+(defmethod pm-indent-line ((submode pm-chunkmode) &optional span)
   "Indent line in inner submodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
@@ -562,7 +562,7 @@ to indent."
            (setq delta (- pos (point)))
            (backward-char)
            (let ((parent-span (pm/get-innermost-span)))
-             (pm/select-buffer (car (last parent-span)) parent-span)
+             (pm-select-buffer (car (last parent-span)) parent-span)
              (forward-char)
              (pm--indent-line parent-span)
              (when (eq 'tail (car span))
@@ -581,9 +581,9 @@ to indent."
            (goto-char (+ (point) delta))))))
 
 ;; fixme: This one is nowhere used?
-(defmethod pm/indent-line ((submode pm-config-multi-auto) &optional span)
-  (pm/select-buffer submode span)
-  (pm/indent-line pm/submode span))
+(defmethod pm-indent-line ((submode pm-config-multi-auto) &optional span)
+  (pm-select-buffer submode span)
+  (pm-indent-line pm/submode span))
 
 (defun pm--get-head-shift (span)
   (save-excursion
@@ -594,10 +594,10 @@ to indent."
 
 
 ;;; FACES
-(defgeneric pm/get-adjust-face (submode &optional type))
-(defmethod pm/get-adjust-face ((submode pm-submode) &optional type)
+(defgeneric pm-get-adjust-face (submode &optional type))
+(defmethod pm-get-adjust-face ((submode pm-submode) &optional type)
   (oref submode :adjust-face))
-(defmethod pm/get-adjust-face ((submode pm-chunkmode) &optional type)
+(defmethod pm-get-adjust-face ((submode pm-chunkmode) &optional type)
   (setq type (or type pm/type))
   (cond ((eq type 'head)
          (oref submode :head-adjust-face))

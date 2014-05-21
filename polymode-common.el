@@ -39,13 +39,13 @@
 (declare-function pm/syntax-begin-function "polymode")
 
 ;; methods api from polymode-methods.el
-(declare-function pm/initialize "polymode-methods")
-(declare-function pm/get-buffer "polymode-methods")
-(declare-function pm/select-buffer "polymode-methods")
-(declare-function pm/install-buffer "polymode-methods")
-(declare-function pm/get-adjust-face "polymode-methods")
-(declare-function pm/get-span "polymode-methods")
-(declare-function pm/indent-line "polymode-methods")
+(declare-function pm-initialize "polymode-methods")
+(declare-function pm-get-buffer "polymode-methods")
+(declare-function pm-select-buffer "polymode-methods")
+(declare-function pm-install-buffer "polymode-methods")
+(declare-function pm-get-adjust-face "polymode-methods")
+(declare-function pm-get-span "polymode-methods")
+(declare-function pm-indent-line "polymode-methods")
 
 ;; buffer manipulation function in polymode-methods.el
 ;; polymode-common.el:315:1:Warning: the following functions are not known to be defined:

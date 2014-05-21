@@ -157,7 +157,7 @@ advance submodes.")
     :initform '()
     :documentation
     "List of chunkmode objects that are auto-generated in
-    pm/get-span method for this class."))
+    `pm-get-span' method for this class."))
   
   "Configuration for a polymode that allows multiple submodes
 that are not known in advance. Examples are org-mode and markdown.")

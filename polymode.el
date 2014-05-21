@@ -265,7 +265,7 @@ Return, how many chucks actually jumped over."
 ;; delimiters -- you have to consider other possible regions between them.  For
 ;; now, we do the calculation each time, scanning outwards from point.
 (defun pm/get-innermost-span (&optional pos)
-  (pm/get-span pm/config pos))
+  (pm-get-span pm/config pos))
 
 ;; This function is for debug convenience only in order to avoid limited debug
 ;; context in polymode-select-buffer
@@ -274,7 +274,7 @@ Return, how many chucks actually jumped over."
   (unless pm--ignore-post-command-hook
     (let ((*span* (pm/get-innermost-span))
           (pm--can-move-overlays t))
-      (pm/select-buffer (car (last *span*)) *span*))))
+      (pm-select-buffer (car (last *span*)) *span*))))
 
 (defun polymode-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
@@ -305,7 +305,7 @@ the current innermost span."
                     (< nr count)))
       (setq *span* (pm/get-innermost-span)
             nr (1+ nr))
-      (pm/select-buffer (car (last *span*)) *span*) ;; object and type
+      (pm-select-buffer (car (last *span*)) *span*) ;; object and type
       (goto-char (nth 1 *span*))
       (funcall fun)
       (if backward?
@@ -369,9 +369,9 @@ in polymode buffers."
                                    (error-message-string err) beg end)))
                  (when parse-sexp-lookup-properties
                    (pm--uncomment-region 1 sbeg)))
-               (pm--adjust-chunk-face sbeg send (pm/get-adjust-face pm/submode))
+               (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/submode))
                ;; might be needed by external applications like flyspell
-               ;; fixme: this should be in a more generic place like pm/get-span
+               ;; fixme: this should be in a more generic place like pm-get-span
                (put-text-property sbeg send 'chunkmode
                                   (object-of-class-p pm/submode 'pm-chunkmode))
                ;; even if failed, set to t to avoid infloop
@@ -411,7 +411,7 @@ is not reinitialized if it coincides with the :mode slot of
 CONFIG object or if the :mode slot is nil.
 
 BODY contains code to be executed after the complete
-  initialization of the polymode (`pm/initialize') and before
+  initialization of the polymode (`pm-initialize') and before
   running MODE-hook. Before the actual body code, you can write
   keyword arguments, i.e. alternating keywords and values.  The
   following special keywords are supported:
@@ -519,7 +519,7 @@ BODY contains code to be executed after the complete
                     (unless pm/config ;; don't reinstall for time being
                       (let ((config (clone ,config)))
                         (oset config :minor-mode ',mode)
-                        (pm/initialize config)))
+                        (pm-initialize config)))
                     ;; set our "minor" mode
                     (setq ,mode t)
                     ,@body
