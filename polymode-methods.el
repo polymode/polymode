@@ -314,10 +314,10 @@ Return newlly created buffer."
   "Ask a submode for the span at point.
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE
 is a symbol representing the type of the span surrounding
-POS (head, tail, body, inline etc). BEG and END are the
-coordinates of the span. OBJECT is a sutable object which is
-'responsable' for this span. That is, OBJECT could be dispached
-upon with `pm-select-buffer' or other methods form the interface.
+POS (head, tail, body). BEG and END are the coordinates of the
+span. OBJECT is a sutable object which is 'responsable' for this
+span. That is, OBJECT could be dispached upon with
+`pm-select-buffer' or other methods form the interface.
 
 Should return nil if there is no SUBMODE specific span around POS.")
 

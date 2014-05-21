@@ -3,9 +3,9 @@ _This doc is an early draft._
 # Developing with Polymode
 
 Polymode doesn't keep its modes in a single emacs buffer but in several indirect
-buffers, actually as many as different modes are there in a file. Consequently,
-polymode is as fast as switching buffers because it never re-installs major
-modes. I am very much indebted to Dave Love's
+buffers, as many as different modes are there in a file. Consequently, polymode
+is as fast as switching emacs buffers because it never re-installs major modes
+like other multi-modes do. I am very much indebted to Dave Love's
 [multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) for this
 awesome idea.
 
@@ -27,14 +27,57 @@ awesome idea.
 
 ## Glossary of Terms
 
-_naming conventions are subject to change_
+_Under construction and subject to change._
 
- - span:
- - chunk:
- - polymode:
- - submode:
- - basemode:
- - chunkmode:
+Assume the following `org-mode` file:
+
+```org
+* emacs lisp code block
+
+#+begin_src emacs-lisp :var tbl='()
+  (defun all-to-string (tbl)
+    (if (listp tbl)
+        (mapcar #'all-to-string tbl)
+      (if (stringp tbl)
+          tbl
+        (format "%s" tbl))))
+  (all-to-string tbl)
+#+end_src
+
+```
+
+ - _*span*_ is a homogeneous in terms of syntactic content fragment of text. In
+   the `org-mode` example from above, the fragment from the beginning of the
+   buffer till and not including `#+begin_src`. Header span is `#+begin_src
+   emacs-lisp :var tbl='()`. The body of emacs lisp code span is next, followed
+   `#+end_src` tail span.
+ - _*chunk*_ is a well delimited fragment of text that consists of one or more
+   spans. There are two types of chunks, plain and composite. Plain chunks
+   consist of a single span corresponding to the host mode (in our example,
+   org-mode span and org-mode chunk is the same thing). Composite chunks consist
+   of header, body and tail spans. In the above example the region that starts
+   with `#+begin_src` and ends with `#+end_src` is an org emacs-lisp chunk.
+ - _*polymode*_ has three concurrent meanings which are disambiguated from the
+   context:
+   1. Like emacs modes, polymodes represent an _abstract idea_ of a collection
+      of related functionality that is available in emacs buffers.
+   2. Like emacs modes, polymodes are _functions_ that install a bunch of
+      functionality into emacs buffer. You can use polymodes just as any other
+      emacs major or minor mode.
+   3. Polymodes are _objects_ of `pm-polymode` class. The functionality of each
+      polymode is completely characterized by this object and the methods that
+      act on it. During initialization this object is cloned and its copy is
+      stored in a buffer-local variable `pm/polymode`.
+ - _*chunkmode*_ refers to one of the following:
+   1. An abstract idea of the functionality available in a chunk (e.g. org
+      chunk, emacs-lisp chunk).
+   2. Emacs mode function (`org-mode`), or a collection of such functions
+      (`fundamental-mode` for header/tail and `emacs-lisp-mode` for the chunk
+      body) that instantiate the functionality into the corresponding modes.
+   3. Object of `pm-chunkmode` class. This object represents the behavior of the
+      chunkmode and is stored in a buffer-local variable `pm/chunkmode`.
+ - _*plainchunkmode*_
+ - _*compchunkmode*_
 
 ## Class Hierarchy
 
@@ -57,10 +100,10 @@ Current polymode class hierarchy:
   |         |    |    +--pm-polymode-multi-auto
   |         |    +--pm-polymode-one
   |         |
-  |         +--pm-submode
-  |         |    +--pm-chunkmode
-  |         |    |    +--pm-chunkmode-auto
-  |         |    +--pm-basemode
+  |         +--pm-chunkmode
+  |         |    +--pm-comp-chunkmode
+  |         |    |    +--pm-comp-chunkmode-auto
+  |         |    +--pm-plain-chunkmode
   |         |
   |         |
   |         +--pm-weaver

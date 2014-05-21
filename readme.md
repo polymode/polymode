@@ -24,7 +24,7 @@ tools for exporting, weaving and tangling.
 
 <kbd>M-x</kbd> `package-install` `polymode`.
 
-### Manually for Development
+### Manually
 
 ```sh
 git clone https://github.com/vitoshka/polymode.git
@@ -126,15 +126,15 @@ polymodes' maps:
 
 Some things still don't work as expected. For example:
     
-   * To kill a polymode buffer you will have position the cursor in the base mode buffer. 
+   * To kill a polymode buffer you will have position the cursor in the base mode buffer.  
    * Customization interface is not working as expected (an eieio bug) and is
-     not tested. 
+     not even tested.
    * Indentation and font-lock is not always right and requires some more
      tweaking. This is especially true for complex modes like `c-mode`.
 
 ## Developing with Polymode
 
-See [development](modes).
+For the relevant terminology and development info see these [docs](modes).
 
 ## Screenshots
 
