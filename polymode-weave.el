@@ -11,7 +11,7 @@
   :group 'polymode-weave
   :type 'string)
 
-(defclass pm-weaver (polymode)
+(defclass pm-weaver (polymode-root)
   ((from-to
     :initarg :from-to
     :initform '()
@@ -98,7 +98,7 @@ exporter (from to) specification will be called.")
           (let ((wfile (funcall (oref weaver :function) command from-to)))
             (when wfile 
               (if export    
-                  (pm-export (symbol-value (oref pm/config :exporter))
+                  (pm-export (symbol-value (oref pm/polymode :exporter))
                              (car export) (cdr export) wfile)
                 ;; display the file only when the worker returns the
                 ;; file. Sentinel and callback based weavers return nil.
@@ -116,7 +116,7 @@ exporter (from to) specification will be called.")
                              `(lambda (proc name)
                                 (let ((wfile (,sentinel1 proc name)))
                                   ;;; we don't return file here, kinda okward
-                                  (pm-export (symbol-value ',(oref pm/config :exporter))
+                                  (pm-export (symbol-value ',(oref pm/polymode :exporter))
                                              ,(car export) ,(cdr export)
                                              wfile)))
                            `(lambda (proc name)
@@ -146,7 +146,7 @@ exporter (from to) specification will be called.")
 See `pm-weave' generic.
 FROM-TO ignored as yet"
   (interactive "P")
-  (let* ((weaver (symbol-value (or (oref pm/config :weaver)
+  (let* ((weaver (symbol-value (or (oref pm/polymode :weaver)
                                    (polymode-set-weaver))))
          (w:from-to (oref weaver :from-to))
          (opts (mapcar (lambda (el)
@@ -197,15 +197,15 @@ each polymode in CONFIGS."
 
 (defun polymode-set-weaver ()
   (interactive)
-  (unless pm/config
-    (error "No pm/config object found. Not in polymode buffer?"))
+  (unless pm/polymode
+    (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((weavers (pm--abrev-names
-                     (delete-dups (pm--oref-with-parents pm/config :weavers))
+                     (delete-dups (pm--oref-with-parents pm/polymode :weavers))
                      "pm-weaver/"))
          (sel (ido-completing-read "No default weaver. Choose one: " weavers nil t nil
                                    'pm--weaver-hist (car pm--weaver-hist)))
          (out (intern (get-text-property 0 :orig sel))))
-    (oset pm/config :weaver out)
+    (oset pm/polymode :weaver out)
     out))
 
 
@@ -221,7 +221,7 @@ Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all weavers
 that call a shell command"
   (pm--run-command command
-                   (oref (symbol-value (oref pm/config :weaver))
+                   (oref (symbol-value (oref pm/polymode :weaver))
                          :sentinel)  
                    "*polymode weave*"
                    (concat "weaving " from-to " with command:\n     "

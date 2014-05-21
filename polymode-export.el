@@ -11,7 +11,7 @@
   :group 'polymode-export
   :type 'string)
 
-(defclass pm-exporter (polymode)
+(defclass pm-exporter (polymode-root)
   ((from
     :initarg :from
     :initform '()
@@ -157,7 +157,7 @@ first with `polymode-set-exporter'."
   (let* ((exporter (symbol-value
                     (if (equal from '(16))
                         (polymode-set-exporter)
-                      (or (oref pm/config :exporter)
+                      (or (oref pm/polymode :exporter)
                           (polymode-set-exporter)))))
          (fname (file-name-nondirectory buffer-file-name))
          (e:from (oref exporter :from))
@@ -178,7 +178,7 @@ first with `polymode-set-exporter'."
                                             (string-match-p (car el) fname))
                                           e:from))
                        ;; guess from weaver and return a cons of (weaver-id . exporter-id)
-                       (let ((weaver (symbol-value (or (oref pm/config :weaver)
+                       (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
                                                        (polymode-set-weaver)))))
                          (cl-loop for w in (oref weaver :from-to)
                                   ;; weaver intput extension matches the filename
@@ -222,7 +222,7 @@ first with `polymode-set-exporter'."
                 (t (error "'to' argument must be nil or a string")))))
     (if (consp from)
         ;; run through weaver
-        (pm-weave (symbol-value (oref pm/config :weaver)) (car from) (cons (cdr from) to))
+        (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from) (cons (cdr from) to))
       (pm-export exporter from to))))
 
 (defmacro polymode-register-exporter (exporter default? &rest configs)
@@ -235,15 +235,15 @@ for each polymode in CONFIGS."
 
 (defun polymode-set-exporter ()
   (interactive)
-  (unless pm/config
-    (error "No pm/config object found. Not in polymode buffer?"))
+  (unless pm/polymode
+    (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((exporters (pm--abrev-names
-                     (delete-dups (pm--oref-with-parents pm/config :exporters))
+                     (delete-dups (pm--oref-with-parents pm/polymode :exporters))
                      "pm-exporter/"))
          (sel (ido-completing-read "No default exporter. Choose one: " exporters nil t nil
                                    'pm--exporter-hist (car pm--exporter-hist)))
          (out (intern (get-text-property 0 :orig sel))))
-    (oset pm/config :exporter out)
+    (oset pm/polymode :exporter out)
     out))
 
 
@@ -258,7 +258,7 @@ Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
 that call a shell command"
   (pm--run-command command
-                   (oref (symbol-value (oref pm/config :exporter)) :sentinel)  
+                   (oref (symbol-value (oref pm/polymode :exporter)) :sentinel)  
                    "*polymode export*"
                    (concat "Exporting " from "-->" to
                            " with command:\n     " command "\n")))

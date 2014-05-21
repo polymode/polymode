@@ -2,7 +2,7 @@
 ;; BASE MODES
 (defcustom pm-base/blank
   (pm-basemode "blank")
-  "Blank submode. This is the default :basemode for all pm-config objects.
+  "Blank submode. This is the default :basemode for all pm-polymode objects.
 On initalisation this submode sets :mode to whatever major-mode
 is in place at that time."
   :group 'polymode-basemodes
@@ -63,24 +63,24 @@ is in place at that time."
 ;;; CONFIG objects
 ;; These are simple generic configuration objects. More specialized configuration
 ;; objects are defined in mode-specific files (e.g. poly-R.el, poly-markdown.el etc).
-(defcustom pm-config/brew
-  (pm-config-one "brew"
+(defcustom pm-poly/brew
+  (pm-polymode-one "brew"
                  :basemode 'pm-base/text
                  :chunkmode 'pm-chunk/fundamental)
   "Typical Brew configuration"
   :group 'polymode-configs
   :type 'object)
 
-(defcustom pm-config/html
-  (pm-config-one "html"
+(defcustom pm-poly/html
+  (pm-polymode-one "html"
                  :basemode 'pm-base/html
                  :chunkmode 'pm-chunk/fundamental)
   "HTML typical configuration"
   :group 'polymode-configs
   :type 'object)
 
-(defcustom pm-config/C++
-  (pm-config-one "C++"
+(defcustom pm-poly/C++
+  (pm-polymode-one "C++"
                  :basemode 'pm-base/C++
                  :chunkmode 'pm-chunk/fundamental)
   "C++ typical configuration"

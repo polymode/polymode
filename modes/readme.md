@@ -50,15 +50,17 @@ Current polymode class hierarchy:
 
 ```
   +--eieio-instance-inheritor
-  |    +--polymode
+  |    +--polymode-root
+  |         |
+  |         +--pm-polymode
+  |         |    +--pm-polymode-multi
+  |         |    |    +--pm-polymode-multi-auto
+  |         |    +--pm-polymode-one
+  |         |
   |         +--pm-submode
   |         |    +--pm-chunkmode
   |         |    |    +--pm-chunkmode-auto
   |         |    +--pm-basemode
-  |         +--pm-config
-  |         |    +--pm-config-multi
-  |         |    |    +--pm-config-multi-auto
-  |         |    +--pm-config-one
   |         |
   |         |
   |         +--pm-weaver
@@ -87,7 +89,7 @@ Each polymode is represented by a customizable `config` object which fully
 characterizes its behavior. On polymode initialization this config object is
 cloned in every new buffer.
 
-The most important slots of root config class `pm-config` are:
+The most important slots of root config class `pm-polymode` are:
 
 - `basemode-name` - name of the object of class `pm-basemode`, see below.
 - `minor-mode-name` - name of the minor mode which is activated in all indirect
@@ -101,15 +103,15 @@ The most important slots of root config class `pm-config` are:
 
 Currently there are three types of config objects:
 
-- `pm-config-one` - Used for polymdoes with only one predefined chunkmode. It
-  extends `pm-config` with one slot - `chunkmode-name` which is a name of the
+- `pm-polymode-one` - Used for polymdoes with only one predefined chunkmode. It
+  extends `pm-polymode` with one slot - `chunkmode-name` which is a name of the
   chunkmode (objects of class `pm-chunkmode`).
-- `pm-config-multi` - Used for polymodes with multiple predefined inner
-  modes. It extends `pm-config` with `chunkmodes` list which contains names of
+- `pm-polymode-multi` - Used for polymodes with multiple predefined inner
+  modes. It extends `pm-polymode` with `chunkmodes` list which contains names of
   predefined `pm-chunkmode` objects.
-- `pm-config-multi-auto` - used for polymodes with multiple dymamically
+- `pm-polymode-multi-auto` - used for polymodes with multiple dymamically
   discoveroble chunkmodes (examples are `org-mode` and `markdown-mode`). It
-  extends `pm-config-multi` with `auto-mode-name` (name of the object of class
+  extends `pm-polymode-multi` with `auto-mode-name` (name of the object of class
   `pm-chunkmode-auto`) and `auto-chunkmodes` (a dynamically updated list of
   "pm-chunkmode" objects)
 
@@ -175,23 +177,23 @@ todo
 
 ### Initialization of polymodes
 
-Initialization depends on concrete type of the `pm/config` object, but the main
+Initialization depends on concrete type of the `pm/polymode` object, but the main
 steps are described here.
 
-`poly-XXX-mode` is created with `(define-polymode poly-XXX-mode pm-config/XXX)`
-where `pm-config/XXX` is a predefined `pm-config` object representing the mode.
+`poly-XXX-mode` is created with `(define-polymode poly-XXX-mode pm-poly/XXX)`
+where `pm-poly/XXX` is a predefined `pm-polymode` object representing the mode.
 
-When called, `poly-XXX-mode` clones `pm-config/XXX` object and calls
+When called, `poly-XXX-mode` clones `pm-poly/XXX` object and calls
 `pm/initialize` on it.  In turn, `pm/initialize` performs the following steps:
 
-   1. assign the config object into local `pm/config` variable
+   1. assign the config object into local `pm/polymode` variable
    2. clone the `pm/submode` objects specified by `:basemode` slot of
-   `pm/config`
+   `pm/polymode`
    3. initialize base-mode by running the actual function in `:mode` slot of
    the basemode object. 
    4. store basemode object into local `pm/submode` variable 
    5. set local variable `pm/type` to `'base` 
-   6. run `pm/config`'s `:init-functions` as normal hooks
+   6. run `pm/polymode`'s `:init-functions` as normal hooks
    7. run `pm--setup-buffer` which is common setup function used internally to
       set font-lock and a range of workarounds
    8. run `poly-XXX-mode-hook`.
@@ -211,7 +213,7 @@ Objects
 
    - `pm/type`
    - `pm/submode`
-   - `pm/config`
+   - `pm/polymode`
 
 Generics:
 

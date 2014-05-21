@@ -9,14 +9,14 @@ First initialize the -basemode and -chunkmodes slots of
 CONFIG object ...
 
 Current buffer is setup as the base buffer.")
-;; (defmethod pm-initialize ((config pm-config))
+;; (defmethod pm-initialize ((config pm-polymode))
 ;;   (pm--setup-buffer (current-buffer)))
 
-(defmethod pm-initialize ((config pm-config))
+(defmethod pm-initialize ((config pm-polymode))
   ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ... 
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
-  (unless pm/config
+  (unless pm/polymode
     (let* ((submode (clone (symbol-value (oref config :basemode))))
            (_ (oset submode -buffer (current-buffer)))
            ;; set if nil, to allow unspecified base submodes to be used in minor modes
@@ -33,12 +33,12 @@ Current buffer is setup as the base buffer.")
       ;; 2)  not calling config's :minor-mode (polymode function).
       ;; But polymode function calls pm-initialize... so I guess it is ok
       (oset config -basemode submode)
-      (setq pm/config config)
+      (setq pm/polymode config)
       (setq pm/submode submode)
       (setq pm/type 'base)
       (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-submodes nil t)
       (prog1 (pm--setup-buffer) ; general setup for base and submode buffers
-        (let ((PI pm/config) IFs)
+        (let ((PI pm/polymode) IFs)
           ;; aggregate and run hooks; parents first
           (while PI
             (setq IFs (append (and (slot-boundp PI :init-functions) ; don't cascade
@@ -48,12 +48,12 @@ Current buffer is setup as the base buffer.")
                           (oref PI :parent-instance))))
           (run-hooks 'IFs))))))
 
-(defmethod pm-initialize ((config pm-config-one))
+(defmethod pm-initialize ((config pm-polymode-one))
   (call-next-method)
   (eval `(oset config -chunkmodes
                (list (clone ,(oref config :chunkmode))))))
 
-(defmethod pm-initialize ((config pm-config-multi))
+(defmethod pm-initialize ((config pm-polymode-multi))
   (call-next-method)
   (oset config -chunkmodes
         (mapcar (lambda (sub-name)
@@ -100,7 +100,7 @@ For this method to work correctly, SUBMODE's class should define
   (call-next-method)
   (pm--transfer-vars-from-base))
 
-(defmethod pm-select-buffer ((config pm-config-multi-auto) &optional span)
+(defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
   (if (null (car span))
       (pm-select-buffer (oref config -basemode) span)
     (let ((type (car span))
@@ -211,7 +211,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
 
 (defun pm--setup-buffer (&optional buffer)
   ;; General buffer setup, should work for indirect and base buffers
-  ;; alike. Assumes pm/config and pm/submode is already in place. Return buffer.
+  ;; alike. Assumes pm/polymode and pm/submode is already in place. Return buffer.
   (let ((buff (or buffer (current-buffer))))
     (with-current-buffer buff
       ;; Don't let parse-partial-sexp get fooled by syntax outside
@@ -258,7 +258,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
       
       (when pm--dbg-hook
         (add-hook 'post-command-hook 'polymode-select-buffer nil t))
-      (object-add-to-list pm/config '-buffers (current-buffer)))
+      (object-add-to-list pm/polymode '-buffers (current-buffer)))
     buff))
 
 (defvar pm--ib-prefix "")
@@ -267,17 +267,17 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
 
 This is a low lever function which must be called, one way or
 another from `pm/install' method. Among other things store
-`pm/config' from the base buffer (must always exist!) in
+`pm/polymode' from the base buffer (must always exist!) in
 the newly created buffer.
 
 Return newlly created buffer."
-  (unless   (buffer-local-value 'pm/config (pm/base-buffer))
-    (error "`pm/config' not found in the base buffer %s" (pm/base-buffer)))
+  (unless   (buffer-local-value 'pm/polymode (pm/base-buffer))
+    (error "`pm/polymode' not found in the base buffer %s" (pm/base-buffer)))
   
   (setq mode (pm--get-available-mode mode))
 
   (with-current-buffer (pm/base-buffer)
-    (let* ((config (buffer-local-value 'pm/config (current-buffer)))
+    (let* ((config (buffer-local-value 'pm/polymode (current-buffer)))
            (new-name
             (generate-new-buffer-name 
              (format "%s%s[%s]" pm--ib-prefix (buffer-name)
@@ -301,7 +301,7 @@ Return newlly created buffer."
         (when pm--dbg-mode-line
           (setq mode-line-buffer-identification
                 (propertized-buffer-identification base-name)))
-        (setq pm/config config)
+        (setq pm/polymode config)
         (setq buffer-file-coding-system coding)
         (setq buffer-file-name file)
         (vc-find-file-hook))
@@ -325,7 +325,7 @@ Should return nil if there is no SUBMODE specific span around POS.")
   "Simply return nil. Base mode usually do/can not compute the span"
   nil)
 
-(defmethod pm-get-span ((config pm-config) &optional pos)
+(defmethod pm-get-span ((config pm-polymode) &optional pos)
   "Apply pm-get-span on every element of submodes slot of config object.
 Return a cons (submode . span), for which START is closest to
 POS (and before it); i.e. the innermost span.  POS defaults to
@@ -373,9 +373,9 @@ point."
 
 ;; No need for this one so far. Basic method iterates through -chunkmodes
 ;; anyhow.
-;; (defmethod pm-get-span ((config pm-config-multi) &optional pos))
+;; (defmethod pm-get-span ((config pm-polymode-multi) &optional pos))
 
-(defmethod pm-get-span ((config pm-config-multi-auto) &optional pos)
+(defmethod pm-get-span ((config pm-polymode-multi-auto) &optional pos)
   (let ((span-other (call-next-method))
         (proto (symbol-value (oref config :auto-chunkmode))))
     (if (oref proto :head-reg)
@@ -581,7 +581,7 @@ to indent."
            (goto-char (+ (point) delta))))))
 
 ;; fixme: This one is nowhere used?
-(defmethod pm-indent-line ((submode pm-config-multi-auto) &optional span)
+(defmethod pm-indent-line ((submode pm-polymode-multi-auto) &optional span)
   (pm-select-buffer submode span)
   (pm-indent-line pm/submode span))
 

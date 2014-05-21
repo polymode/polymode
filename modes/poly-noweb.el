@@ -31,8 +31,8 @@
 
 (require 'polymode)
 
-(defcustom pm-config/noweb
-  (pm-config-one "noweb"
+(defcustom pm-poly/noweb
+  (pm-polymode-one "noweb"
                  :basemode 'pm-base/latex
                  :chunkmode 'pm-chunk/noweb
                  :exporters '(pm-exporter/latexmk pm-exporter/pdflatex)
@@ -50,7 +50,7 @@
   :type 'object)
 
 ;;;###autoload (autoload 'poly-noweb-mode "poly-noweb")
-(define-polymode poly-noweb-mode pm-config/noweb)
+(define-polymode poly-noweb-mode pm-poly/noweb)
 
 (defun poly-noweb-electric-< (arg)
   "Auto insert noweb chunk if at bol followed by white space.

@@ -9,7 +9,7 @@
 (require 'eieio-custom)
 
 ;; esential vars
-(defvar-local pm/config nil)
+(defvar-local pm/polymode nil)
 (defvar-local pm/submode nil)
 (defvar-local pm/type nil)
 (defvar-local polymode-major-mode nil)
@@ -25,7 +25,7 @@
 (defvar pm--input-buffer nil)
 (defvar pm--input-file nil)
 (defvar pm/type)
-(defvar pm/config)
+(defvar pm/polymode)
 (defvar pm/submode)
 (defvar *span*)
 
@@ -74,7 +74,7 @@ warnign."
     'fundamental-mode))
 
 (defun pm--get-indirect-buffer-of-mode (mode)
-  (loop for bf in (oref pm/config -buffers)
+  (loop for bf in (oref pm/polymode -buffers)
         when (and (buffer-live-p bf)
                   (eq mode (buffer-local-value 'polymode-major-mode bf)))
         return bf))
@@ -154,7 +154,7 @@ warnign."
                     (or (eq tail-mode 'base)
                         (and (null tail-mode)
                              (eq head-mode 'base)))))
-           (oref (oref pm/config -basemode) :mode))
+           (oref (oref pm/polymode -basemode) :mode))
           ((eq type 'head)
            (oref obj :head-mode))
           ((eq type 'tail)
@@ -162,7 +162,7 @@ warnign."
           (t (error "type must be one of 'head 'tail 'body")))))
 
 (defun pm--create-submode-buffer-maybe (submode type)
-  ;; assumes pm/config is set
+  ;; assumes pm/polymode is set
   (let ((mode (pm--get-submode-mode submode type)))
     (or (pm--get-indirect-buffer-of-mode mode)
         (let ((buff (pm--create-indirect-buffer mode)))
@@ -170,7 +170,7 @@ warnign."
             (setq pm/submode submode)
             (setq pm/type type)
             (pm--setup-buffer)
-            (funcall (oref pm/config :minor-mode))
+            (funcall (oref pm/polymode :minor-mode))
             buff)))))
 
 (defun pm--get-mode-symbol-from-name (str)
@@ -206,11 +206,11 @@ string."
           list))
 
 (defun pm--put-hist (key val)
-  (oset pm/config -hist
-        (plist-put (oref pm/config -hist) key val)))
+  (oset pm/polymode -hist
+        (plist-put (oref pm/polymode -hist) key val)))
 
 (defun pm--get-hist (key)
-  (plist-get (oref pm/config -hist) key))
+  (plist-get (oref pm/polymode -hist) key))
 
 (defun pm--comment-region (beg end)
   ;; mark as syntactic comment

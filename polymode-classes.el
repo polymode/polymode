@@ -1,12 +1,12 @@
 (require 'polymode-common)
 
 ;;; ROOT CLASS
-(defclass polymode (eieio-instance-inheritor) ()
+(defclass polymode-root (eieio-instance-inheritor) ()
   "Root polymode class.")
 
 
 ;;; CONFIG
-(defclass pm-config (polymode) 
+(defclass pm-polymode (polymode-root) 
   ((basemode
     :initarg :basemode
     :initform 'pm-base/blank
@@ -111,11 +111,11 @@
     value pairs into this list."))
   
   "Configuration for a polymode. Each polymode buffer contains a local
-variable `pm/config' instantiated from this class or a subclass
+variable `pm/polymode' instantiated from this class or a subclass
 of this class.")
 
 
-(defclass pm-config-one (pm-config)
+(defclass pm-polymode-one (pm-polymode)
   ((chunkmode
     :initarg :chunkmode
     :type symbol
@@ -128,7 +128,7 @@ of this class.")
 submode. For example noweb.")
 
 
-(defclass pm-config-multi (pm-config)
+(defclass pm-polymode-multi (pm-polymode)
   ((chunkmodes
     :initarg :chunkmodes
     :type list
@@ -143,7 +143,7 @@ submode. For example noweb.")
 advance submodes.")
 
 
-(defclass pm-config-multi-auto (pm-config-multi)
+(defclass pm-polymode-multi-auto (pm-polymode-multi)
   ((auto-chunkmode
     :initarg :auto-chunkmode
     :type symbol
@@ -165,7 +165,7 @@ that are not known in advance. Examples are org-mode and markdown.")
 
 
 ;;; SUBMODE CLASSES
-(defclass pm-submode (polymode)
+(defclass pm-submode (polymode-root)
   ((mode
     :initarg :mode
     :type symbol

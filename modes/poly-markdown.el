@@ -49,8 +49,8 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-(defcustom pm-config/markdown
-  (pm-config-multi-auto "markdown"
+(defcustom pm-poly/markdown
+  (pm-polymode-multi-auto "markdown"
                         :basemode 'pm-base/markdown
                         :auto-chunkmode 'pm-chunk/markdown
                         :init-functions '(poly-markdown-remove-markdown-hooks))
@@ -59,7 +59,7 @@
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-markdown-mode "poly-markdown")
-(define-polymode poly-markdown-mode pm-config/markdown)
+(define-polymode poly-markdown-mode pm-poly/markdown)
 
 ;;; FIXES:
 (defun poly-markdown-remove-markdown-hooks ()

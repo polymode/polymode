@@ -52,8 +52,8 @@
   :group 'polymode-chunkmodes
   :type 'object)
 
-(defcustom pm-config/org
-  (pm-config-multi-auto "org"
+(defcustom pm-poly/org
+  (pm-polymode-multi-auto "org"
                         :basemode 'pm-base/org
                         :auto-chunkmode 'pm-chunk/org)
   "Org typical configuration"
@@ -61,7 +61,7 @@
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-org-mode "poly-org")
-(define-polymode poly-org-mode pm-config/org)
+(define-polymode poly-org-mode pm-poly/org)
 
 (provide 'poly-org)
 

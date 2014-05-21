@@ -265,7 +265,7 @@ Return, how many chucks actually jumped over."
 ;; delimiters -- you have to consider other possible regions between them.  For
 ;; now, we do the calculation each time, scanning outwards from point.
 (defun pm/get-innermost-span (&optional pos)
-  (pm-get-span pm/config pos))
+  (pm-get-span pm/polymode pos))
 
 ;; This function is for debug convenience only in order to avoid limited debug
 ;; context in polymode-select-buffer
@@ -516,7 +516,7 @@ BODY contains code to be executed after the complete
                 (interactive)
                 (unless ,mode
                   (let ((,last-message (current-message)))
-                    (unless pm/config ;; don't reinstall for time being
+                    (unless pm/polymode ;; don't reinstall for time being
                       (let ((config (clone ,config)))
                         (oset config :minor-mode ',mode)
                         (pm-initialize config)))
