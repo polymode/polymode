@@ -32,7 +32,7 @@ Assume the following `org-mode` file:
 * emacs lisp code block
 
 #+begin_src emacs-lisp :var tbl='()
-  (defun all-to-string (tbl)
+ (defun all-to-string (tbl)
     (if (listp tbl)
         (mapcar #'all-to-string tbl)
       (if (stringp tbl)

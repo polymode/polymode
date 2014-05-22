@@ -64,15 +64,6 @@
 (defun pm--display-file (ofile)
   (display-buffer (find-file-noselect ofile 'nowarn)))
 
-(defun pm--get-available-mode (mode)
-  "Check if MODE symbol is defined and is a valid function.
-If so, return it, otherwise return 'fundamental-mode with a
-warnign."
-  (if (fboundp mode)
-      mode
-    (message "Cannot find %s function, using 'fundamental-mode instead" mode)
-    'fundamental-mode))
-
 (defun pm--get-indirect-buffer-of-mode (mode)
   (loop for bf in (oref pm/polymode -buffers)
         when (and (buffer-live-p bf)
@@ -174,7 +165,7 @@ warnign."
             buff)))))
 
 (defun pm--get-mode-symbol-from-name (str)
-  "Gues and return mode function.
+  "Guess and return mode function.
 Return major mode function constructed from STR by appending
 '-mode' if needed. If the constructed symbol is not a function
 return an error."
@@ -182,6 +173,14 @@ return an error."
                    str
                  (concat str "-mode"))))
     (pm--get-available-mode (intern mname))))
+
+(defun pm--get-available-mode (mode)
+  "Check if MODE symbol is defined and is a valid function.
+If so, return it, otherwise return 'fundamental-mode with a
+warnign."
+  (cond ((fboundp mode) mode)
+        (t (message "Cannot find %s function, using 'fundamental-mode instead" mode)
+           'fundamental-mode)))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."
