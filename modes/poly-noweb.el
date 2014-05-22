@@ -38,7 +38,7 @@
                    :exporters '(pm-exporter/latexmk pm-exporter/pdflatex)
                    :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
-  :group 'polymode
+  :group 'polymodes
   :type 'object)
 
 (defcustom  pm-inner/noweb
@@ -46,7 +46,7 @@
                    :head-reg  "<<\\(.*\\)>>="
                    :tail-reg    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
   "Noweb typical chunk."
-  :group 'polymode
+  :group 'innermodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-noweb-mode "poly-noweb")

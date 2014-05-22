@@ -46,7 +46,7 @@
                      :retriever-regexp "```[ \t]*{?\\(\\(\\w\\|\\s_\\)*\\)"
                      :font-lock-narrow t)
   "Markdown typical chunk."
-  :group 'chunkmodes
+  :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/markdown
