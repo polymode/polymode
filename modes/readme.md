@@ -9,8 +9,8 @@ awesome idea.
 
 - [Glossary of Terms](#glossary-of-terms)
 - [Class Hierarchy](#class-hierarchy)
-- [Polymodes](#polymodes)
-- [Chunkmodes](#chunkmodes)
+  - [Polymodes](#polymodes)
+  - [Chunkmodes](#chunkmodes)
 - [Defining New Polymodes](#defining-new-polymodes)
   - [One Predefined Innermode](#one-predefined-innermodes)
   - [Multiple Predefined Innermodes](#multiple-predefined-innermodes)
@@ -43,18 +43,18 @@ Assume the following `org-mode` file:
 
 ```
 
- - _*span*_ is a homogeneous in terms of syntactic content fragment of text. In
+ - *span* is a homogeneous in terms of syntactic content fragment of text. In
    the `org-mode` example above the org span starts at the beginning of the file
    till, but not including, `#+begin_src`. Header span is `#+begin_src
    emacs-lisp :var tbl='()`. The body of emacs lisp code span is next, followed
    by `#+end_src` tail span.
- - _*chunk*_ is a well delimited fragment of text that consists of one or more
+ - *chunk* is a well delimited fragment of text that consists of one or more
    spans. Most common types of chunks are bchunk - plain body chunk and
    hbtchunk - composite chunk composed of head, body and tail spans. In our
    example, org-mode span and org-mode chunk are the same thing and the region
    that starts with `#+begin_src` and ends with `#+end_src` is an org emacs-lisp
    chunk.
- - _*polymode*_ has three concurrent meanings which we will disambiguate from
+ - *polymode* has three concurrent meanings which we will disambiguate from
    the context:
    1. Like emacs modes, polymodes represent an _abstract idea_ of a collection
       of related functionality that is available in emacs buffers.
@@ -66,7 +66,7 @@ Assume the following `org-mode` file:
       act on it. During initialization this object is cloned and its copy is
       stored in a buffer-local variable `pm/polymode`. There are several types
       of polymode objects. See [hierarchy](#class-hierarchy) below.
- - _*chunkmode*_ refers to one of the following:
+ - *chunkmode* refers to one of the following:
    1. An abstract idea of the functionality available in chunks of the same type
       (e.g. org chunks, emacs-lisp chunks).
    2. Emacs mode function (`org-mode`), or a collection of such functions
@@ -76,7 +76,7 @@ Assume the following `org-mode` file:
       chunkmode and is stored in a buffer-local variable `pm/chunkmode`. There
       are several types of chunkmode objects. See [hierarchy](#class-hierarchy)
       below.
- - _*hostmodes and innermodes*_. Chunkmodes could be classified into host and
+ - *hostmodes* and *innermodes* Chunkmodes could be classified into host and
    inner chunkmodes (hostmodes and innermodes in short). In the above example
    org chunkmode is a hostmode and emacs-lisp chunkmode is an innermode.
 
@@ -135,7 +135,7 @@ class. Alternatively either use `M-x describe-class pm-foo` or lookup the class
 definition directly in [polymode-classes.el](polymode-classes.el).
 
 
-## Polymodes
+### Polymodes
 
 As noted earlier, each polymode is a function that walks and quacks like
 standard emacs major mode and, thus, things like `poly-XXX-mode-map` and
@@ -165,7 +165,7 @@ Currently there are three subclasses of `pm-polymode`:
   slot (typical it is an object of class `pm-hbtchunkmode-auto`).
 
 
-## Chunkmodes
+### Chunkmodes
 
 Most important user visible slots of the root class for chunkmodes -
 `pm-chunkmode` - are:
