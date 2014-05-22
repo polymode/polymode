@@ -126,7 +126,7 @@ polymodes' maps:
 
 Some things still don't work as expected. For example:
     
-   * To kill a polymode buffer you will have position the cursor in the base mode buffer.  
+   * To kill a polymode buffer you will have position the cursor in the host mode buffer.  
    * Customization interface is not working as expected (an eieio bug) and is
      not even tested.
    * Indentation and font-lock is not always right and requires some more

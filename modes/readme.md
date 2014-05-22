@@ -12,7 +12,7 @@ awesome idea.
 - [Glossary of Terms](#glossary-of-terms)
 - [Class Hierarchy](#class-hierarchy)
 - [Polymodes and Configs](#polymodes-and-configs)
-- [Submodes](#submodes)
+- [Chunkmodes](#chunkmodes)
 - [Defining New Modes](#defining-new-modes)
   - [One Predefined Chunkmode](#one-predefined-chunkmode)
   - [Multiple Predefined Chunkmodes](#multiple-predefined-chunkmodes)
@@ -74,7 +74,7 @@ Assume the following `org-mode` file:
    2. Emacs mode function (`org-mode`), or a collection of such functions
       (`fundamental-mode` for header/tail and `emacs-lisp-mode` for the chunk
       body) that instantiate the functionality into the corresponding modes.
-   3. Object of `pm-chunkmode` class. This object represents the behavior of the
+   3. Object of `pm-hbtchunkmode` class. This object represents the behavior of the
       chunkmode and is stored in a buffer-local variable `pm/chunkmode`.
  - _*plainchunkmode*_
  - _*compchunkmode*_
@@ -100,7 +100,7 @@ Current polymode class hierarchy:
   |         |    |    +--pm-polymode-multi-auto
   |         |    +--pm-polymode-one
   |         |
-  |         +--pm-chunkmode
+  |         +--pm-hbtchunkmode
   |         |    +--pm-comp-chunkmode
   |         |    |    +--pm-comp-chunkmode-auto
   |         |    +--pm-plain-chunkmode
@@ -134,35 +134,35 @@ cloned in every new buffer.
 
 The most important slots of root config class `pm-polymode` are:
 
-- `basemode-name` - name of the object of class `pm-basemode`, see below.
+- `hostmode-name` - name of the object of class `pm-bchunkmode`, see below.
 - `minor-mode-name` - name of the minor mode which is activated in all indirect
   buffers. This is the glue that connects all buffers. By default it is
   `polymode-minor-mode`. It is unlikely that developers will need to change
   this.
-- `basemode` - dynamically set to the basemode object generated at
+- `hostmode` - dynamically set to the hostmode object generated at
   initialization time.
 - `buffers` - holds all indirect buffers associated with the base buffer for
   easy access.
 
 Currently there are three types of config objects:
 
-- `pm-polymode-one` - Used for polymdoes with only one predefined chunkmode. It
+- `pm-polymode-one` - Used for polymdoes with only one predefined innermode. It
   extends `pm-polymode` with one slot - `chunkmode-name` which is a name of the
-  chunkmode (objects of class `pm-chunkmode`).
+  chunkmode (objects of class `pm-hbtchunkmode`).
 - `pm-polymode-multi` - Used for polymodes with multiple predefined inner
   modes. It extends `pm-polymode` with `chunkmodes` list which contains names of
-  predefined `pm-chunkmode` objects.
+  predefined `pm-hbtchunkmode` objects.
 - `pm-polymode-multi-auto` - used for polymodes with multiple dymamically
   discoveroble chunkmodes (examples are `org-mode` and `markdown-mode`). It
   extends `pm-polymode-multi` with `auto-mode-name` (name of the object of class
-  `pm-chunkmode-auto`) and `auto-chunkmodes` (a dynamically updated list of
-  "pm-chunkmode" objects)
+  `pm-hbtchunkmode-auto`) and `auto-chunkmodes` (a dynamically updated list of
+  "pm-hbtchunkmode" objects)
 
 
-## Submodes
+## Chunkmodes
 
-Submodes (basemodes and chunkmodes) are objects that encapsulate functionality
-of the polymode's submodes. The root class for all submodes, `pm-submode`,
+Chunkmodes (hostmodes and chunkmodes) are objects that encapsulate functionality
+of the polymode's chunkmodes. The root class for all chunkmodes, `pm-chunkmode`,
 contains among other slots:
 
 - mode - holds the symbol of corresponding emacs mode (like `html-mode`,
@@ -171,24 +171,24 @@ contains among other slots:
 - indent-offset, font-lock-narrow etc - configuration options
 
 
-Currently, there are three types of submode objects:
+Currently, there are three types of chunkmode objects:
 
-- `pm-basemode` - Represents the main mode of the buffer. Like `html-mode` in a
+- `pm-bchunkmode` - Represents the main mode of the buffer. Like `html-mode` in a
   web mode, `latex-mode` in noweb mode, or `org-mode` in org mode
   buffer. Currently it doesn't add any new slots to its parent class
-  `pm-submode`.
+  `pm-chunkmode`.
 
-- `pm-chunkmode` - Represents the inner modes. Various code modes in markdown,
-  noweb modes or org mode are examples. `pm-chunkmode` extends `pm-submode` with
+- `pm-hbtchunkmode` - Represents the inner modes. Various code modes in markdown,
+  noweb modes or org mode are examples. `pm-hbtchunkmode` extends `pm-chunkmode` with
   additional slots, most importantly:
 
     * head-mode/tail-mode: emacs-modes for header/tail of the chunk
     * head-reg/tail-reg: regular expressions or functions to detect the header/tail
     * head-buffer/tail-buffer*
 
-- `pm-chunkmode-auto` - Represents chunkmodes for which the mode type is not
+- `pm-hbtchunkmode-auto` - Represents chunkmodes for which the mode type is not
   predefined and should be computed. Examples are code chunks of org and
-  markdown modes. This class extends `pm-chunkmode` with `retriver-regexp`,
+  markdown modes. This class extends `pm-hbtchunkmode` with `retriver-regexp`,
   `retriver-num` and `retriver-function` which are used to retrive the mode name
   from the header of the inner chunk.
 
@@ -230,12 +230,12 @@ When called, `poly-XXX-mode` clones `pm-poly/XXX` object and calls
 `pm/initialize` on it.  In turn, `pm/initialize` performs the following steps:
 
    1. assign the config object into local `pm/polymode` variable
-   2. clone the `pm/submode` objects specified by `:basemode` slot of
+   2. clone the `pm/chunkmode` objects specified by `:hostmode` slot of
    `pm/polymode`
-   3. initialize base-mode by running the actual function in `:mode` slot of
-   the basemode object. 
-   4. store basemode object into local `pm/submode` variable 
-   5. set local variable `pm/type` to `'base` 
+   3. initialize host-mode by running the actual function in `:mode` slot of
+   the hostmode object. 
+   4. store hostmode object into local `pm/chunkmode` variable 
+   5. set local variable `pm/type` to `'host` 
    6. run `pm/polymode`'s `:init-functions` as normal hooks
    7. run `pm--setup-buffer` which is common setup function used internally to
       set font-lock and a range of workarounds
@@ -243,9 +243,9 @@ When called, `poly-XXX-mode` clones `pm-poly/XXX` object and calls
 
 Discovery of the chunk spans is done by `pm/select-buffer` generic which is
 commonly called first by jit-lock. `pm/select-buffer` fist checks if the
-corresponding `pm-chunkmode` object and associated indirect buffer has been
+corresponding `pm-hbtchunkmode` object and associated indirect buffer has been
 already created. If so, `pm/select-buffer` simply selects the buffer. Otherwise,
-it calls `pm/install-buffer` in order to create `pm-chunkmode` object and
+it calls `pm/install-buffer` in order to create `pm-hbtchunkmode` object and
 initialize the indirect buffer.
 
 ### API
@@ -255,7 +255,7 @@ All API objects, functions and methods are named with `pm/` prefix.
 Objects
 
    - `pm/type`
-   - `pm/submode`
+   - `pm/chunkmode`
    - `pm/polymode`
 
 Generics:

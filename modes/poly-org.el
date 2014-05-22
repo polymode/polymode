@@ -32,30 +32,30 @@
 (require 'org-src)
 (require 'polymode)
 
-(defcustom pm-base/org
-  (pm-basemode "Org mode"
+(defcustom pm-host/org
+  (pm-bchunkmode "Org mode"
                :mode 'org-mode)
-  "Org base submode"
-  :group 'basemodes
+  "Org host innermode"
+  :group 'hostmodes
   :type 'object)
 
-(defcustom  pm-chunk/org
-  (pm-chunkmode-auto "org"
+(defcustom  pm-inner/org
+  (pm-hbtchunkmode-auto "org"
                      :head-reg "^[ \t]*#\\+begin_src .*$"
                      :tail-reg "^[ \t]*#\\+end_src"
-                     :head-mode 'base
-                     :tail-mode 'base
+                     :head-mode 'host
+                     :tail-mode 'host
                      :retriever-regexp "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
                      :indent-offset org-edit-src-content-indentation
                      :font-lock-narrow t)
   "Org typical chunk."
-  :group 'chunkmodes
+  :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/org
   (pm-polymode-multi-auto "org"
-                        :basemode 'pm-base/org
-                        :auto-chunkmode 'pm-chunk/org)
+                        :hostmode 'pm-host/org
+                        :auto-innermode 'pm-inner/org)
   "Org typical configuration"
   :group 'polymodes
   :type 'object)

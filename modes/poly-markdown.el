@@ -32,15 +32,15 @@
 (require 'polymode)
 (require 'markdown-mode)
 
-(defcustom pm-base/markdown
-  (pm-basemode "Markdown"
+(defcustom pm-host/markdown
+  (pm-bchunkmode "Markdown"
                :mode 'markdown-mode)
-  "Markdown base submode"
-  :group 'basemodes
+  "Markdown host chunkmode"
+  :group 'hostmodes
   :type 'object)
 
-(defcustom  pm-chunk/markdown
-  (pm-chunkmode-auto "markdown"
+(defcustom  pm-inner/markdown
+  (pm-hbtchunkmode-auto "markdown"
                      :head-reg "^[ \t]*```[{ \t]*\\w.*$"
                      :tail-reg "^[ \t]*```[ \t]*$"
                      :retriever-regexp "```[ \t]*{?\\(\\(\\w\\|\\s_\\)*\\)"
@@ -51,8 +51,8 @@
 
 (defcustom pm-poly/markdown
   (pm-polymode-multi-auto "markdown"
-                        :basemode 'pm-base/markdown
-                        :auto-chunkmode 'pm-chunk/markdown
+                        :hostmode 'pm-host/markdown
+                        :auto-innermode 'pm-inner/markdown
                         :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown typical configuration"
   :group 'polymodes

@@ -48,7 +48,7 @@
 (require 'polymode-methods)
 (require 'polymode-export)
 (require 'polymode-weave)
-;; load all base submodes
+;; load all core polymode and host objects
 (require 'poly-base)
 
 (defgroup polymode nil
@@ -60,12 +60,12 @@
   "Polymode Configuration Objects"
   :group 'polymode)
 
-(defgroup basemodes nil
-  "Polymode Base Submode Objects"
+(defgroup hostmodes nil
+  "Polymode Host Chunkmode Objects"
   :group 'polymode)
 
-(defgroup chunkmodes nil
-  "Polymode Submode Objects"
+(defgroup innermodes nil
+  "Polymode Chunkmode Objects"
   :group 'polymode)
 
 (defvar polymode-select-mode-hook nil ;; not used yet
@@ -202,7 +202,7 @@ Return, how many chucks actually jumped over."
   "Kill current chunk"
   (interactive)
   (pcase (pm/get-innermost-span)
-    (`(,(or `nil `base) ,beg ,end ,_) (delete-region beg end))
+    (`(,(or `nil `host) ,beg ,end ,_) (delete-region beg end))
     (`(body ,beg ,end ,_)
      (goto-char beg)
      (pm--kill-span '(body))
@@ -353,7 +353,7 @@ in polymode buffers."
                  (when parse-sexp-lookup-properties
                    (pm--comment-region 1 sbeg))
                  (condition-case err
-                     (if (oref pm/submode :font-lock-narrow)
+                     (if (oref pm/chunkmode :font-lock-narrow)
                          (save-restriction
                            ;; fixme: optimization oportunity: Cache chunk state
                            ;; in text properties. For big chunks font-lock
@@ -369,11 +369,11 @@ in polymode buffers."
                                    (error-message-string err) beg end)))
                  (when parse-sexp-lookup-properties
                    (pm--uncomment-region 1 sbeg)))
-               (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/submode))
+               (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode))
                ;; might be needed by external applications like flyspell
                ;; fixme: this should be in a more generic place like pm-get-span
                (put-text-property sbeg send 'chunkmode
-                                  (object-of-class-p pm/submode 'pm-chunkmode))
+                                  (object-of-class-p pm/chunkmode 'pm-hbtchunkmode))
                ;; even if failed, set to t to avoid infloop
                (put-text-property beg end 'fontified t)))
            beg end)

@@ -10,7 +10,7 @@
 
 ;; esential vars
 (defvar-local pm/polymode nil)
-(defvar-local pm/submode nil)
+(defvar-local pm/chunkmode nil)
 (defvar-local pm/type nil)
 (defvar-local polymode-major-mode nil)
 (defvar-local pm--fontify-region-original nil)
@@ -26,7 +26,7 @@
 (defvar pm--input-file nil)
 (defvar pm/type)
 (defvar pm/polymode)
-(defvar pm/submode)
+(defvar pm/chunkmode)
 (defvar *span*)
 
 ;; core api from polymode.el, which relies on polymode-methods.el.
@@ -81,7 +81,7 @@ warnign."
 
 ;; ;; This doesn't work in 24.2, pcase bug ((void-variable xcar))
 ;; ;; Other pcases in this file don't throw this error
-;; (defun pm--set-submode-buffer (obj type buff)
+;; (defun pm--set-chunkmode-buffer (obj type buff)
 ;;   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
 ;;     (pcase (list type head-mode tail-mode)
 ;;       (`(body body ,(or `nil `body))
@@ -106,7 +106,7 @@ warnign."
 ;;       (_ (error "type must be one of 'body 'head and 'tail")))))
 
 ;; a literal transcript of the pcase above
-(defun pm--set-submode-buffer (obj type buff)
+(defun pm--set-chunkmode-buffer (obj type buff)
   (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
     (cond
      ((and (eq type 'body)
@@ -138,7 +138,7 @@ warnign."
       (setq -tail-buffer buff))
      (t (error "type must be one of 'body 'head and 'tail")))))
 
-(defun pm--get-submode-mode (obj type)
+(defun pm--get-chunkmode-mode (obj type)
   (with-slots (mode head-mode tail-mode) obj
     (cond ((or (eq type 'body)
                (and (eq type 'head)
@@ -149,25 +149,25 @@ warnign."
                              (eq head-mode 'body)))))
            (oref obj :mode))
           ((or (and (eq type 'head)
-                    (eq head-mode 'base))
+                    (eq head-mode 'host))
                (and (eq type 'tail)
-                    (or (eq tail-mode 'base)
+                    (or (eq tail-mode 'host)
                         (and (null tail-mode)
-                             (eq head-mode 'base)))))
-           (oref (oref pm/polymode -basemode) :mode))
+                             (eq head-mode 'host)))))
+           (oref (oref pm/polymode -hostmode) :mode))
           ((eq type 'head)
            (oref obj :head-mode))
           ((eq type 'tail)
            (oref obj :tail-mode))
           (t (error "type must be one of 'head 'tail 'body")))))
 
-(defun pm--create-submode-buffer-maybe (submode type)
+(defun pm--create-chunkmode-buffer-maybe (chunkmode type)
   ;; assumes pm/polymode is set
-  (let ((mode (pm--get-submode-mode submode type)))
+  (let ((mode (pm--get-chunkmode-mode chunkmode type)))
     (or (pm--get-indirect-buffer-of-mode mode)
         (let ((buff (pm--create-indirect-buffer mode)))
           (with-current-buffer  buff
-            (setq pm/submode submode)
+            (setq pm/chunkmode chunkmode)
             (setq pm/type type)
             (pm--setup-buffer)
             (funcall (oref pm/polymode :minor-mode))
@@ -280,7 +280,7 @@ user interaction."
 
 
 ;;; COMPATIBILITY and FIXES
-(defun pm--flyspel-dont-highlight-in-submodes (beg end poss)
+(defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
   (or (get-text-property beg 'chunkmode)
       (get-text-property beg 'chunkmode)))
 
@@ -303,8 +303,8 @@ user interaction."
 
 (defun pm--highlight-span (&optional hd-matcher tl-matcher)
   (interactive)
-  (let* ((hd-matcher (or hd-matcher (oref pm/submode :head-reg)))
-         (tl-matcher (or tl-matcher (oref pm/submode :tail-reg)))
+  (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-reg)))
+         (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-reg)))
          (span (pm--span-at-point hd-matcher tl-matcher)))
     (ess-blink-region (nth 1 span) (nth 2 span))
     (message "%s" span)))
