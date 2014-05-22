@@ -46,8 +46,8 @@ Assume the following `org-mode` file:
  - *span* is a homogeneous in terms of syntactic content fragment of text. In
    the `org-mode` example above the org span starts at the beginning of the file
    till, but not including, `#+begin_src`. Header span is `#+begin_src
-   emacs-lisp :var tbl='()`. The body of emacs lisp code span is next, followed
-   by `#+end_src` tail span.
+   emacs-lisp :var tbl='()`. The emacs lisp code span is next, followed by
+   `#+end_src` tail span.
  - *chunk* is a well delimited fragment of text that consists of one or more
    spans. Most common types of chunks are bchunk - plain body chunk and
    hbtchunk - composite chunk composed of head, body and tail spans. In our
@@ -88,7 +88,7 @@ specific type and multiple chunks of the same type share this chunkmode.
 
 It is easy to think of the chunkmodes as inter-weaved threads. Host chunkmode is
 a stretched canvas. Each inner chunkmode is a thread weaved into the
-hostmode. Visible fragments of chunkmode are chunks.
+hostmode. Visible fragments of the each thread are chunks.
  
 ## Class Hierarchy
 
@@ -185,7 +185,6 @@ Currently, there are three sub classes of `pm-chunkmode`:
    chunks. These objects are commonly used to represent the functionality of
    the innermost chunks of the buffer. `pm-hbtchunkmode` extends
    `pm-chunkmode` with additional slots, most importantly:
-
     * `head-mode` and `tail-mode`: names of emacs-modes for header/tail of the
       chunk
     * `head-reg` and `tail-reg`: regular expressions or functions to detect the
