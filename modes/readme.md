@@ -9,7 +9,7 @@ awesome idea.
 
 - [Glossary of Terms](#glossary-of-terms)
 - [Class Hierarchy](#class-hierarchy)
-- [Polymodes Configs](#polymodes)
+- [Polymodes](#polymodes)
 - [Chunkmodes](#chunkmodes)
 - [Defining New Modes](#defining-new-modes)
   - [One Predefined Innermode](#one-predefined-innermodes)
@@ -83,22 +83,22 @@ Assume the following `org-mode` file:
 
 It is worth emphasizing the distinctions between `chunks` and
 `chunkmodes`. Chunks are fragments of text and there might be multiple chunks of
-the same type in the buffer. There is only one chunkmode of some type in the
-buffer and multiple chunks of the same type share one chunkmode.
+the same type in the buffer. In contrast, there is only one chunkmode of some
+specific type and multiple chunks of the same type share this chunkmode.
 
 It is easy to think of the chunkmodes as inter-weaved threads. Host chunkmode is
-a stretched one dimensional canvas. Each inner chunkmode is a thread weaved into
-the hostmode. Visible fragments of chunkmode are chunks.
+a stretched canvas. Each inner chunkmode is a thread weaved into the
+hostmode. Visible fragments of chunkmode are chunks.
  
 ## Class Hierarchy
 
-Polymode uses `eieio` to represent its objects. The root class for all polymode
-classes is `eieio-instance-inheritor` which provides, in addition to class
-based, prototype based inheritance. This means that objects instantiated from
-polymode classes can be cloned in order to dynamically create a hierarchy of
-customizable objects. There are a bunch of such objects already defined, you can
-investigate those in several of the polymode's customization groups:
-`polymodes`, `hostmodes`, `innermodes`.
+Polymode package uses `eieio` to represent its objects. The root class for all
+polymode classes is `eieio-instance-inheritor` which provides prototype based
+inheritance (in addition to class based). This means that objects instantiated
+from polymode classes can be cloned in order to dynamically create a hierarchy
+of customizable objects. There are a bunch of such objects already defined, you
+can investigate those in `polymodes`, `hostmodes`, `innermodes` customization
+groups.
 
 As polymode uses indirect buffers to implement the multi-mode, storing mode
 functionality in objects (in contrast to buffer local variables) is very
@@ -137,71 +137,73 @@ definition directly in [polymode-classes.el](polymode-classes.el).
 
 ## Polymodes
 
-Each polymode is a function that walks and quacks like standard emacs major mode
-and things like `poly-XXX-mode-map` and `poly-XXX-mode-hook` work just as
-expected. Plymodes are defined with `define-polymode` and can be used in place
-of major or minor modes, the outcome will be identical.
+As noted earlier, each polymode is a function that walks and quacks like
+standard emacs major mode and, thus, things like `poly-XXX-mode-map` and
+`poly-XXX-mode-hook` work just as expected. Plymode functions are defined with
+`define-polymode` and can be used in place of emacs standard major or minor
+modes.
 
 Each polymode is represented by a customizable `pm-polymode` object which fully
-characterizes its behavior. On polymode initialization this config object is
+characterizes its behavior. During the initialization this config object is
 cloned and installed in every new buffer.
 
 The most important slot of root config class `pm-polymode` is:
 
-- `hostmode` - name of the chunkmode object (commonly of class `pm-bchunkmode`,
+- `:hostmode` - name of the chunkmode object (commonly of class `pm-bchunkmode`,
   see [Chunkmodes](#chunkmodes)).
 
-Currently there are three child classes of `pm-polymode`:
+Currently there are three subclasses of `pm-polymode`:
 
-- `pm-polymode-one` - Used for polymdoes with only one predefined innermode. It
-  extends `pm-polymode` with one slot - `innermode` which is a name of the inner
-  chunkmode (commonly objects of class `pm-hbtchunkmode`).
-- `pm-polymode-multi` - Used for polymodes with multiple predefined inner
-  modes. It extends `pm-polymode` with `innermodes` list which contains names of
+- `pm-polymode-one` - used for polymdoes with only one predefined innermode. It
+  extends `pm-polymode` with one slot - `:innermode` - which is a name of the
+  inner chunkmode (commonly objects of class `pm-hbtchunkmode`).
+- `pm-polymode-multi` - used for polymodes with multiple predefined inner
+  modes. It extends `pm-polymode` with `:innermodes` list that contains names of
   predefined `pm-hbtchunkmode` objects.
 - `pm-polymode-multi-auto` - used for polymodes with multiple dynamically
-  discoverable chunkmodes (examples are `org-mode` and `markdown-mode`). It
-  extends `pm-polymode-multi` with `auto-innermode` (typically it is an object
-  of class `pm-hbtchunkmode-auto`).
+  discoverable chunkmodes. It extends `pm-polymode-multi` with `:auto-innermode`
+  slot (typical it is an object of class `pm-hbtchunkmode-auto`).
 
 
 ## Chunkmodes
 
-The root `pm-chunkmode` class contains among other slots:
+Most important user visible slots of the root class for chunkmodes -
+`pm-chunkmode` - are:
 
-- `mode` - symbol of corresponding emacs plain mode (e.g. `html-mode`,
+- `:mode` - symbol of corresponding emacs plain mode (e.g. `html-mode`,
 `latex-mode` etc)
-- `indent-offset`, `font-lock-narrow`, `adjust-face`etc - configuration options.
+- `:indent-offset`, `:font-lock-narrow`, `:adjust-face`etc - configuration options.
    
 Currently, there are three sub classes of `pm-chunkmode`:
 
-- `pm-bchunkmode` - represents the mode of plain body chunks (bchunks). These
-   objects are commonly used to represent functionality in host chunks and are
-   instances of `pm-bchunkmode`. Currently it doesn't add any new slots to its
-   parent class `pm-chunkmode`.
-- `hbtchunkmode` - represents the mode of composite head-body-tail chunks. These
-   objects are commonly used to represent the functionality of the innermost
-   chunks of the buffer. `pm-hbtchunkmode` extends `pm-chunkmode` with
-   additional slots, most importantly:
+1. `pm-bchunkmode` - represents the mode of plain body chunks
+   (bchunks). These objects are commonly used to represent functionality in
+   host chunks and are instances of `pm-bchunkmode`. Currently it doesn't
+   add any new slots to its parent class `pm-chunkmode`.
+
+2. `hbtchunkmode` - represents the mode of composite head-body-tail
+   chunks. These objects are commonly used to represent the functionality of
+   the innermost chunks of the buffer. `pm-hbtchunkmode` extends
+   `pm-chunkmode` with additional slots, most importantly:
 
     * `head-mode` and `tail-mode`: names of emacs-modes for header/tail of the
       chunk
     * `head-reg` and `tail-reg`: regular expressions or functions to detect the
       header/tail
 
-- `pm-hbtchunkmode-auto` - represents chunkmodes for which the mode type is not
-  predefined and must be computed at runtime. This class extends
-  `pm-hbtchunkmode` with `retriver-regexp`, `retriver-num` and
-  `retriver-function` which are used to retrive the mode name from the header of
-  the inner chunk.
+3. `pm-hbtchunkmode-auto` - represents chunkmodes for which the mode type is
+   not predefined and must be computed at runtime. This class extends
+   `pm-hbtchunkmode` with `retriver-regexp`, `retriver-num` and
+   `retriver-function` which are used to retrive the mode name from the
+   header of the inner chunk.
 
 
 ## Defining New Modes
 
 In order to define a new polymode `XXX` you first have to define a chunkmode
 objects to represent the hostmode and one or more chunkmodes to represent
-innermodes. Then define the polymode object `pm-poly/XXX` pointing to previously
-defined chunkmodes.
+innermodes. Then, define the polymode object `pm-poly/XXX` pointing to
+previously defined chunkmodes.
 
 There are a lot of polymodes, hostmodes and innermodes already defined. Please
 reuse those whenever possible.
@@ -246,11 +248,12 @@ Finally define the `pm-polymode` object and the coresponding polymode function:
 ```
 
 The hostmode `pm-host/latex` from above is already defined in
-[pmoly-base.el](poly-base.el), so you need not have declared it.
+[poly-base.el](poly-base.el), so you need not have declared it.
 
-No, let's assume you want a more specialized noweb mode, say `noweb` with `R`
-chunks. Now, instead of declaring root hostmodes and innermodes you should clone
-existing root objects. This is how it is done (from [poly-R.el](poly-R.el)):
+Noq, let's assume you want a more specialized noweb mode, say `noweb` with `R`
+chunks. Instead of declaring root hostmodes and innermodes again you should
+clone existing noweb root objects. This is how it is done (from
+[poly-R.el](poly-R.el)):
 
 ```lisp
 (defcustom pm-inner/noweb+R
@@ -269,7 +272,7 @@ existing root objects. This is how it is done (from [poly-R.el](poly-R.el)):
 ```
 
 That's it. You simply had to define new innermode and polymode by cloning from
-previously defined `pm-inner/noweb` and `pm-poly/noweb` and adjusting `:mode`
+previously defined `pm-inner/noweb` and `pm-poly/noweb` and to adjust `:mode`
 and `:innermode` slots respectively.
 
 ### Multiple Predefined Innermodes
@@ -278,9 +281,9 @@ No examples yet. Web-mode would probably qualify.
 
 ### Multiple Automatically Detected Innermodes
 
-Here is an example of markdown mode (from [poly-markdown.el](poly-markdown.el)).
+Here is an example of markdown polymode (from [poly-markdown.el](poly-markdown.el)).
 
-```
+```lisp
 ;; 1. Define hostmode object
 (defcustom pm-host/markdown
   (pm-bchunkmode "Markdown" :mode 'markdown-mode)
@@ -354,10 +357,9 @@ Utilities:
 ### Initialization of polymodes
 
 When called, `poly-XXX-mode` (created with `define-polymode`) clones
-`pm-poly/XXX` object and calls `pm-initialize` on it.
-
-`pm-initialize` is generic and the actuall initialization depends on concrete
-type of the `pm-polymode` object. These are the common steps:
+`pm-poly/XXX` object and calls `pm-initialize` generic on it. The actual
+initialization depends on concrete type of the `pm-polymode` object but these
+are the common steps:
 
    1. assign the config object into local `pm/polymode` variable
    2. clone the `pm-chunkmode` object specified by `:hostmode` slot of
