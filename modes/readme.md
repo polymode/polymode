@@ -251,7 +251,7 @@ Finally define the `pm-polymode` object and the coresponding polymode function:
 The hostmode `pm-host/latex` from above is already defined in
 [poly-base.el](poly-base.el), so you need not have declared it.
 
-Noq, let's assume you want a more specialized noweb mode, say `noweb` with `R`
+Now, let's assume you want a more specialized noweb mode, say `noweb` with `R`
 chunks. Instead of declaring root hostmodes and innermodes again you should
 clone existing noweb root objects. This is how it is done (from
 [poly-R.el](poly-R.el)):
