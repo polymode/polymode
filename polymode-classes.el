@@ -1,12 +1,12 @@
 (require 'polymode-common)
 
 ;;; ROOT CLASS
-(defclass polymode-root (eieio-instance-inheritor) ()
+(defclass pm-root (eieio-instance-inheritor) ()
   "Root polymode class.")
 
 
 ;;; CONFIG
-(defclass pm-polymode (polymode-root) 
+(defclass pm-polymode (pm-root) 
   ((hostmode
     :initarg :hostmode
     :initform 'pm-host/blank
@@ -168,7 +168,7 @@ that are not known in advance. Examples are org-mode and markdown.")
 
 
 ;;; CHUNKMODE CLASSES
-(defclass pm-chunkmode (polymode-root)
+(defclass pm-chunkmode (pm-root)
   ((mode
     :initarg :mode
     :type symbol

@@ -34,7 +34,7 @@
 (defcustom pm-poly/noweb
   (pm-polymode-one "noweb"
                    :hostmode 'pm-host/latex
-                   :chunkmode 'pm-inner/noweb
+                   :innermode 'pm-inner/noweb
                    :exporters '(pm-exporter/latexmk pm-exporter/pdflatex)
                    :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"

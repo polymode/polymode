@@ -11,7 +11,7 @@
   :group 'polymode-export
   :type 'string)
 
-(defclass pm-exporter (polymode-root)
+(defclass pm-exporter (pm-root)
   ((from
     :initarg :from
     :initform '()

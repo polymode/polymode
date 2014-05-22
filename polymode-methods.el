@@ -94,7 +94,7 @@ For this method to work correctly, SUBMODE's class should define
 
 (defmethod pm-select-buffer ((chunkmode pm-hbtchunkmode) span)
   (call-next-method)
-  (pm--transfer-vars-from-host))
+  (pm--transfer-vars-from-base))
 
 (defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
   (if (null (car span))

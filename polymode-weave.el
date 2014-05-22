@@ -11,7 +11,7 @@
   :group 'polymode-weave
   :type 'string)
 
-(defclass pm-weaver (polymode-root)
+(defclass pm-weaver (pm-root)
   ((from-to
     :initarg :from-to
     :initform '()
