@@ -43,18 +43,18 @@ Assume the following `org-mode` file:
 
 ```
 
- - *span* is a homogeneous in terms of syntactic content fragment of text. In
+ - **span** is a homogeneous in terms of syntactic content fragment of text. In
    the `org-mode` example above the org span starts at the beginning of the file
    till, but not including, `#+begin_src`. Header span is `#+begin_src
    emacs-lisp :var tbl='()`. The emacs lisp code span is next, followed by
    `#+end_src` tail span.
- - *chunk* is a well delimited fragment of text that consists of one or more
+ - **chunk** is a well delimited fragment of text that consists of one or more
    spans. Most common types of chunks are bchunk - plain body chunk and
    hbtchunk - composite chunk composed of head, body and tail spans. In our
    example, org-mode span and org-mode chunk are the same thing and the region
    that starts with `#+begin_src` and ends with `#+end_src` is an org emacs-lisp
    chunk.
- - *polymode* has three concurrent meanings which we will disambiguate from
+ - **polymode** has three concurrent meanings which we will disambiguate from
    the context:
    1. Like emacs modes, polymodes represent an _abstract idea_ of a collection
       of related functionality that is available in emacs buffers.
@@ -66,7 +66,7 @@ Assume the following `org-mode` file:
       act on it. During initialization this object is cloned and its copy is
       stored in a buffer-local variable `pm/polymode`. There are several types
       of polymode objects. See [hierarchy](#class-hierarchy) below.
- - *chunkmode* refers to one of the following:
+ - **chunkmode** refers to one of the following:
    1. An abstract idea of the functionality available in chunks of the same type
       (e.g. org chunks, emacs-lisp chunks).
    2. Emacs mode function (`org-mode`), or a collection of such functions
@@ -76,19 +76,21 @@ Assume the following `org-mode` file:
       chunkmode and is stored in a buffer-local variable `pm/chunkmode`. There
       are several types of chunkmode objects. See [hierarchy](#class-hierarchy)
       below.
- - *hostmodes* and *innermodes* Chunkmodes could be classified into host and
+ - **hostmodes** and **innermodes** Chunkmodes could be classified into host and
    inner chunkmodes (hostmodes and innermodes in short). In the above example
    org chunkmode is a hostmode and emacs-lisp chunkmode is an innermode.
 
 
-It is worth emphasizing the distinctions between `chunks` and
-`chunkmodes`. Chunks are fragments of text and there might be multiple chunks of
-the same type in the buffer. In contrast, there is only one chunkmode of some
-specific type and multiple chunks of the same type share this chunkmode.
-
 It is easy to think of the chunkmodes as inter-weaved threads. Host chunkmode is
 a stretched canvas. Each inner chunkmode is a thread weaved into the
 hostmode. Visible fragments of the each thread are chunks.
+
+In light of the above metaphor, it is worth emphasizing the distinctions between
+`chunks` and `chunkmodes`. Chunks are fragments of text and there might be
+multiple chunks of the same type in the buffer. In contrast, there is only one
+chunkmode of some specific type and multiple chunks of this type "share" this
+chunkmode.
+
  
 ## Class Hierarchy
 
