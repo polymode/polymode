@@ -11,7 +11,7 @@ awesome idea.
 - [Class Hierarchy](#class-hierarchy)
 - [Polymodes](#polymodes)
 - [Chunkmodes](#chunkmodes)
-- [Defining New Modes](#defining-new-modes)
+- [Defining New Polymodes](#defining-new-polymodes)
   - [One Predefined Innermode](#one-predefined-innermodes)
   - [Multiple Predefined Innermodes](#multiple-predefined-innermodes)
   - [Multiple Automatically Detected Innermodes](#multiple-automatically-detected-innermodes)
@@ -198,7 +198,7 @@ Currently, there are three sub classes of `pm-chunkmode`:
    header of the inner chunk.
 
 
-## Defining New Modes
+## Defining New Polymodes
 
 In order to define a new polymode `XXX` you first have to define a chunkmode
 objects to represent the hostmode and one or more chunkmodes to represent
