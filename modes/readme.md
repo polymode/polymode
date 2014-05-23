@@ -211,7 +211,7 @@ reuse those whenever possible.
 
 ### One Predefined Innermode
 
-Here is a simplified version of `poly-noweb-mode` from
+This is a simplified version of `poly-noweb-mode` from
 [poly-noweb.el](poly-noweb.el). First define the latex hostmode:
 
 ```lisp
@@ -282,7 +282,7 @@ No examples yet. Web-mode would probably qualify.
 
 ### Multiple Automatically Detected Innermodes
 
-Here is an example of markdown polymode (from [poly-markdown.el](poly-markdown.el)).
+This is an example of markdown polymode (from [poly-markdown.el](poly-markdown.el)).
 
 ```lisp
 ;; 1. Define hostmode object
