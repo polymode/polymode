@@ -44,16 +44,15 @@ Assume the following `org-mode` file:
 ```
 
  - **span** is a homogeneous in terms of syntactic content fragment of text. In
-   the `org-mode` example above the org span starts at the beginning of the file
-   till, but not including, `#+begin_src`. Header span is `#+begin_src
-   emacs-lisp :var tbl='()`. The emacs lisp code span is next, followed by
-   `#+end_src` tail span.
+   the `org-mode` example the org span starts at the beginning of the file till,
+   but not including, `#+begin_src`. Header span is `#+begin_src emacs-lisp :var
+   tbl='()`. The emacs lisp code span is next, followed by `#+end_src` tail
+   span.
  - **chunk** is a well delimited fragment of text that consists of one or more
-   spans. Most common types of chunks are bchunk - plain body chunk and
-   hbtchunk - composite chunk composed of head, body and tail spans. In our
-   example, org-mode span and org-mode chunk are the same thing and the region
-   that starts with `#+begin_src` and ends with `#+end_src` is an org emacs-lisp
-   chunk.
+   spans. Most common types of chunks are bchunk (plain body chunk) and hbtchunk
+   (chunk composed of head, body and tail spans). In our example, org-mode span
+   and org-mode chunk are the same thing and the region that starts with
+   `#+begin_src` and ends with `#+end_src` is an org emacs-lisp chunk.
  - **polymode** has three concurrent meanings which we will disambiguate from
    the context:
    1. Like emacs modes, polymodes represent an _abstract idea_ of a collection
@@ -69,9 +68,10 @@ Assume the following `org-mode` file:
  - **chunkmode** refers to one of the following:
    1. An abstract idea of the functionality available in chunks of the same type
       (e.g. org chunks, emacs-lisp chunks).
-   2. Emacs mode function (`org-mode`), or a collection of such functions
-      (`fundamental-mode` for header/tail and `emacs-lisp-mode` for the chunk
-      body) that instantiate the functionality into the corresponding modes.
+   2. Emacs mode function (e.g. `org-mode`), or a collection of such functions
+      (e.g. `fundamental-mode` for header/tail and `emacs-lisp-mode` for the
+      chunk's body) that instantiate the functionality into the corresponding
+      modes.
    3. Object of `pm-chunkmode` class. This object represents the behavior of the
       chunkmode and is stored in a buffer-local variable `pm/chunkmode`. There
       are several types of chunkmode objects. See [hierarchy](#class-hierarchy)
@@ -140,7 +140,7 @@ definition directly in [polymode-classes.el](polymode-classes.el).
 ### Polymodes
 
 As noted earlier, each polymode is a function that walks and quacks like
-standard emacs major mode and, thus, things like `poly-XXX-mode-map` and
+standard emacs major mode. Hence, things like `poly-XXX-mode-map` and
 `poly-XXX-mode-hook` work just as expected. Plymode functions are defined with
 `define-polymode` and can be used in place of emacs standard major or minor
 modes.
@@ -151,26 +151,25 @@ cloned and installed in every new buffer.
 
 The most important slot of root config class `pm-polymode` is:
 
-- `:hostmode` - name of the chunkmode object (commonly of class `pm-bchunkmode`,
+- `:hostmode` - name of the chunkmode object (typicaly of class `pm-bchunkmode`,
   see [Chunkmodes](#chunkmodes)).
 
 Currently there are three subclasses of `pm-polymode`:
 
 - `pm-polymode-one` - used for polymdoes with only one predefined innermode. It
   extends `pm-polymode` with one slot - `:innermode` - which is a name of the
-  inner chunkmode (commonly objects of class `pm-hbtchunkmode`).
+  inner chunkmode (typically objects of class `pm-hbtchunkmode`).
 - `pm-polymode-multi` - used for polymodes with multiple predefined inner
   modes. It extends `pm-polymode` with `:innermodes` list that contains names of
   predefined `pm-hbtchunkmode` objects.
 - `pm-polymode-multi-auto` - used for polymodes with multiple dynamically
   discoverable chunkmodes. It extends `pm-polymode-multi` with `:auto-innermode`
-  slot (typical it is an object of class `pm-hbtchunkmode-auto`).
+  slot (typically an object of class `pm-hbtchunkmode-auto`).
 
 
 ### Chunkmodes
 
-Most important user visible slots of the root class for chunkmodes -
-`pm-chunkmode` - are:
+Most important user visible slots of the root class `pm-chunkmode` are:
 
 - `:mode` - symbol of corresponding emacs plain mode (e.g. `html-mode`,
 `latex-mode` etc)
@@ -192,19 +191,19 @@ Currently, there are three sub classes of `pm-chunkmode`:
     * `head-reg` and `tail-reg`: regular expressions or functions to detect the
       header/tail
 
-3. `pm-hbtchunkmode-auto` - represents chunkmodes for which the mode type is
-   not predefined and must be computed at runtime. This class extends
+3. `pm-hbtchunkmode-auto` - represents chunkmodes for which the mode type is not
+   predefined and must be computed at runtime. This class extends
    `pm-hbtchunkmode` with `retriver-regexp`, `retriver-num` and
-   `retriver-function` which are used to retrive the mode name from the
+   `retriver-function` which can be used to retrive the mode name from the
    header of the inner chunk.
 
 
 ## Defining New Polymodes
 
-In order to define a new polymode `XXX` you first have to define a chunkmode
-objects to represent the hostmode and one or more chunkmodes to represent
-innermodes. Then, define the polymode object `pm-poly/XXX` pointing to
-previously defined chunkmodes.
+In order to define a new polymode `poly-cool-mode` you first have to define or
+clone a chunkmode object to represent the hostmode, and one or more chunkmodes
+to represent innermodes. Then define the polymode object `pm-poly/cool` pointing
+to previously defined host and inner chunkmodes.
 
 There are a lot of polymodes, hostmodes and innermodes already defined. Please
 reuse those whenever possible.
@@ -222,7 +221,7 @@ This is a simplified version of `poly-noweb-mode` from
   :type 'object)
 ```
 
-Then define the `innermode`:
+Then define the noweb innermode:
 
 ```lisp
 (defcustom  pm-inner/noweb
@@ -234,14 +233,14 @@ Then define the `innermode`:
   :type 'object)
 ```
 
-Finally define the `pm-polymode` object and the coresponding polymode function:
+Finally, define the `pm-polymode` object and the coresponding polymode function:
 
 ```lisp
 (defcustom pm-poly/noweb
   (pm-polymode-one "noweb"
                    :hostmode 'pm-host/latex
                    :innermode 'pm-inner/noweb)
-  "Noweb typical configuration"
+  "Noweb typical polymode."
   :group 'polymodes
   :type 'object)
 
@@ -253,19 +252,19 @@ The hostmode `pm-host/latex` from above is already defined in
 
 Now, let's assume you want a more specialized noweb mode, say `noweb` with `R`
 chunks. Instead of declaring root hostmodes and innermodes again you should
-clone existing noweb root objects. This is how it is done (from
+clone existing noweb root object. This is how it is done (from
 [poly-R.el](poly-R.el)):
 
 ```lisp
 (defcustom pm-inner/noweb+R
   (clone pm-inner/noweb :mode 'R-mode)
-  "Noweb for R"
+  "Noweb innermode for R"
   :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/noweb+R
   (clone pm-poly/noweb :innermode 'pm-inner/noweb+R)
-  "Noweb for R configuration"
+  "Noweb polymode for R"
   :group 'polymodes
   :type 'object)
 
@@ -273,8 +272,8 @@ clone existing noweb root objects. This is how it is done (from
 ```
 
 That's it. You simply had to define new innermode and polymode by cloning from
-previously defined `pm-inner/noweb` and `pm-poly/noweb` and to adjust `:mode`
-and `:innermode` slots respectively.
+previously defined objects and adjusting `:mode` and `:innermode` slots
+respectively.
 
 ### Multiple Predefined Innermodes
 

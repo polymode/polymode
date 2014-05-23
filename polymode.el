@@ -543,7 +543,6 @@ BODY contains code to be executed after the complete
   "Polymode minor mode, used to make everything work."
   nil " PM" polymode-mode-map)
 
-
 
 ;;; FONT-LOCK
 ;; indulge elisp font-lock :) 
