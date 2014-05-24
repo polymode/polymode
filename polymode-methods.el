@@ -285,14 +285,14 @@ Return newlly created buffer."
            (jit-lock-mode nil)
            (coding buffer-file-coding-system))
 
-      ;; (dbg (current-buffer) file)
-      ;; (backtrace)
-
       (with-current-buffer new-buffer
         (let ((polymode-mode t)) ;;major-modes might check it
           (funcall mode))
-        (setq polymode-major-mode mode)
+
+        ;; hopefully temporary hack:
+        (pm--activate-jit-lock-mode-maybe)
         
+        (setq polymode-major-mode mode)
         ;; Avoid the uniqified name for the indirect buffer in the mode line.
         (when pm--dbg-mode-line
           (setq mode-line-buffer-identification

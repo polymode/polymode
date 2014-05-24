@@ -289,6 +289,48 @@ user interaction."
       (eieio--object-name object)
     (aref object object-name)))
 
+(defun pm--activate-jit-lock-mode-maybe ()
+  ;; ugly hack for emacs 24.4
+  (when (and (string< "24.4" emacs-version)
+             ;; jit-lock is deactivated after this one is set.
+             jit-lock-functions)
+
+    (setq jit-lock-mode t)
+    ;; Mark the buffer for refontification.
+    (jit-lock-refontify)
+
+    ;; Install an idle timer for stealth fontification.
+    (when (and jit-lock-stealth-time (null jit-lock-stealth-timer))
+      (setq jit-lock-stealth-timer
+            (run-with-idle-timer jit-lock-stealth-time t
+                                 'jit-lock-stealth-fontify)))
+
+    ;; Create, but do not activate, the idle timer for repeated
+    ;; stealth fontification.
+    (when (and jit-lock-stealth-time (null jit-lock-stealth-repeat-timer))
+      (setq jit-lock-stealth-repeat-timer (timer-create))
+      (timer-set-function jit-lock-stealth-repeat-timer
+                          'jit-lock-stealth-fontify '(t)))
+
+    ;; Init deferred fontification timer.
+    (when (and jit-lock-defer-time (null jit-lock-defer-timer))
+      (setq jit-lock-defer-timer
+            (run-with-idle-timer jit-lock-defer-time t
+                                 'jit-lock-deferred-fontify)))
+
+    ;; Initialize contextual fontification if requested.
+    (when (eq jit-lock-contextually t)
+      (unless jit-lock-context-timer
+        (setq jit-lock-context-timer
+              (run-with-idle-timer jit-lock-context-time t
+                                   'jit-lock-context-fontify)))
+      (setq jit-lock-context-unfontify-pos
+            (or jit-lock-context-unfontify-pos (point-max))))
+
+    ;; Setup our hooks.
+    (add-hook 'after-change-functions 'jit-lock-after-change nil t)
+    (add-hook 'fontification-functions 'jit-lock-function)))
+
 
 ;;; DEBUG STUFF
 (defun pm--map-over-spans-highlight ()
