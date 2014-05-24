@@ -330,8 +330,8 @@ the current innermost span."
 
 (defun pm/fontify-region (beg end &optional verbose)
   "Polymode font-lock fontification function.
-Fontifies chunk-by chunk within the region.
-Assigned to `font-lock-fontify-region-function'.
+Fontifies chunk-by chunk within the region. Assigned to
+`font-lock-fontify-region-function'.
 
 A fontification mechanism should call
 `font-lock-fontify-region-function' (`jit-lock-function' does
