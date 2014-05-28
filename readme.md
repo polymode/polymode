@@ -17,9 +17,6 @@ tools for exporting, weaving and tangling.
 
 ## Installation
 
-*_Polymode does't work in emacs devel. Jit-lock support for indirect buffers was
- recenly removed. I am looking for workarounds._*
-
 ### From [MELPA](https://github.com/milkypostman/melpa)
 
 <kbd>M-x</kbd> `package-install` `polymode`.
@@ -121,8 +118,7 @@ polymodes' maps:
 
 ## Warnings
 
-  * Tested with Emacs 24.3.1
-  * _Does not work in emacs devel._
+  * Tested with Emacs 24.3.1 and 24.4.5.
 
 Some things still don't work as expected. For example:
     
