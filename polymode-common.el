@@ -7,6 +7,7 @@
 (require 'eieio)
 (require 'eieio-base)
 (require 'eieio-custom)
+(require 'format-spec)
 
 ;; esential vars
 (defvar-local pm/polymode nil)
