@@ -106,8 +106,11 @@ For this method to work correctly, SUBMODE's class should define
         (goto-char (cadr span))
         (unless (eq type 'head)
           (re-search-backward (oref proto :head-reg) nil 'noerr))
-        (re-search-forward (oref proto :retriever-regexp))
-        (let* ((str (or (match-string-no-properties (oref proto :retriever-num))
+        (let* ((str (or (and (oref proto :retriever-regexp)
+			     (re-search-forward (oref proto :retriever-regexp))
+			     (match-string-no-properties (oref proto :retriever-num)))
+			(and (oref proto :retriever-function)
+			     (funcall (oref proto :retriever-function)))
                         (error "retriever subexpression didn't match")))
                (name (concat "auto-innermode:" str)))
           (setq chunkmode

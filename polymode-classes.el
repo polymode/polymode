@@ -305,8 +305,11 @@ configuration from :head-adjust-face."))
     :custom symbol
     :initform nil
     :documentation
-    "Function name that is used to retrive the modes symbol from
-    the head of the chunkmode chunk. fixme: elaborate"))
+    "Function symbol used to retrive the modes symbol from the
+    head of the chunkmode chunk. It is called with no arguments
+    with the point positioned at the beginning of the chunk
+    header. It must return the mode name string or symbol (need
+    not include '-mode' postfix).)"))
 
   "Representation of an inner chunkmode")
 
