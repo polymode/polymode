@@ -170,9 +170,12 @@
 Return major mode function constructed from STR by appending
 '-mode' if needed. If the constructed symbol is not a function
 return an error."
-  (let ((mname (if (string-match-p "-mode$" str)
-                   str
-                 (concat str "-mode"))))
+  (let* ((str (if (symbolp str)
+		  (symbol-name str)
+		str))
+	 (mname (if (string-match-p "-mode$" str)
+		    str
+		  (concat str "-mode"))))
     (pm--get-available-mode (intern mname))))
 
 (defun pm--get-available-mode (mode)
