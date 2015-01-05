@@ -378,7 +378,10 @@ in polymode buffers."
                (put-text-property beg end 'fontified t)))
            beg end)
           ;; needed to avoid moving last fontified buffer to second place
-          (bury-buffer))))))
+	  ;; switching displayed buffer invalidates internal emacs assumptions
+	  ;; bug bug#19511, fixed in emacs ea1c146acf3
+          ;; (bury-buffer)
+	  )))))
 
 (defun pm/syntax-begin-function ()
   (goto-char
