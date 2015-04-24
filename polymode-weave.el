@@ -5,7 +5,7 @@
   "Polymode Weavers"
   :group 'polymode)
 
-(defcustom polymode-weave-output-file-format "%s[weaved]"
+(defcustom polymode-weave-output-file-format "%s[woven]"
   "Format of the weaved files.
 %s is substituted with the current file name sans extension."
   :group 'polymode-weave
