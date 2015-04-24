@@ -240,7 +240,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
       (when (and indent-line-function ; not that it should ever be nil...
                  (oref pm/chunkmode :protect-indent-line))
         (setq pm--indent-line-function-original indent-line-function)
-        (set (make-local-variable 'indent-line-function) 'pm-indent-line))
+        (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
 
       ;; Kill the base buffer along with the indirect one; careful not
       ;; to infloop.
@@ -305,7 +305,6 @@ Return newlly created buffer."
         (setq buffer-file-name file)
         (vc-find-file-hook))
       new-buffer)))
-
 
 
 ;;; SPAN MANIPULATION
@@ -520,9 +519,14 @@ tail -  tail span"
            (pm--span-at-point-fun-fun head-matcher tail-matcher))
           (t (error "head and tail matchers should be either regexp strings or functions")))))
 
-
 
 ;;; INDENT
+
+(defun pm-indent-line-dispatcher ()
+  "Dispatch methods indent methods on current span."
+  (let ((span (pm/get-innermost-span)))
+    (pm-indent-line (car (last span)) span)))
+
 (defgeneric pm-indent-line (&optional chunkmode span)
   "Indent current line.
 Protect and call original indentation function associated with
@@ -536,11 +540,6 @@ the chunkmode.")
         (pm/narrow-to-span span)
         (funcall pm--indent-line-function-original))
     (pm--uncomment-region 1 (nth 1 span))))
-
-(defmethod pm-indent-line ()
-  "Indent line dispatcher"
-  (let ((span (pm/get-innermost-span)))
-    (pm-indent-line (car (last span)) span)))
 
 (defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
   (pm--indent-line span))
