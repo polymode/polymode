@@ -289,9 +289,11 @@ user interaction."
 
 (defvar object-name)
 (defun pm--object-name (object)
-  (if (fboundp 'eieio--object-name)
-      (eieio--object-name object)
-    (aref object object-name)))
+  (cond ((fboundp 'eieio--object-name)
+	 (eieio--object-name object))
+	((fboundp 'eieio-object-name)
+	 (eieio-object-name object))
+	(t (aref object object-name))))
 
 (defun pm--activate-jit-lock-mode-maybe ()
   ;; ugly hack for emacs 24.4
