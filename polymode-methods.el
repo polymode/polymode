@@ -153,15 +153,16 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
   (when face
     (with-current-buffer (current-buffer)
       (let ((face (or (and (numberp face)
-                           (cons 'background-color
-                                 (pm--get-adjusted-background face)))
+                           (list (cons 'background-color
+				       (pm--get-adjusted-background face))))
                       face))
             (pchange nil))
-        (while (not (eq pchange end))
-          (setq pchange (next-single-property-change beg 'face nil end))
-          (put-text-property beg pchange 'face
-                             `(,face ,@(get-text-property beg 'face)))
-          (setq beg pchange))))))
+	;; (while (not (eq pchange end))
+        ;;   (setq pchange (next-single-property-change beg 'face nil end))
+        ;;   (put-text-property beg pchange 'face
+        ;;                      `(,face ,@(get-text-property beg 'face)))
+        ;;   (setq beg pchange))
+	(font-lock-prepend-text-property beg end 'face face)))))
 
 (defun pm--adjust-visual-line-mode (vlm)
   (when (not (eq visual-line-mode vlm))
