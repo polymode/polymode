@@ -90,7 +90,7 @@
      B, which in turn inherits from object A. Then A's init-functions
      are called first, then B's and then C's.
      Either customize this slot or use `object-add-to-list' function.")
-
+   
    (-hostmode
     :type (or null pm-chunkmode)
     :documentation
@@ -117,7 +117,6 @@
 variable `pm/polymode' instantiated from this class or a subclass
 of this class.")
 
-
 (defclass pm-polymode-one (pm-polymode)
   ((innermode
     :initarg :innermode
@@ -130,7 +129,6 @@ of this class.")
   "Configuration for a simple polymode that allows only one
 innermode. For example noweb.")
 
-
 (defclass pm-polymode-multi (pm-polymode)
   ((innermodes
     :initarg :innermodes
@@ -142,9 +140,8 @@ innermode. For example noweb.")
      with this configuration. At initialization time, all of
      these are cloned and plased in -innermodes slot."))
   
-  "Configuration for a polymode that allows multiple known in
-advance innermodes.")
-
+  "Configuration for a polymode that allows multiple (known in
+advance) innermodes.")
 
 (defclass pm-polymode-multi-auto (pm-polymode-multi)
   ((auto-innermode
@@ -169,48 +166,42 @@ that are not known in advance. Examples are org-mode and markdown.")
 
 ;;; CHUNKMODE CLASSES
 (defclass pm-chunkmode (pm-root)
-  ((mode
-    :initarg :mode
+  ((mode :initarg :mode
     :type symbol
     :initform nil
     :custom symbol)
-   (protect-indent-line
-    :initarg :protect-indent-line
+   (protect-indent-line :initarg :protect-indent-line
     :type boolean
     :initform t
     :custom boolean
     :documentation
     "Whether to modify local `indent-line-function' by narrowing
     to current span first")
-   (indent-offset
-    :initarg :indent-offset
+   (indent-offset :initarg :indent-offset
     :type integer
     :initform 0
     :documentation
     "Offset to add when indenting chunk's line. Takes efeect only
     when :protect-indent-line is non-nil.")
-   (font-lock-narrow
-    :initarg :font-lock-narrow
+   (font-lock-narrow :initarg :font-lock-narrow
     :type boolean
     :initform t
     :documentation
     "Whether to narrow to span during font lock")
-   (adjust-face
-    :initarg :adjust-face
+   (adjust-face :initarg :adjust-face
     :type (or number face list)
     :custom (or number face list)
     :initform nil
     :documentation
     "Fontification adjustments chunk face. It should be either,
     nil, number, face or a list of text properties as in
-    `put-text-property' specification.
-
-    If nil no highlighting occurs. If a face, use that face. If a
-    number, it is a percentage by which to lighten/darken the
-    default chunk background. If positive - lighten the
-    background on dark themes and darken on light thems. If
-    negative - darken in dark thems and lighten in light
-    thems.")
+    `put-text-property' specification. If nil no highlighting
+    occurs. If a face, use that face. If a number, it is a
+    percentage by which to lighten/darken the default chunk
+    background. If positive - lighten the background on dark
+    themes and darken on light thems. If negative - darken in
+    dark thems and lighten in light thems.")
+   
    (-buffer
     :type (or null buffer)
     :initform nil))
@@ -234,12 +225,6 @@ that are not known in advance. Examples are org-mode and markdown.")
     "Chunks' header mode. If set to 'body, the head is considered
     part of the chunk body. If set to 'host, head is considered
     part of the including host mode.")
-   (-head-buffer
-    :type (or null buffer)
-    :initform nil
-    :documentation
-    "This buffer is set automatically to -buffer if :head-mode is
-    'body, and to base-buffer if :head-mode is 'host")
    (tail-mode
     :initarg :tail-mode
     :type symbol
@@ -248,9 +233,6 @@ that are not known in advance. Examples are org-mode and markdown.")
     :documentation
     "If nil, it is the same as :HEAD-MODE. Otherwise, the same
     rules as for the :head-mode apply.")
-   (-tail-buffer
-    :initform nil
-    :type (or null buffer))
    (head-reg
     :initarg :head-reg
     :initform ""
@@ -279,28 +261,35 @@ that are not known in advance. Examples are org-mode and markdown.")
     :custom (or null number face list)
     :documentation
     "Can be a number, list or face. If nil, take the
-configuration from :head-adjust-face."))
+    configuration from :head-adjust-face.")
+   
+   (-head-buffer
+    :type (or null buffer)
+    :initform nil
+    :documentation
+    "This buffer is set automatically to -buffer if :head-mode is
+    'body, and to base-buffer if :head-mode is 'host")
+   (-tail-buffer
+    :initform nil
+    :type (or null buffer)))
   
-  "Representation of an inner (aka chunk) chunkmode in a buffer.")
+  "Representation of an inner chunkmode.")
 
 (defclass pm-hbtchunkmode-auto (pm-hbtchunkmode)
-  ((retriever-regexp
-    :initarg :retriever-regexp
+  ((retriever-regexp :initarg :retriever-regexp
     :type (or null string)
     :custom string
     :initform nil
     :documentation
     "Regexp that is used to retrive the modes symbol from the
     head of the chunkmode chunk. fixme: elaborate")
-   (retriever-num
-    :initarg :retriever-num
+   (retriever-num :initarg :retriever-num
     :type integer
     :custom integer
     :initform 1
     :documentation
     "Subexpression to be matched by :retriver-regexp")
-   (retriever-function
-    :initarg :retriever-function
+   (retriever-function :initarg :retriever-function
     :type symbol
     :custom symbol
     :initform nil

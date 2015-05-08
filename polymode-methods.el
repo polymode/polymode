@@ -81,9 +81,8 @@ corresponding to the type of the SPAN returned by
 
 (defmethod pm-select-buffer ((chunkmode pm-chunkmode) span)
   "Select the buffer associated with SUBMODE.
-Install a new indirect buffer if it is not already installed.
-
-For this method to work correctly, SUBMODE's class should define
+Install a new indirect buffer if it is not already installed. For
+this method to work correctly, SUBMODE's class should define
 `pm-install-buffer' and `pm-get-buffer' methods."
   (let* ((type (car span))
          (buff (pm-get-buffer chunkmode type)))
@@ -97,6 +96,8 @@ For this method to work correctly, SUBMODE's class should define
   (pm--transfer-vars-from-base))
 
 (defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
+  ;; :fixme: pm-get-span on multi configs returns config as last object of
+  ;; span. That's freaking confusing.
   (if (null (car span))
       (pm-select-buffer (oref config -hostmode) span)
     (let ((type (car span))
@@ -122,7 +123,6 @@ For this method to work correctly, SUBMODE's class should define
                       (object-add-to-list config '-auto-innermodes new-obj)
                       new-obj)))))
       (pm-select-buffer chunkmode span))))
-
 
 (defgeneric pm-install-buffer (chunkmode &optional type)
   "Ask SUBMODE to install an indirect buffer corresponding to
@@ -316,12 +316,12 @@ is a symbol representing the type of the span surrounding
 POS (head, tail, body). BEG and END are the coordinates of the
 span. OBJECT is a sutable object which is 'responsable' for this
 span. That is, OBJECT could be dispached upon with
-`pm-select-buffer' or other methods form the interface.
+`pm-select-buffer', .. (fixme: complete list).
 
 Should return nil if there is no SUBMODE specific span around POS.")
 
 (defmethod pm-get-span (chunkmode &optional pos)
-  "Simply return nil. Base mode usually do/can not compute the span"
+  "Simply return nil. Base mode usually do not compute the span."
   nil)
 
 (defmethod pm-get-span ((config pm-polymode) &optional pos)
@@ -339,8 +339,6 @@ point."
            (pos (or pos (point)))
            (span (list nil start end nil))
            val)
-      ;; (save-restriction
-      ;;   (widen)
 
       (dolist (sm smodes)
         (setq val (pm-get-span sm pos))
@@ -360,9 +358,8 @@ point."
                   end (min (nth 2 val)
                            (nth 2 span)))
             (setcar (cdr span) start)
-            (setcar (cddr span) end)
-            )))
-      ;; )
+            (setcar (cddr span) end))))
+
       (unless (and (<= start end) (<= pos end) (>= pos start))
         (error "Bad polymode selection: %s, %s"
                (list start end) pos))
