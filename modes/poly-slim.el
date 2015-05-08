@@ -1,4 +1,4 @@
-(require 'poly-mode)
+(require 'polymode)
 (require 'poly-block-matchers)
 
 (defcustom pm-host/slim
