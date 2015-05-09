@@ -4,7 +4,7 @@
     `(progn
        (defun ,head-name (ahead)
          (when (re-search-forward ,regex nil t ahead)
-           (cons (match-beginning 0) (match-end 0))))
+           (cons (match-beginning 1) (match-end 1))))
 
        (defun ,tail-name (ahead)
          (save-excursion

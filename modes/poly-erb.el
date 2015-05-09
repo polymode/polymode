@@ -33,7 +33,7 @@
 (define-polymode poly-coffee-erb-mode pm-poly/coffee-erb)
 
 (defcustom pm-poly/javascript-erb
-  (pm-polymode-one "coffee-erb"
+  (pm-polymode-one "javascript-erb"
                    :hostmode 'pm-host/javascript
                    :innermode 'pm-inner/erb)
   "javascript-erb typical polymode."
