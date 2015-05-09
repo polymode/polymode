@@ -12,6 +12,17 @@
   :group 'hostmodes
   :type 'object)
 
+(defcustom pm-inner/erb
+  (pm-hbtchunkmode "erb"
+                   :mode 'ruby-mode
+                   :head-mode 'fundamental-mode
+                   :tail-mode 'fundamental-mode
+                   :head-reg  "\<\% *[-=]?"
+                   :tail-reg  "\%\>")
+  "erb typical chunk."
+  :group 'innermodes
+  :type 'object)
+
 (defcustom pm-poly/coffee-erb
   (pm-polymode-one "coffee-erb"
                    :hostmode 'pm-host/coffee
