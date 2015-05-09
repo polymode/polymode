@@ -1,6 +1,12 @@
 (require 'polymode)
 (require 'poly-block-matchers)
 
+(require 'coffee-mode)
+(require 'slim-mode)
+(require 'ruby-mode)
+(require 'markdown-mode)
+
+
 (defcustom pm-host/slim
   (pm-bchunkmode "slim" :mode 'slim-mode)
   "slim host chunkmode"
@@ -15,19 +21,19 @@
                    :tail-mode 'slim-mode
                    :head-reg  'pm-slim-coffee-head-matcher
                    :tail-reg  'pm-slim-coffee-tail-matcher)
-  "erb typical chunk."
+  "slim-coffee typical chunk."
   :group 'innermodes
   :type 'object)
 
 (pm-create-block-matchers "slim-ruby" "^ *ruby: *$")
 (defcustom pm-inner/slim-ruby
   (pm-hbtchunkmode "slim ruby include"
-                   :mode 'enh-ruby-mode
+                   :mode 'ruby-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
                    :head-reg  'pm-slim-ruby-head-matcher
                    :tail-reg  'pm-slim-ruby-tail-matcher)
-  "slim embedded ruby typical chunk."
+  "slim-ruby typical chunk."
   :group 'innermodes
   :type 'object)
 
@@ -39,7 +45,19 @@
                    :tail-mode 'slim-mode
                    :head-reg  'pm-slim-js-head-matcher
                    :tail-reg  'pm-slim-js-tail-matcher)
-  "erb typical chunk."
+  "slim-js typical chunk."
+  :group 'innermodes
+  :type 'object)
+
+(pm-create-block-matchers "slim-md" "^ *markdown: *$")
+(defcustom pm-inner/slim-md
+  (pm-hbtchunkmode "slim markdown include"
+                   :mode 'markdown-mode
+                   :head-mode 'slim-mode
+                   :tail-mode 'slim-mode
+                   :head-reg  'pm-slim-md-head-matcher
+                   :tail-reg  'pm-slim-md-tail-matcher)
+  "slim-markdown typical chunk."
   :group 'innermodes
   :type 'object)
 
@@ -48,11 +66,13 @@
                      :hostmode 'pm-host/slim
                      :innermodes '(pm-inner/slim-coffee
                                    pm-inner/slim-js
+                                   pm-inner/slim-md
                                    pm-inner/slim-ruby))
 
   "slim typical polymode."
   :group 'polymodes
   :type 'object)
+
 (define-polymode poly-slim-mode pm-poly/slim)
 
 (provide 'poly-slim)
