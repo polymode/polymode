@@ -9,6 +9,11 @@
 (require 'eieio-custom)
 (require 'format-spec)
 
+(defcustom polymode-display-process-buffers t
+  "When non-nil, display weaving and exporting process buffers."
+  :group 'polymode
+  :type 'boolean)
+
 ;; esential vars
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
@@ -254,7 +259,6 @@ user interaction."
          (command-buff (current-buffer))
          (ofile pm--output-file))
     (with-current-buffer buffer
-      (setq pm--process-buffer t)
       (read-only-mode -1)
       (erase-buffer)
       (insert message)
@@ -263,22 +267,27 @@ user interaction."
       (comint-mode)
       (setq process (get-buffer-process buffer))
       (set-process-sentinel process sentinel)
-      ;; communicate with sentinel
+      (setq pm--process-buffer t)
+      ;; for communication with sentinel
       (set (make-local-variable 'pm--output-file) ofile)
       (set (make-local-variable 'pm--input-buffer) command-buff)
       (set-marker (process-mark process) (point-max)))
+    (when polymode-display-process-buffers
+      (display-buffer buffer `(nil . ((inhibit-same-window . ,pop-up-windows)))))
     nil))
 
 (defun pm--run-command-sentinel (process name message)
   (let ((buff (process-buffer process)))
     (with-current-buffer buff
       ;; fixme: remove this later
-      (sit-for 1)
+      (sit-for .5)
       (goto-char (point-min))
       (let ((case-fold-search t))
         (if (not (re-search-forward "error" nil 'no-error))
             pm--output-file
-          (display-buffer (current-buffer))
+          (progn
+	    (display-buffer (current-buffer))
+	    (message "Done with %s" message))
           (error "Bumps while %s (%s)" message name))))))
 
 

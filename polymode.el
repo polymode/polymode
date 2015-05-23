@@ -248,7 +248,7 @@ Return, how many chucks actually jumped over."
                       if (buffer-local-value 'pm--process-buffer b)
                       return b)))
     (if buf
-        (pop-to-buffer buf)
+	(pop-to-buffer buf `(nil . ((inhibit-same-window . ,pop-up-windows))))
       (message "No polymode process buffers found."))))
 
 
