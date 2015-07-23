@@ -136,6 +136,10 @@ For the relevant terminology and development info see these [docs](modes).
 
 ## Screenshots
 
+### slim
+
+<img src="img/slim.png" width="400px"/>
+
 ### markdown+R
 
 <img src="img/Rmd.png" width="400px"/>

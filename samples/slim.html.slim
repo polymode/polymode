@@ -1,0 +1,20 @@
+doctype html
+html
+  head
+    | Head stuff
+
+  body
+    .body: markdown:
+      # An awesome header
+      ## Subheading one
+      Awesome Text
+      [stuff](Other Stuff)
+    button#clicky
+
+coffee:
+  $('#clicky').click ->
+    elem = $(this)
+    this.text "Something Fantastic
+
+ruby:
+  SomethingUnwise.call_at :the_wrong_place

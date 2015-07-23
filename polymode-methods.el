@@ -9,7 +9,7 @@ First initialize the -hostmode and -innermodes slots of polymode
 object ...")
 
 (defmethod pm-initialize ((config pm-polymode))
-  ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ... 
+  ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ...
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
   (unless pm/polymode
@@ -20,7 +20,7 @@ object ...")
                           (oset chunkmode :mode major-mode))))
       (unless (or (eq major-mode host-mode)
                   (eq polymode-major-mode host-mode))
-        (let ((polymode-mode t)) ;;major-modes might check it 
+        (let ((polymode-mode t)) ;;major-modes might check it
           (funcall host-mode)))
       ;; fixme: maybe: inconsistencies?
       ;; 1)  not calling pm-install-buffer on host-buffer
@@ -108,10 +108,10 @@ this method to work correctly, SUBMODE's class should define
         (unless (eq type 'head)
           (re-search-backward (oref proto :head-reg) nil 'noerr))
         (let* ((str (or (and (oref proto :retriever-regexp)
-			     (re-search-forward (oref proto :retriever-regexp))
-			     (match-string-no-properties (oref proto :retriever-num)))
-			(and (oref proto :retriever-function)
-			     (funcall (oref proto :retriever-function)))
+                             (re-search-forward (oref proto :retriever-regexp))
+                             (match-string-no-properties (oref proto :retriever-num)))
+                        (and (oref proto :retriever-function)
+                             (funcall (oref proto :retriever-function)))
                         (error "retriever subexpression didn't match")))
                (name (concat "auto-innermode:" str)))
           (setq chunkmode
@@ -142,7 +142,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
 
 (defun pm--get-adjusted-background (prop)
   ;; if > lighten on dark backgroun. Oposite on light.
-  (color-lighten-name (face-background 'default) 
+  (color-lighten-name (face-background 'default)
                       (if (eq (frame-parameter nil 'background-mode) 'light)
                           (- prop) ;; darken
                         prop)))
@@ -154,15 +154,15 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
     (with-current-buffer (current-buffer)
       (let ((face (or (and (numberp face)
                            (list (cons 'background-color
-				       (pm--get-adjusted-background face))))
+                                       (pm--get-adjusted-background face))))
                       face))
             (pchange nil))
-	;; (while (not (eq pchange end))
+        ;; (while (not (eq pchange end))
         ;;   (setq pchange (next-single-property-change beg 'face nil end))
         ;;   (put-text-property beg pchange 'face
         ;;                      `(,face ,@(get-text-property beg 'face)))
         ;;   (setq beg pchange))
-	(font-lock-prepend-text-property beg end 'face face)))))
+        (font-lock-prepend-text-property beg end 'face face)))))
 
 (defun pm--adjust-visual-line-mode (vlm)
   (when (not (eq visual-line-mode vlm))
@@ -173,7 +173,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
 ;; move only in post-command hook, after buffer selection
 (defvar pm--can-move-overlays nil)
 (defun pm--move-overlays-to (new-buff)
-  (when pm--can-move-overlays 
+  (when pm--can-move-overlays
     (mapc (lambda (o)
             (move-overlay o (overlay-start o) (overlay-end o) new-buff))
           (overlays-in 1 (1+ (buffer-size))))))
@@ -221,8 +221,8 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
       ;; (set (make-local-variable 'parse-sexp-lookup-properties) t)
 
       (set (make-local-variable 'font-lock-dont-widen) t)
-      
-      (when pm--dbg-fontlock 
+
+      (when pm--dbg-fontlock
         (setq pm--fontify-region-original
               font-lock-fontify-region-function)
         (set (make-local-variable 'font-lock-fontify-region-function)
@@ -255,7 +255,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
       ;;                      (kill-buffer base))
       ;;                  (setq pm--killed-once t))))
       ;;           t t)
-      
+
       (when pm--dbg-hook
         (add-hook 'post-command-hook 'polymode-select-buffer nil t))
       (object-add-to-list pm/polymode '-buffers (current-buffer)))
@@ -273,13 +273,13 @@ the newly created buffer.
 Return newlly created buffer."
   (unless   (buffer-local-value 'pm/polymode (pm/base-buffer))
     (error "`pm/polymode' not found in the base buffer %s" (pm/base-buffer)))
-  
+
   (setq mode (pm--get-available-mode mode))
 
   (with-current-buffer (pm/base-buffer)
     (let* ((config (buffer-local-value 'pm/polymode (current-buffer)))
            (new-name
-            (generate-new-buffer-name 
+            (generate-new-buffer-name
              (format "%s%s[%s]" pm--ib-prefix (buffer-name)
                      (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
            (new-buffer (make-indirect-buffer (current-buffer)  new-name))
@@ -295,7 +295,7 @@ Return newlly created buffer."
 
         ;; hopefully temporary hack:
         (pm--activate-jit-lock-mode-maybe)
-        
+
         (setq polymode-major-mode mode)
         ;; Avoid the uniqified name for the indirect buffer in the mode line.
         (when pm--dbg-mode-line
@@ -405,6 +405,71 @@ in this case."
         (setcar span nil))
       (append span (list chunkmode)))))
 
+(defmacro pm-create-indented-block-matchers (name regex)
+  "Defines 2 functions, each return a list of the start and end points of the
+HEAD and TAIL portions of an indented block of interest, via some regex.
+You can then use these functions in the defcustom pm-inner modes.
+
+e.g.
+(pm-create-indented-block-matchers 'slim-coffee' \"^[^ ]*\\(.*:? *coffee: *\\)$\")
+
+creates the functions
+
+pm-slim-coffee-head-matcher
+pm-slim-coffee-tail-matcher
+
+In the example below,
+
+The head matcher will match against 'coffee:', returning the positions of the
+start and end of 'coffee:'
+The tail matcher will return a list (n, n) of the final characters is the block.
+
+    |<----- Uses this indentation to define the left edge of the 'block'
+    |
+    |<--->|  This region is higlighted by the :head-mode in the block-matchers
+    |     |
+    |     |<----- the head matcher uses this column as the end of the head
+    |     |
+----:-----:-------------- example file -----------------------------------------
+1|  :     :
+2|  coffee:
+3|    myCoffeeCode()
+4|    moreCode ->
+5|      do things
+6|              :
+7|  This is no longer in the block
+8|              :
+----------------:---------------------------------------------------------------
+            --->|<----- this region of 0 width is highlighted by the :tail-mode
+                        the 'block' ends after this column on line 5
+
+
+All the stuff after the -end- of the head and before the start of the tail is
+sent to the new mode for syntax highlighting
+"
+  (let* ((head-name (intern (format "pm-%s-head-matcher" name)))
+         (tail-name (intern (format "pm-%s-tail-matcher" name))))
+    `(progn
+       (defun ,head-name (ahead)
+         (when (re-search-forward ,regex nil t ahead)
+           (cons (match-beginning 1) (match-end 1))))
+
+       (defun ,tail-name (ahead)
+         (save-excursion
+           ;; (cons (point-max) (point-max)))))))
+           (goto-char (car (,head-name 1)))
+           (let* ((block-col (current-indentation))
+                  (posn (catch 'break
+                          (while (not (eobp))
+                            (forward-line 1)
+                            (when (and (<= (current-indentation) block-col)
+                                       (not (progn
+                                              (beginning-of-line)
+                                              (looking-at "^[[:space:]]*$"))))
+                              (throw 'break (point-at-bol))))
+                          (throw 'break (point-max)))))
+             (cons posn posn)))))))
+
 (defun pm--default-matcher (reg ahead)
   (if (< ahead 0)
       (if (re-search-backward reg nil t)
@@ -471,7 +536,7 @@ in this case."
       (if (or (< pos pos2-start)
               (eq pos (point-max)))
           ;; inside doc or chunk body
-          (if pos1-tail? 
+          (if pos1-tail?
               (list nil pos1-end pos2-start) ;doc
             (list 'body pos1-end pos2-start)) ; chunk body
         ;; else inside head or tail
