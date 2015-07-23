@@ -1,5 +1,4 @@
 (require 'polymode)
-(require 'poly-block-matchers)
 
 (require 'css-mode)
 (require 'scss-mode)
@@ -15,7 +14,7 @@
   :group 'hostmodes
   :type 'object)
 
-(pm-create-block-matchers "slim-coffee" "^[^ ]*\\(.*:? *coffee: *\\)$")
+(pm-create-indented-block-matchers "slim-coffee" "^[^ ]*\\(.*:? *coffee: *\\)$")
 (defcustom pm-inner/slim-coffee
   (pm-hbtchunkmode "slim coffee include"
                    :mode 'coffee-mode
@@ -27,7 +26,7 @@
   :group 'innermodes
   :type 'object)
 
-(pm-create-block-matchers "slim-css" "^[^ ]*\\(.*:? *css: *\\)$")
+(pm-create-indented-block-matchers "slim-css" "^[^ ]*\\(.*:? *css: *\\)$")
 (defcustom pm-inner/slim-css
   (pm-hbtchunkmode "slim css include"
                    :mode 'css-mode
@@ -39,7 +38,7 @@
   :group 'innermodes
   :type 'object)
 
-(pm-create-block-matchers "slim-scss" "^[^ ]*\\(.*:? *scss: *\\)$")
+(pm-create-indented-block-matchers "slim-scss" "^[^ ]*\\(.*:? *scss: *\\)$")
 (defcustom pm-inner/slim-scss
   (pm-hbtchunkmode "slim scss include"
                    :mode 'scss-mode
@@ -51,7 +50,7 @@
   :group 'innermodes
   :type 'object)
 
-(pm-create-block-matchers "slim-ruby" "^[^ ]*\\(.*:? *ruby: *\\)$")
+(pm-create-indented-block-matchers "slim-ruby" "^[^ ]*\\(.*:? *ruby: *\\)$")
 (defcustom pm-inner/slim-ruby
   (pm-hbtchunkmode "slim ruby include"
                    :mode 'ruby-mode
@@ -63,7 +62,7 @@
   :group 'innermodes
   :type 'object)
 
-(pm-create-block-matchers "slim-js" "^[^ ]*\\(.*:? *javascript: *\\)$")
+(pm-create-indented-block-matchers "slim-js" "^[^ ]*\\(.*:? *javascript: *\\)$")
 (defcustom pm-inner/slim-js
   (pm-hbtchunkmode "slim js include"
                    :mode 'js-mode
@@ -75,7 +74,7 @@
   :group 'innermodes
   :type 'object)
 
-(pm-create-block-matchers "slim-md" "^[^ ]*\\(.*:? *markdown: *\\)$")
+(pm-create-indented-block-matchers "slim-md" "^[^ ]*\\(.*:? *markdown: *\\)$")
 (defcustom pm-inner/slim-md
   (pm-hbtchunkmode "slim markdown include"
                    :mode 'markdown-mode
