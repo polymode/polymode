@@ -1,12 +1,13 @@
 (require 'polymode)
 
-(require 'css-mode)
-(require 'scss-mode)
-(require 'coffee-mode)
-(require 'slim-mode)
-(require 'ruby-mode)
-(require 'markdown-mode)
-
+;; We cannot have all these "requires" as part of polymode
+;; https://github.com/vspinu/polymode/issues/69
+;; (require 'css-mode)
+;; (require 'scss-mode)
+;; (require 'coffee-mode)
+;; (require 'slim-mode)
+;; (require 'ruby-mode)
+;; (require 'markdown-mode)
 
 (defcustom pm-host/slim
   (pm-bchunkmode "slim" :mode 'slim-mode)

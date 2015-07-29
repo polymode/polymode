@@ -30,7 +30,7 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'polymode)
-(require 'markdown-mode)
+;; (require 'markdown-mode)
 
 (defcustom pm-host/markdown
   (pm-bchunkmode "Markdown"
@@ -63,7 +63,7 @@
 
 ;;; FIXES:
 (defun poly-markdown-remove-markdown-hooks ()
-  ;; get rid of awfull hooks
+  ;; get rid of awful hooks
   (remove-hook 'window-configuration-change-hook 'markdown-fontify-buffer-wiki-links t)
   (remove-hook 'after-change-functions 'markdown-check-change-for-wiki-link t))
 
