@@ -10,12 +10,12 @@ highly extensible. Creating new polymodes typically takes a
 Polymode also provides extensible facilities for external literate programming
 tools for exporting, weaving and tangling.
 
-- [Installation](#intstalation)
+- [Installation](#installation)
 - [Polymodes Activation](#activation-of-polymodes)
 - [Basic Usage](#basic-usage)
-- [Warnings](#warning)
+- [Warnings](#warnings)
 - [Development](modes)
-- [Screenshots](#Screenshots)
+- [Screenshots](#screenshots)
 
 ## Installation
 
@@ -31,7 +31,7 @@ git clone https://github.com/vitoshka/polymode.git
 
 Add "polymode" directory and "polymode/modes" to your emacs path:
 
-```lisp 
+```lisp
 (setq load-path
       (append '("path/to/polymode/"  "path/to/polymode/modes")
               load-path))
@@ -65,7 +65,7 @@ automatically activate emacs (poly)modes:
     examples.
 
  2. _By setting local mode variable in you file_:
-   
+
    ```c++
    // -*- mode: poly-C++R -*-
    ```
@@ -100,11 +100,11 @@ polymodes' maps:
 * NAVIGATION
 
     <kbd>C-n</kbd> `polymode-next-chunk`
-     
+
     <kbd>C-p</kbd> `polymode-previous-chunk`
-     
+
     <kbd>C-M-n</kbd> `polymode-next-chunk-same-type`
-     
+
     <kbd>C-M-p</kbd> `polymode-previous-chunk-same-type`
 
 * MANIPULATION
@@ -123,8 +123,9 @@ polymodes' maps:
   * Tested with Emacs 24.3.1 and 24.4.5.
 
 Some things still don't work as expected. For example:
-    
-   * To kill a polymode buffer you will have position the cursor in the host mode buffer.  
+
+   * To kill a polymode buffer you will have position the cursor in the host
+     mode buffer.
    * Customization interface is not working as expected (an eieio bug) and is
      not even tested.
    * Indentation and font-lock is not always right and requires some more
