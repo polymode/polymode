@@ -1,4 +1,4 @@
-If `poly-markdown.el` is loaded. This should works by default.  Otherise `M-x
+If `poly-markdown.el` is loaded. This should work by default. Otherwise `M-x
 poly-markdown+r-mode RET` should do the job.
 
 ```r
