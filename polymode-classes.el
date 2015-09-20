@@ -238,13 +238,17 @@ that are not known in advance. Examples are org-mode and markdown.")
     :initform ""
     :type (or string symbol)
     :custom (or string symbol)
-    :documentation "Regexp for the chunk start (aka head)")
+    :documentation "Regexp for the chunk start (aka head), or a
+    function returning the start and end positions of the head.
+    See `pm--default-matcher' for an example function.")
    (tail-reg
     :initarg :tail-reg
     :initform ""
     :type (or string symbol)
     :custom (or string symbol)
-    :documentation "Regexp for chunk end (aka tail)")
+    :documentation "Regexp for chunk end (aka tail), or a
+    function returning the start and end positions of the tail.
+    See `pm--default-matcher' for an example function.")
    (adjust-face
     :initform 2)
    (head-adjust-face
