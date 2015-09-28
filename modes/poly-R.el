@@ -42,8 +42,7 @@
 ;; NOWEB
 (require 'poly-noweb)
 (defcustom pm-poly/noweb+R
-  (clone pm-poly/noweb
-         :innermode 'pm-inner/noweb+R)
+  (clone pm-poly/noweb :innermode 'pm-inner/noweb+R)
   "Noweb for R configuration"
   :group 'polymodes
   :type 'object)

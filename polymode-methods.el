@@ -228,8 +228,7 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
         (set (make-local-variable 'font-lock-fontify-region-function)
              #'pm/fontify-region)
         (setq pm--syntax-begin-function-original
-              (or syntax-begin-function ;; Emacs > 23.3
-                  font-lock-beginning-of-syntax-function))
+              syntax-begin-function)
         (set (make-local-variable 'syntax-begin-function)
              #'pm/syntax-begin-function))
 
