@@ -557,3 +557,4 @@ BODY contains code to be executed after the complete
       (2 font-lock-variable-name-face)))))
 
 (provide 'polymode)
+;;; polymode.el ends here
