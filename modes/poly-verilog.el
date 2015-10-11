@@ -36,7 +36,7 @@
   (pm-hbtchunkmode "perl-line"
                    :mode 'perl-mode
                    :head-mode 'host
-                   :tail-mode 'perl-mode
+                   :tail-mode 'host
                    :head-reg  "<pl>"
                    :tail-reg  "$")
   "Perl typical line chunk."
