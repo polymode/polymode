@@ -308,9 +308,10 @@ the current innermost span."
       (pm-select-buffer (car (last *span*)) *span*) ;; object and type
       (goto-char (nth 1 *span*))
       (funcall fun)
+	  ;; enter next/previous chunk as head-tails don't include their boundaries
       (if backward?
-          (goto-char (max 1 (1- (nth 1 *span*)))) ;; enter previous chunk
-        (goto-char (nth 2 *span*))))));))
+          (goto-char (max 1 (1- (nth 1 *span*)))) 
+        (goto-char (min (point-max) (1+ (nth 2 *span*))))))))
 
 (defun pm/narrow-to-span (&optional span)
   "Narrow to current chunk."
@@ -341,47 +342,48 @@ in polymode buffers."
 	 (inhibit-point-motion-hooks t)
          (font-lock-dont-widen t)
          (buff (current-buffer)))
-    (with-silent-modifications
-      (font-lock-unfontify-region beg end)
-      (save-excursion
-        (save-window-excursion
-          (pm/map-over-spans
-           (lambda ()
-             (let ((sbeg (nth 1 *span*))
-                   (send (nth 2 *span*)))
-               (when (and font-lock-mode font-lock-keywords)
-                 (when parse-sexp-lookup-properties
-                   (pm--comment-region 1 sbeg))
-                 (condition-case err
-                     (if (oref pm/chunkmode :font-lock-narrow)
-                         (save-restriction
-                           ;; fixme: optimization oportunity: Cache chunk state
-                           ;; in text properties. For big chunks font-lock
-                           ;; fontifies it by smaller segments, thus
-                           ;; pm/fontify-region is called multiple times per
-                           ;; chunk and spans are computed each time.
-                           (narrow-to-region sbeg send)
-                           (funcall pm--fontify-region-original
-                                    (max sbeg beg) (min send end) verbose))
-                       (funcall pm--fontify-region-original
-                                (max sbeg beg) (min send end) verbose))
-                   (error (message "polymode font-lock error: %s (beg: %s end: %s)"
-                                   (error-message-string err) beg end)))
-                 (when parse-sexp-lookup-properties
-                   (pm--uncomment-region 1 sbeg)))
-               (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode))
-               ;; might be needed by external applications like flyspell
-               ;; fixme: this should be in a more generic place like pm-get-span
-               (put-text-property sbeg send 'chunkmode
-                                  (object-of-class-p pm/chunkmode 'pm-hbtchunkmode))
-               ;; even if failed, set to t to avoid infloop
-               (put-text-property beg end 'fontified t)))
-           beg end)
-          ;; needed to avoid moving last fontified buffer to second place
-	  ;; switching displayed buffer invalidates internal emacs assumptions
-	  ;; bug bug#19511, fixed in emacs ea1c146acf3
-          ;; (bury-buffer)
-	  )))))
+	(when pm--fontify ;; set by pm-debug-toggle-fontification
+	  (with-silent-modifications
+		(font-lock-unfontify-region beg end)
+		(save-excursion
+		  (save-window-excursion
+			(pm/map-over-spans
+			 (lambda ()
+			   (let ((sbeg (nth 1 *span*))
+					 (send (nth 2 *span*)))
+				 (when (and font-lock-mode font-lock-keywords)
+				   (when parse-sexp-lookup-properties
+					 (pm--comment-region 1 sbeg))
+				   (condition-case err
+					   (if (oref pm/chunkmode :font-lock-narrow)
+						   (save-restriction
+							 ;; fixme: optimization opportunity: Cache chunk state
+							 ;; in text properties. For big chunks font-lock
+							 ;; fontifies it by smaller segments, thus
+							 ;; pm/fontify-region is called multiple times per
+							 ;; chunk and spans are computed each time.
+							 (narrow-to-region sbeg send)
+							 (funcall pm--fontify-region-original
+									  (max sbeg beg) (min send end) verbose))
+						 (funcall pm--fontify-region-original
+								  (max sbeg beg) (min send end) verbose))
+					 (error (message "polymode font-lock error: %s (beg: %s end: %s)"
+									 (error-message-string err) beg end)))
+				   (when parse-sexp-lookup-properties
+					 (pm--uncomment-region 1 sbeg)))
+				 (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode))
+				 ;; might be needed by external applications like flyspell
+				 ;; fixme: this should be in a more generic place like pm-get-span
+				 (put-text-property sbeg send 'chunkmode
+									(object-of-class-p pm/chunkmode 'pm-hbtchunkmode))
+				 ;; even if failed, set to t to avoid infloop
+				 (put-text-property beg end 'fontified t)))
+			 beg end)
+			;; needed to avoid moving last fontified buffer to second place
+			;; switching displayed buffer invalidates internal emacs assumptions
+			;; bug bug#19511, fixed in emacs ea1c146acf3
+			;; (bury-buffer)
+			))))))
 
 (defun pm/syntax-begin-function ()
   (goto-char
