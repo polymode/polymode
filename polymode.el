@@ -558,5 +558,139 @@ BODY contains code to be executed after the complete
       (1 font-lock-keyword-face)
       (2 font-lock-variable-name-face)))))
 
+
+;;; TOOLS for DEBUGGING
+
+(defvar pm--underline-overlay
+  (let ((overlay (make-overlay (point) (point))))
+    (overlay-put overlay 'face  '(:underline (:color "red" :style wave)))
+    overlay)
+  "Overlay used in `pm-debug-mode'.")
+
+(defvar pm--inverse-video-overlay
+  (let ((overlay (make-overlay (point) (point))))
+    (overlay-put overlay 'face  '(:inverse-video t))
+    overlay)
+  "Overlay used by `pm-debug-map-over-spans-and-highlight'.")
+
+(defvar pm-debug-minor-mode-map
+  (let ((map (make-sparse-keymap)))
+	(define-key map (kbd "M-n M-i") 'pm-debug-info-on-span)
+	(define-key map (kbd "M-n M-m") 'pm-debug-map-over-spans-and-highlight)
+	(define-key map (kbd "M-n M-f") 'pm-debug-toggle-fontification)
+	;; (define-key map (kbd "M-n M-t") 'pm-debug-toggle-info-update)
+	map))
+
+(defun pm-debug-minor-mode-on ()
+  ;; activating everywhere (in case font-lock infloops in a polymode buffer )
+  (pm-debug-minor-mode t))
+
+(define-minor-mode pm-debug-minor-mode
+  "Turns on/off useful facilities for debugging polymode"
+  nil
+  " PMDBG"
+  :group 'polymode
+  (interactive)
+  (if pm-debug-minor-mode
+	  (progn
+		;; this is global hook. No need to complicate with local hooks
+		(add-hook 'post-command-hook 'pm-debug-highlight-current-span))
+	(delete-overlay pm--underline-overlay)
+	(delete-overlay pm--inverse-video-overlay)
+	(remove-hook 'post-command-hook 'pm-debug-highlight-current-span)))
+
+(define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on)
+
+(defun pm-debug-highlight-current-span ()
+  (when polymode-mode
+	(unless (eq this-command 'pm-debug-info-on-span)
+	  (delete-overlay pm--inverse-video-overlay))
+	(condition-case err
+		(let ((span (pm/get-innermost-span)))
+		  (pm--debug-info span)
+		  (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))
+	  (error (message "%s" (error-message-string err))))))
+
+(defgeneric pm-debug-info (chunkmode))
+(defmethod pm-debug-info ((chunkmode pm-chunkmode))
+  (format "class:%s" (eieio-object-class-name chunkmode)))
+(defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
+  (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
+		  (oref obj :head-reg) (oref obj :tail-reg)
+		  (call-next-method)))
+
+(defun pm--debug-info (&optional span)
+  (let* ((span (or span (pm/get-innermost-span)))
+		 (message-log-max nil)
+		 (beg (nth 1 span))
+		 (end (nth 2 span))
+		 (obj (nth 3 span)))
+	(message "(%s) type:%s span:%s-%s %s"
+			 major-mode (or (car span) 'host) beg end (pm-debug-info obj))))
+
+(defun pm-debug-info-on-span ()
+  (interactive)
+  (if (not polymode-mode)
+	  (message "not in a polymode buffer")
+	(let ((span (pm/get-innermost-span)))
+	  (pm--debug-info span)
+	  (move-overlay pm--inverse-video-overlay (nth 1 span) (nth 2 span) (current-buffer)))))
+
+(defvar pm--fontify t)
+
+(defun pm-debug-toggle-fontification ()
+  (interactive)
+  (if pm--fontify
+	  (progn
+		(message "fontificaiton disabled")
+		(setq pm--fontify nil))
+	(message "fontificaiton enabled")
+	(setq pm--fontify t)))
+
+;; (defvar mp--debug-info-update t)
+;; (defun pm-debug-toggle-info-update ()
+;;   (interactive)
+;;   (if pm--debug-info-update
+;; 	  (progn
+;; 		(message "info disabled")
+;; 		(setq pm--debug-info-update nil))
+;; 	(message "info enabled")
+;; 	(setq pm--debug-info-update t)))
+
+(defun pm--blink-region (start end &optional delay)
+  (move-overlay pm--inverse-video-overlay start end (current-buffer))
+  (run-with-timer (or delay 0.4) nil (lambda () (delete-overlay pm--inverse-video-overlay))))
+
+(defun pm-debug-map-over-spans-and-highlight ()
+  (interactive)
+  (pm/map-over-spans (lambda ()
+                       (let ((start (nth 1 *span*))
+                             (end (nth 2 *span*)))
+                         (pm--blink-region start end)
+                         (sit-for 1)))
+                     (point-min) (point-max)))
+
+(defun pm--highlight-span (&optional hd-matcher tl-matcher)
+  (interactive)
+  (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-reg)))
+         (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-reg)))
+         (span (pm--span-at-point hd-matcher tl-matcher)))
+    (pm--blink-region (nth 1 span) (nth 2 span))
+    (message "span: %s" span)))
+
+(defun pm--run-over-check ()
+  (interactive)
+  (goto-char (point-min))
+  (let ((start (current-time))
+        (count 1))
+    (polymode-select-buffer)
+    (while (< (point) (point-max))
+      (setq count (1+ count))
+      (forward-char)
+      (polymode-select-buffer))
+    (let ((elapsed  (float-time (time-subtract (current-time) start))))
+      (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
+
+
 (provide 'polymode)
 ;;; polymode.el ends here

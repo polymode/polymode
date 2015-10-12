@@ -29,6 +29,4 @@
 (add-to-list 'auto-mode-alist '("\\.sv" . poly-verilog+perl-mode))
 (add-to-list 'auto-mode-alist '("\\.svh" . poly-verilog+perl-mode))
 
-
-
 (provide 'polymode-configuration)

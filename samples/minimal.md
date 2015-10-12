@@ -21,3 +21,9 @@ poly-markdown+r-mode RET` should do the job.
 ```emacs-lisp
 (message  "it works")
 ```
+
+```javascript
+{
+    
+}
+```

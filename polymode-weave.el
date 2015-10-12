@@ -117,12 +117,13 @@ exporter (from to) specification will be called.")
         (let ((sentinel2 (if export
                              `(lambda (proc name)
                                 (let ((wfile (,sentinel1 proc name)))
-                                  ;;; we don't return file here, kinda okward
+                                  ;; fixme: we don't return file here
                                   (pm-export (symbol-value ',(oref pm/polymode :exporter))
                                              ,(car export) ,(cdr export)
                                              wfile)))
                            `(lambda (proc name)
-                              (let ((wfile (,sentinel1 proc name)))
+                              (let ((wfile (expand-file-name (,sentinel1 proc name),
+							     ,default-directory)))
                                 (pm--display-file wfile)
                                 wfile)))))
           (oset weaver ,slot sentinel2)
