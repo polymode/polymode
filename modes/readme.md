@@ -15,6 +15,7 @@ awesome idea.
   - [One Predefined Innermode](#one-predefined-innermode)
   - [Multiple Predefined Innermodes](#multiple-predefined-innermodes)
   - [Multiple Automatically Detected Innermodes](#multiple-automatically-detected-innermodes)
+- [Visually debugging polymodes](#visually-debugging-polymodes) 
 - [Defining Literate Programming Backends](#defining-backends)
   - [Weavers](#weavers)
   - [Exporters](#exporters)
@@ -315,6 +316,21 @@ This is an example of markdown polymode (from [poly-markdown.el](poly-markdown.e
 ;; 4. Define polymode function
 (define-polymode poly-markdown-mode pm-poly/markdown)
 ```
+## Visually Debugging Polymodes
+
+After defining polymodes you can visually inspect if the polymode does what you
+intended by activating globalized minor pm-debug minor mode with `M-x
+pm-debug-mode`. When `pm-debug-mode` is active the current span will be
+highlighted and brief info displayed in the minibuffer.
+
+Currently defined commands are:
+
+  - `M-n M-f` Toggle font-locking (`pm-debug-toggle-fontification`)
+  - `M-n M-h` Map through all spans and briefly blink each span (`pm-debug-map-over-spans-and-highlight`)
+  - `M-n M-i` Highlight current span and display more info (`pm-debug-info-on-span`)
+
+<img src="img/debug.png"/>
+
 
 ## Defining Backends
 
@@ -324,6 +340,7 @@ todo
 todo
 ### Tanglers
 todo
+
 
 ## Internals
 ### API
