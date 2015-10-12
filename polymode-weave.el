@@ -1,3 +1,4 @@
+;;  -*- lexical-binding: t -*-
 (require 'polymode-common)
 (require 'polymode-classes)
 
@@ -66,7 +67,7 @@
     "Sentinel function to be called by :function when a shell
     call is involved. Sentinel must return the output file
     name."))
-  "Class to represent weavers that call external processes.")
+  "Class for weavers that call external processes.")
 
 
 ;;; METHODS
@@ -107,6 +108,7 @@ exporter (from to) specification will be called.")
       (error "from-to spec '%s' is not supported by weaver '%s'"
              from-to (pm--object-name weaver)))))
 
+;; fixme: re-factor into closure
 (defmacro pm--weave-wrap-callback (slot)
   ;; replace weaver :sentinel or :callback temporally in order to export as a
   ;; followup step or display the result
@@ -193,7 +195,6 @@ each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) :weavers ',weaver)
      (when ,default? (oset (symbol-value pm) :weaver ',weaver))))
-
 
 (defun polymode-set-weaver ()
   (interactive)

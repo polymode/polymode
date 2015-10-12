@@ -181,7 +181,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     :type integer
     :initform 0
     :documentation
-    "Offset to add when indenting chunk's line. Takes efeect only
+    "Offset to add when indenting chunk's line. Takes effect only
     when :protect-indent-line is non-nil.")
    (font-lock-narrow :initarg :font-lock-narrow
     :type boolean
