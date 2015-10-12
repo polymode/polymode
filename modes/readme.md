@@ -329,7 +329,7 @@ Currently defined commands are:
   - `M-n M-h` Map through all spans and briefly blink each span (`pm-debug-map-over-spans-and-highlight`)
   - `M-n M-i` Highlight current span and display more info (`pm-debug-info-on-span`)
 
-<img src="img/debug.png"/>
+<img src="../img/debug.png"/>
 
 
 ## Defining Backends
