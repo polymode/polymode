@@ -576,7 +576,7 @@ BODY contains code to be executed after the complete
 (defvar pm-debug-minor-mode-map
   (let ((map (make-sparse-keymap)))
 	(define-key map (kbd "M-n M-i") 'pm-debug-info-on-span)
-	(define-key map (kbd "M-n M-m") 'pm-debug-map-over-spans-and-highlight)
+	(define-key map (kbd "M-n M-h") 'pm-debug-map-over-spans-and-highlight)
 	(define-key map (kbd "M-n M-f") 'pm-debug-toggle-fontification)
 	;; (define-key map (kbd "M-n M-t") 'pm-debug-toggle-info-update)
 	map))
@@ -586,7 +586,10 @@ BODY contains code to be executed after the complete
   (pm-debug-minor-mode t))
 
 (define-minor-mode pm-debug-minor-mode
-  "Turns on/off useful facilities for debugging polymode"
+  "Turns on/off useful facilities for debugging polymode.
+
+Key bindings:
+\\{pm-debug-minor-mode-map}"
   nil
   " PMDBG"
   :group 'polymode
@@ -612,12 +615,18 @@ BODY contains code to be executed after the complete
 	  (error (message "%s" (error-message-string err))))))
 
 (defgeneric pm-debug-info (chunkmode))
-(defmethod pm-debug-info ((chunkmode pm-chunkmode))
+(defmethod pm-debug-info (chunkmode)
   (format "class:%s" (eieio-object-class-name chunkmode)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
   (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
 		  (oref obj :head-reg) (oref obj :tail-reg)
 		  (call-next-method)))
+(defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
+  (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
+		  (oref obj :head-reg) (oref obj :tail-reg)
+		  (call-next-method)))
+(defmethod pm-debug-info ((chunkmode pm-hbtchunkmode-auto))
+		  (call-next-method))
 
 (defun pm--debug-info (&optional span)
   (let* ((span (or span (pm/get-innermost-span)))
@@ -690,7 +699,6 @@ BODY contains code to be executed after the complete
       (polymode-select-buffer))
     (let ((elapsed  (float-time (time-subtract (current-time) start))))
       (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
-
 
 (provide 'polymode)
 ;;; polymode.el ends here
