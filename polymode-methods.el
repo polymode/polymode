@@ -211,7 +211,8 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
 
 (defun pm--setup-buffer (&optional buffer)
   ;; General buffer setup, should work for indirect and base buffers
-  ;; alike. Assumes pm/polymode and pm/chunkmode is already in place. Return buffer.
+  ;; alike. Assume pm/polymode and pm/chunkmode is already in place. Return
+  ;; the buffer.
   (let ((buff (or buffer (current-buffer))))
     (with-current-buffer buff
       ;; Don't let parse-partial-sexp get fooled by syntax outside
@@ -242,23 +243,24 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
         (setq pm--indent-line-function-original indent-line-function)
         (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
 
-      ;; Kill the base buffer along with the indirect one; careful not
-      ;; to infloop.
-      ;; (add-hook 'kill-buffer-hook
-      ;;           '(lambda ()
-      ;;              ;; (setq kill-buffer-hook nil) :emacs 24 bug (killing
-      ;;              ;; dead buffer triggers an error)
-      ;;              (let ((base (buffer-base-buffer)))
-      ;;                (if  base
-      ;;                    (unless (buffer-local-value 'pm--killed-once base)
-      ;;                      (kill-buffer base))
-      ;;                  (setq pm--killed-once t))))
-      ;;           t t)
+      (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
 
       (when pm--dbg-hook
         (add-hook 'post-command-hook 'polymode-select-buffer nil t))
       (object-add-to-list pm/polymode '-buffers (current-buffer)))
     buff))
+
+(defvar-local pm--killed-once nil)
+(defun pm--kill-indirect-buffer ()
+  ;; find-alternate-file breaks (https://github.com/vspinu/polymode/issues/79)
+  (let ((base (buffer-base-buffer)))
+	(when  (and base (buffer-live-p base))
+	  ;; 'base' is non-nil in indirect buffers only
+	  (set-buffer-modified-p nil)
+	  (unless (buffer-local-value 'pm--killed-once base)
+		(with-current-buffer base
+		  (setq pm--killed-once t))
+		(kill-buffer base)))))
 
 (defvar pm--ib-prefix "")
 (defun pm--create-indirect-buffer (mode)

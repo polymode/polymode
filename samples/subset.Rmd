@@ -70,7 +70,12 @@ quandam temperantiam postulant in eo, quod semel admissum coerceri
 reprimique non potest, ut propemodum iustioribus utamur illis, qui
 omnino avocent a philosophia, quam his, qui rebus infinitis modum
 constituant reque eo, quo sit , mediocritatem
+
 desiderent.
+
+```R
+
+```
 
 ```{r test3}
 3+3  
