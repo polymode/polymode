@@ -519,9 +519,11 @@ sent to the new mode for syntax highlighting
                     (list nil (cdr post) (car posh1))))))))))))
 
 (defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
-  ;; guaranteed to produce non-0 length spans
-  ;; xxx1 relate to the first re-search-backward search
-  ;; xxx2 relate to the second re-search-forward search
+  ;; Guaranteed to produce non-0 length spans. If no span has been found
+  ;; (head-matcher didn't match) return (nil (point-min) (point-max)).
+
+  ;; xxx1 relate to the first ascending search
+  ;; xxx2 relate to the second descending search
 
   (save-excursion
     (let* ((pos (point))
@@ -532,7 +534,6 @@ sent to the new mode for syntax highlighting
 	  
 	  (if head1-end
 		  ;; we know that (>= pos head1-end)
-		  ;; thus
 		  ;;            -----------------------
 		  ;; host](head)[body](tail)[host](head)
 		  (let* ((tail1-beg (and (goto-char head1-end)
@@ -554,13 +555,13 @@ sent to the new mode for syntax highlighting
 			  
 			  ;;                        ------------
 			  ;; host](head](body](tail)[host](head)
-			  (let ((head2-beg (and (re-search-forward head-matcher nil t)
-									(match-beginning 0))))
-				(if (or (null head2-beg)
-						(<= pos head2-beg))
+			  (let* ((head2-beg (or (and (re-search-forward head-matcher nil t)
+										 (match-beginning 0))
+									(point-max))))
+				(if (<= pos head2-beg)
 					;;                        ------
 					;; host](head](body](tail)[host](head)
-					(list nil tail1-end (or head2-beg (point-max)))
+					(list nil tail1-end head2-beg)
 				  ;;                              ------
 				  ;; host](head](body](tail)[host](head)
 				  (list 'head head2-beg (match-end 0))))))
@@ -570,8 +571,9 @@ sent to the new mode for syntax highlighting
 		(let ((head2-beg (and (goto-char (point-min))
 							  (re-search-forward head-matcher nil t)
 							  (match-beginning 0))))
+
 		  (if (null head2-beg)
-			  ;; no header found
+			  ;; no span found
 			  (list nil (point-min) (point-max))
 			
 			(if (<= pos head2-beg)
@@ -581,65 +583,6 @@ sent to the new mode for syntax highlighting
 			  ;;      ------
 			  ;; host](head)[body](tail)[host
 			  (list 'head head2-beg (match-end 0)))))))))
-		
-
-;; (defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
-;;   ;; efficent reg-reg lookup with only 2 searches
-;;   ;; pos1-xx relate to the first re-search-backward search
-;;   ;; pos2-xx relate to the second re-search-forward search
-
-;;   (save-excursion
-;;     (let* ((pos (point))
-;;            (reg (concat "\\(?1:\\(" tail-matcher "\\)\\)\\|\\(?2:\\(" head-matcher "\\)\\)"))
-;;            (pos1-end (and (re-search-backward reg nil t)
-;; 						  (match-end 0)))
-;;            (pos1-tail? (or (null pos1-end) (match-end 1)))
-;; 		   ;; consider pointmin as tail end
-;; 		   (pos1-start (or (and pos1-end (match-beginning 0)) (point-min)))
-;;            (pos1-end (or pos1-end pos1-start))
-;; 		   (empty1 (= pos1-start pos1-end))
-;;            (pos2-start (progn
-;; 						 ;; head assumption: head must be at least 1 char long
-;; 						 ;; to allow for empty char tails like end-of line
-;; 						 (goto-char (min (1+ pos1-end) (point-max)))
-;; 						 (and (re-search-forward reg nil t)
-;; 							  (match-beginning 0))))
-;;            (pos2-end (and pos2-start (match-end 0)))
-;;            (pos2-tail? (and pos2-start (match-end 1)))
-;;            (pos2-start (or pos2-start (point-max)))) ;consider pointmax as head start
-;; 	  (cond
-;; 	   ;; all of these are guaranteed to return non-0 length spans
-	   
-;; 	   ;; 1) inside HOST or BODY 
-;; 	   ((and (or (> pos pos1-end)
-;; 				 (and empty1 (= pos pos1-end)))
-;; 			 (<= pos pos2-start))
-;; 		(if pos1-tail?
-;; 			;; HOST: tail](ho|st](head](body](tail](host
-;; 			;; spans, but we dont' care
-;; 			(list nil pos1-end pos2-start)
-;; 		  ;; BODY: tail](host](head](bo|dy](tail](host
-;; 		  (list 'body pos1-end pos2-start)))
-
-;; 	   ;; 2) inside head or tail 1 (which is non-empty)
-;; 	   ((= pos pos1-end)
-;; 		(if pos1-tail?
-;; 			;; TAIL: host](head](body](tail|(host
-;; 			(list 'tail pos1-start pos1-end)
-;; 		  ;; HEAD: host](head|(body](tail](host
-;; 		  (list 'head pos1-start pos1-end)))
-	   
-;; 	   ;; 3) inside HEAD or TAIL 2
-;; 	   ((< pos pos2-end)
-;; 		(if pos2-tail?
-;; 			;; TAIL: host](head](body](ta|il](host
-;; 			(list 'tail pos2-start pos2-end)
-;; 		  ;; HEAD: tail](host](he|ad](body](tail](host
-;; 		  (list 'head pos2-start pos2-end)))
-
-;; 	   ;; should never happen
-;; 	   (t (error "Invalid regexp matching pos:%s  head-matcher:%s tail-matcher:%s  (PLEASE REPORT!)" 
-;; 				 pos head-matcher tail-matcher))))))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Basic span detector with head/tail.
