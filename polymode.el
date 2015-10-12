@@ -274,14 +274,16 @@ Return, how many chucks actually jumped over."
   (unless pm--ignore-post-command-hook
     (let ((*span* (pm/get-innermost-span))
           (pm--can-move-overlays t))
-      (pm-select-buffer (car (last *span*)) *span*))))
+	  (save-restriction
+		(widen)
+		(pm-select-buffer (car (last *span*)) *span*)))))
 
 (defun polymode-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
 This funciton is placed in local post-command hook."
   (condition-case error
       (pm--sel-buf)
-    (error (message "polymode error: %s"
+    (error (message "polymode error (polymode-select-buffer): %s"
                     (error-message-string error)))))
 
 (defun pm/map-over-spans (fun beg end &optional count backward?)
