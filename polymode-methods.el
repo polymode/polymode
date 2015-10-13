@@ -446,8 +446,7 @@ The tail matcher will return a list (n, n) of the final characters is the block.
 
 
 All the stuff after the -end- of the head and before the start of the tail is
-sent to the new mode for syntax highlighting
-"
+sent to the new mode for syntax highlighting."
   (let* ((head-name (intern (format "pm-%s-head-matcher" name)))
          (tail-name (intern (format "pm-%s-tail-matcher" name))))
     `(progn
@@ -526,7 +525,6 @@ sent to the new mode for syntax highlighting
 
   ;; xxx1 relate to the first ascending search
   ;; xxx2 relate to the second descending search
-
   (save-excursion
     (let* ((pos (point))
 		   
