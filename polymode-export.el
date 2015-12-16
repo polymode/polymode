@@ -92,9 +92,10 @@
                                 (file-name-base ifile))
                         "." (nth 1 to-spec)))
          (command (format-spec (nth 3 from-spec)
-                               (list (cons ?i ifile)
-                                     (cons ?o ofile)
-                                     (cons ?O (file-name-base ofile))
+                               (list (cons ?i (shell-quote-argument ifile))
+                                     (cons ?o (shell-quote-argument ofile))
+                                     (cons ?O (shell-quote-argument
+                                               (file-name-base ofile)))
                                      (cons ?t (nth 3 to-spec))))))
     (unless to-spec
       (error "'to' spec %s is not defined for this exporter '%s'"
