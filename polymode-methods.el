@@ -258,6 +258,7 @@ this method to work correctly, SUBMODE's class should define
 	  (setq buff (pm-get-buffer chunkmode type)))
 	(pm--select-existent-buffer buff)))
 
+(defvar pm--select-buffer-visually)
 ;; extracted for debugging and tracing
 (defun pm--select-existent-buffer (buffer)
   (when (and (not (eq buffer (current-buffer)))

@@ -613,11 +613,11 @@ Key bindings:
   (format "class:%s" (eieio-object-class-name chunkmode)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
   (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
-		  (oref obj :head-reg) (oref obj :tail-reg)
+		  (oref chunkmode :head-reg) (oref chunkmode :tail-reg)
 		  (call-next-method)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
   (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
-		  (oref obj :head-reg) (oref obj :tail-reg)
+		  (oref chunkmode :head-reg) (oref chunkmode :tail-reg)
 		  (call-next-method)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode-auto))
 		  (call-next-method))
@@ -788,7 +788,7 @@ Key bindings:
 		(mapc (lambda (group)
 				(mapc #'untrace-function (assoc group pm-debug-relevant-functions-alist)))
 			  (cdr groups))
-	  (mapc #'untrace-function (assoc group pm-debug-relevant-functions-alist)))))
+	  (mapc #'untrace-function (assoc groups pm-debug-relevant-functions-alist)))))
 
 (defun pm-debug-blink-region (start end &optional delay)
   (move-overlay pm--inverse-video-overlay start end (current-buffer))
