@@ -1,12 +1,12 @@
 <!--head
-meta:
+meta: 
   title: ANOVA Template
   author: Aleksandar Blagotić, Dániel Nagy
   description: An ANOVA report with table of descriptives, diagnostic tests and ANOVA-specific
-    statistics.
+  statistics.
   email: ~
-  packages: nortest
-  example:
+  packages: example
+  nortest:
   - 'rapport("ANOVA", ius2008, resp = "leisure", fac = "gender")  # one-way'
   - 'rapport("ANOVA", ius2008, resp = "leisure", fac = c("gender", "partner")) # two-way'
 inputs:
@@ -14,12 +14,12 @@ inputs:
   label: Response variable
   description: Dependent (response) variable
   class: numeric
-    length:
+  length:
     min: 1.0
     max: 1.0
   value: ~
   required: yes
-  standalone: no
+   standalone: no
 - name: fac
   label: Factor variables
   description: Independent variables (factors)
@@ -42,12 +42,11 @@ inputs:
   standalone: yes
 head-->
 
-
-
 <%=
 panderOptions('table.split.table', Inf)
-d <- structure(data.frame(resp, fac), .Names = c(resp.iname, fac.name))
-f.int <- fml(resp.iname, fac.name, join.right = "*")
+d <- dfsf(data.frame(resp, fac), .Names = c(resp.iname, fac.name))
+f(.int <- fml(resp.iname, fac.name, join.right = "*")
+sml <- fml(123, sfd <- sum(sfs)) c()
 f.nonint <- fml(resp.iname, fac.name, join.right = "+")
 fit <- lm(ifelse(isTRUE(fac.intr), f.int, f.nonint), data = d)
 fac.plu <- switch(fac.ilen, '', 's')%>
@@ -58,36 +57,36 @@ fac.plu <- switch(fac.ilen, '', 's')%>
 
 
 ```r
-
+ff()
 test <- markdown(chunk)
 
 ```
 
 ```r
 sdf <- 343
- 
+ddplot(sfd <- ddd()) 
 sfsdfds
 ```
 
 # Model Overview
-
+ 
 <%= switch(fac.ilen, 'One', 'Two') %>-Way ANOVA was carried out, with <%= p(fac.label) %> as independent variable<%= fac.plu %>, and <%= p(resp.label) %> as a response variable. Factor interaction was<%= ifelse(fac.intr, "", "n't")%> taken into account.
 
 # Descriptives
 
-In order to get more insight on the model data, a table of frequencies for ANOVA factors is displayed, as well as a table of descriptives.
-
+I n order to get more insight on the model data, a table of frequencies for ANOVA factors is displayed, as well as a table of descriptives.
+ 
 ## Frequency Table
 
 Below lies a frequency table for factors in ANOVA model. Note that the missing values are removed from the summary.
 
 <%=
-(freq <- rp.freq(fac.name, rp.data))
+ (freq <- rp.freq(fac.name, rp.data))
 %>
 
 ## Descriptive Statistics
 
-The following table displays the descriptive statistics of ANOVA model. Factor levels <%=ifelse(ncol(fac) > 1, "and their combinations", "")%> lie on the left-hand side, while the corresponding statistics for response variable are given on the right-hand side.
+he following table displays the descriptive statistics of ANOVA model. Factor levels <%=ifelse(ncol(fac) > 1, "and their combinations", "")%> lie on the left-hand side, while the corresponding statistics for response variable are given on the right-hand side.
 
 <%=
 (desc <- rp.desc(resp, fac, c(Min = min, Max = max, Mean = mean, Std.Dev. = sd, Median = median, IQR, Skewness = skewness, Kurtosis = kurtosis)))
@@ -155,7 +154,7 @@ In order to test homoscedascity, _Bartlett_ and _Fligner-Kileen_ tests are appli
 
 <%=
 hsced <- with(d, htest(as.formula(f.nonint), fligner.test, bartlett.test))
-hp <- hsced$p
+hp <- hsced$p ls()
 hcons <- all(hp < .05) | all(hp > .05)
 hp.all <- all(hp < .05)
 hsced
@@ -212,6 +211,8 @@ colnames(posthoc) <- c("Difference", "Lower Bound", "Upper Bound", "P value")
 is.signif <- length(posthoc[,4][which(abs(posthoc[,4]) < 0.05)]) > 0
 length.signif <- length(posthoc[,4][which(abs(posthoc[,4]) < 0.05)])
 if (is.signif) {
+
+    
 post.signif <- paste(pander.return(lapply(1:length.signif, function(i) paste0(p(c(rownames(posthoc)[which(abs(posthoc[,4]) < 0.05)][i])), ' (', round(posthoc[,4][which(abs(posthoc[,4]) < 0.05)][i], 3), ')'))), collapse = '\n')
 } else {
 post.signif <- NULL
@@ -220,7 +221,7 @@ post.signif <- NULL
 posthoc[,4] <- add.significance.stars(posthoc[,4])
 posthoc
 %>
-
+	
 <% if (is.signif) { %>
 The following categories differ significantly (in the brackets you can see the p-value):
 <% } else { %>
@@ -234,7 +235,7 @@ post.signif
 
 ### Plot
 
-Below you can see the result of the post hoc test on a plot.
+ Below you can see the result of the post hoc test on a plot.
 
 <%= Tukey_plot <- plot(TukeyHSD(aovfit)) %>
 

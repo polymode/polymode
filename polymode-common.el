@@ -18,7 +18,6 @@
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
 (defvar-local pm/type nil)
-(defvar-local polymode-major-mode nil)
 (defvar-local pm--fontify-region-original nil)
 (defvar-local pm--indent-line-function-original nil)
 (defvar-local pm--syntax-begin-function-original nil)
@@ -37,12 +36,12 @@
 
 ;; core api from polymode.el, which relies on polymode-methods.el.
 ;; fixme: some of these are not api, rename
-(declare-function pm/base-buffer "polymode")
-(declare-function pm/get-innermost-span "polymode")
-(declare-function pm/map-over-spans "polymode")
-(declare-function pm/narrow-to-span "polymode")
-(declare-function pm/fontify-region "polymode")
-(declare-function pm/syntax-begin-function "polymode")
+(declare-function pm-base-buffer "polymode")
+(declare-function pm-get-innermost-span "polymode")
+(declare-function pm-map-over-spans "polymode")
+(declare-function pm-narrow-to-span "polymode")
+(declare-function poly-lock-fontify-region "poly-lock")
+(declare-function pm-syntax-begin-function "polymode")
 
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")
@@ -53,15 +52,6 @@
 (declare-function pm-get-span "polymode-methods")
 (declare-function pm-indent-line "polymode-methods")
 
-;; buffer manipulation function in polymode-methods.el
-;; polymode-common.el:315:1:Warning: the following functions are not known to be defined:
-;; pm--create-indirect-buffer, pm--setup-buffer, pm--span-at-point, polymode-select-buffer
-
-;; temporary debugging facilities
-(defvar pm--dbg-mode-line t)
-(defvar pm--dbg-fontlock t)
-(defvar pm--dbg-hook t)
-
 ;; other locals
 (defvar-local pm--process-buffer nil)
 
@@ -69,106 +59,6 @@
 ;;; UTILITIES
 (defun pm--display-file (ofile)
   (display-buffer (find-file-noselect ofile 'nowarn)))
-
-(defun pm--get-indirect-buffer-of-mode (mode)
-  (loop for bf in (oref pm/polymode -buffers)
-        when (and (buffer-live-p bf)
-                  (eq mode (buffer-local-value 'polymode-major-mode bf)))
-        return bf))
-
-;; ;; This doesn't work in 24.2, pcase bug ((void-variable xcar))
-;; ;; Other pcases in this file don't throw this error
-;; (defun pm--set-chunkmode-buffer (obj type buff)
-;;   (with-slots (buffer head-mode head-buffer tail-mode tail-buffer) obj
-;;     (pcase (list type head-mode tail-mode)
-;;       (`(body body ,(or `nil `body))
-;;        (setq buffer buff
-;;              head-buffer buff
-;;              tail-buffer buff))
-;;       (`(body ,_ body)
-;;        (setq buffer buff
-;;              tail-buffer buff))
-;;       (`(body ,_ ,_ )
-;;        (setq buffer buff))
-;;       (`(head ,_ ,(or `nil `head))
-;;        (setq head-buffer buff
-;;              tail-buffer buff))
-;;       (`(head ,_ ,_)
-;;        (setq head-buffer buff))
-;;       (`(tail ,_ ,(or `nil `head))
-;;        (setq tail-buffer buff
-;;              head-buffer buff))
-;;       (`(tail ,_ ,_)
-;;        (setq tail-buffer buff))
-;;       (_ (error "type must be one of 'body 'head and 'tail")))))
-
-;; a literal transcript of the pcase above
-(defun pm--set-chunkmode-buffer (obj type buff)
-  (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
-    (cond
-     ((and (eq type 'body)
-           (eq head-mode 'body)
-           (or (null tail-mode)
-               (eq tail-mode 'body)))
-      (setq -buffer buff
-            -head-buffer buff
-            -tail-buffer buff))
-     ((and (eq type 'body)
-           (eq tail-mode 'body))
-      (setq -buffer buff
-            -tail-buffer buff))
-     ((eq type 'body)
-      (setq -buffer buff))
-     ((and (eq type 'head)
-           (or (null tail-mode)
-               (eq tail-mode 'head)))
-      (setq -head-buffer buff
-            -tail-buffer buff))
-     ((eq type 'head)
-      (setq -head-buffer buff))
-     ((and (eq type 'tail)
-           (or (null tail-mode)
-               (eq tail-mode 'head)))
-      (setq -tail-buffer buff
-            -head-buffer buff))
-     ((eq type 'tail)
-      (setq -tail-buffer buff))
-     (t (error "type must be one of 'body 'head and 'tail")))))
-
-(defun pm--get-chunkmode-mode (obj type)
-  (with-slots (mode head-mode tail-mode) obj
-    (cond ((or (eq type 'body)
-               (and (eq type 'head)
-                    (eq head-mode 'body))
-               (and (eq type 'tail)
-                    (or (eq tail-mode 'body)
-                        (and (null tail-mode)
-                             (eq head-mode 'body)))))
-           (oref obj :mode))
-          ((or (and (eq type 'head)
-                    (eq head-mode 'host))
-               (and (eq type 'tail)
-                    (or (eq tail-mode 'host)
-                        (and (null tail-mode)
-                             (eq head-mode 'host)))))
-           (oref (oref pm/polymode -hostmode) :mode))
-          ((eq type 'head)
-           (oref obj :head-mode))
-          ((eq type 'tail)
-           (oref obj :tail-mode))
-          (t (error "type must be one of 'head 'tail 'body")))))
-
-(defun pm--create-chunkmode-buffer-maybe (chunkmode type)
-  ;; assumes pm/polymode is set
-  (let ((mode (pm--get-chunkmode-mode chunkmode type)))
-    (or (pm--get-indirect-buffer-of-mode mode)
-        (let ((buff (pm--create-indirect-buffer mode)))
-          (with-current-buffer  buff
-            (setq pm/chunkmode chunkmode)
-            (setq pm/type type)
-            (pm--setup-buffer)
-            (funcall (oref pm/polymode :minor-mode))
-            buff)))))
 
 (defun pm--get-mode-symbol-from-name (str)
   "Guess and return mode function.
@@ -186,9 +76,9 @@ return an error."
 (defun pm--get-available-mode (mode)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return 'fundamental-mode with a
-warnign."
+warning."
   (cond ((fboundp mode) mode)
-        (t (message "Cannot find %s function, using 'fundamental-mode instead" mode)
+        (t (message "Cannot find function `%s', using `fundamental-mode'" mode)
            'fundamental-mode)))
 
 (defun pm--oref-with-parents (object slot)
@@ -289,62 +179,6 @@ user interaction."
 	    (display-buffer (current-buffer))
 	    (message "Done with %s" message))
           (error "Bumps while %s (%s)" message name))))))
-
-
-;;; COMPATIBILITY and FIXES
-(defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
-  (or (get-text-property beg 'chunkmode)
-      (get-text-property beg 'chunkmode)))
-
-(defvar object-name)
-(defun pm--object-name (object)
-  (cond ((fboundp 'eieio--object-name)
-	 (eieio--object-name object))
-	((fboundp 'eieio-object-name)
-	 (eieio-object-name object))
-	(t (aref object object-name))))
-
-(defun pm--activate-jit-lock-mode-maybe ()
-  ;; ugly hack for emacs 24.4
-  (when (and (string< "24.4" emacs-version)
-             ;; jit-lock is deactivated after this one is set.
-             jit-lock-functions)
-
-    (setq jit-lock-mode t)
-    ;; Mark the buffer for refontification.
-    (jit-lock-refontify)
-
-    ;; Install an idle timer for stealth fontification.
-    (when (and jit-lock-stealth-time (null jit-lock-stealth-timer))
-      (setq jit-lock-stealth-timer
-            (run-with-idle-timer jit-lock-stealth-time t
-                                 'jit-lock-stealth-fontify)))
-
-    ;; Create, but do not activate, the idle timer for repeated
-    ;; stealth fontification.
-    (when (and jit-lock-stealth-time (null jit-lock-stealth-repeat-timer))
-      (setq jit-lock-stealth-repeat-timer (timer-create))
-      (timer-set-function jit-lock-stealth-repeat-timer
-                          'jit-lock-stealth-fontify '(t)))
-
-    ;; Init deferred fontification timer.
-    (when (and jit-lock-defer-time (null jit-lock-defer-timer))
-      (setq jit-lock-defer-timer
-            (run-with-idle-timer jit-lock-defer-time t
-                                 'jit-lock-deferred-fontify)))
-
-    ;; Initialize contextual fontification if requested.
-    (when (eq jit-lock-contextually t)
-      (unless jit-lock-context-timer
-        (setq jit-lock-context-timer
-              (run-with-idle-timer jit-lock-context-time t
-                                   'jit-lock-context-fontify)))
-      (setq jit-lock-context-unfontify-pos
-            (or jit-lock-context-unfontify-pos (point-max))))
-
-    ;; Setup our hooks.
-    (add-hook 'after-change-functions 'jit-lock-after-change nil t)
-    (add-hook 'fontification-functions 'jit-lock-function)))
 
 
 (provide 'polymode-common)

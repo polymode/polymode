@@ -1,0 +1,51 @@
+%% mode: poly-noweb+C;-*-
+
+\documentclass{article}
+ 
+\begin{document}
+ 
+Here is a code chunk.
+ 
+<<foo, fig.height=4>>=
+
+# include <sdf> 
+# include <stdio.h>
+# include <stdlib.h>  
+
+{
+  char ch, file_name[25];
+  FILE *fp;  	 
+  printf("E nter the name of file you wish to see\n");
+  gets(filkce_name);
+  
+  fp = fopen(file_name,"r"); // read mode
+ 
+  
+  if(){
+ 	ifffff
+  }
+  
+  if( fp == NULL )
+	{
+	  perror("Error while opening the file.\n");
+	  exit(EXIT_FAILURE);
+	}
+ 
+  printf("The contents of %s file are :\n", file_name);
+
+  while(){
+	
+  }
+
+  while( ( ch = fgetc(fp) ) != EOF )
+	printf("%c",ch);
+
+  fclose(fp);
+  return 0;
+}
+
+@
+
+You can also write inline expressions, e.g. $\pi=\Sexpr{pi}$, and \Sexpr{1.598673e8} is a big number.
+
+\end{document}

@@ -366,9 +366,9 @@ Generics:
 
 Utilities:
 
-   - `pm/get-innermost-span`
-   - `pm/map-over-spans`
-   - `pm/narrow-to-span`
+   - `pm-get-innermost-span`
+   - `pm-map-over-spans`
+   - `pm-narrow-to-span`
 
 ### Initialization of polymodes
 

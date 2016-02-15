@@ -31,6 +31,7 @@ require(rms)
 @
 
 \section{Univariable Descriptive Statistics}
+
 <<describe,results='asis'>>=
 Load(ras)
 ras <-
@@ -53,7 +54,7 @@ ras <-
    cad <- ifelse(cad.after.review=='No', 0,
                  ifelse(cad.after.review=='Yes', 1,
                         ifelse(cad.search=='No', 0,
-                               ifelse(cad.search=='Yes', 1,
+                        ifelse(cad.search=='Yes', 1,
                                       NA))))
     gender <- factor(ifelse(gender=='Female', 'Female',
                             ifelse(gender=='Male', 'Male',
@@ -61,12 +62,13 @@ ras <-
     })
 latex(describe(ras), file='')
 @
+
 \section{Missing Data}
 Let's look at patterns of missing values, especially which variables
 are missing on the same patients.
 
 <<naclus,top=2>>=
-r <- subset(ras, select=c(gender,race,age,bmi,ldl,diabetes,htn,dialysis,
+r <-  subset(ras, select=c(gender,race,age,bmi,ldl,diabetes,htn,dialysis,
                    cad,statin,sasr,sas.etiology,creatinine))
 dd <- datadist(r)
 n <- naclus(subset(r, select=-sas.etiology))

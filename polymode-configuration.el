@@ -5,7 +5,8 @@
 (add-to-list 'auto-mode-alist '("\\.md" . poly-markdown-mode))
 
 ;;; ORG
-(add-to-list 'auto-mode-alist '("\\.org" . poly-org-mode))
+;; org is not working presently
+;; (add-to-list 'auto-mode-alist '("\\.org" . poly-org-mode))
 
 ;;; R related modes
 (add-to-list 'auto-mode-alist '("\\.Snw" . poly-noweb+r-mode))
@@ -24,9 +25,5 @@
 
 ;;; Slim mode
 (add-to-list 'auto-mode-alist '("\\.slim$" . poly-slim-mode))
-
-;; Verilog
-(add-to-list 'auto-mode-alist '("\\.sv" . poly-verilog+perl-mode))
-(add-to-list 'auto-mode-alist '("\\.svh" . poly-verilog+perl-mode))
 
 (provide 'polymode-configuration)

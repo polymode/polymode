@@ -1,11 +1,11 @@
 (require 'polymode-common)
+(require 'poly-lock)
 
 
-;;; INITIALIZATION
 (defgeneric pm-initialize (config)
   "Initialize current buffer with CONFIG.
 
-First initialize the -hostmode and -innermodes slots of polymode
+First initialise the -hostmode and -innermodes slots of polymode
 object ...")
 
 (defmethod pm-initialize ((config pm-polymode))
@@ -14,35 +14,32 @@ object ...")
   ;; Temporary fix: don't install twice
   (unless pm/polymode
     (let* ((chunkmode (clone (symbol-value (oref config :hostmode))))
-           (_ (oset chunkmode -buffer (current-buffer)))
-           ;; set if nil, to allow unspecified host chunkmodes to be used in minor modes
+           ;; Set if nil! This allows unspecified host chunkmodes to be used in
+           ;; minor modes.
            (host-mode (or (oref chunkmode :mode)
                           (oset chunkmode :mode major-mode))))
-      (unless (or (eq major-mode host-mode)
-                  (eq polymode-major-mode host-mode))
-        (let ((polymode-mode t)) ;;major-modes might check it
-          (funcall host-mode)))
-      ;; fixme: maybe: inconsistencies?
-      ;; 1)  not calling pm-install-buffer on host-buffer
-      ;; But, we are not creating/installing a new buffer here .. so it is a
-      ;; different thing .. and is probably ok
-      ;; 2)  not calling config's :minor-mode (polymode function).
-      ;; But polymode function calls pm-initialize... so I guess it is ok
-      (oset config -hostmode chunkmode)
-      (setq pm/polymode config)
-      (setq pm/chunkmode chunkmode)
-      (setq pm/type 'host)
+
+      (pm--mode-setup host-mode)
+	  	  
+	  ;; maybe: fixme: inconsistencies?
+      ;; 
+	  ;; 1) Not calling pm-install-buffer on host-buffer. But, we are not
+	  ;; creating/installing a new buffer here, so it is a different thing and
+	  ;; is probably ok.
+      ;;
+      ;; 2) Not calling config's :minor-mode (polymode function). But polymode
+	  ;; function calls pm-initialize, so it's probably ok.
+	  (oset chunkmode -buffer (current-buffer))
+	  (oset config -hostmode chunkmode)
+
+	  (setq pm/polymode config
+			pm/chunkmode chunkmode
+			pm/type 'host)
+
+	  (pm--common-setup)
+	  
       (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t)
-      (prog1 (pm--setup-buffer) ; general setup for host and innermode buffers
-        (let ((PI pm/polymode) IFs)
-          ;; aggregate and run hooks; parents first
-          (while PI
-            (setq IFs (append (and (slot-boundp PI :init-functions) ; don't cascade
-                                   (oref PI :init-functions))
-                              IFs)
-                  PI (and (slot-boundp PI :parent-instance)
-                          (oref PI :parent-instance))))
-          (run-hooks 'IFs))))))
+	  (pm--run-init-hooks config))))
 
 (defmethod pm-initialize ((config pm-polymode-one))
   (call-next-method)
@@ -56,9 +53,178 @@ object ...")
                   (clone (symbol-value sub-name)))
                 (oref config :innermodes))))
 
+(defun pm--mode-setup (mode &optional buffer)
+  ;; General major-mode install. Should work for both indirect and base buffers.
+  ;; PM objects are not yet initialized (pm/polymode, pm/chunkmode, pm/type)
+
+  (with-current-buffer (or buffer (current-buffer))
+    ;; don't re-install if already there; polymodes can be used as minor modes.
+    (unless (eq major-mode mode)
+     (let ((polymode-mode t) ;major-modes might check this
+           (font-lock-fontified t)
+           ;; Modes often call font-lock functions directly. We prevent that.
+           (font-lock-function 'ignore)
+           (font-lock-flush-function 'ignore)
+           (font-lock-fontify-buffer-function 'ignore)
+           ;; Mode functions can do arbitrary things. We inhibt all PM hooks
+           ;; because PM objects have not been setup yet.
+           (pm-debug-allow-post-command-hook nil)
+           (poly-lock-allow-after-change nil)
+           (poly-lock-allow-fontification nil))
+       (funcall mode)))
+
+	(setq polymode-mode t)
+
+	(current-buffer)))
+
+(defun pm-syntax-begin-function ()
+  (goto-char
+   (max (car (pm-get-innermost-range))
+        (if pm--syntax-begin-function-original
+            (save-excursion
+              (funcall pm--syntax-begin-function-original)
+              (point))
+          (point-min)))))
+
+(defun pm--common-setup (&optional buffer)
+  ;; General buffer setup. Should work for indirect and base buffers. Assumes
+  ;; that the buffer was fully prepared and objects like pm/polymode and
+  ;; pm/chunkmode have been initialised. Return the BUFFER.
+
+  (with-current-buffer (or buffer (current-buffer))
+
+	(add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
+    
+	;; (setq-local font-lock-mode t)
+	(setq-local font-lock-function 'poly-lock-mode)
+	(setq-local font-lock-support-mode 'poly-lock-mode)
+	(setq-local pm--fontify-region-original font-lock-fontify-region-function)
+	(setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
+    (font-lock-mode t)
+
+    (setq pm--syntax-begin-function-original syntax-begin-function)
+	(setq-local syntax-begin-function #'pm-syntax-begin-function)
+
+	(when (and indent-line-function ; not that it should ever be nil...
+			   (oref pm/chunkmode :protect-indent-line))
+	  (setq pm--indent-line-function-original indent-line-function)
+	  (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
+	
+	(add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
+	(object-add-to-list pm/polymode '-buffers (current-buffer))
+	(current-buffer)))
+
+(defun pm--run-init-hooks (config)
+  "Run hooks from :init-functions slot of CONFIG and its parent instances.
+Parents' hooks are run first."
+  (let ((parent-inst config) 
+		init-funs)
+	;; run hooks, parents first
+	(while parent-inst
+	  (setq init-funs (append (and (slot-boundp parent-inst :init-functions) ; don't cascade
+							 (oref parent-inst :init-functions))
+						init-funs)
+			parent-inst (and (slot-boundp parent-inst :parent-instance)
+					(oref parent-inst :parent-instance))))
+	(run-hooks 'init-funs)))
 
 
-;;; BUFFERS
+(defgeneric pm-install-buffer (chunkmode &optional type)
+  "Get or create an indirect buffer and install it into the relevant slot(s) of CHUNKMODE.
+Should return newly installed buffer.")
+
+(defmethod pm-install-buffer ((chunkmode pm-chunkmode) &optional type)
+  "Retrieve or create+initialize if doesn't exist the indirect buffer for CHUNKMODE.
+The buffer is assigned to CHUNKMODE's -buffer slot."
+  (oset chunkmode -buffer
+        (pm--get-chunkmode-buffer-create chunkmode type)))
+
+(defmethod pm-install-buffer ((chunkmode pm-hbtchunkmode) type)
+  "Retrieve or create+initialize if doesn't exist the indirect buffer for CHUNKMODE.
+The buffer is assigned to one or more CHUNKMODE's slots
+`-buffer', `-head-buffer' or `-tail-buffer'. This assignment
+depends on the TYPE and the values of `tail-mode' and `head-mode'
+slots of the CHUNKMODE object. See `pm--set-chunkmode-buffer' for
+how this is computed."
+  (pm--set-chunkmode-buffer chunkmode type
+							(pm--get-chunkmode-buffer-create chunkmode type)))
+
+;; This doesn't work in 24.2, pcase bug ((void-variable xcar)) Other pcases in
+;; this file don't throw this error.
+(defun pm--set-chunkmode-buffer (obj type buff)
+  "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
+  (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
+    (pcase (list type head-mode tail-mode)
+      (`(body body ,(or `nil `body))
+       (setq -buffer buff
+             -head-buffer buff
+             -tail-buffer buff))
+      (`(body ,_ body)
+       (setq -buffer buff
+             -tail-buffer buff))
+      (`(body ,_ ,_ )
+       (setq -buffer buff))
+      (`(head ,_ ,(or `nil `head))
+       (setq -head-buffer buff
+             -tail-buffer buff))
+      (`(head ,_ ,_)
+       (setq -head-buffer buff))
+      (`(tail ,_ ,(or `nil `head))
+       (setq -tail-buffer buff
+             -head-buffer buff))
+      (`(tail ,_ ,_)
+       (setq -tail-buffer buff))
+      (_ (error "type must be one of 'body, 'head or 'tail")))))
+
+(defun pm--get-chunkmode-buffer-create (chunkmode type)
+  ;; assumes pm/polymode is set
+  (let ((mode (pm--get-chunkmode-mode chunkmode type)))
+    (or (pm--get-indirect-buffer-of-mode mode)
+		(pm--create-indirect-buffer chunkmode type mode))))
+
+(defun pm--get-indirect-buffer-of-mode (mode)
+  (loop for bf in (oref pm/polymode -buffers)
+        when (and (buffer-live-p bf)
+                  (eq mode (buffer-local-value 'major-mode bf)))
+        return bf))
+
+(defvar pm--ib-prefix "")
+(defun pm--create-indirect-buffer (chunkmode type &optional mode)
+
+  (let ((config (or (buffer-local-value 'pm/polymode (pm-base-buffer))
+                    (error "`pm/polymode' not found in the base buffer %s"
+                           (pm-base-buffer)))))
+
+   (setq mode (pm--get-available-mode
+               (or mode (pm--get-chunkmode-mode chunkmode type))))
+
+   (with-current-buffer (pm-base-buffer)
+     (let* ((new-name
+             (generate-new-buffer-name
+              (format "%s%s[%s]" pm--ib-prefix (buffer-name)
+                      (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
+            (new-buffer (make-indirect-buffer (current-buffer)  new-name))
+            (file (buffer-file-name))
+            (base-name (buffer-name))
+            (coding buffer-file-coding-system))
+
+       (with-current-buffer new-buffer
+         (pm--mode-setup mode)
+
+         (setq buffer-file-coding-system coding
+               ;; Avoid the uniqified name for the indirect buffer in the mode line
+               ;; mode-line-buffer-identification (propertized-buffer-identification base-name)
+               pm/polymode config
+               pm/chunkmode chunkmode
+               pm/type type)
+         (funcall (oref pm/polymode :minor-mode))
+         (vc-find-file-hook)
+
+         (pm--common-setup))
+       
+       new-buffer))))
+
+
 (defgeneric pm-get-buffer (chunkmode &optional span-type)
   "Get the indirect buffer associated with SUBMODE and
 SPAN-TYPE. Should return nil if buffer has not yet been
@@ -74,22 +240,59 @@ installed. Also see `pm-get-span'.")
         (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s' of class '%s'"
                   type (pm--object-name chunkmode) (class-of chunkmode)))))
 
+
 (defgeneric pm-select-buffer (chunkmode span)
   "Ask SUBMODE to select (make current) its indirect buffer
 corresponding to the type of the SPAN returned by
 `pm-get-span'.")
 
 (defmethod pm-select-buffer ((chunkmode pm-chunkmode) span)
-  "Select the buffer associated with SUBMODE.
+  "Select the buffer associated with CHUNKMODE.
 Install a new indirect buffer if it is not already installed. For
 this method to work correctly, SUBMODE's class should define
 `pm-install-buffer' and `pm-get-buffer' methods."
   (let* ((type (car span))
-         (buff (pm-get-buffer chunkmode type)))
-    (unless (buffer-live-p buff)
-      (pm-install-buffer chunkmode type)
-      (setq buff (pm-get-buffer chunkmode type)))
-    (pm--select-buffer buff)))
+		 (buff (pm-get-buffer chunkmode type)))
+	(unless (buffer-live-p buff)
+	  (pm-install-buffer chunkmode type)
+	  (setq buff (pm-get-buffer chunkmode type)))
+	(pm--select-existent-buffer buff)))
+
+;; extracted for debugging and tracing
+(defun pm--select-existent-buffer (buffer)
+  (when (and (not (eq buffer (current-buffer)))
+			 (buffer-live-p buffer))
+	(if (or (not (boundp 'pm--select-buffer-visually))
+            (not pm--select-buffer-visually))
+		;; fast selection
+		(set-buffer buffer)
+	  ;; slow, visual selection
+	  (pm--select-existent-buffer-visually buffer))))
+
+;; extracted for debugging and tracing
+(defun pm--select-existent-buffer-visually (buffer)
+  (let ((point (point))
+        (window-start (window-start))
+        (visible (pos-visible-in-window-p))
+        (oldbuf (current-buffer))
+        (vlm visual-line-mode)
+        (ractive (region-active-p))
+        (mkt (mark t))
+        (bis buffer-invisibility-spec))
+    (pm--move-overlays-to buffer)
+    (switch-to-buffer buffer)
+    (setq buffer-invisibility-spec bis)
+    (pm--adjust-visual-line-mode vlm)
+    (bury-buffer oldbuf)
+    ;; fixme: wha tis the right way to do this ... activate-mark-hook?
+    (if (not ractive)
+        (deactivate-mark)
+      (set-mark mkt)
+      (activate-mark))
+    (goto-char point)
+    ;; avoid display jumping
+    (when visible
+      (set-window-start (get-buffer-window buffer t) window-start))))
 
 (defmethod pm-select-buffer ((chunkmode pm-hbtchunkmode) span)
   (call-next-method)
@@ -124,131 +327,22 @@ this method to work correctly, SUBMODE's class should define
                       new-obj)))))
       (pm-select-buffer chunkmode span))))
 
-(defgeneric pm-install-buffer (chunkmode &optional type)
-  "Ask SUBMODE to install an indirect buffer corresponding to
-span TYPE. Should return newly installed/retrieved buffer.")
-
-(defmethod pm-install-buffer ((chunkmode pm-chunkmode) &optional type)
-  "Independently on the TYPE call `pm/create-indirect-buffer'
-create and install a new buffer in slot -buffer of SUBMODE."
-  (oset chunkmode -buffer
-        (pm--create-chunkmode-buffer-maybe chunkmode type)))
-
-(defmethod pm-install-buffer ((chunkmode pm-hbtchunkmode) type)
-  "Depending of the TYPE install an indirect buffer into
-slot -buffer of SUBMODE. Create this buffer if does not exist."
-  (pm--set-chunkmode-buffer chunkmode type
-                          (pm--create-chunkmode-buffer-maybe chunkmode type)))
-
-(defun pm--get-adjusted-background (prop)
-  ;; if > lighten on dark backgroun. Oposite on light.
-  (color-lighten-name (face-background 'default)
-                      (if (eq (frame-parameter nil 'background-mode) 'light)
-                          (- prop) ;; darken
-                        prop)))
-
-(defun pm--adjust-chunk-face (beg end face)
-  ;; propertize 'face of the region by adding chunk specific configuration
-  (interactive "r")
-  (when face
-    (with-current-buffer (current-buffer)
-      (let ((face (or (and (numberp face)
-                           (list (cons 'background-color
-                                       (pm--get-adjusted-background face))))
-                      face))
-            (pchange nil))
-        ;; (while (not (eq pchange end))
-        ;;   (setq pchange (next-single-property-change beg 'face nil end))
-        ;;   (put-text-property beg pchange 'face
-        ;;                      `(,face ,@(get-text-property beg 'face)))
-        ;;   (setq beg pchange))
-        (font-lock-prepend-text-property beg end 'face face)))))
 
 (defun pm--adjust-visual-line-mode (vlm)
-  (when (not (eq visual-line-mode vlm))
+  (unless (eq visual-line-mode vlm)
     (if (null vlm)
         (visual-line-mode -1)
       (visual-line-mode 1))))
 
-;; move only in post-command hook, after buffer selection
-(defvar pm--can-move-overlays nil)
 (defun pm--move-overlays-to (new-buff)
-  (when pm--can-move-overlays
-    (mapc (lambda (o)
-            (move-overlay o (overlay-start o) (overlay-end o) new-buff))
-          (overlays-in 1 (1+ (buffer-size))))))
+  (mapc (lambda (o)
+          (move-overlay o (overlay-start o) (overlay-end o) new-buff))
+        (overlays-in 1 (1+ (buffer-size)))))
 
 (defun pm--transfer-vars-from-base ()
-  (let ((bb (pm/base-buffer)))
+  (let ((bb (pm-base-buffer)))
     (dolist (var '(buffer-file-name))
       (set var (buffer-local-value var bb)))))
-
-(defun pm--select-buffer (buffer)
-  (when (and (not (eq buffer (current-buffer)))
-             (buffer-live-p buffer))
-    (let ((point (point))
-          (window-start (window-start))
-          (visible (pos-visible-in-window-p))
-          (oldbuf (current-buffer))
-          (vlm visual-line-mode)
-          (ractive (region-active-p))
-          (mkt (mark t))
-          (bis buffer-invisibility-spec))
-      (pm--move-overlays-to buffer)
-      (switch-to-buffer buffer)
-      (setq buffer-invisibility-spec bis)
-      (pm--adjust-visual-line-mode vlm)
-      (bury-buffer oldbuf)
-      ;; fixme: wha tis the right way to do this ... activate-mark-hook?
-      (if (not ractive)
-          (deactivate-mark)
-        (set-mark mkt)
-        (activate-mark))
-      (goto-char point)
-      ;; Avoid the display jumping around.
-      (when visible
-        (set-window-start (get-buffer-window buffer t) window-start)))))
-
-(defun pm--setup-buffer (&optional buffer)
-  ;; General buffer setup, should work for indirect and base buffers
-  ;; alike. Assume pm/polymode and pm/chunkmode is already in place. Return
-  ;; the buffer.
-  (let ((buff (or buffer (current-buffer))))
-    (with-current-buffer buff
-      ;; Don't let parse-partial-sexp get fooled by syntax outside
-      ;; the chunk being fontified.
-
-      ;; font-lock, forward-sexp etc should see syntactic comments
-      ;; (set (make-local-variable 'parse-sexp-lookup-properties) t)
-
-      (set (make-local-variable 'font-lock-dont-widen) t)
-
-      (when pm--dbg-fontlock
-        (setq pm--fontify-region-original
-              font-lock-fontify-region-function)
-        (set (make-local-variable 'font-lock-fontify-region-function)
-             #'pm/fontify-region)
-        (setq pm--syntax-begin-function-original
-              syntax-begin-function)
-        (set (make-local-variable 'syntax-begin-function)
-             #'pm/syntax-begin-function))
-
-      (set (make-local-variable 'polymode-mode) t)
-
-      ;; Indentation should first narrow to the chunk.  Modes
-      ;; should normally just bind `indent-line-function' to
-      ;; handle indentation.
-      (when (and indent-line-function ; not that it should ever be nil...
-                 (oref pm/chunkmode :protect-indent-line))
-        (setq pm--indent-line-function-original indent-line-function)
-        (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
-
-      (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
-
-      (when pm--dbg-hook
-        (add-hook 'post-command-hook 'polymode-select-buffer nil t))
-      (object-add-to-list pm/polymode '-buffers (current-buffer)))
-    buff))
 
 (defvar-local pm--killed-once nil)
 (defun pm--kill-indirect-buffer ()
@@ -262,51 +356,33 @@ slot -buffer of SUBMODE. Create this buffer if does not exist."
 		  (setq pm--killed-once t))
 		(kill-buffer base)))))
 
-(defvar pm--ib-prefix "")
-(defun pm--create-indirect-buffer (mode)
-  "Create indirect buffer with major MODE and initialize appropriately.
-
-This is a low lever function which must be called, one way or
-another from `pm/install' method. Among other things store
-`pm/polymode' from the base buffer (must always exist!) in
-the newly created buffer.
-
-Return newlly created buffer."
-  (unless   (buffer-local-value 'pm/polymode (pm/base-buffer))
-    (error "`pm/polymode' not found in the base buffer %s" (pm/base-buffer)))
-
-  (setq mode (pm--get-available-mode mode))
-
-  (with-current-buffer (pm/base-buffer)
-    (let* ((config (buffer-local-value 'pm/polymode (current-buffer)))
-           (new-name
-            (generate-new-buffer-name
-             (format "%s%s[%s]" pm--ib-prefix (buffer-name)
-                     (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
-           (new-buffer (make-indirect-buffer (current-buffer)  new-name))
-           ;; (hook pm/indirect-buffer-hook)
-           (file (buffer-file-name))
-           (base-name (buffer-name))
-           (jit-lock-mode nil)
-           (coding buffer-file-coding-system))
-
-      (with-current-buffer new-buffer
-        (let ((polymode-mode t)) ;;major-modes might check it
-          (funcall mode))
-
-        ;; hopefully temporary hack:
-        (pm--activate-jit-lock-mode-maybe)
-
-        (setq polymode-major-mode mode)
-        ;; Avoid the uniqified name for the indirect buffer in the mode line.
-        (when pm--dbg-mode-line
-          (setq mode-line-buffer-identification
-                (propertized-buffer-identification base-name)))
-        (setq pm/polymode config)
-        (setq buffer-file-coding-system coding)
-        (setq buffer-file-name file)
-        (vc-find-file-hook))
-      new-buffer)))
+(defun pm--get-chunkmode-mode (obj type)
+  (with-slots (mode head-mode tail-mode) obj
+    (cond ((or (eq type 'body)
+               (and (eq type 'head)
+                    (eq head-mode 'body))
+               (and (eq type 'tail)
+                    (or (eq tail-mode 'body)
+                        (and (or (null tail-mode)
+								 (eq tail-mode 'head))
+                             (eq head-mode 'body)))))
+           (oref obj :mode))
+          ((or (and (eq type 'head)
+                    (eq head-mode 'host))
+               (and (eq type 'tail)
+                    (or (eq tail-mode 'host)
+                        (and (or (null tail-mode)
+								 (eq tail-mode 'head))
+                             (eq head-mode 'host)))))
+           (oref (oref pm/polymode -hostmode) :mode))
+          ((eq type 'head)
+           (oref obj :head-mode))
+          ((eq type 'tail)
+		   (if (or (null tail-mode)
+				   (eq tail-mode 'head))
+			   (oref obj :head-mode)
+			 (oref obj :tail-mode)))
+          (t (error "type must be one of 'head 'tail 'body")))))
 
 
 ;;; SPAN MANIPULATION
@@ -322,7 +398,10 @@ span. This is an object that could be dispached upon with
 Should return nil if there is no SUBMODE specific span around POS.")
 
 (defmethod pm-get-span (chunkmode &optional pos)
-  "Simply return nil. Base mode usually do not compute the span."
+  "Return nil.
+Base mode usually do not compute the span."
+  (unless chunkmode
+	(error "Dispatching `pm-get-span' on a nil object"))
   nil)
 
 (defmethod pm-get-span ((config pm-polymode) &optional pos)
@@ -331,42 +410,43 @@ Return a cons (chunkmode . span), for which START is closest to
 POS (and before it); i.e. the innermost span.  POS defaults to
 point."
   (save-restriction
-    (widen)
-    ;; fixme: host should be last, to take advantage of the chunkmodes computation
-    (let* ((smodes (cons (oref config -hostmode)
-                         (oref config -innermodes)))
-           (start (point-min))
-           (end (point-max))
-           (pos (or pos (point)))
-           (span (list nil start end nil))
-           val)
+	(let (pm--restrict-widen)
+	  (widen)
+	  ;; fixme: host should be last, to take advantage of the chunkmodes computation
+	  (let* ((smodes (cons (oref config -hostmode)
+						   (oref config -innermodes)))
+			 (start (point-min))
+			 (end (point-max))
+			 (pos (or pos (point)))
+			 (span (list nil start end nil))
+			 val)
 
-      (dolist (sm smodes)
-        (setq val (pm-get-span sm pos))
-        (when (and val
-                   (or (> (nth 1 val) start)
-                       (< (nth 2 val) end)))
-          (if (or (car val)
-                  (null span))
-              (setq span val
-                    start (nth 1 val)
-                    end (nth 2 val))
-            ;; nil car means outer chunkmode (usually host). And it can be an
-            ;; intersection of spans returned by 2 different neighbour inner
-            ;; chunkmodes. See rapport mode for an example
-            (setq start (max (nth 1 val)
-                             (nth 1 span))
-                  end (min (nth 2 val)
-                           (nth 2 span)))
-            (setcar (cdr span) start)
-            (setcar (cddr span) end))))
+		(dolist (sm smodes)
+		  (setq val (pm-get-span sm pos))
+		  (when (and val
+					 (or (> (nth 1 val) start)
+						 (< (nth 2 val) end)))
+			(if (or (car val)
+					(null span))
+				(setq span val
+					  start (nth 1 val)
+					  end (nth 2 val))
+			  ;; nil car means outer chunkmode (usually host). And it can be an
+			  ;; intersection of spans returned by 2 different neighbour inner
+			  ;; chunkmodes. See rapport mode for an example
+			  (setq start (max (nth 1 val)
+							   (nth 1 span))
+					end (min (nth 2 val)
+							 (nth 2 span)))
+			  (setcar (cdr span) start)
+			  (setcar (cddr span) end))))
 
-      (unless (and (<= start end) (<= pos end) (>= pos start))
-        (error "Bad polymode selection: span:%s pos:%s"
-               (list start end) pos))
-      (when (null (car span)) ; chunkmodes can compute the host span by returning nil
-        (setcar (last span) (oref config -hostmode)))
-      span)))
+		(unless (and (<= start end) (<= pos end) (>= pos start))
+		  (error "Bad polymode selection: span:%s pos:%s"
+				 (list start end) pos))
+		(when (null (car span)) ; chunkmodes can compute the host span by returning nil
+		  (setcar (last span) (oref config -hostmode)))
+		span))))
 
 ;; No need for this one so far. Basic method iterates through -innermodes
 ;; anyhow.
@@ -603,32 +683,32 @@ head  - head span
 tail  - tail span"
   ;; ! start of the span is part of the span !
   (save-restriction
-    (widen)
-    (goto-char (or pos (point)))
-    (cond ((and (stringp head-matcher)
-                (stringp tail-matcher))
-           (pm--span-at-point-reg-reg head-matcher tail-matcher))
-          ((and (stringp head-matcher)
-                (functionp tail-matcher))
-           (pm--span-at-point-fun-fun
-            (lambda (ahead) (pm--default-matcher head-matcher ahead))
-            tail-matcher))
-          ((and (functionp head-matcher)
-                (stringp tail-matcher))
-           (pm--span-at-point-fun-fun
-            head-matcher
-            (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
-          ((and (functionp head-matcher)
-                (functionp tail-matcher))
-           (pm--span-at-point-fun-fun head-matcher tail-matcher))
-          (t (error "head and tail matchers should be either regexp strings or functions")))))
+	(let (pm--restrict-widen)
+	  (widen)
+	  (goto-char (or pos (point)))
+	  (cond ((and (stringp head-matcher)
+				  (stringp tail-matcher))
+			 (pm--span-at-point-reg-reg head-matcher tail-matcher))
+			((and (stringp head-matcher)
+				  (functionp tail-matcher))
+			 (pm--span-at-point-fun-fun
+			  (lambda (ahead) (pm--default-matcher head-matcher ahead))
+			  tail-matcher))
+			((and (functionp head-matcher)
+				  (stringp tail-matcher))
+			 (pm--span-at-point-fun-fun
+			  head-matcher
+			  (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
+			((and (functionp head-matcher)
+				  (functionp tail-matcher))
+			 (pm--span-at-point-fun-fun head-matcher tail-matcher))
+			(t (error "head and tail matchers should be either regexp strings or functions"))))))
 
 
 ;;; INDENT
-
 (defun pm-indent-line-dispatcher ()
   "Dispatch methods indent methods on current span."
-  (let ((span (pm/get-innermost-span)))
+  (let ((span (pm-get-innermost-span)))
     (pm-indent-line (car (last span)) span)))
 
 (defgeneric pm-indent-line (&optional chunkmode span)
@@ -641,7 +721,7 @@ the chunkmode.")
   (unwind-protect
       (save-restriction
         (pm--comment-region  1 (nth 1 span))
-        (pm/narrow-to-span span)
+        (pm-narrow-to-span span)
         (funcall pm--indent-line-function-original))
     (pm--uncomment-region 1 (nth 1 span))))
 
@@ -663,7 +743,7 @@ to indent."
            (back-to-indentation)
            (setq delta (- pos (point)))
            (backward-char)
-           (let ((parent-span (pm/get-innermost-span)))
+           (let ((parent-span (pm-get-innermost-span)))
              (pm-select-buffer (car (last parent-span)) parent-span)
              (forward-char)
              (pm--indent-line parent-span)
@@ -708,5 +788,29 @@ to indent."
              (oref pm/chunkmode :head-adjust-face)
            (oref pm/chunkmode :tail-adjust-face)))
         (t (oref pm/chunkmode :adjust-face))))
+
+(defun pm--get-adjusted-background (prop)
+  ;; if > lighten on dark backgroun. Oposite on light.
+  (color-lighten-name (face-background 'default)
+                      (if (eq (frame-parameter nil 'background-mode) 'light)
+                          (- prop) ;; darken
+                        prop)))
+
+(defun pm--adjust-chunk-face (beg end face)
+  ;; propertize 'face of the region by adding chunk specific configuration
+  (interactive "r")
+  (when face
+    (with-current-buffer (current-buffer)
+      (let ((face (or (and (numberp face)
+                           (list (cons 'background-color
+                                       (pm--get-adjusted-background face))))
+                      face))
+            (pchange nil))
+        ;; (while (not (eq pchange end))
+        ;;   (setq pchange (next-single-property-change beg 'face nil end))
+        ;;   (put-text-property beg pchange 'face
+        ;;                      `(,face ,@(get-text-property beg 'face)))
+        ;;   (setq beg pchange))
+        (font-lock-prepend-text-property beg end 'face face)))))
 
 (provide 'polymode-methods)
