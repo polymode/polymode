@@ -19,9 +19,9 @@
 (add-to-list 'auto-mode-alist '("\\.cppR" . poly-c++r-mode))
 
 ;;; ERB modes
-(add-to-list 'auto-mode-alist '("\\.js.erb$" . poly-javascript-erb-mode))
-(add-to-list 'auto-mode-alist '("\\.coffee.erb$" . poly-coffee-erb-mode))
-(add-to-list 'auto-mode-alist '("\\.html.erb$" . poly-html-erb-mode))
+(add-to-list 'auto-mode-alist '("\\.js.erb$" . poly-javascript+erb-mode))
+(add-to-list 'auto-mode-alist '("\\.coffee.erb$" . poly-coffee+erb-mode))
+(add-to-list 'auto-mode-alist '("\\.html.erb$" . poly-html+erb-mode))
 
 ;;; Slim mode
 (add-to-list 'auto-mode-alist '("\\.slim$" . poly-slim-mode))
