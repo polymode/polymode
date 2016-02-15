@@ -71,7 +71,9 @@ object ...")
            (pm-debug-allow-post-command-hook nil)
            (poly-lock-allow-after-change nil)
            (poly-lock-allow-fontification nil))
-       (funcall mode)))
+       (condition-case-unless-debug err
+           (funcall mode)
+         (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
 
 	(setq polymode-mode t)
 
