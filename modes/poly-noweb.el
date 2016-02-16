@@ -43,7 +43,7 @@
 
 (defcustom  pm-inner/noweb
   (pm-hbtchunkmode "noweb"
-                   :head-reg "<<\\(.*\\)>>="
+                   :head-reg "^[ \t]*<<\\(.*\\)>>="
                    :tail-reg "^[ \t]*@ *\\( %def .*\\)?$")
   "Noweb typical chunk."
   :group 'innermodes
