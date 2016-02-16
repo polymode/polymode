@@ -389,6 +389,7 @@ this method to work correctly, SUBMODE's class should define
 
 
 ;;; SPAN MANIPULATION
+
 (defgeneric pm-get-span (chunkmode &optional pos)
   "Ask the CHUNKMODE for the span at point.
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE

@@ -737,9 +737,10 @@ Key bindings:
 (defun pm-debug-trace-background-1 (fn)
   (trace-function-background fn nil
                              '(lambda ()
-                                (format " [buf:%s pos:%s type:%s]"
+                                (format " [buf:%s pos:%s type:%s (%s)]"
                                         (current-buffer) (point)
-                                        (get-text-property (point) :pm-span-type)))))
+                                        (get-text-property (point) :pm-span-type)
+                                        (current-time-string)))))
 
 (defun pm-debug-trace-relevant-functions ()
   (interactive)

@@ -9,7 +9,7 @@
 <<foo, fig.height=4>>=
     1+1
     plot(rnorm(100))
-    @
+@
 
 \end{definition}
 
