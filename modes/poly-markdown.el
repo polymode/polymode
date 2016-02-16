@@ -34,26 +34,26 @@
 
 (defcustom pm-host/markdown
   (pm-bchunkmode "Markdown"
-               :mode 'markdown-mode)
+                 :mode 'markdown-mode)
   "Markdown host chunkmode"
   :group 'hostmodes
   :type 'object)
 
 (defcustom  pm-inner/markdown
   (pm-hbtchunkmode-auto "markdown"
-                     :head-reg "^[ \t]*```[{ \t]*\\w.*$"
-                     :tail-reg "^[ \t]*```[ \t]*$"
-                     :retriever-regexp "```[ \t]*\\(?:{\\|lang=\\)?\\(\\(\\w\\|\\s_\\)*\\)"
-                     :font-lock-narrow t)
+                        :head-reg "^[ \t]*```[{ \t]*\\w.*$"
+                        :tail-reg "^[ \t]*```[ \t]*$"
+                        :retriever-regexp "```[ \t]*\\(?:{\\|lang=\\)?\\(\\(\\w\\|\\s_\\)*\\)"
+                        :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/markdown
   (pm-polymode-multi-auto "markdown"
-                        :hostmode 'pm-host/markdown
-                        :auto-innermode 'pm-inner/markdown
-                        :init-functions '(poly-markdown-remove-markdown-hooks))
+                          :hostmode 'pm-host/markdown
+                          :auto-innermode 'pm-inner/markdown
+                          :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)
