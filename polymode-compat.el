@@ -85,6 +85,46 @@
   (advice-add 'c-determine-limit :around #'pm-execute-narowed-to-span))
 
 
+
+;;; CORE FONT LOCK
+(defun pm-check-for-real-change-in-extend-multiline (fun)
+  "Fix `font-lock-extend-region-multiline' which causes infloops on point-max.
+Propagate only real change."
+  ;; fixme: report this ASAP!
+  (let ((obeg font-lock-beg)
+        (oend font-lock-end)
+        (change (funcall fun)))
+    (and change
+         (not (eq obeg font-lock-beg))
+         (not (eq oend font-lock-end)))))
+
+(when (string< "24.4" emacs-version)
+  (advice-add 'font-lock-extend-region-multiline :around #'pm-check-for-real-change-in-extend-multiline))
+
+
+;; (defun font-lock-extend-region-multiline ()
+;;   "Move fontification boundaries away from any `font-lock-multiline' property."
+;;   (let ((changed nil)
+;;         (obeg font-lock-beg)
+;;         (oend font-lock-end))
+;;     (when (and (> font-lock-beg (point-min))
+;;                (get-text-property (1- font-lock-beg) 'font-lock-multiline))
+;;       (setq font-lock-beg (or (previous-single-property-change
+;;                                font-lock-beg 'font-lock-multiline)
+;;                               (point-min)))
+;;       (setq changed (not (eq obeg font-lock-beg))))
+;;     ;;
+;;     (when (get-text-property font-lock-end 'font-lock-multiline)
+;;       (setq font-lock-end (or (text-property-any font-lock-end (point-max)
+;;                                                  'font-lock-multiline nil)
+;;                               (point-max)))
+;;       (setq changed (or changed (not (eq oend font-lock-end)))))
+;;     changed))
+
+
+
+;;; older junk (unlikely to be needed anymore)
+
 ;; (when (string< "24.4" emacs-version)
 ;;   (advice-add 'font-lock-default-fontify-region :around #'pm-execute-beg-end-function-narowed-to-span))
 
