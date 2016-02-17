@@ -1,5 +1,7 @@
 ;;; COMPATIBILITY and FIXES
 
+(require 'advice nil t)
+
 
 ;;; Various Wrappers for Around Advice
 
@@ -75,7 +77,7 @@
 
 
 ;;; C/C++/Java
-(when (string< "24.4" emacs-version)
+(when (fboundp 'advice-add)
   (advice-add 'c-before-context-fl-expand-region :around #'pm-override-output-cons)
   (advice-add 'c-state-semi-safe-place :around #'pm-override-output-position)
   ;; (advice-remove 'c-state-semi-safe-place #'pm-override-output-position)
@@ -98,7 +100,7 @@ Propagate only real change."
          (not (eq obeg font-lock-beg))
          (not (eq oend font-lock-end)))))
 
-(when (string< "24.4" emacs-version)
+(when (fboundp 'advice-add)
   (advice-add 'font-lock-extend-region-multiline :around #'pm-check-for-real-change-in-extend-multiline))
 
 
