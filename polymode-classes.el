@@ -1,8 +1,11 @@
 (require 'polymode-common)
 
 ;;; ROOT CLASS
-(defclass pm-root (eieio-instance-inheritor) ()
-  "Root polymode class.")
+(if (boundp 'eieio-named)
+    (defclass pm-root (eieio-instance-inheritor eieio-named) ()
+      "Root polymode class.")
+  (defclass pm-root (eieio-instance-inheritor eieio-named) ()
+    "Root polymode class."))
 
 
 ;;; CONFIG
