@@ -262,17 +262,34 @@ Return, how many chucks actually jumped over."
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
-(defun pm-get-innermost-span (&optional pos)
-  "Get span object at POS."
+(defun pm-get-cached-span (&optional pos)
+  "Get cached span at POS"
+  (let ((span (get-text-property (or pos (point)) :pm-span)))
+    (when span
+      (save-restriction
+        (widen)
+        (let* ((beg (nth 1 span))
+               (end (max beg (1- (nth 2 span)))))
+          (and (eq span (get-text-property beg :pm-span))
+               (eq span (get-text-property end :pm-span))
+               span))))))
+
+(defun pm-get-innermost-span (&optional pos no-cache)
+  "Get span object at POS.
+If NO-CACHE is non-nil, don't use cache and force re-computation
+of the span."
   (save-restriction
 	(widen)
-	(let* ((span (pm-get-span pm/polymode pos))
+	(let* ((span (or (and (not no-cache)
+                          (pm-get-cached-span pos))
+                     (pm-get-span pm/polymode pos)))
 		   (beg (nth 1 span))
 		   (end (nth 2 span)))
 	  ;; might be used by external applications like flyspell
 	  (with-silent-modifications
         (add-text-properties beg end
-                             (list :pm-span-type (car span)
+                             (list :pm-span span
+                                   :pm-span-type (car span)
                                    :pm-span-beg beg
                                    :pm-span-end end)))
 	  span)))
@@ -300,42 +317,42 @@ done."
         (pm--select-buffer-visually nil))
 	(pm-select-buffer (car (last span)) span)))
 
-(defun pm-map-over-spans (fun beg end &optional count backward? visually?)
+(defun pm-map-over-spans (fun beg end &optional count backwardp visuallyp no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args. It is executed with point at the
 beginning of the span and with the buffer narrowed to the
 span. If COUNT is non-nil, jump at most that many times. If
-BACKWARD? is non-nil, map backwards.
+BACKWARDP is non-nil, map backwards.
  
 During the call of FUN, a dynamically bound variable *span* holds
 the current innermost span."
   (save-restriction
 	(widen)
-    (goto-char (if backward? end beg))
+    (goto-char (if backwardp end beg))
 	(let ((nr 0)
-		  (*span* (pm-get-innermost-span (point))))
+		  (*span* (pm-get-innermost-span (point) no-cache)))
       ;; if beg or end coincide with span's limit move to next/previous span
-      (if backward?
+      (if backwardp
           (and (eq end (nth 1 *span*))
                (not (bobp))
                (forward-char -1))
         (and (eq beg (nth 2 *span*))
              (not (eobp))
              (forward-char 1)))
-	  (while (and (if backward?
+	  (while (and (if backwardp
 					  (> (point) beg)
 					(< (point) end))
 				  (or (null count)
 					  (< nr count)))
-		(setq *span* (pm-get-innermost-span)
+		(setq *span* (pm-get-innermost-span (point) no-cache)
 			  nr (1+ nr))
-		(let ((pm--select-buffer-visually visually?))
+		(let ((pm--select-buffer-visually visuallyp))
 		  (pm-select-buffer (car (last *span*)) *span*)) ;; object and span
 		(goto-char (nth 1 *span*))
 		;; (narrow-to-region (nth 1 *span*) (nth 2 *span*))
 		(funcall fun)
 		;; enter next/previous chunk as head-tails don't include their boundaries
-		(if backward?
+		(if backwardp
 			(goto-char (max 1 (1- (nth 1 *span*)))) 
 		  (goto-char (min (point-max) (1+ (nth 2 *span*)))))))))
 

@@ -87,7 +87,8 @@ defined in `fontification-functions'."
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
 Installed on `after-change-functions'."
-  (when (and poly-lock-mode poly-lock-allow-after-change (not memory-full))
+  (when (and poly-lock-mode poly-lock-allow-after-change
+             (not memory-full))
 	(let ((jit-lock-start beg)
 		  (jit-lock-end end)
 		  ;; useful info for tracing
@@ -113,7 +114,7 @@ Installed on `after-change-functions'."
                 (setq gl-beg (min gl-beg (max jit-lock-start sbeg))
                       gl-end (max gl-beg jit-lock-end send))
                 (put-text-property gl-beg gl-end 'fontified nil)))))
-         beg end)
+         beg end nil nil nil 'no-cache)
 		(cons gl-beg gl-end)))))
 
 (defun poly-lock-fontify-region (beg end &optional verbose)
