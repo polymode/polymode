@@ -20,26 +20,26 @@ object ...")
                           (oset chunkmode :mode major-mode))))
 
       (pm--mode-setup host-mode)
-	  	  
-	  ;; maybe: fixme: inconsistencies?
+          
+      ;; maybe: fixme: inconsistencies?
       ;; 
-	  ;; 1) Not calling pm-install-buffer on host-buffer. But, we are not
-	  ;; creating/installing a new buffer here, so it is a different thing and
-	  ;; is probably ok.
+      ;; 1) Not calling pm-install-buffer on host-buffer. But, we are not
+      ;; creating/installing a new buffer here, so it is a different thing and
+      ;; is probably ok.
       ;;
       ;; 2) Not calling config's :minor-mode (polymode function). But polymode
-	  ;; function calls pm-initialize, so it's probably ok.
-	  (oset chunkmode -buffer (current-buffer))
-	  (oset config -hostmode chunkmode)
+      ;; function calls pm-initialize, so it's probably ok.
+      (oset chunkmode -buffer (current-buffer))
+      (oset config -hostmode chunkmode)
 
-	  (setq pm/polymode config
-			pm/chunkmode chunkmode
-			pm/type 'host)
+      (setq pm/polymode config
+            pm/chunkmode chunkmode
+            pm/type 'host)
 
-	  (pm--common-setup)
-	  
+      (pm--common-setup)
+      
       (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t)
-	  (pm--run-init-hooks config))))
+      (pm--run-init-hooks config))))
 
 (defmethod pm-initialize ((config pm-polymode-one))
   (call-next-method)
@@ -75,9 +75,9 @@ object ...")
            (funcall mode)
          (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
 
-	(setq polymode-mode t)
+    (setq polymode-mode t)
 
-	(current-buffer)))
+    (current-buffer)))
 
 (defun pm-syntax-begin-function ()
   (goto-char
@@ -95,47 +95,47 @@ object ...")
 
   (with-current-buffer (or buffer (current-buffer))
 
-	(add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
+    (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
     
-	;; (setq-local font-lock-mode t)
-	(setq-local font-lock-function 'poly-lock-mode)
-	(setq-local font-lock-support-mode 'poly-lock-mode)
-	(setq-local pm--fontify-region-original font-lock-fontify-region-function)
-	(setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
+    ;; (setq-local font-lock-mode t)
+    (setq-local font-lock-function 'poly-lock-mode)
+    (setq-local font-lock-support-mode 'poly-lock-mode)
+    (setq-local pm--fontify-region-original font-lock-fontify-region-function)
+    (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
     (font-lock-mode t)
 
     (setq pm--syntax-begin-function-original syntax-begin-function)
-	(setq-local syntax-begin-function #'pm-syntax-begin-function)
+    (setq-local syntax-begin-function #'pm-syntax-begin-function)
 
     ;; We are advising syntax-propertize to run on current chunk, no need to
     ;; extend it further.
     (setq-local syntax-propertize-extend-region-functions nil)
     ;; Should be no need for these.
     ;; (setq pm--syntax-propertize-function-original syntax-propertize-function)
-	;; (setq-local syntax-propertize-function #'pm-syntax-propertize)
+    ;; (setq-local syntax-propertize-function #'pm-syntax-propertize)
 
-	(when (and indent-line-function ; not that it should ever be nil...
-			   (oref pm/chunkmode :protect-indent-line))
-	  (setq pm--indent-line-function-original indent-line-function)
-	  (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
-	
-	(add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
-	(object-add-to-list pm/polymode '-buffers (current-buffer))
-	(current-buffer)))
+    (when (and indent-line-function ; not that it should ever be nil...
+               (oref pm/chunkmode :protect-indent-line))
+      (setq pm--indent-line-function-original indent-line-function)
+      (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
+    
+    (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
+    (object-add-to-list pm/polymode '-buffers (current-buffer))
+    (current-buffer)))
 
 (defun pm--run-init-hooks (config)
   "Run hooks from :init-functions slot of CONFIG and its parent instances.
 Parents' hooks are run first."
   (let ((parent-inst config) 
-		init-funs)
-	;; run hooks, parents first
-	(while parent-inst
-	  (setq init-funs (append (and (slot-boundp parent-inst :init-functions) ; don't cascade
-							 (oref parent-inst :init-functions))
-						init-funs)
-			parent-inst (and (slot-boundp parent-inst :parent-instance)
-					(oref parent-inst :parent-instance))))
-	(run-hooks 'init-funs)))
+        init-funs)
+    ;; run hooks, parents first
+    (while parent-inst
+      (setq init-funs (append (and (slot-boundp parent-inst :init-functions) ; don't cascade
+                             (oref parent-inst :init-functions))
+                        init-funs)
+            parent-inst (and (slot-boundp parent-inst :parent-instance)
+                    (oref parent-inst :parent-instance))))
+    (run-hooks 'init-funs)))
 
 
 (defgeneric pm-install-buffer (chunkmode &optional type)
@@ -156,7 +156,7 @@ depends on the TYPE and the values of `tail-mode' and `head-mode'
 slots of the CHUNKMODE object. See `pm--set-chunkmode-buffer' for
 how this is computed."
   (pm--set-chunkmode-buffer chunkmode type
-							(pm--get-chunkmode-buffer-create chunkmode type)))
+                            (pm--get-chunkmode-buffer-create chunkmode type)))
 
 ;; This doesn't work in 24.2, pcase bug ((void-variable xcar)) Other pcases in
 ;; this file don't throw this error.
@@ -189,7 +189,7 @@ how this is computed."
   ;; assumes pm/polymode is set
   (let ((mode (pm--get-chunkmode-mode chunkmode type)))
     (or (pm--get-indirect-buffer-of-mode mode)
-		(pm--create-indirect-buffer chunkmode type mode))))
+        (pm--create-indirect-buffer chunkmode type mode))))
 
 (defun pm--get-indirect-buffer-of-mode (mode)
   (loop for bf in (oref pm/polymode -buffers)
@@ -261,25 +261,26 @@ Install a new indirect buffer if it is not already installed. For
 this method to work correctly, SUBMODE's class should define
 `pm-install-buffer' and `pm-get-buffer' methods."
   (let* ((type (car span))
-		 (buff (pm-get-buffer chunkmode type)))
-	(unless (buffer-live-p buff)
-	  (pm-install-buffer chunkmode type)
-	  (setq buff (pm-get-buffer chunkmode type)))
-	(pm--select-existent-buffer buff)))
+         (buff (pm-get-buffer chunkmode type)))
+    (unless (buffer-live-p buff)
+      (pm-install-buffer chunkmode type)
+      (setq buff (pm-get-buffer chunkmode type)))
+    (pm--select-existent-buffer buff)))
 
 (defvar pm--select-buffer-visually)
-;; extracted for debugging and tracing
+
+;; extracted for debugging purpose
 (defun pm--select-existent-buffer (buffer)
   (when (and (not (eq buffer (current-buffer)))
-			 (buffer-live-p buffer))
-	(if (or (not (boundp 'pm--select-buffer-visually))
+             (buffer-live-p buffer))
+    (if (or (not (boundp 'pm--select-buffer-visually))
             (not pm--select-buffer-visually))
-		;; fast selection
-		(set-buffer buffer)
-	  ;; slow, visual selection
-	  (pm--select-existent-buffer-visually buffer))))
+        ;; fast selection
+        (set-buffer buffer)
+      ;; slow, visual selection
+      (pm--select-existent-buffer-visually buffer))))
 
-;; extracted for debugging and tracing
+;; extracted for debugging purpose
 (defun pm--select-existent-buffer-visually (buffer)
   (let ((point (point))
         (window-start (window-start))
@@ -358,13 +359,13 @@ this method to work correctly, SUBMODE's class should define
 (defun pm--kill-indirect-buffer ()
   ;; find-alternate-file breaks (https://github.com/vspinu/polymode/issues/79)
   (let ((base (buffer-base-buffer)))
-	(when  (and base (buffer-live-p base))
-	  ;; 'base' is non-nil in indirect buffers only
-	  (set-buffer-modified-p nil)
-	  (unless (buffer-local-value 'pm--killed-once base)
-		(with-current-buffer base
-		  (setq pm--killed-once t))
-		(kill-buffer base)))))
+    (when  (and base (buffer-live-p base))
+      ;; 'base' is non-nil in indirect buffers only
+      (set-buffer-modified-p nil)
+      (unless (buffer-local-value 'pm--killed-once base)
+        (with-current-buffer base
+          (setq pm--killed-once t))
+        (kill-buffer base)))))
 
 (defun pm--get-chunkmode-mode (obj type)
   (with-slots (mode head-mode tail-mode) obj
@@ -374,7 +375,7 @@ this method to work correctly, SUBMODE's class should define
                (and (eq type 'tail)
                     (or (eq tail-mode 'body)
                         (and (or (null tail-mode)
-								 (eq tail-mode 'head))
+                                 (eq tail-mode 'head))
                              (eq head-mode 'body)))))
            (oref obj :mode))
           ((or (and (eq type 'head)
@@ -382,16 +383,16 @@ this method to work correctly, SUBMODE's class should define
                (and (eq type 'tail)
                     (or (eq tail-mode 'host)
                         (and (or (null tail-mode)
-								 (eq tail-mode 'head))
+                                 (eq tail-mode 'head))
                              (eq head-mode 'host)))))
            (oref (oref pm/polymode -hostmode) :mode))
           ((eq type 'head)
            (oref obj :head-mode))
           ((eq type 'tail)
-		   (if (or (null tail-mode)
-				   (eq tail-mode 'head))
-			   (oref obj :head-mode)
-			 (oref obj :tail-mode)))
+           (if (or (null tail-mode)
+                   (eq tail-mode 'head))
+               (oref obj :head-mode)
+             (oref obj :tail-mode)))
           (t (error "type must be one of 'head 'tail 'body")))))
 
 
@@ -412,7 +413,7 @@ Should return nil if there is no SUBMODE specific span around POS.")
   "Return nil.
 Base mode usually do not compute the span."
   (unless chunkmode
-	(error "Dispatching `pm-get-span' on a nil object"))
+    (error "Dispatching `pm-get-span' on a nil object"))
   nil)
 
 (defmethod pm-get-span ((config pm-polymode) &optional pos)
@@ -421,43 +422,43 @@ Return a cons (chunkmode . span), for which START is closest to
 POS (and before it); i.e. the innermost span.  POS defaults to
 point."
   (save-restriction
-	(let (pm--restrict-widen)
-	  (widen)
-	  ;; fixme: host should be last, to take advantage of the chunkmodes computation
-	  (let* ((smodes (cons (oref config -hostmode)
-						   (oref config -innermodes)))
-			 (start (point-min))
-			 (end (point-max))
-			 (pos (or pos (point)))
-			 (span (list nil start end nil))
-			 val)
+    (let (pm--restrict-widen)
+      (widen)
+      ;; fixme: host should be last, to take advantage of the chunkmodes computation
+      (let* ((smodes (cons (oref config -hostmode)
+                           (oref config -innermodes)))
+             (start (point-min))
+             (end (point-max))
+             (pos (or pos (point)))
+             (span (list nil start end nil))
+             val)
 
-		(dolist (sm smodes)
-		  (setq val (pm-get-span sm pos))
-		  (when (and val
-					 (or (> (nth 1 val) start)
-						 (< (nth 2 val) end)))
-			(if (or (car val)
-					(null span))
-				(setq span val
-					  start (nth 1 val)
-					  end (nth 2 val))
-			  ;; nil car means outer chunkmode (usually host). And it can be an
-			  ;; intersection of spans returned by 2 different neighbour inner
-			  ;; chunkmodes. See rapport mode for an example
-			  (setq start (max (nth 1 val)
-							   (nth 1 span))
-					end (min (nth 2 val)
-							 (nth 2 span)))
-			  (setcar (cdr span) start)
-			  (setcar (cddr span) end))))
+        (dolist (sm smodes)
+          (setq val (pm-get-span sm pos))
+          (when (and val
+                     (or (> (nth 1 val) start)
+                         (< (nth 2 val) end)))
+            (if (or (car val)
+                    (null span))
+                (setq span val
+                      start (nth 1 val)
+                      end (nth 2 val))
+              ;; nil car means outer chunkmode (usually host). And it can be an
+              ;; intersection of spans returned by 2 different neighbour inner
+              ;; chunkmodes. See rapport mode for an example
+              (setq start (max (nth 1 val)
+                               (nth 1 span))
+                    end (min (nth 2 val)
+                             (nth 2 span)))
+              (setcar (cdr span) start)
+              (setcar (cddr span) end))))
 
-		(unless (and (<= start end) (<= pos end) (>= pos start))
-		  (error "Bad polymode selection: span:%s pos:%s"
-				 (list start end) pos))
-		(when (null (car span)) ; chunkmodes can compute the host span by returning nil
-		  (setcar (last span) (oref config -hostmode)))
-		span))))
+        (unless (and (<= start end) (<= pos end) (>= pos start))
+          (error "Bad polymode selection: span:%s pos:%s"
+                 (list start end) pos))
+        (when (null (car span)) ; chunkmodes can compute the host span by returning nil
+          (setcar (last span) (oref config -hostmode)))
+        span))))
 
 ;; No need for this one so far. Basic method iterates through -innermodes
 ;; anyhow.
@@ -618,62 +619,62 @@ sent to the new mode for syntax highlighting."
   ;; xxx2 relate to the second descending search
   (save-excursion
     (let* ((pos (point))
-		   
-		   (head1-beg (and (re-search-backward head-matcher nil t)
-						   (match-beginning 0)))
-		   (head1-end (and head1-beg (match-end 0))))
-	  
-	  (if head1-end
-		  ;; we know that (>= pos head1-end)
-		  ;;            -----------------------
-		  ;; host](head)[body](tail)[host](head)
-		  (let* ((tail1-beg (and (goto-char head1-end)
-								 (re-search-forward tail-matcher nil t)
-								 (match-beginning 0)))
-				 (tail1-end (and tail1-beg (match-end 0)))
-				 (tail1-beg (or tail1-beg (point-max)))
-				 (tail1-end (or tail1-end (point-max))))
+           
+           (head1-beg (and (re-search-backward head-matcher nil t)
+                           (match-beginning 0)))
+           (head1-end (and head1-beg (match-end 0))))
+      
+      (if head1-end
+          ;; we know that (>= pos head1-end)
+          ;;            -----------------------
+          ;; host](head)[body](tail)[host](head)
+          (let* ((tail1-beg (and (goto-char head1-end)
+                                 (re-search-forward tail-matcher nil t)
+                                 (match-beginning 0)))
+                 (tail1-end (and tail1-beg (match-end 0)))
+                 (tail1-beg (or tail1-beg (point-max)))
+                 (tail1-end (or tail1-end (point-max))))
 
-			(if (or (< pos tail1-end)
-					(= tail1-end (point-max)))
-				(if (<= pos tail1-beg)
-					;;            ------
-					;; host](head)[body](tail)[host](head))
-					(list 'body head1-end tail1-beg)
-				  ;;                  -----
-				  ;; host](head](body](tail)[host](head)
-				  (list 'tail tail1-beg tail1-end))
-			  
-			  ;;                        ------------
-			  ;; host](head](body](tail)[host](head)
-			  (let* ((head2-beg (or (and (re-search-forward head-matcher nil t)
-										 (match-beginning 0))
-									(point-max))))
-				(if (<= pos head2-beg)
-					;;                        ------
-					;; host](head](body](tail)[host](head)
-					(list nil tail1-end head2-beg)
-				  ;;                              ------
-				  ;; host](head](body](tail)[host](head)
-				  (list 'head head2-beg (match-end 0))))))
+            (if (or (< pos tail1-end)
+                    (= tail1-end (point-max)))
+                (if (<= pos tail1-beg)
+                    ;;            ------
+                    ;; host](head)[body](tail)[host](head))
+                    (list 'body head1-end tail1-beg)
+                  ;;                  -----
+                  ;; host](head](body](tail)[host](head)
+                  (list 'tail tail1-beg tail1-end))
+              
+              ;;                        ------------
+              ;; host](head](body](tail)[host](head)
+              (let* ((head2-beg (or (and (re-search-forward head-matcher nil t)
+                                         (match-beginning 0))
+                                    (point-max))))
+                (if (<= pos head2-beg)
+                    ;;                        ------
+                    ;; host](head](body](tail)[host](head)
+                    (list nil tail1-end head2-beg)
+                  ;;                              ------
+                  ;; host](head](body](tail)[host](head)
+                  (list 'head head2-beg (match-end 0))))))
 
-		;; -----------
-		;; host](head)[body](tail)[host
-		(let ((head2-beg (and (goto-char (point-min))
-							  (re-search-forward head-matcher nil t)
-							  (match-beginning 0))))
+        ;; -----------
+        ;; host](head)[body](tail)[host
+        (let ((head2-beg (and (goto-char (point-min))
+                              (re-search-forward head-matcher nil t)
+                              (match-beginning 0))))
 
-		  (if (null head2-beg)
-			  ;; no span found
-			  (list nil (point-min) (point-max))
-			
-			(if (<= pos head2-beg)
-				;; -----
-				;; host](head)[body](tail)[host
-				(list nil (point-min) head2-beg)
-			  ;;      ------
-			  ;; host](head)[body](tail)[host
-			  (list 'head head2-beg (match-end 0)))))))))
+          (if (null head2-beg)
+              ;; no span found
+              (list nil (point-min) (point-max))
+            
+            (if (<= pos head2-beg)
+                ;; -----
+                ;; host](head)[body](tail)[host
+                (list nil (point-min) head2-beg)
+              ;;      ------
+              ;; host](head)[body](tail)[host
+              (list 'head head2-beg (match-end 0)))))))))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Basic span detector with head/tail.
@@ -688,32 +689,32 @@ respectively. See `pm--default-matcher' for an example.
 Return (type span-start span-end) where type is one of the
 follwoing symbols:
 
-nil	  - pos is between point-min and head-reg, or between tail-reg and point-max
+nil   - pos is between point-min and head-reg, or between tail-reg and point-max
 body  - pos is between head-reg and tail-reg (exclusively)
 head  - head span
 tail  - tail span"
   ;; ! start of the span is part of the span !
   (save-restriction
-	(let (pm--restrict-widen)
-	  (widen)
-	  (goto-char (or pos (point)))
-	  (cond ((and (stringp head-matcher)
-				  (stringp tail-matcher))
-			 (pm--span-at-point-reg-reg head-matcher tail-matcher))
-			((and (stringp head-matcher)
-				  (functionp tail-matcher))
-			 (pm--span-at-point-fun-fun
-			  (lambda (ahead) (pm--default-matcher head-matcher ahead))
-			  tail-matcher))
-			((and (functionp head-matcher)
-				  (stringp tail-matcher))
-			 (pm--span-at-point-fun-fun
-			  head-matcher
-			  (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
-			((and (functionp head-matcher)
-				  (functionp tail-matcher))
-			 (pm--span-at-point-fun-fun head-matcher tail-matcher))
-			(t (error "head and tail matchers should be either regexp strings or functions"))))))
+    (let (pm--restrict-widen)
+      (widen)
+      (goto-char (or pos (point)))
+      (cond ((and (stringp head-matcher)
+                  (stringp tail-matcher))
+             (pm--span-at-point-reg-reg head-matcher tail-matcher))
+            ((and (stringp head-matcher)
+                  (functionp tail-matcher))
+             (pm--span-at-point-fun-fun
+              (lambda (ahead) (pm--default-matcher head-matcher ahead))
+              tail-matcher))
+            ((and (functionp head-matcher)
+                  (stringp tail-matcher))
+             (pm--span-at-point-fun-fun
+              head-matcher
+              (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
+            ((and (functionp head-matcher)
+                  (functionp tail-matcher))
+             (pm--span-at-point-fun-fun head-matcher tail-matcher))
+            (t (error "head and tail matchers should be either regexp strings or functions"))))))
 
 
 ;;; INDENT

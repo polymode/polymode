@@ -29,8 +29,8 @@
      file. DOC is a short help string shown during interactive
      weaving. COMMMAND is the actual weaver specific command. It can
      contain the following format specs:
-	%i - replaced with the input file
-	%o - replaced with the ouput file.
+    %i - replaced with the input file
+    %o - replaced with the ouput file.
         %O - replaced with the base output file name (no dir, no extension)")
    (function
     :initarg :function
@@ -123,7 +123,7 @@ exporter (from to) specification will be called.")
                                              wfile)))
                            `(lambda (proc name)
                               (let ((wfile (expand-file-name (,sentinel1 proc name),
-							     ,default-directory)))
+                                 ,default-directory)))
                                 (pm--display-file wfile)
                                 wfile)))))
           (oset weaver ,slot sentinel2)

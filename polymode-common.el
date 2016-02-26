@@ -66,11 +66,11 @@ Return major mode function constructed from STR by appending
 '-mode' if needed. If the constructed symbol is not a function
 return an error."
   (let* ((str (if (symbolp str)
-		  (symbol-name str)
-		str))
-	 (mname (if (string-match-p "-mode$" str)
-		    str
-		  (concat str "-mode"))))
+          (symbol-name str)
+        str))
+     (mname (if (string-match-p "-mode$" str)
+            str
+          (concat str "-mode"))))
     (pm--get-available-mode (intern mname))))
 
 (defun pm--get-available-mode (mode)
@@ -176,8 +176,8 @@ user interaction."
         (if (not (re-search-forward "error" nil 'no-error))
             pm--output-file
           (progn
-	    (display-buffer (current-buffer))
-	    (message "Done with %s" message))
+        (display-buffer (current-buffer))
+        (message "Done with %s" message))
           (error "Bumps while %s (%s)" message name))))))
 
 

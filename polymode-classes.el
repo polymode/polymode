@@ -170,33 +170,33 @@ that are not known in advance. Examples are org-mode and markdown.")
 ;;; CHUNKMODE CLASSES
 (defclass pm-chunkmode (pm-root)
   ((mode :initarg :mode
-	 :type symbol
-	 :initform nil
-	 :custom symbol)
+     :type symbol
+     :initform nil
+     :custom symbol)
    (protect-indent-line :initarg :protect-indent-line
-			:type boolean
-			:initform t
-			:custom boolean
-			:documentation
-			"Whether to modify local `indent-line-function' by narrowing
+            :type boolean
+            :initform t
+            :custom boolean
+            :documentation
+            "Whether to modify local `indent-line-function' by narrowing
     to current span first")
    (indent-offset :initarg :indent-offset
-		  :type integer
-		  :initform 0
-		  :documentation
-		  "Offset to add when indenting chunk's line. Takes effect only
+          :type integer
+          :initform 0
+          :documentation
+          "Offset to add when indenting chunk's line. Takes effect only
     when :protect-indent-line is non-nil.")
    (font-lock-narrow :initarg :font-lock-narrow
-		     :type boolean
-		     :initform t
-		     :documentation
-		     "Whether to narrow to span during font lock")
+             :type boolean
+             :initform t
+             :documentation
+             "Whether to narrow to span during font lock")
    (adjust-face :initarg :adjust-face
-		:type (or number face list)
-		:custom (or number face list)
-		:initform nil
-		:documentation
-		"Fontification adjustments chunk face. It should be either,
+        :type (or number face list)
+        :custom (or number face list)
+        :initform nil
+        :documentation
+        "Fontification adjustments chunk face. It should be either,
     nil, number, face or a list of text properties as in
     `put-text-property' specification. If nil no highlighting
     occurs. If a face, use that face. If a number, it is a
@@ -286,24 +286,24 @@ that are not known in advance. Examples are org-mode and markdown.")
 
 (defclass pm-hbtchunkmode-auto (pm-hbtchunkmode)
   ((retriever-regexp :initarg :retriever-regexp
-		     :type (or null string)
-		     :custom string
-		     :initform nil
-		     :documentation
-		     "Regexp that is used to retrive the modes symbol from the
+             :type (or null string)
+             :custom string
+             :initform nil
+             :documentation
+             "Regexp that is used to retrive the modes symbol from the
     head of the chunkmode chunk. fixme: elaborate")
    (retriever-num :initarg :retriever-num
-		  :type integer
-		  :custom integer
-		  :initform 1
-		  :documentation
-		  "Subexpression to be matched by :retriver-regexp")
+          :type integer
+          :custom integer
+          :initform 1
+          :documentation
+          "Subexpression to be matched by :retriver-regexp")
    (retriever-function :initarg :retriever-function
-		       :type symbol
-		       :custom symbol
-		       :initform nil
-		       :documentation
-		       "Function symbol used to retrive the modes symbol from the
+               :type symbol
+               :custom symbol
+               :initform nil
+               :documentation
+               "Function symbol used to retrive the modes symbol from the
     head of the chunkmode chunk. It is called with no arguments
     with the point positioned at the beginning of the chunk
     header. It must return the mode name string or symbol (need

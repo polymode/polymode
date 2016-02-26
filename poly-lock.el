@@ -29,46 +29,46 @@ Preserves the `buffer-modified-p' state of the current buffer."
 (defun poly-lock-mode (arg)
   ;; value of `font-lock-function' in polymode buffers
   (unless polymode-mode
-	(error "Trying to (de)activate `poly-lock-mode' in a non-polymode buffer (%s)" (current-buffer)))
+    (error "Trying to (de)activate `poly-lock-mode' in a non-polymode buffer (%s)" (current-buffer)))
   (setq poly-lock-mode arg)
 
   (if arg
-	  (progn
-		(setq-local font-lock-support-mode 'poly-lock-mode)
-		(setq-local font-lock-dont-widen t)
+      (progn
+        (setq-local font-lock-support-mode 'poly-lock-mode)
+        (setq-local font-lock-dont-widen t)
 
         ;; most of the following is setup in `font-lock-turn-on-thing-lock' in jit-lock case.
         
-		;; we don't allow any other functions
-		(setq-local fontification-functions '(poly-lock-fontification-function))
+        ;; we don't allow any other functions
+        (setq-local fontification-functions '(poly-lock-fontification-function))
 
-		(remove-hook 'after-change-functions 'font-lock-after-change-function t)
+        (remove-hook 'after-change-functions 'font-lock-after-change-function t)
         (remove-hook 'after-change-functions 'jit-lock-after-change t)
-		(add-hook 'after-change-functions 'poly-lock-after-change nil t)
-		
- 		(setq-local font-lock-flush-function 'poly-lock-refontify)
-		(setq-local font-lock-ensure-function 'poly-lock-fontify-region)
-		(setq-local font-lock-fontify-buffer-function 'poly-lock-refontify)
+        (add-hook 'after-change-functions 'poly-lock-after-change nil t)
+        
+        (setq-local font-lock-flush-function 'poly-lock-refontify)
+        (setq-local font-lock-ensure-function 'poly-lock-fontify-region)
+        (setq-local font-lock-fontify-buffer-function 'poly-lock-refontify)
 
         ;; there are some more
         ;; font-lock-unfontify-region-function
         ;; font-lock-unfontify-buffer-function
         
-		;; Don't fontify eagerly (and don't abort if the buffer is large).
-		(setq-local font-lock-fontified t)
+        ;; Don't fontify eagerly (and don't abort if the buffer is large).
+        (setq-local font-lock-fontified t)
 
         ;; Now we can finally call `font-lock-default-function' because
         ;; `font-lock-support-mode' is set to "unrecognizible" value. Thus only
         ;; core font-lock setup happens.
-		(font-lock-default-function arg)
+        (font-lock-default-function arg)
 
         ;; We are using this in `poly-lock-after-change' below.
-		(add-hook 'jit-lock-after-change-extend-region-functions
-				  'font-lock-extend-jit-lock-region-after-change
-				  nil t))
+        (add-hook 'jit-lock-after-change-extend-region-functions
+                  'font-lock-extend-jit-lock-region-after-change
+                  nil t))
     
-	(remove-hook 'after-change-functions 'poly-lock-after-change t)
-	(remove-hook 'fontification-functions 'poly-lock-fontification-function t))
+    (remove-hook 'after-change-functions 'poly-lock-after-change t)
+    (remove-hook 'fontification-functions 'poly-lock-fontification-function t))
   (current-buffer))
 
 (defun poly-lock-fontification-function (start)
@@ -89,14 +89,14 @@ defined in `fontification-functions'."
 Installed on `after-change-functions'."
   (when (and poly-lock-mode poly-lock-allow-after-change
              (not memory-full))
-	(let ((jit-lock-start beg)
-		  (jit-lock-end end)
-		  ;; useful info for tracing
-		  (gl-beg end)
-		  (gl-end beg)
+    (let ((jit-lock-start beg)
+          (jit-lock-end end)
+          ;; useful info for tracing
+          (gl-beg end)
+          (gl-end beg)
           exp-error)
-	  (save-excursion
-		(condition-case err
+      (save-excursion
+        (condition-case err
             ;; This sets jit-lock-start and jit-lock-end.
             (run-hook-with-args 'jit-lock-after-change-extend-region-functions
                                 beg end old-len)
@@ -115,7 +115,7 @@ Installed on `after-change-functions'."
                       gl-end (max gl-beg jit-lock-end send))
                 (put-text-property gl-beg gl-end 'fontified nil)))))
          beg end nil nil nil 'no-cache)
-		(cons gl-beg gl-end)))))
+        (cons gl-beg gl-end)))))
 
 (defun poly-lock-fontify-region (beg end &optional verbose)
   "Polymode font-lock fontification function.

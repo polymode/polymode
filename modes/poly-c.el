@@ -35,14 +35,14 @@
 
 (defcustom pm-poly/noweb+c
   (clone pm-poly/noweb
-		 :innermode 'pm-inner/noweb+c)
+         :innermode 'pm-inner/noweb+c)
   "Noweb polymode for c"
   :group 'polymodes
   :type 'object)
 
 (defcustom pm-inner/noweb+c
   (clone pm-inner/noweb
-		 :mode 'c-mode)
+         :mode 'c-mode)
   "Noweb innermode for C"
   :group 'innermodes
   :type 'object)
