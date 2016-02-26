@@ -107,6 +107,13 @@ object ...")
     (setq pm--syntax-begin-function-original syntax-begin-function)
 	(setq-local syntax-begin-function #'pm-syntax-begin-function)
 
+    ;; We are advising syntax-propertize to run on current chunk, no need to
+    ;; extend it further.
+    (setq-local syntax-propertize-extend-region-functions nil)
+    ;; Should be no need for these.
+    ;; (setq pm--syntax-propertize-function-original syntax-propertize-function)
+	;; (setq-local syntax-propertize-function #'pm-syntax-propertize)
+
 	(when (and indent-line-function ; not that it should ever be nil...
 			   (oref pm/chunkmode :protect-indent-line))
 	  (setq pm--indent-line-function-original indent-line-function)

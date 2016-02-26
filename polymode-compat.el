@@ -58,6 +58,10 @@
 		  (apply orig-fun args)))
 	(apply orig-fun args)))
 
+
+;;; Syntax
+(when (fboundp 'advice-add)
+  (advice-add 'syntax-propertize :around 'pm-execute-narowed-to-span))
 
 
 ;;; Flyspel
