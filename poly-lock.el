@@ -75,13 +75,14 @@ Preserves the `buffer-modified-p' state of the current buffer."
   "The only function in `fontification-functions'.
 This is the entry point called by the display engine. START is
 defined in `fontification-functions'."
-  (when (and poly-lock-allow-fontification
-             poly-lock-mode
-             (not memory-full))
-	(unless (input-pending-p)
-	  (let ((end (next-single-property-change
-				  start 'fontified nil (point-max))))
-		(poly-lock-fontify-region start end)))))
+  (if poly-lock-allow-fontification
+      (when (and poly-lock-mode
+                 (not memory-full))
+        (unless (input-pending-p)
+          (let ((end (next-single-property-change
+                      start 'fontified nil (point-max))))
+            (poly-lock-fontify-region start end))))
+    (put-text-property start (point-max) 'fontified t)))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
@@ -168,8 +169,8 @@ in polymode buffers."
                       
                       ;; Don't change this error string; it is used in
                       ;; `pm-debug-fontify-last-font-lock-error'
-                      (error (message "(poly-lock-fontify-region %s %s) -> (%s %s %s): %s "
-                                      beg end pm--fontify-region-original new-beg new-end
+                      (error (message "(poly-lock-fontify-region %s %s) -> (%s %s %s %s): %s "
+                                      beg end pm--fontify-region-original new-beg new-end verbose
                                       (error-message-string err))))
                     ;; even if failed or no font-lock, set to t
                     (put-text-property new-beg new-end 'fontified t))
