@@ -47,21 +47,39 @@
 		(apply orig-fun new-beg new-end args))
 	(apply orig-fun beg end args)))
 
+(eval-when-compile
+  (defmacro pm-with-narrowed-to-span (&rest body)
+    (declare (indent 0) (debug body))
+    `(save-restriction
+       (pm-narrow-to-span *span*)
+       (let ((pm--restrict-widen t))
+         ,@body))))
+
 (defun pm-execute-narowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.
 *span* in `pm-map-over-spans` has precedence over span at point."
   (if (and polymode-mode pm/chunkmode)
 	  ;; fixme: extract into a macro (pm-with-narrowed-to-span))
-	  (save-restriction
-		(pm-narrow-to-span *span*)
-		(let ((pm--restrict-widen t))
-		  (apply orig-fun args)))
+	  (pm-with-narrowed-to-span
+        (apply orig-fun args))
 	(apply orig-fun args)))
 
 
 ;;; Syntax
+
+(defun pm-execute-syntax-propertize-narrowed-to-span (orig-fun &rest args)
+  "Execute `syntax-propertize' narrowed to the current span.
+Don't throw errors, but give relevant messages instead."
+  (if (and polymode-mode pm/chunkmode)
+      (condition-case err
+          (pm-with-narrowed-to-span
+            (apply orig-fun args))
+        (error (message "(syntax-propertize %s): %s" (car args)
+                        (error-message-string err))))
+	(apply orig-fun args)))
+
 (when (fboundp 'advice-add)
-  (advice-add 'syntax-propertize :around 'pm-execute-narowed-to-span))
+  (advice-add 'syntax-propertize :around 'pm-execute-syntax-propertize-narrowed-to-span))
 
 
 ;;; Flyspel
