@@ -18,29 +18,29 @@
     :type list
     :custom list
     :documentation
-    "Input specifications. A list of lists of the form (id reg doc commmand).
-    ID is the unique identifier of the spec. REG is a regexp
-    that is used to identify if current file can be exported
-    with this spec. DOC is a short help string shown during
-    interactive export. COMMMAND is the actual exporter
-    specific command. It can contain the following format
-    specs:
+    "Input specifications. An alist elements of the form (id reg doc commmand).
+     ID is the unique identifier of the spec. REG is a regexp
+     that is used to identify if current file can be exported
+     with this spec. DOC is a short help string shown during
+     interactive export. COMMMAND is the actual exporter specific
+     command. It can contain the following format specs:
 
-    %i - replaced with the input file
-    %o - replaced with the ouput file
-        %O - replaced with the base output file name (no dir, no extension)
-    %t - replaced with the 4th element of the :to spec.
-     ")
+         %i - input file (no dir)
+         %f - input file (full path) 
+         %o - output file (no dir)
+         %O - output file name (no dir, no extension)
+         %p - output file (full path)
+         %t - 4th element of the :to spec")
    (to
     :initarg :to
     :initform '() 
     :type list
     :custom list
     :documentation
-    "Output specifications. A list of the list of the form (id ext doc %t-spec).
-    EXT is the *exact* extension (not a regexp) of the ouput
-    file. %t-spec is a string what is used to format :from
-    spec commmand.")
+    "Output specifications. An alist of elements of the form (id ext doc %t-spec).
+     EXT is the *exact* extension (not a regexp) of the ouput
+     file. %t-spec is a string what is used to format :from spec
+     commmand.")
    (function
     :initarg :function
     :initform (lambda (command from to)
@@ -61,10 +61,10 @@
                 (error "No callback defined for this exporter."))
     :type (or symbol function)
     :documentation
-    "Callback function to be called by :function when a shell
-    call is involved. There is no default callback."))
-  "Class to represent exporters that call processes spanned by
-  emacs. Callback should return the output file name.")
+    "Callback function to be called by :function. There is no
+     default callback. Callback must return the output file
+     name."))
+  "Class to represent asynchronous exporters.")
 
 (defclass pm-shell-exporter (pm-exporter)
   ((function
@@ -79,60 +79,65 @@
     name."))
   "Class to represent exporters that call external processes.")
 
+(defun pm-default-shell-export-function (command sentinel from to)
+  "Run exporting command interactively.
+Run command in a buffer (in comint-shell-mode) so that it accepts
+user interaction. This is a default function in all exporters
+that call a shell command"
+  (pm--run-shell-command command sentinel "*polymode export*"
+                         (concat "Exporting " from "-->" to " with command:\n     " command "\n")))
+
+(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "error" "exporting"))
+
 
 ;;; METHODS
+
 (defgeneric pm-export (exporter from to &optional ifile)
-  "Weave current FILE with EXPORTER.")
+  "Process IFILE with EXPORTER.")
 
 (defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
-  (let* ((from-spec (assoc from (oref exporter :from)))
-         (to-spec (assoc to (oref exporter :to)))
-         (ifile (or ifile (file-name-nondirectory buffer-file-name)))
-         (ofile (concat (format polymode-exporter-output-file-format
-                                (file-name-base ifile))
-                        "." (nth 1 to-spec)))
-         (command (format-spec (nth 3 from-spec)
-                               (list (cons ?i (shell-quote-argument ifile))
-                                     (cons ?o (shell-quote-argument ofile))
-                                     (cons ?O (shell-quote-argument
-                                               (file-name-base ofile)))
-                                     (cons ?t (nth 3 to-spec))))))
-    (unless to-spec
-      (error "'to' spec %s is not defined for this exporter '%s'"
-             to (pm--object-name exporter)))
-    ;; compunicate with sentinel and callback with local vars in order to
-    ;; avoid needless clutter
-    ;; fixme: use -hist
-    (set (make-local-variable 'pm--output-file) ofile)
-    (set (make-local-variable 'pm--input-file) ifile)
-    (message "Exporting '%s' with '%s' exporter ..."
-             (file-name-nondirectory ifile) (pm--object-name exporter))
-    (let ((ofile  (funcall (oref exporter :function) command from to)))
-      (and ofile (stringp ofile) (pm--display-file ofile)))))
-
-(defmacro pm--export-wrap-callback (slot)
-  ;; replace exporter's :sentinel or :callback temporally in order to display
-  ;; the output buffer
-  `(let ((sentinel1 (oref exporter ,slot)))
-     (condition-case err
-         (let ((sentinel2 `(lambda (proc name)
-                             (let ((efile (,sentinel1 proc name)))
-                               (pm--display-file efile)
-                               efile))))
-           (oset exporter ,slot sentinel2)
-           (call-next-method exporter from to ifile))
-       (error (oset exporter ,slot sentinel1)
-              (signal (car err) (cdr err))))
-     (oset exporter ,slot sentinel1)))
+  (pm--export-internal exporter from to ifile))
 
 (defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
-  (pm--export-wrap-callback :callback))
+  (let ((cb (pm--wrap-callback exporter :callback ifile)))
+    (pm--export-internal exporter from to ifile cb)))
 
 (defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
-  (pm--export-wrap-callback :sentinel))
+  (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
+    (pm--export-internal exporter from to ifile cb)))
+
+(defun pm--export-internal (exporter from to ifile &optional callback)
+  (unless (and from to)
+    (error "Both FROM and TO must be supplied (from: %s, to: %s)" from to))
+  (let* ((from-spec (assoc from (oref exporter :from)))
+         (to-spec (assoc to (oref exporter :to)))
+         (ifile (or ifile buffer-file-name))
+         (base-ofile (concat (format polymode-exporter-output-file-format
+                                     (file-name-base buffer-file-name))
+                             "." (nth 1 to-spec)))
+         (ofile (expand-file-name base-ofile (file-name-directory buffer-file-name)))
+         (command (format-spec (nth 3 from-spec)
+                               (list (cons ?i (file-name-nondirectory ifile))
+                                     (cons ?f ifile)
+                                     (cons ?O (file-name-base base-ofile))
+                                     (cons ?o base-ofile)
+                                     (cons ?p ofile)
+                                     (cons ?t (nth 3 to-spec))))))
+    (unless to-spec
+      (error "'to' spec `%s' is not defined for exporter '%s'" to (pm--object-name exporter)))
+    (message "Exporting '%s' with '%s' exporter ..."
+             (file-name-nondirectory ifile) (pm--object-name exporter))
+    (let* ((pm--output-file ofile)
+           (pm--input-file ifile)
+           (fun (oref exporter :function))
+           (efile (if callback
+                      (funcall fun command callback from to)
+                    (funcall fun command from to))))
+      (and efile (pm--display-file ofile)))))
 
 
 ;; UI
+
 (defvar pm--exporter-hist nil)
 (defvar pm--export:from-hist nil)
 (defvar pm--export:to-hist nil)
@@ -142,79 +147,75 @@
 (defun polymode-export (&optional from to)
   "Export current file.
 
-FROM and TO are the from-id and to-id in the definition of the
+FROM and TO are the :from-id and :to-id in the definition of the
 current exporter. If current exporter hasn't been set yet, call
 `polymode-set-exporter' before exporting.
 
-If called interactively with C-u argument, ask for the FROM type
+If called interactively with C-u argument, ask for FROM
 interactively, otherwise FROM and TO are determined automatically
 from the current exporter specification and current file
-extension.  See `pm-exporter' for the precise specification.
-
-If called interactively with C-u C-u argument, set new exporter
-first with `polymode-set-exporter'."
+extension.  See class `pm-exporter' for the definitions."
   (interactive "P")
-  ;; todo: '(16) should allow for edditing :from command
-  (let* ((exporter (symbol-value
-                    (if (equal from '(16))
-                        (polymode-set-exporter)
-                      (or (oref pm/polymode :exporter)
-                          (polymode-set-exporter)))))
+  (let* ((exporter (symbol-value (or (oref pm/polymode :exporter)
+                                     (polymode-set-exporter))))
          (fname (file-name-nondirectory buffer-file-name))
          (e:from (oref exporter :from))
          (e:to (oref exporter :to))
          (from-opts (mapcar (lambda (el)
-                              (propertize (nth 2 el) :id (car el)))
+                              (cons (nth 2 el) (car el)))
                             (oref exporter :from)))
          (to-opts (mapcar (lambda (el)
-                            (propertize (format "%s (%s)" (nth 2 el) (nth 1 el))
-                                        :id (car el)))
+                            (cons (format "%s (%s)" (nth 2 el) (nth 1 el)) (car el)))
                           (oref exporter :to)))
          (from
-          (cond ((or (null from) (equal from '(16)))
+          (cond ((null from)
+                 ;; A: guess from spec
                  (let ((case-fold-search  t))
-                   (or (and (pm--get-hist :export-from)
-                            (get-text-property 0 :id (pm--get-hist :export-from)))
-                       (car (cl-rassoc-if (lambda (el)
-                                            (string-match-p (car el) fname))
-                                          e:from))
-                       ;; guess from weaver and return a cons of (weaver-id . exporter-id)
-                       (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
-                                                       (polymode-set-weaver)))))
-                         (cl-loop for w in (oref weaver :from-to)
-                                  ;; weaver intput extension matches the filename
-                                  if (string-match-p (nth 1 w) fname) 
-                                  return (cl-loop for e in e:from
-                                                  ;; input exporter extensnion matches weaver output extension
-                                                  if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
-                                                  return (cons (car w) (car e)))))
-                       (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
-                                              (file-name-extension fname)
-                                              (pm--object-name exporter)))
-                              (sel (completing-read prompt from-opts nil t nil
-                                                    'pm--export:from-hist
-                                                    (pm--get-hist :export-from))))
-                         (pm--put-hist :export-from sel)
-                         (get-text-property 0 :id sel)))))
-                ;; C-u, force a :from spec
+                   (or
+                    ;; 1. repeated export; don't ask and use first entry in history
+                    (and (pm--get-hist :export-from)
+                         (get-text-property 0 :id (pm--get-hist :export-from)))
+                    ;; 2. get first entry whose REG matches file name
+                    (car (cl-rassoc-if (lambda (el)
+                                         (string-match-p (car el) fname))
+                                       e:from))
+                    ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
+                    (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
+                                                    (polymode-set-weaver)))))
+                      (cl-loop for w in (oref weaver :from-to)
+                               ;; weaver intput extension matches the filename
+                               if (string-match-p (nth 1 w) fname) 
+                               return (cl-loop for e in e:from
+                                               ;; input exporter extensnion matches weaver output extension
+                                               if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
+                                               return (cons (car w) (car e)))))
+                    ;; 4. nothing matched; ask
+                    (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
+                                           (file-name-extension fname)
+                                           (pm--object-name exporter)))
+                           (sel (completing-read prompt (mapcar #' car from-opts) nil t nil
+                                                 'pm--export:from-hist (pm--get-hist :export-from))))
+                      (pm--put-hist :export-from sel)
+                      (cdr (assoc sel from-opts))))))
+                ;; B: C-u, force a :from spec
                 ((equal from '(4))
-                 (let ((sel (completing-read "Input type: " from-opts nil t nil
+                 (let ((sel (completing-read "Input type: " (mapcar #' car from-opts) nil t nil
                                              'pm--export:from-hist (pm--get-hist :export-from)) ))
                    (pm--put-hist :export-from sel)
-                   (get-text-property 1 :id sel)))
+                   (cdr (assoc sel from-opts))))
+                ;; C. string
                 ((stringp from)
                  (if (assoc from e:from)
                      from
                    (error "Cannot find input spec '%s' in %s exporter"
                           from (pm--object-name exporter))))
-                (t (error "'from' argument must be nil, universal argument or a string"))
-                ))
+                (t (error "'from' argument must be nil, universal argument or a string"))))
          (to
           (cond ((null to)
-                 (let ((sel (completing-read "Export to: " to-opts nil t nil
+                 (let ((sel (completing-read "Export to: " (mapcar #'car to-opts) nil t nil
                                              'pm--export:to-hist (pm--get-hist :export-to))))
                    (pm--put-hist :export-to sel)
-                   (get-text-property 1 :id sel)))
+                   (cdr (assoc sel to-opts))))
                 ((stringp to)
                  (if (assoc to e:to)
                      to
@@ -223,16 +224,9 @@ first with `polymode-set-exporter'."
                 (t (error "'to' argument must be nil or a string")))))
     (if (consp from)
         ;; run through weaver
-        (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from) (cons (cdr from) to))
+        (let ((pm--export-spec (cons (cdr from) to)))
+          (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from)))
       (pm-export exporter from to))))
-
-(defmacro polymode-register-exporter (exporter default? &rest configs)
-  "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
-When DEFAULT? is non-nil, also make EXPORTER the default exporter
-for each polymode in CONFIGS."
-  `(dolist (pm ',configs)
-     (object-add-to-list (symbol-value pm) :exporters ',exporter)
-     (when ,default? (oset (symbol-value pm) :exporter ',exporter))))
 
 (defun polymode-set-exporter ()
   (interactive)
@@ -241,28 +235,19 @@ for each polymode in CONFIGS."
   (let* ((exporters (pm--abrev-names
                      (delete-dups (pm--oref-with-parents pm/polymode :exporters))
                      "pm-exporter/"))
-         (sel (completing-read "No default exporter. Choose one: " exporters nil t nil
+         (sel (completing-read "Choose exporter: " (mapcar #'car exporters) nil t nil
                                'pm--exporter-hist (car pm--exporter-hist)))
-         (out (intern (get-text-property 0 :orig sel))))
+         (out (intern (cdr (assoc sel exporters)))))
     (oset pm/polymode :exporter out)
     out))
 
-
-;;; UTILS
-(defun pm-default-export-sentinel (process name)
-  "Default exporter sentinel."
-  (pm--run-command-sentinel process name "exporting"))
-
-(defun pm-default-shell-export-function (command from to)
-  "Run exporting command interactively.
-Run command in a buffer (in comint-shell-mode) so that it accepts
-user interaction. This is a default function in all exporters
-that call a shell command"
-  (pm--run-command command
-                   (oref (symbol-value (oref pm/polymode :exporter)) :sentinel)  
-                   "*polymode export*"
-                   (concat "Exporting " from "-->" to
-                           " with command:\n     " command "\n")))
+(defmacro polymode-register-exporter (exporter default? &rest configs)
+  "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
+When DEFAULT? is non-nil, also make EXPORTER the default exporter
+for each polymode in CONFIGS."
+  `(dolist (pm ',configs)
+     (object-add-to-list (symbol-value pm) :exporters ',exporter)
+     (when ,default? (oset (symbol-value pm) :exporter ',exporter))))
 
 
 ;;; GLOBAL EXPORTERS

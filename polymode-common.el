@@ -1,3 +1,4 @@
+;;  -*- lexical-binding: t -*-
 ;; COMMON INITIALIZATION, UTILITIES and INTERNALS which didn't fit anywhere else
 
 (eval-when-compile
@@ -29,6 +30,7 @@
 (defvar pm--output-file nil)
 (defvar pm--input-buffer nil)
 (defvar pm--input-file nil)
+(defvar pm--export-spec nil)
 (defvar pm/type)
 (defvar pm/polymode)
 (defvar pm/chunkmode)
@@ -66,11 +68,11 @@ Return major mode function constructed from STR by appending
 '-mode' if needed. If the constructed symbol is not a function
 return an error."
   (let* ((str (if (symbolp str)
-          (symbol-name str)
-        str))
-     (mname (if (string-match-p "-mode$" str)
-            str
-          (concat str "-mode"))))
+                  (symbol-name str)
+                str))
+         (mname (if (string-match-p "-mode$" str)
+                    str
+                  (concat str "-mode"))))
     (pm--get-available-mode (intern mname))))
 
 (defun pm--get-available-mode (mode)
@@ -99,8 +101,8 @@ string."
             (let ((str-nm (if (symbolp nm)
                               (symbol-name nm)
                             nm)))
-              (propertize (replace-regexp-in-string abrev-regexp "" str-nm)
-                          :orig str-nm)))
+              (cons (replace-regexp-in-string abrev-regexp "" str-nm)
+                    str-nm)))
           list))
 
 (defun pm--put-hist (key val)
@@ -138,48 +140,74 @@ string."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-(defun pm--run-command (command sentinel buff-name message)
-  "Run command interactively.
-Run command in a buffer (in comint-shell-mode) so that it accepts
-user interaction."
+(defun pm--wrap-callback (processor slot ifile)
+  ;; replace processor :sentinel or :callback temporally in order to export-spec as a
+  ;; followup step or display the result
+  (let ((sentinel1 (eieio-oref processor slot))
+        (cur-dir default-directory)
+        (exporter (symbol-value (oref pm/polymode :exporter)))
+        (obuffer (current-buffer)))
+    (if pm--export-spec
+        (let ((espec pm--export-spec))
+          (lambda (&rest args)
+            (with-current-buffer obuffer
+              (let ((wfile (apply sentinel1 args))
+                    (pm--export-spec nil))
+                (if wfile
+                    (pm-export exporter (car espec) (cdr espec) wfile)
+                  (error "Callback didn't return processed file."))))))
+      (lambda (&rest args)
+        (with-current-buffer obuffer
+          (let ((wfile (apply sentinel1 args)))
+            (if wfile
+                (pm--display-file (expand-file-name wfile cur-dir))
+              (error "Callback didn't return processed file."))))))))
+
+(defun pm--run-shell-command (command sentinel buff-name message)
+  "Run shell command interactively.
+Run command in a buffer (in comint-shell-mode) in order to be
+able to accept user interaction."
   ;; simplified version of TeX-run-TeX
   (require 'comint)
   (let* ((buffer (get-buffer-create buff-name))
          (process nil)
          (command-buff (current-buffer))
-         (ofile pm--output-file))
+         (ofile pm--output-file)
+         ;; (command (shell-quote-argument command))
+         )
     (with-current-buffer buffer
       (read-only-mode -1)
       (erase-buffer)
       (insert message)
       (comint-exec buffer buff-name shell-file-name nil
                    (list shell-command-switch command))
-      (comint-mode)
       (setq process (get-buffer-process buffer))
+      (comint-mode)
       (set-process-sentinel process sentinel)
       (setq pm--process-buffer t)
+      (set-marker (process-mark process) (point-max))
       ;; for communication with sentinel
-      (set (make-local-variable 'pm--output-file) ofile)
-      (set (make-local-variable 'pm--input-buffer) command-buff)
-      (set-marker (process-mark process) (point-max)))
+      (process-put process :output-file pm--output-file)
+      (process-put process :input-file pm--input-file))
     (when polymode-display-process-buffers
       (display-buffer buffer `(nil . ((inhibit-same-window . ,pop-up-windows)))))
     nil))
 
-(defun pm--run-command-sentinel (process name message)
-  (let ((buff (process-buffer process)))
-    (with-current-buffer buff
-      ;; fixme: remove this later
-      (sit-for .5)
-      (goto-char (point-min))
-      (let ((case-fold-search t))
-        (if (not (re-search-forward "error" nil 'no-error))
-            pm--output-file
-          (progn
-        (display-buffer (current-buffer))
-        (message "Done with %s" message))
-          (error "Bumps while %s (%s)" message name))))))
-
+(defun pm--make-shell-command-sentinel (error-regexp action)
+  (lambda (process name)
+    "Sentinel built with `pm--make-shell-command-sentinel'."
+    (let ((buff (process-buffer process)))
+      (with-current-buffer buff
+        ;; fixme: remove this later
+        (sit-for .2)
+        (goto-char (point-min))
+        (let ((case-fold-search t))
+          (if (not (re-search-forward error-regexp nil 'no-error))
+              (progn
+                (display-buffer (current-buffer))
+                (message "Done with %s" action)
+                (process-get process :output-file))              
+            (error "Bumps while %s (%s)" action name)))))))
 
 (provide 'polymode-common)
 

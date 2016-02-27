@@ -307,7 +307,7 @@
                         ("brew" "\\.r?brew\\'" "brew" "Brew" "library(knitr); knit('%i', output='%o')")
                         ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "library(knitr); knit('%i', output='%o')")
                         ("textile" "\\.textile\\'" "textile" "Textile" "library(knitr); knit('%i', output='%o')"))
-                      :function 'pm--run-command-in-ESS
+                      :function 'pm--run-shell-command-in-ESS
                       :callback 'pm--ESS-callback)
   "ESS knitR weaver."
   :group 'polymode-weave
@@ -321,7 +321,7 @@
   (pm-callback-weaver "ESS-Sweave"
                       :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'" "tex"
                                   "LaTeX" "Sweave('%i', output='%o')"))
-                      :function 'pm--run-command-in-ESS
+                      :function 'pm--run-shell-command-in-ESS
                       :callback 'pm--ESS-callback)
   "ESS 'Sweave' weaver."
   :group 'polymode-weave
@@ -343,7 +343,7 @@
         (error "Errors durring weaving.")))
     ofile))
 
-(defun pm--run-command-in-ESS (command &optional from to)
+(defun pm--run-shell-command-in-ESS (command callback fromto-id)
   (require 'ess)
   (let ((ess-eval-visibly t)
         ;; R specific, should change eventually
@@ -351,7 +351,7 @@
         (weaver (symbol-value (oref pm/polymode :weaver))))
     (ess-force-buffer-current)
     (ess-process-put 'pm-output-file pm--output-file)
-    (ess-process-put 'callbacks (list (oref weaver :callback)))
+    (ess-process-put 'callbacks (list callback))
     (ess-process-put 'interruptable? t)
     (ess-process-put 'running-async? t)
     (ess-eval-linewise command)))
