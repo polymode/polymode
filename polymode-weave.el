@@ -170,16 +170,16 @@ FROM-TO ignored as yet"
                        (let* ((prompt (format "No intpu-output spec for extension '.%s' in '%s' weaver. Choose one: "
                                               (file-name-extension fname)
                                               wname))
-                              (sel (ido-completing-read prompt opts nil t nil
-                                                        'pm--weave:from-to-hist
-                                                        (pm--get-hist :weave-from-to))))
+                              (sel (completing-read prompt opts nil t nil
+                                                    'pm--weave:from-to-hist
+                                                    (pm--get-hist :weave-from-to))))
                          (pm--put-hist :weave-from-to sel)
                          (get-text-property 0 :id sel)))))
                 ;; C-u, force a :from-to spec
                 ((equal from-to '(4))
-                 (let ((sel (ido-completing-read "Input type: " opts nil t nil
-                                                 'pm--weave:from-to-hist
-                                                 (pm--get-hist :weave-from-to)) ))
+                 (let ((sel (completing-read "Input type: " opts nil t nil
+                                             'pm--weave:from-to-hist
+                                             (pm--get-hist :weave-from-to)) ))
                    (pm--put-hist :weave-from-to sel)
                    (get-text-property 0 :id sel)))
                 ((stringp from-to)
@@ -204,8 +204,8 @@ each polymode in CONFIGS."
   (let* ((weavers (pm--abrev-names
                      (delete-dups (pm--oref-with-parents pm/polymode :weavers))
                      "pm-weaver/"))
-         (sel (ido-completing-read "No default weaver. Choose one: " weavers nil t nil
-                                   'pm--weaver-hist (car pm--weaver-hist)))
+         (sel (completing-read "No default weaver. Choose one: " weavers nil t nil
+                               'pm--weaver-hist (car pm--weaver-hist)))
          (out (intern (get-text-property 0 :orig sel))))
     (oset pm/polymode :weaver out)
     out))

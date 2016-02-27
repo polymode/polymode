@@ -191,15 +191,15 @@ first with `polymode-set-exporter'."
                        (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
                                               (file-name-extension fname)
                                               (pm--object-name exporter)))
-                              (sel (ido-completing-read prompt from-opts nil t nil
-                                                        'pm--export:from-hist
-                                                        (pm--get-hist :export-from))))
+                              (sel (completing-read prompt from-opts nil t nil
+                                                    'pm--export:from-hist
+                                                    (pm--get-hist :export-from))))
                          (pm--put-hist :export-from sel)
                          (get-text-property 0 :id sel)))))
                 ;; C-u, force a :from spec
                 ((equal from '(4))
-                 (let ((sel (ido-completing-read "Input type: " from-opts nil t nil
-                                                 'pm--export:from-hist (pm--get-hist :export-from)) ))
+                 (let ((sel (completing-read "Input type: " from-opts nil t nil
+                                             'pm--export:from-hist (pm--get-hist :export-from)) ))
                    (pm--put-hist :export-from sel)
                    (get-text-property 1 :id sel)))
                 ((stringp from)
@@ -211,8 +211,8 @@ first with `polymode-set-exporter'."
                 ))
          (to
           (cond ((null to)
-                 (let ((sel (ido-completing-read "Export to: " to-opts nil t nil
-                                                 'pm--export:to-hist (pm--get-hist :export-to))))
+                 (let ((sel (completing-read "Export to: " to-opts nil t nil
+                                             'pm--export:to-hist (pm--get-hist :export-to))))
                    (pm--put-hist :export-to sel)
                    (get-text-property 1 :id sel)))
                 ((stringp to)
@@ -241,8 +241,8 @@ for each polymode in CONFIGS."
   (let* ((exporters (pm--abrev-names
                      (delete-dups (pm--oref-with-parents pm/polymode :exporters))
                      "pm-exporter/"))
-         (sel (ido-completing-read "No default exporter. Choose one: " exporters nil t nil
-                                   'pm--exporter-hist (car pm--exporter-hist)))
+         (sel (completing-read "No default exporter. Choose one: " exporters nil t nil
+                               'pm--exporter-hist (car pm--exporter-hist)))
          (out (intern (get-text-property 0 :orig sel))))
     (oset pm/polymode :exporter out)
     out))
