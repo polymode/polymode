@@ -744,33 +744,54 @@ Key bindings:
                                  poly-lock-refontify
                                  pm--fontify-region-original))
     (jit-loc . (jit-lock-refontify jit-lock-mode jit-lock-fontify-now))
-    
     (font-lock . (;; font-lock-mode turn-on-font-lock-if-desired
                   turn-on-font-lock
                   font-lock-after-change-function
+                  font-lock-default-fontify-region
+                  font-lock-fontify-syntactically-region
+                  font-lock-extend-region-wholelines
+                  font-lock-extend-region-multiline
+                  font-lock-fontify-syntactic-keywords-region
+                  font-lock-fontify-keywords-region
+                  font-lock-unfontify-region
                   font-lock-fontify-region font-lock-flush
-                  font-lock-fontify-buffer font-lock-ensure))))
+                  font-lock-fontify-buffer font-lock-ensure))
+    (select .  (pm-get-innermost-span pm-map-over-spans))
+    (insert . (self-insert-command))))
 
 (defun pm-debug-trace-background-1 (fn)
   (trace-function-background fn nil
                              '(lambda ()
-                                (format " [buf:%s pos:%s type:%s (%s)]"
+                                (format " [buf:%s pos:%s type:%s (%f)]"
                                         (current-buffer) (point)
                                         (get-text-property (point) :pm-span-type)
-                                        (current-time-string)))))
+                                        (float-time)))))
 
-(defun pm-debug-trace-relevant-functions ()
+(defun pm-debug-trace-relevant-functions (&optional group)
+  "GROUP is either a string or a list of functions to trace.
+If string, it must b an entry in
+`pm-debug-relevant-functions-alist'."
   (interactive)
   (require 'trace)
-  (let* ((groups (append '("*ALL*") (mapcar #'car pm-debug-relevant-functions-alist)))
-         (group-name (completing-read "Trace group: " groups nil t)))
-    (if (equal group-name "*ALL*")
-        (mapc (lambda (group)
-                (mapc #'pm-debug-trace-background-1
-                      (assoc group pm-debug-relevant-functions-alist)))
-              (cdr groups))
+  (if (listp group)
       (mapc #'pm-debug-trace-background-1
-            (assoc (intern group-name) pm-debug-relevant-functions-alist)))))
+            (assoc (intern group-name) pm-debug-relevant-functions-alist))
+   (let* ((groups (append '("*ALL*") (mapcar #'car pm-debug-relevant-functions-alist)))
+          (group-name (or group (completing-read "Trace group: " groups nil t))))
+     (if (equal group-name "*ALL*")
+         (mapc (lambda (group)
+                 (mapc #'pm-debug-trace-background-1
+                       (assoc group pm-debug-relevant-functions-alist)))
+               (cdr groups))
+       (mapc #'pm-debug-trace-background-1
+             (assoc (intern group-name) pm-debug-relevant-functions-alist))))))
+
+(defun pm-debug-trace-functions-by-regexp (regexp)
+  "Trace all functions whose name matched REGEXP."
+  (cl-loop for sym being the symbols
+           when (fboundp sym)
+           when (string-match regexp (symbol-name sym))
+           do (pm-debug-trace-background-1 sym)))
 
 (defvar pm-debug-relevant-variables '(fontification-functions
                                       font-lock-flush-function
