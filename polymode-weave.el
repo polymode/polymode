@@ -19,19 +19,20 @@
     :type list
     :custom list
     :documentation
-    "Input specifications. A list of lists of the form
+    "Input-output specifications. An alist with elements of the form
 
           (id reg-from ext-to doc commmand)
 
-     ID is the unique identifier of the spec. REG-FROM is a regexp
-     that is used to identify if current file can be weaved with this
-     spec. EXT-TO is the *exact* (not regexp) extension of the output
-     file. DOC is a short help string shown during interactive
-     weaving. COMMMAND is the actual weaver specific command. It can
-     contain the following format specs:
-    %i - replaced with the input file
-    %o - replaced with the ouput file.
-        %O - replaced with the base output file name (no dir, no extension)")
+     ID is the unique identifier of the spec. REG-FROM is a
+     regexp that is used to identify if current file can be
+     weaved with this spec. EXT-TO is the *exact* (not regexp)
+     extension of the output file. DOC is a short help string
+     shown during interactive weaving. COMMMAND is the actual,
+     weaver specific, command. It can contain the following
+     format specs:
+         %i - replaced with the input file
+         %o - replaced with the output file
+         %O - replaced with the base output file name (no dir, no extension)")
    (function
     :initarg :function
     :initform (lambda (command id)
@@ -39,9 +40,9 @@
     :type (or symbol function)
     :documentation
     "Function to process the commmand. Must take 2 arguments
-     COMMAND, ID. COMMAND is the 5th argument of :from spec with
-     all the formats substituted. ID is the id of requested :from
-     spec."))
+     COMMAND and ID. COMMAND is the 5th argument of :from-to spec
+     with all the formats substituted. ID is the id of
+     requested :from-id spec."))
   "Root weaver class.")
 
 (defclass pm-callback-weaver (pm-weaver)
