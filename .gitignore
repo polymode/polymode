@@ -6,3 +6,4 @@ auto/
 tmp/
 *woven*
 *exported*
+.tmd
