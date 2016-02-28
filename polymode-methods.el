@@ -349,7 +349,8 @@ this method to work correctly, SUBMODE's class should define
 
 (defun pm--move-overlays-to (new-buff)
   (mapc (lambda (o)
-          (move-overlay o (overlay-start o) (overlay-end o) new-buff))
+          (unless (eq 'linum-str (car (overlay-properties o)))
+            (move-overlay o (overlay-start o) (overlay-end o) new-buff)))
         (overlays-in 1 (1+ (buffer-size)))))
 
 (defun pm--transfer-vars-from-base ()
