@@ -1,6 +1,12 @@
 ;;; COMPATIBILITY and FIXES
 
+(require 'polymode-common)
 (require 'advice nil t)
+
+(defgroup polymode-compat nil
+  "Polymode compatibility settings."
+  :group 'polymode)
+
 
 
 ;;; Various Wrappers for Around Advice
@@ -125,104 +131,26 @@ Propagate only real change."
 (when (fboundp 'advice-add)
   (advice-add 'font-lock-extend-region-multiline :around #'pm-check-for-real-change-in-extend-multiline))
 
-
-;; (defun font-lock-extend-region-multiline ()
-;;   "Move fontification boundaries away from any `font-lock-multiline' property."
-;;   (let ((changed nil)
-;;         (obeg font-lock-beg)
-;;         (oend font-lock-end))
-;;     (when (and (> font-lock-beg (point-min))
-;;                (get-text-property (1- font-lock-beg) 'font-lock-multiline))
-;;       (setq font-lock-beg (or (previous-single-property-change
-;;                                font-lock-beg 'font-lock-multiline)
-;;                               (point-min)))
-;;       (setq changed (not (eq obeg font-lock-beg))))
-;;     ;;
-;;     (when (get-text-property font-lock-end 'font-lock-multiline)
-;;       (setq font-lock-end (or (text-property-any font-lock-end (point-max)
-;;                                                  'font-lock-multiline nil)
-;;                               (point-max)))
-;;       (setq changed (or changed (not (eq oend font-lock-end)))))
-;;     changed))
-
-
 
-;;; older junk (unlikely to be needed anymore)
+;;; EVIL
 
-;; (when (string< "24.4" emacs-version)
-;;   (advice-add 'font-lock-default-fontify-region :around #'pm-execute-beg-end-function-narowed-to-span))
+(defcustom polymode-evil-states '(normal insert emacs)
+  "States of evil-mode to be preserved when switching indirect buffers."
+  :type '(symbol)
+  :group 'polymode-compat)
 
-;; (advice-remove 'font-lock-default-fontify-region #'pm-execute-beg-end-function-narowed-to-span)
+(defun polymode-switch-buffer-keep-evil-state-maybe (old-buffer new-buffer)
+  (when (and (boundp 'evil-state)
+             evil-state)
+    (let ((old-state (buffer-local-value 'evil-state old-buffer))
+          (new-state (buffer-local-value 'evil-state new-buffer)))
+      (when (and (not (eq old-state new-state))
+                 (member old-state polymode-evil-states))
+        (with-current-buffer new-buffer
+          (evil-change-state old-state))))))
 
-;; (defun pm-execute-with-restricted-widen (orig &rest args)
-;;   "Restrict `widen' inside this function to the current span."
-;;   (let ((pm--restrict-widen t))
-;;  (apply orig args)))
+(with-eval-after-load 'evil-core
+  (add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
 
-;; (defun pm-execute-beg-end-function-narowed-to-span (orig beg end &rest args)
-;;   "Execute this function narrowed to the current span."
-;;   (if (and polymode-mode pm/chunkmode)
-;;    ;; fixme: extract into a macro (pm-with-narrowed-to-span))
-;;    (save-restriction
-;;      (let (pm--restrict-widen)
-;;        (widen)
-;;        (pm-narrow-to-span (pm-get-innermost-span end))
-;;        (let ((pm--restrict-widen t)
-;;              (font-lock-dont-widen t)
-;;              (new-beg (min (point-max) (max (point-min) beg)))
-;;              (new-end (max (point-min) (min (point-max) end))))
-;;          (apply orig new-beg new-end args))))
-;;  (apply orig beg end args)))
-
-;; (defvar pm--restrict-widen nil)
-;; (defun pm-restrict-widen (orig-widen)
-;;   "Don't widen beyond current span.
-;; Many modes (e.g. c-mode) don't respect
-;; `font-lock-dont-widen'. Thus we need to perform a deeper surgery
-;; with this advice."
-;;   (if (and polymode-mode
-;;         pm--restrict-widen)
-;;    (let ((beg (get-text-property (point) :pm-span-beg))
-;;          (end (get-text-property (point) :pm-span-end)))
-;;      (funcall orig-widen)
-;;      (when (and beg end)
-;;        (narrow-to-region beg end)))
-;;  (funcall orig-widen)))
-
-;; (defun pm-adjust-pps-beginning (orig-fun from to &rest args)
-;;   "Change `parse-partial-sexp' beg to span beginning if needed"
-;;   (if polymode-mode
-;;    (let ((beg (get-text-property to :pm-span-beg))
-;;          (pm--restrict-widen nil))
-;;      (save-restriction
-;;        (widen)
-;;        (apply orig-fun (max from (or beg 0)) to args)))
-;;  (apply orig-fun from to args)))
-
-;; (when (string< "24.4" emacs-version)
-;;   (advice-add 'widen :around #'pm-restrict-widen)
-;;   (advice-add 'parse-partial-sexp :around #'pm-adjust-pps-beginning))
-;; (advice-remove 'parse-partial-sexp #'pm-adjust-pps-beginning)
-;; (advice-remove 'widen #'pm--restrict-widen)
-
-;; (when (string< "24.4" emacs-version)
-;;   (with-eval-after-load "cc-mode"
-
-;;  (defun c-before-context-fl-expand-region (beg end)
-;;    ;; Expand the region (BEG END) as specified by
-;;    ;; `c-before-context-fontification-functions'.  Return a cons of the bounds
-;;    ;; of the new region.
-;;    (save-restriction
-;;      (widen)
-;;      (save-excursion
-;;        (let ((new-beg beg) (new-end end) new-region)
-;;          (mapc (lambda (fn)
-;;                  (setq new-region (funcall fn new-beg new-end))
-;;                  (setq new-beg (car new-region) new-end (cdr new-region)))
-;;                c-before-context-fontification-functions)
-;;          new-region))))
-
-;;  ;; this function is a real pain in the ass. consider removing altogether
-;;  (advice-add 'c-after-change :around #'pm-execute-beg-end-function-narowed-to-span)))
 
 (provide 'polymode-compat)
