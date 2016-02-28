@@ -82,7 +82,8 @@ defined in `fontification-functions'."
           (let ((end (next-single-property-change
                       start 'fontified nil (point-max))))
             (poly-lock-fontify-region start end))))
-    (put-text-property start (point-max) 'fontified t)))
+    (with-buffer-prepared-for-poly-lock
+     (put-text-property start (point-max) 'fontified t))))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
