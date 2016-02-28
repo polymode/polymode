@@ -196,40 +196,64 @@ how this is computed."
         return bf))
 
 (defvar pm--ib-prefix "")
-(defun pm--create-indirect-buffer (chunkmode type &optional mode)
+(defun pm--create-indirect-buffer (chunkmode type mode)
 
-  (let ((config (or (buffer-local-value 'pm/polymode (pm-base-buffer))
-                    (error "`pm/polymode' not found in the base buffer %s"
-                           (pm-base-buffer)))))
+  (let ((config pm/polymode)
+        (mode (pm--get-existent-mode mode)))
 
-   (setq mode (pm--get-available-mode
-               (or mode (pm--get-chunkmode-mode chunkmode type))))
+    (with-current-buffer (pm-base-buffer)
+      (let* ((new-name
+              (generate-new-buffer-name
+               (format "%s%s[%s]" pm--ib-prefix (buffer-name)
+                       (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
+             (new-buffer (make-indirect-buffer (current-buffer)  new-name))
+             (file (buffer-file-name))
+             (base-name (buffer-name))
+             (coding buffer-file-coding-system))
 
-   (with-current-buffer (pm-base-buffer)
-     (let* ((new-name
-             (generate-new-buffer-name
-              (format "%s%s[%s]" pm--ib-prefix (buffer-name)
-                      (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
-            (new-buffer (make-indirect-buffer (current-buffer)  new-name))
-            (file (buffer-file-name))
-            (base-name (buffer-name))
-            (coding buffer-file-coding-system))
+        (with-current-buffer new-buffer
+          (pm--mode-setup mode)
 
-       (with-current-buffer new-buffer
-         (pm--mode-setup mode)
+          (setq buffer-file-coding-system coding
+                ;; Avoid the uniqified name for the indirect buffer in the mode line
+                ;; mode-line-buffer-identification (propertized-buffer-identification base-name)
+                pm/polymode config
+                pm/chunkmode chunkmode
+                pm/type type)
+          (funcall (oref pm/polymode :minor-mode))
+          (vc-find-file-hook)
 
-         (setq buffer-file-coding-system coding
-               ;; Avoid the uniqified name for the indirect buffer in the mode line
-               ;; mode-line-buffer-identification (propertized-buffer-identification base-name)
-               pm/polymode config
-               pm/chunkmode chunkmode
-               pm/type type)
-         (funcall (oref pm/polymode :minor-mode))
-         (vc-find-file-hook)
-
-         (pm--common-setup))
+          (pm--common-setup))
        
-       new-buffer))))
+        new-buffer))))
+
+(defun pm--get-chunkmode-mode (obj type)
+  (with-slots (mode head-mode tail-mode) obj
+    (cond ((or (eq type 'body)
+               (and (eq type 'head)
+                    (eq head-mode 'body))
+               (and (eq type 'tail)
+                    (or (eq tail-mode 'body)
+                        (and (or (null tail-mode)
+                                 (eq tail-mode 'head))
+                             (eq head-mode 'body)))))
+           (oref obj :mode))
+          ((or (and (eq type 'head)
+                    (eq head-mode 'host))
+               (and (eq type 'tail)
+                    (or (eq tail-mode 'host)
+                        (and (or (null tail-mode)
+                                 (eq tail-mode 'head))
+                             (eq head-mode 'host)))))
+           (oref (oref pm/polymode -hostmode) :mode))
+          ((eq type 'head)
+           (oref obj :head-mode))
+          ((eq type 'tail)
+           (if (or (null tail-mode)
+                   (eq tail-mode 'head))
+               (oref obj :head-mode)
+             (oref obj :tail-mode)))
+          (t (error "type must be one of 'head 'tail 'body")))))
 
 
 (defgeneric pm-get-buffer (chunkmode &optional span-type)
@@ -271,6 +295,7 @@ this method to work correctly, SUBMODE's class should define
 (defun pm--select-existent-buffer (buffer)
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
+    (pm--transfer-vars-from-base buffer)
     (if (or (not (boundp 'pm--select-buffer-visually))
             (not pm--select-buffer-visually))
         ;; fast selection
@@ -304,13 +329,9 @@ this method to work correctly, SUBMODE's class should define
       (set-window-start (get-buffer-window buffer t) window-start))
     (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)))
 
-(defmethod pm-select-buffer ((chunkmode pm-hbtchunkmode) span)
-  (call-next-method)
-  (pm--transfer-vars-from-base))
-
 (defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
   ;; :fixme: pm-get-span on multi configs returns config as last object of
-  ;; span. That's freaking confusing.
+  ;; span. This is confusing.
   (if (null (car span))
       (pm-select-buffer (oref config -hostmode) span)
     (let ((type (car span))
@@ -320,21 +341,40 @@ this method to work correctly, SUBMODE's class should define
         (goto-char (cadr span))
         (unless (eq type 'head)
           (re-search-backward (oref proto :head-reg) nil 'noerr))
-        (let* ((str (or (and (oref proto :retriever-regexp)
-                             (re-search-forward (oref proto :retriever-regexp))
-                             (match-string-no-properties (oref proto :retriever-num)))
-                        (and (oref proto :retriever-function)
-                             (funcall (oref proto :retriever-function)))
-                        (error "retriever subexpression didn't match")))
-               (name (concat "auto-innermode:" str)))
+        (let* ((str (or
+                     ;; a. try regexp matcher
+                     (and (oref proto :retriever-regexp)
+                          (re-search-forward (oref proto :retriever-regexp))
+                          (match-string-no-properties (oref proto :retriever-num)))
+                     ;; b. otherwise function (fixme: these should be merged)
+                     (and (oref proto :retriever-function)
+                          (funcall (oref proto :retriever-function)))
+                     ;; else
+                     (error "retriever didn't match")))
+               (mode (pm--get-mode-symbol-from-name str 'no-fallback)))
           (setq chunkmode
-                (or (loop for obj in (oref config -auto-innermodes)
-                          when  (equal name (object-name-string obj))
-                          return obj)
-                    (let ((new-obj (clone proto name
-                                          :mode (pm--get-mode-symbol-from-name str))))
-                      (object-add-to-list config '-auto-innermodes new-obj)
-                      new-obj)))))
+                (if mode
+                    ;; Inferred body MODE serves as ID; this not need be the
+                    ;; case in the future and a generic id getter might replace
+                    ;; it. Currently head/tail/body indirect buffers are shared
+                    ;; across chunkmodes. This currently works ok. A more
+                    ;; general approach would be to track head/tails/body with
+                    ;; associated chunks. Then for example r hbt-chunk and elisp
+                    ;; hbt-chunk will not share head/tail buffers. There could
+                    ;; be even two r hbt-chunks with providing different
+                    ;; functionality and thus not even sharing body buffer.
+                    (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
+                      (or
+                       ;; a. loop through installed inner modes
+                       (loop for obj in (oref config -auto-innermodes)
+                             when (equal name (object-name-string obj))
+                             return obj)
+                       ;; b. create new
+                       (let ((innermode (clone proto name :mode mode)))
+                         (object-add-to-list config '-auto-innermodes innermode)
+                         innermode)))
+                  ;; else, use hostmode
+                  (oref pm/polymode -hostmode)))))
       (pm-select-buffer chunkmode span))))
 
 (defun pm--adjust-visual-line-mode (vlm)
@@ -349,10 +389,12 @@ this method to work correctly, SUBMODE's class should define
             (move-overlay o (overlay-start o) (overlay-end o) new-buff)))
         (overlays-in 1 (1+ (buffer-size)))))
 
-(defun pm--transfer-vars-from-base ()
+(defun pm--transfer-vars-from-base (buffer)
   (let ((bb (pm-base-buffer)))
-    (dolist (var '(buffer-file-name))
-      (set var (buffer-local-value var bb)))))
+    (unless (eq bb buffer)
+      (with-current-buffer buffer
+       (dolist (var '(buffer-file-name))
+         (set var (buffer-local-value var bb)))))))
 
 (defvar-local pm--killed-once nil)
 (defun pm--kill-indirect-buffer ()
@@ -365,34 +407,6 @@ this method to work correctly, SUBMODE's class should define
         (with-current-buffer base
           (setq pm--killed-once t))
         (kill-buffer base)))))
-
-(defun pm--get-chunkmode-mode (obj type)
-  (with-slots (mode head-mode tail-mode) obj
-    (cond ((or (eq type 'body)
-               (and (eq type 'head)
-                    (eq head-mode 'body))
-               (and (eq type 'tail)
-                    (or (eq tail-mode 'body)
-                        (and (or (null tail-mode)
-                                 (eq tail-mode 'head))
-                             (eq head-mode 'body)))))
-           (oref obj :mode))
-          ((or (and (eq type 'head)
-                    (eq head-mode 'host))
-               (and (eq type 'tail)
-                    (or (eq tail-mode 'host)
-                        (and (or (null tail-mode)
-                                 (eq tail-mode 'head))
-                             (eq head-mode 'host)))))
-           (oref (oref pm/polymode -hostmode) :mode))
-          ((eq type 'head)
-           (oref obj :head-mode))
-          ((eq type 'tail)
-           (if (or (null tail-mode)
-                   (eq tail-mode 'head))
-               (oref obj :head-mode)
-             (oref obj :tail-mode)))
-          (t (error "type must be one of 'head 'tail 'body")))))
 
 
 ;;; SPAN MANIPULATION
