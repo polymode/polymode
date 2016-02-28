@@ -74,12 +74,15 @@ constituant reque eo, quo sit , mediocritatem
 desiderent.
 
 ```R
-
+aa <- function(x){
+    x + 3
+}
+aa(2)
 ```
 
 ```{r test3}
-3+3  
-bb[[3]]
+bb <- 3+3  
+bb[[1]]
 ```
 
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do

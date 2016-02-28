@@ -355,4 +355,12 @@
     (ess-process-put 'running-async? t)
     (ess-eval-linewise command)))
 
+
+;; COMPAT
+
+(when (fboundp 'advice-add)
+  (advice-add 'ess-eval-paragraph :around 'pm-execute-narowed-to-span)
+  (advice-add 'ess-eval-buffer :around 'pm-execute-narowed-to-span)
+  (advice-add 'ess-beginning-of-function :around 'pm-execute-narowed-to-span))
+
 (provide 'poly-R)
