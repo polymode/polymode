@@ -21,7 +21,6 @@ x <- 2
 dnorm(x)
 ```    
 
-
 We used `echo=-3` to remove the 3rd expression from the source code, and
 `gsub()` to strip `#'#'` off.
 

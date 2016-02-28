@@ -312,10 +312,13 @@ this method to work correctly, SUBMODE's class should define
         (vlm visual-line-mode)
         (ractive (region-active-p))
         (mkt (mark t))
-        (bis buffer-invisibility-spec))
+        (bis buffer-invisibility-spec)
+        (bro buffer-read-only))
     (pm--move-overlays-to new-buffer)
     (switch-to-buffer new-buffer)
     (setq buffer-invisibility-spec bis)
+    (unless (eq bro buffer-read-only)
+      (read-only-mode (if bro 1 -1)))
     (pm--adjust-visual-line-mode vlm)
     (bury-buffer old-buffer)
     ;; fixme: wha tis the right way to do this ... activate-mark-hook?
@@ -324,7 +327,7 @@ this method to work correctly, SUBMODE's class should define
       (set-mark mkt)
       (activate-mark))
     (goto-char point)
-    ;; avoid display jumping
+    ;; avoid display jumps
     (when visible
       (set-window-start (get-buffer-window buffer t) window-start))
     (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)))
