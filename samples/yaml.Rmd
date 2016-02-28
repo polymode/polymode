@@ -1,0 +1,56 @@
+---
+title: "Some very clever title here"
+author: "Author 1, Author 2"
+date: "February, 2016"
+output: html_document
+comment: Posted by Fernando Mayer in #87
+---
+
+```{r setup, include=FALSE, purl=FALSE, eval=TRUE}
+opts_chunk$set(
+    ## knitr options
+    cache = TRUE,
+    tidy = FALSE,
+    ## comment = NA,
+    fig.width = 10,
+    fig.height = 8,
+    fig.align = "center",
+    # dpi = 60, ## higher resolution
+    dev = "png"
+    # fig.path = "figures/",
+    )
+```
+
+# Packages
+
+```{r, message=FALSE}
+library(lattice)
+library(car)
+library(Matrix)
+# library(INLA)
+# library(FishMaps)
+## extra functions
+# source("script_functions.R")
+```
+
+# Data
+
+```{r}
+## Some data
+dat <- data.frame(col1 = rnorm(100),
+                  col2 = runif(100))
+str(dat)
+summary(dat)
+```
+
+Now  we must create a simple plot of the two variables.
+
+```{r}
+plot(col2 ~ col1, data = dat)
+```
+
+And now we can do some transformation
+
+```{r}
+
+```
