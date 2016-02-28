@@ -37,6 +37,7 @@ object ...")
             pm/type 'host)
 
       (pm--common-setup)
+      (poly-lock-refontify)
       
       (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t)
       (pm--run-init-hooks config))))
@@ -339,7 +340,6 @@ this method to work correctly, SUBMODE's class should define
                       (object-add-to-list config '-auto-innermodes new-obj)
                       new-obj)))))
       (pm-select-buffer chunkmode span))))
-
 
 (defun pm--adjust-visual-line-mode (vlm)
   (unless (eq visual-line-mode vlm)
