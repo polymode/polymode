@@ -250,6 +250,9 @@ installed. Also see `pm-get-span'.")
                   type (pm--object-name chunkmode) (class-of chunkmode)))))
 
 
+
+(defvar pm--select-buffer-visually)
+
 (defgeneric pm-select-buffer (chunkmode span)
   "Ask SUBMODE to select (make current) its indirect buffer
 corresponding to the type of the SPAN returned by
@@ -267,8 +270,6 @@ this method to work correctly, SUBMODE's class should define
       (setq buff (pm-get-buffer chunkmode type)))
     (pm--select-existent-buffer buff)))
 
-(defvar pm--select-buffer-visually)
-
 ;; extracted for debugging purpose
 (defun pm--select-existent-buffer (buffer)
   (when (and (not (eq buffer (current-buffer)))
@@ -281,20 +282,20 @@ this method to work correctly, SUBMODE's class should define
       (pm--select-existent-buffer-visually buffer))))
 
 ;; extracted for debugging purpose
-(defun pm--select-existent-buffer-visually (buffer)
+(defun pm--select-existent-buffer-visually (new-buffer)
   (let ((point (point))
         (window-start (window-start))
         (visible (pos-visible-in-window-p))
-        (oldbuf (current-buffer))
+        (old-buffer (current-buffer))
         (vlm visual-line-mode)
         (ractive (region-active-p))
         (mkt (mark t))
         (bis buffer-invisibility-spec))
-    (pm--move-overlays-to buffer)
-    (switch-to-buffer buffer)
+    (pm--move-overlays-to new-buffer)
+    (switch-to-buffer new-buffer)
     (setq buffer-invisibility-spec bis)
     (pm--adjust-visual-line-mode vlm)
-    (bury-buffer oldbuf)
+    (bury-buffer old-buffer)
     ;; fixme: wha tis the right way to do this ... activate-mark-hook?
     (if (not ractive)
         (deactivate-mark)
@@ -303,7 +304,8 @@ this method to work correctly, SUBMODE's class should define
     (goto-char point)
     ;; avoid display jumping
     (when visible
-      (set-window-start (get-buffer-window buffer t) window-start))))
+      (set-window-start (get-buffer-window buffer t) window-start))
+    (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)))
 
 (defmethod pm-select-buffer ((chunkmode pm-hbtchunkmode) span)
   (call-next-method)

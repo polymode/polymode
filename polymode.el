@@ -69,13 +69,6 @@
   "Polymode Chunkmode Objects"
   :group 'polymode)
 
-(defvar polymode-select-mode-hook nil ;; not used yet
-  "Hook run after a different mode is selected.")
-
-(defvar polymode-indirect-buffer-hook nil ;; not used yet
-  "Hook run by `pm/install-mode' in each indirect buffer.
-It is run after all the indirect buffers have been set up.")
-
 (defcustom polymode-prefix-key "\M-n"
   "Prefix key for the polymode mode keymap.
 Not effective after loading the polymode library."

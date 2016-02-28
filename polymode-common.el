@@ -15,6 +15,13 @@
   :group 'polymode
   :type 'boolean)
 
+(defvar polymode-switch-buffer-hook nil
+  "Hook run on switching to a different buffer.
+Each function is run with two arguments `old-buffer' and
+`new-buffer'. This hook is commonly used to transfer state
+between buffers. The hook is run in a new buffer, but you should
+not rely on that.")
+
 ;; esential vars
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
