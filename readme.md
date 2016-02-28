@@ -19,6 +19,8 @@ tools for exporting, weaving and tangling.
 
 ## Installation
 
+*Note: Oldest supported Emacs version is 24.4*
+
 ### From [MELPA](https://github.com/milkypostman/melpa)
 
 <kbd>M-x</kbd> `package-install` `polymode`.

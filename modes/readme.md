@@ -3,9 +3,9 @@
 Polymode doesn't keep its modes in a single emacs buffer but in several indirect
 buffers, as many as different modes are there in a file. Consequently, polymode
 is as fast as switching emacs buffers because it never re-installs major modes
-like other multi-modes do. I am very much indebted to Dave Love's
-[multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) for this
-awesome idea.
+like other multi-modes do. Dave Love's
+[multi-mode.el](http://www.loveshack.ukfsn.org/emacs/multi-mode.el) gets full
+credit for this idea.
 
 - [Glossary of Terms](#glossary-of-terms)
 - [Class Hierarchy](#class-hierarchy)
@@ -23,7 +23,6 @@ awesome idea.
 - [Internals](#internals)
   - [API](#api)
   - [Initialization of polymodes](#initialization-of-polymodes)
-
 
 ## Glossary of Terms
 

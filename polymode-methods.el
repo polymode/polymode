@@ -159,8 +159,6 @@ how this is computed."
   (pm--set-chunkmode-buffer chunkmode type
                             (pm--get-chunkmode-buffer-create chunkmode type)))
 
-;; This doesn't work in 24.2, pcase bug ((void-variable xcar)) Other pcases in
-;; this file don't throw this error.
 (defun pm--set-chunkmode-buffer (obj type buff)
   "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
   (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
@@ -187,7 +185,6 @@ how this is computed."
       (_ (error "type must be one of 'body, 'head or 'tail")))))
 
 (defun pm--get-chunkmode-buffer-create (chunkmode type)
-  ;; assumes pm/polymode is set
   (let ((mode (pm--get-chunkmode-mode chunkmode type)))
     (or (pm--get-indirect-buffer-of-mode mode)
         (pm--create-indirect-buffer chunkmode type mode))))

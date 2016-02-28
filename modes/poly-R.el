@@ -64,7 +64,6 @@
 ;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
 (define-polymode poly-markdown+r-mode pm-poly/markdown :lighter " PM-Rmd")
 
-
 
 ;; RAPPORT
 (defcustom pm-poly/rapport
