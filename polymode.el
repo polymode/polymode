@@ -749,16 +749,20 @@ Key bindings:
                   font-lock-unfontify-region
                   font-lock-fontify-region font-lock-flush
                   font-lock-fontify-buffer font-lock-ensure))
-    (select .  (pm-get-innermost-span pm-map-over-spans))
+    (methods . (pm-select-buffer pm-get-buffer pm-))
+    (select . (pm-get-innermost-span pm-map-over-spans))
     (insert . (self-insert-command))))
 
 (defun pm-debug-trace-background-1 (fn)
-  (trace-function-background fn nil
-                             '(lambda ()
-                                (format " [buf:%s pos:%s type:%s (%f)]"
-                                        (current-buffer) (point)
-                                        (get-text-property (point) :pm-span-type)
-                                        (float-time)))))
+  (unless (symbolp fn)
+    (error "can trace symbols only"))
+  (unless (get fn 'cl--class)
+    (trace-function-background fn nil
+                               '(lambda ()
+                                  (format " [buf:%s pos:%s type:%s (%f)]"
+                                          (current-buffer) (point)
+                                          (get-text-property (point) :pm-span-type)
+                                          (float-time))))))
 
 (defun pm-debug-trace-relevant-functions (&optional group)
   "GROUP is either a string or a list of functions to trace.
@@ -766,9 +770,8 @@ If string, it must b an entry in
 `pm-debug-relevant-functions-alist'."
   (interactive)
   (require 'trace)
-  (if (listp group)
-      (mapc #'pm-debug-trace-background-1
-            (assoc (intern group-name) pm-debug-relevant-functions-alist))
+  (if (and group (listp group))
+      (mapc #'pm-debug-trace-background-1 group)
    (let* ((groups (append '("*ALL*") (mapcar #'car pm-debug-relevant-functions-alist)))
           (group-name (or group (completing-read "Trace group: " groups nil t))))
      (if (equal group-name "*ALL*")
@@ -855,6 +858,16 @@ If string, it must b an entry in
       (pm-switch-to-buffer))
     (let ((elapsed  (float-time (time-subtract (current-time) start))))
       (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
+
+(defun pm-dbg (msg &rest args)
+  (let ((cbuf (current-buffer))
+        (cpos (point)))
+   (with-current-buffer (get-buffer-create "*pm-dbg*")
+     (save-excursion
+       (goto-char (point-max))
+       (insert "\n")
+       (insert (apply 'format (concat "%f [%s at %d]: " msg)
+                      (float-time) cbuf cpos args))))))
 
 (provide 'polymode)
 ;;; polymode.el ends here
