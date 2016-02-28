@@ -124,9 +124,9 @@ that call a shell command"
                                      (cons ?p ofile)
                                      (cons ?t (nth 3 to-spec))))))
     (unless to-spec
-      (error "'to' spec `%s' is not defined for exporter '%s'" to (pm--object-name exporter)))
+      (error "'to' spec `%s' is not defined for exporter '%s'" to (eieio-object-name exporter)))
     (message "Exporting '%s' with '%s' exporter ..."
-             (file-name-nondirectory ifile) (pm--object-name exporter))
+             (file-name-nondirectory ifile) (eieio-object-name exporter))
     (let* ((pm--output-file ofile)
            (pm--input-file ifile)
            (fun (oref exporter :function))
@@ -192,7 +192,7 @@ extension.  See class `pm-exporter' for the definitions."
                     ;; 4. nothing matched; ask
                     (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
                                            (file-name-extension fname)
-                                           (pm--object-name exporter)))
+                                           (eieio-object-name exporter)))
                            (sel (completing-read prompt (mapcar #' car from-opts) nil t nil
                                                  'pm--export:from-hist (pm--get-hist :export-from))))
                       (pm--put-hist :export-from sel)
@@ -208,7 +208,7 @@ extension.  See class `pm-exporter' for the definitions."
                  (if (assoc from e:from)
                      from
                    (error "Cannot find input spec '%s' in %s exporter"
-                          from (pm--object-name exporter))))
+                          from (eieio-object-name exporter))))
                 (t (error "'from' argument must be nil, universal argument or a string"))))
          (to
           (cond ((null to)
@@ -220,7 +220,7 @@ extension.  See class `pm-exporter' for the definitions."
                  (if (assoc to e:to)
                      to
                    (error "Cannot find output spec '%s' in %s exporter"
-                          to (pm--object-name exporter))))
+                          to (eieio-object-name exporter))))
                 (t (error "'to' argument must be nil or a string")))))
     (if (consp from)
         ;; run through weaver

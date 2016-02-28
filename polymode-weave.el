@@ -125,7 +125,7 @@ specification will be called.")
                                            (cons ?o base-ofile)
                                            (cons ?p ofile)))))
           (message "Weaving '%s' with '%s' weaver ..."
-                   (file-name-nondirectory ifile) (pm--object-name weaver))
+                   (file-name-nondirectory ifile) (eieio-object-name weaver))
           ;; weave and pass to exporter if any
           (let* ((pm--output-file ofile)
                  (pm--input-file ifile)
@@ -143,7 +143,7 @@ specification will be called.")
                 (pm--display-file wfile)
                 wfile))))
       (error "from-to spec '%s' is not supported by weaver '%s'"
-             from-to-id (pm--object-name weaver)))))
+             from-to-id (eieio-object-name weaver)))))
 
 
 ;; UI
@@ -169,7 +169,7 @@ input-output specification alist. See also `pm-weave' generic."
          (opts (mapcar (lambda (el)
                          (cons (format "%s" (nth 3 el)) (car el)))
                        w:fromto))
-         (wname (pm--object-name weaver))
+         (wname (eieio-object-name weaver))
          (ft-id
           (cond
            ;; guess from-to spec

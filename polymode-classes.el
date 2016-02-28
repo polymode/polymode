@@ -186,7 +186,6 @@ advance) innermodes.")
   "Configuration for a polymode that allows multiple innermodes
 that are not known in advance. Examples are org-mode and markdown.")
 
-
 
 ;;; CHUNKMODE CLASSES
 (defclass pm-chunkmode (pm-root)

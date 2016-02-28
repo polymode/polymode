@@ -245,10 +245,9 @@ installed. Also see `pm-get-span'.")
         ((eq 'head type) (oref chunkmode -head-buffer))
         ((eq 'tail type) (oref chunkmode -tail-buffer))
         (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s' of class '%s'"
-                  type (pm--object-name chunkmode) (class-of chunkmode)))))
+                  type (eieio-object-name chunkmode) (class-of chunkmode)))))
 
 
-
 (defvar pm--select-buffer-visually)
 
 (defgeneric pm-select-buffer (chunkmode span)

@@ -169,11 +169,11 @@ Return, how many chucks actually jumped over."
          (lambda ()
            (unless (memq (car *span*) '(head tail))
              (when (and (equal this-class
-                               (pm--object-name (car (last *span*))))
+                               (eieio-object-name (car (last *span*))))
                         (eq this-type (car *span*)))
                (setq sofar (1+ sofar)))
              (unless this-class
-               (setq this-class (pm--object-name (car (last *span*)))
+               (setq this-class (eieio-object-name (car (last *span*)))
                      this-type (car *span*)))
              (when (>= sofar N)
                (signal 'quit nil))))

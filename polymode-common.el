@@ -69,24 +69,22 @@ not rely on that.")
 (defun pm--display-file (ofile)
   (display-buffer (find-file-noselect ofile 'nowarn)))
 
-(defun pm--get-mode-symbol-from-name (str)
-  "Guess and return mode function.
-Return major mode function constructed from STR by appending
-'-mode' if needed. If the constructed symbol is not a function
-return an error."
+(defun pm--get-mode-symbol-from-name (str &optional no-fallback)
+  "Guess and return mode function."
   (let* ((str (if (symbolp str)
                   (symbol-name str)
                 str))
          (mname (if (string-match-p "-mode$" str)
                     str
                   (concat str "-mode"))))
-    (pm--get-available-mode (intern mname))))
+    (pm--get-existent-mode (intern mname) no-fallback)))
 
-(defun pm--get-available-mode (mode)
+(defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
-If so, return it, otherwise return 'fundamental-mode with a
+If so, return it, otherwise return 'fundamental-mode and issue a
 warning."
   (cond ((fboundp mode) mode)
+        (no-fallback nil)
         (t (message "Cannot find function `%s', using `fundamental-mode'" mode)
            'fundamental-mode)))
 

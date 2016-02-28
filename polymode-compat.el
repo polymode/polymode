@@ -16,7 +16,7 @@
 (defun pm-override-output-position (orig-fun &rest args)
   "Restrict returned value of ORIG-FUN to fall into the current span.
 *span* in `pm-map-over-spans` has precedence over span at point.'"
-  (if (and polymode-mode pm/chunkmode)
+  (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-get-innermost-range)))
             (pos (apply orig-fun args)))
@@ -28,7 +28,7 @@
 (defun pm-override-output-cons (orig-fun &rest args)
   "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
 *span* in `pm-map-over-spans` has precedence over span at point.'"
-  (if (and polymode-mode pm/chunkmode)
+  (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-get-innermost-range)))
             (be (apply orig-fun args)))
@@ -42,7 +42,7 @@
 (defun pm-substitute-beg-end (orig-fun beg end &rest args)
   "Execute orig-fun with first two arguments limited to current span.
 *span* in `pm-map-over-spans` has precedence over span at point."
-  (if (and polymode-mode pm/chunkmode)
+  (if (and polymode-mode pm/polymode)
       (let* ((pos (if (and (<= (point) end) (>=  (point) beg))
                       (point)
                     end))
@@ -64,8 +64,8 @@
 (defun pm-execute-narowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.
 *span* in `pm-map-over-spans` has precedence over span at point."
-  (if (and polymode-mode pm/chunkmode)
-      ;; fixme: extract into a macro (pm-with-narrowed-to-span))
+  (if (and polymode-mode pm/polymode)
+      ;; fixme: extract into a macro (pm-with-narrowed-to-span)
       (pm-with-narrowed-to-span
         (apply orig-fun args))
     (apply orig-fun args)))
@@ -76,7 +76,7 @@
 (defun pm-execute-syntax-propertize-narrowed-to-span (orig-fun &rest args)
   "Execute `syntax-propertize' narrowed to the current span.
 Don't throw errors, but give relevant messages instead."
-  (if (and polymode-mode pm/chunkmode)
+  (if (and polymode-mode pm/polymode)
       (condition-case err
           (pm-with-narrowed-to-span
             (apply orig-fun args))
@@ -92,16 +92,6 @@ Don't throw errors, but give relevant messages instead."
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
   (or (get-text-property beg :pm-span-type)
       (get-text-property end :pm-span-type)))
-
-
-;;; EIEIO
-(defvar object-name)
-(defun pm--object-name (object)
-  (cond ((fboundp 'eieio--object-name)
-         (eieio--object-name object))
-        ((fboundp 'eieio-object-name)
-         (eieio-object-name object))
-        (t (aref object object-name))))
 
 
 ;;; C/C++/Java
