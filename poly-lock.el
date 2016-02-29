@@ -148,40 +148,35 @@ Fontifies chunk-by chunk within the region. Assigned to
              (with-buffer-prepared-for-poly-lock
               (let ((sbeg (nth 1 *span*))
                     (send (nth 2 *span*)))
-                (when (and font-lock-mode font-lock-keywords (> send sbeg))
-                  (when parse-sexp-lookup-properties
-                    (pm--comment-region 1 sbeg))
-                  (let ((new-beg (max sbeg beg))
-                        (new-end (min send end)))
+                (when (> send sbeg)
+                  (if  (not (and font-lock-mode font-lock-keywords))
+                      ;; even when no font-lock, set to t
+                      (put-text-property sbeg send 'fontified t)
 
-                    (condition-case-unless-debug err
-                        (if (oref pm/chunkmode :font-lock-narrow)
-                            (save-restriction
-                              ;; fixme: optimization opportunity: Cache
-                              ;; chunk state in text properties. For big
-                              ;; chunks font-lock fontifies it by smaller
-                              ;; segments, thus poly-lock-fontify-region is
-                              ;; called multiple times per chunk and spans
-                              ;; are re-computed each time.
-                              (narrow-to-region sbeg send)
-                              (font-lock-unfontify-region new-beg new-end)
-                              (funcall pm--fontify-region-original new-beg new-end verbose))
-                          (funcall pm--fontify-region-original new-beg new-end verbose))
-                      
-                      ;; Don't change this error string; it is used in
-                      ;; `pm-debug-fontify-last-font-lock-error'
-                      (error (message "(poly-lock-fontify-region %s %s) -> (%s %s %s %s): %s "
-                                      beg end pm--fontify-region-original new-beg new-end verbose
-                                      (error-message-string err))))
-                    ;; even if failed or no font-lock, set to t
-                    (put-text-property new-beg new-end 'fontified t))
+                    (when parse-sexp-lookup-properties
+                      (pm--comment-region 1 sbeg))
+                    
+                    (let ((new-beg (max sbeg beg))
+                          (new-end (min send end)))
+                      (condition-case-unless-debug err
+                          (if (oref pm/chunkmode :font-lock-narrow)
+                              (save-restriction
+                                (narrow-to-region sbeg send)
+                                (font-lock-unfontify-region new-beg new-end)
+                                (funcall pm--fontify-region-original new-beg new-end verbose))
+                            (funcall pm--fontify-region-original new-beg new-end verbose))
+                        (error (message "(poly-lock-fontify-region %s %s) -> (%s %s %s %s): %s "
+                                        beg end pm--fontify-region-original new-beg new-end verbose
+                                        (error-message-string err))))
+                      ;; even if failed set to t
+                      (put-text-property new-beg new-end 'fontified t))
+                    
+                    (when parse-sexp-lookup-properties
+                      (pm--uncomment-region 1 sbeg)))
                   
-                  (when parse-sexp-lookup-properties
-                    (pm--uncomment-region 1 sbeg)))
-                
-                (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode)))))
-           beg end)))))
-  (current-buffer))
+                  (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode))))))
+             beg end)))))
+    (current-buffer))
 
 (defun poly-lock-refontify (&optional beg end)
   "Force refontification of the region BEG..END.
