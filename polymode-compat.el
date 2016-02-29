@@ -135,18 +135,12 @@ Propagate only real change."
 
 ;;; EVIL
 
-(defcustom polymode-evil-states '(normal insert emacs)
-  "States of evil-mode to be preserved when switching indirect buffers."
-  :type '(symbol)
-  :group 'polymode-compat)
-
 (defun polymode-switch-buffer-keep-evil-state-maybe (old-buffer new-buffer)
   (when (and (boundp 'evil-state)
              evil-state)
     (let ((old-state (buffer-local-value 'evil-state old-buffer))
           (new-state (buffer-local-value 'evil-state new-buffer)))
-      (when (and (not (eq old-state new-state))
-                 (member old-state polymode-evil-states))
+      (unless (eq old-state new-state)
         (with-current-buffer new-buffer
           (evil-change-state old-state))))))
 
