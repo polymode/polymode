@@ -129,7 +129,8 @@ Propagate only real change."
 
 
 ;;; Editing
-(advice-add 'fill-paragraph :around #'pm-execute-narowed-to-span)
+(when (fboundp 'advice-add)
+  (advice-add 'fill-paragraph :around #'pm-execute-narowed-to-span))
 
 
 ;;; EVIL
