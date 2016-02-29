@@ -263,9 +263,10 @@ Return, how many chucks actually jumped over."
         (widen)
         (let* ((beg (nth 1 span))
                (end (max beg (1- (nth 2 span)))))
-          (and (eq span (get-text-property beg :pm-span))
-               (eq span (get-text-property end :pm-span))
-               span))))))
+          (when (<= end (point-max))
+            (and (eq span (get-text-property beg :pm-span))
+                 (eq span (get-text-property end :pm-span))
+                 span)))))))
 
 (defun pm-get-innermost-span (&optional pos no-cache)
   "Get span object at POS.
