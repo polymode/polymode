@@ -40,6 +40,14 @@
 
 
 ;; HOST MODES
+
+(defcustom pm-host/blank
+  (pm-bchunkmode "FallBack" :mode nil)
+  "Blank. Used as a placeholder for currently installed mode.
+It is specifically intended to be used with minor modes."
+  :group 'hostmodes
+  :type 'object)
+
 (defcustom pm-host/fallback
   (pm-bchunkmode "FallBack"
                  :mode 'poly-fallback-mode)
