@@ -528,6 +528,9 @@ BODY contains code to be executed after the complete
   "Default major mode for polymode head and tail spans.")
 
 (define-derived-mode poly-fallback-mode prog-mode "FallBack"
+  ;; fixme:
+  ;; 1. doesn't work as fallback for hostmode
+  ;; 2. highlighting is lost (Rnw with inner fallback)
   "Default major mode for modes which were not found.
 This is better than fundamental-mode because it allows running
 globalized minor modes and can run user hooks.")

@@ -10,7 +10,6 @@ knit_hooks$set(source = function(x, options) {
     gsub("(^|\n)#'#' ", '\\1', res)
 })
 ```
-
 The trick is to mask the source code in special comments (e.g. `#'#'`), and
 remove the comment markers later. Of course, you have to guarantee these markers
 are unique.
@@ -25,3 +24,10 @@ We used `echo=-3` to remove the 3rd expression from the source code, and
 `gsub()` to strip `#'#'` off.
 
 This is completely hack. Use with care.
+
+Example code:
+
+```{r}
+## Example code:
+aggregate(argent[, 2:5], by = list(Transect = argent$Transect, Season = argent$Season), FUN = sum)
+```

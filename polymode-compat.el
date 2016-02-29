@@ -65,8 +65,15 @@
   "Execute ORIG-FUN narrowed to the current span.
 *span* in `pm-map-over-spans` has precedence over span at point."
   (if (and polymode-mode pm/polymode)
-      ;; fixme: extract into a macro (pm-with-narrowed-to-span)
       (pm-with-narrowed-to-span
+        (apply orig-fun args))
+    (apply orig-fun args)))
+
+(defun pm-execute-widened (orig-fun &rest args)
+  "Execute ORIG-FUN widened"
+  (if (and polymode-mode pm/polymode)
+      (save-restriction
+        (widen)
         (apply orig-fun args))
     (apply orig-fun args)))
 
@@ -104,9 +111,8 @@ Don't throw errors, but give relevant messages instead."
   ;; (advice-add 'font-lock-default-fontify-region :around #'pm-substitute-beg-end)
   (advice-add 'c-determine-limit :around #'pm-execute-narowed-to-span))
 
-
 
-;;; CORE FONT LOCK
+;;; Core Font Lock
 (defun pm-check-for-real-change-in-extend-multiline (fun)
   "Fix `font-lock-extend-region-multiline' which causes infloops on point-max.
 Propagate only real change."
