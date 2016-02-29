@@ -150,8 +150,8 @@ Propagate only real change."
         (with-current-buffer new-buffer
           (evil-change-state old-state))))))
 
-(with-eval-after-load 'evil-core
-  (add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
+(eval-after-load 'evil-core
+  '(add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
 
 
 (provide 'polymode-compat)
