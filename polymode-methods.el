@@ -2,6 +2,19 @@
 (require 'poly-lock)
 
 
+;;; Initialization
+
+(defvar pm-initialization-in-progress nil
+  ;; We particularly need this during cascading call-next-method in
+  ;; pm-initialize. -innermodes are initialized after the hostmode setup has
+  ;; taken place. This means that pm-get-span and all the functionality that
+  ;; relies on it will fail to work correctly during the initialization in the
+  ;; call-next-method. This is particularly relevant to font-lock setup and user
+  ;; hooks.
+  "Non nil during the initialization.
+If this variable is non-nil, various chunk manipulation commands
+relying on `pm-get-span' might not function correctly.")
+
 (defgeneric pm-initialize (config)
   "Initialize current buffer with CONFIG.
 
@@ -13,7 +26,8 @@ object ...")
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
   (unless pm/polymode
-    (let* ((chunkmode (clone (symbol-value (oref config :hostmode))))
+    (let* ((pm-initialization-in-progress t)
+           (chunkmode (clone (symbol-value (oref config :hostmode))))
            ;; Set if nil! This allows unspecified host chunkmodes to be used in
            ;; minor modes.
            (host-mode (or (oref chunkmode :mode)
@@ -37,22 +51,25 @@ object ...")
             pm/type 'host)
 
       (pm--common-setup)
-      (poly-lock-refontify)
-      
-      (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t)
-      (pm--run-init-hooks config))))
+      (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
+    
+    (pm--run-init-hooks config)))
 
 (defmethod pm-initialize ((config pm-polymode-one))
-  (call-next-method)
+  (let ((pm-initialization-in-progress t))
+    (call-next-method))
   (eval `(oset config -innermodes
-               (list (clone ,(oref config :innermode))))))
+               (list (clone ,(oref config :innermode)))))
+  (pm--run-init-hooks config))
 
 (defmethod pm-initialize ((config pm-polymode-multi))
-  (call-next-method)
+  (let ((pm-initialization-in-progress))
+    (call-next-method))
   (oset config -innermodes
         (mapcar (lambda (sub-name)
                   (clone (symbol-value sub-name)))
-                (oref config :innermodes))))
+                (oref config :innermodes)))
+  (pm--run-init-hooks config))
 
 (defun pm--mode-setup (mode &optional buffer)
   ;; General major-mode install. Should work for both indirect and base buffers.
@@ -97,13 +114,6 @@ object ...")
   (with-current-buffer (or buffer (current-buffer))
 
     (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
-    
-    ;; (setq-local font-lock-mode t)
-    (setq-local font-lock-function 'poly-lock-mode)
-    (setq-local font-lock-support-mode 'poly-lock-mode)
-    (setq-local pm--fontify-region-original font-lock-fontify-region-function)
-    (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
-    (font-lock-mode t)
 
     (setq pm--syntax-begin-function-original syntax-begin-function)
     (setq-local syntax-begin-function #'pm-syntax-begin-function)
@@ -122,21 +132,31 @@ object ...")
     
     (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
     (object-add-to-list pm/polymode '-buffers (current-buffer))
+
+    ;; (setq-local font-lock-mode t)
+    (setq-local font-lock-function 'poly-lock-mode)
+    (setq-local font-lock-support-mode 'poly-lock-mode)
+    (setq-local pm--fontify-region-original font-lock-fontify-region-function)
+    (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
+
+    (font-lock-mode t)
+    
     (current-buffer)))
 
 (defun pm--run-init-hooks (config)
   "Run hooks from :init-functions slot of CONFIG and its parent instances.
 Parents' hooks are run first."
-  (let ((parent-inst config) 
-        init-funs)
-    ;; run hooks, parents first
-    (while parent-inst
-      (setq init-funs (append (and (slot-boundp parent-inst :init-functions) ; don't cascade
-                             (oref parent-inst :init-functions))
-                        init-funs)
-            parent-inst (and (slot-boundp parent-inst :parent-instance)
-                    (oref parent-inst :parent-instance))))
-    (run-hooks 'init-funs)))
+  (unless pm-initialization-in-progress
+    (let ((parent-inst config) 
+          init-funs)
+      ;; run hooks, parents first
+      (while parent-inst
+        (setq init-funs (append (and (slot-boundp parent-inst :init-functions) ; don't cascade
+                                     (oref parent-inst :init-functions))
+                                init-funs)
+              parent-inst (and (slot-boundp parent-inst :parent-instance)
+                               (oref parent-inst :parent-instance))))
+      (run-hooks 'init-funs))))
 
 
 (defgeneric pm-install-buffer (chunkmode &optional type)

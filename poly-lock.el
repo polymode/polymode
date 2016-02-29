@@ -16,6 +16,7 @@
 (defvar poly-lock-allow-after-change t)
 (defvar poly-lock-allow-fontification t)
 (defvar poly-lock-fontification-in-progress nil)
+(defvar pm-initialization-in-progress)
 
 (eval-when-compile
   (defmacro with-buffer-prepared-for-poly-lock (&rest body)
@@ -75,15 +76,17 @@ Preserves the `buffer-modified-p' state of the current buffer."
   "The only function in `fontification-functions'.
 This is the entry point called by the display engine. START is
 defined in `fontification-functions'."
-  (if poly-lock-allow-fontification
-      (when (and poly-lock-mode
-                 (not memory-full))
-        (unless (input-pending-p)
-          (let ((end (next-single-property-change
-                      start 'fontified nil (point-max))))
-            (poly-lock-fontify-region start end))))
-    (with-buffer-prepared-for-poly-lock
-     (put-text-property start (point-max) 'fontified t))))
+  (unless pm-initialization-in-progress
+    (if poly-lock-allow-fontification
+        (when (and poly-lock-mode
+                   (not memory-full))
+          (unless (input-pending-p)
+            (let ((end (or (text-property-any start (point-max) 'fontified t)
+                           (point-max))))
+              (when (< start end)
+                (poly-lock-fontify-region start end)))))
+      (with-buffer-prepared-for-poly-lock
+       (put-text-property start (point-max) 'fontified t)))))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
@@ -121,21 +124,17 @@ Installed on `after-change-functions'."
 (defun poly-lock-fontify-region (beg end &optional verbose)
   "Polymode font-lock fontification function.
 Fontifies chunk-by chunk within the region. Assigned to
-`font-lock-fontify-region-function'.
-
-A fontification mechanism should call
-`font-lock-fontify-region-function' (`jit-lock-function' does
-that). If it does not, the fontification will probably be screwed
-in polymode buffers."
-  (unless poly-lock-fontification-in-progress
+`font-lock-fontify-region-function'."
+  (unless (or poly-lock-fontification-in-progress
+              pm-initialization-in-progress)
     (let* ((font-lock-dont-widen t)
            (pmarker (point-marker))
            (dbuffer (current-buffer))
            (pm--restrict-widen t)
            ;; Fontification in one buffer can trigger fontification in another
            ;; buffer. Particularly, this happens when new indirect buffers are
-           ;; created and `normal-mode' triggers font-lock in those
-           ;; buffers. We avoid this by dynamically binding
+           ;; created and `normal-mode' triggers font-lock in those buffers. We
+           ;; avoid this by dynamically binding
            ;; `poly-lock-fontification-in-progress' and un-setting
            ;; `fontification-functions' in case re-display suddenly decides to
            ;; fontify something else in other buffer.
@@ -190,7 +189,8 @@ END is extended to the next chunk separator. This function is
 pleased in `font-lock-flush-function' and
 `font-lock-ensure-function'"
   (when (and poly-lock-allow-fontification
-             (not poly-lock-fontification-in-progress))
+             (not poly-lock-fontification-in-progress)
+             (not pm-initialization-in-progress))
     (with-buffer-prepared-for-poly-lock
      (save-restriction
        (widen)
