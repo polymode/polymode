@@ -271,27 +271,28 @@ Return, how many chucks actually jumped over."
   "Get span object at POS.
 If NO-CACHE is non-nil, don't use cache and force re-computation
 of the span."
-  (save-restriction
-    (widen)
-    (let* ((span (or (and (not no-cache)
-                          (pm-get-cached-span pos))
-                     (pm-get-span pm/polymode pos)))
-           (beg (nth 1 span))
-           (end (nth 2 span)))
-      ;; might be used by external applications like flyspell
-      (with-silent-modifications
-        (add-text-properties beg end
-                             (list :pm-span span
-                                   :pm-span-type (car span)
-                                   :pm-span-beg beg
-                                   :pm-span-end end)))
-      span)))
+  (save-excursion
+    (save-restriction
+      (widen)
+      (let* ((span (or (and (not no-cache)
+                            (pm-get-cached-span pos))
+                       (pm-get-span pm/polymode pos)))
+             (beg (nth 1 span))
+             (end (nth 2 span)))
+        ;; might be used by external applications like flyspell
+        (with-silent-modifications
+          (add-text-properties beg end
+                               (list :pm-span span
+                                     :pm-span-type (car span)
+                                     :pm-span-beg beg
+                                     :pm-span-end end)))
+        span))))
 
 (defun pm-span-to-range (span)
   (and span (cons (nth 1 span) (nth 2 span))))
 
-(defun pm-get-innermost-range (&optional pos)
-  (pm-span-to-range (pm-get-innermost-span pos)))
+(defun pm-get-innermost-range (&optional pos no-cache)
+  (pm-span-to-range (pm-get-innermost-span pos no-cache)))
 
 (defun pm-switch-to-buffer (&optional pos)
   "Bring the appropriate polymode buffer to front.
