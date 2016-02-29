@@ -81,12 +81,12 @@ not rely on that.")
 
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
-If so, return it, otherwise return 'fundamental-mode and issue a
-warning."
+If so, return it, otherwise return `poly-fallback-mode' and issue
+a warning."
   (cond ((fboundp mode) mode)
         (no-fallback nil)
-        (t (message "Cannot find function `%s', using `fundamental-mode'" mode)
-           'fundamental-mode)))
+        (t (message "Cannot find function `%s', using `poly-fallback-mode'" mode)
+           'poly-fallback-mode)))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."

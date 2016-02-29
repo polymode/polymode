@@ -527,6 +527,12 @@ BODY contains code to be executed after the complete
 (define-derived-mode poly-head-tail-mode prog-mode "HeadTail"
   "Default major mode for polymode head and tail spans.")
 
+(define-derived-mode poly-fallback-mode prog-mode "FallBack"
+  "Default major mode for modes which were not found.
+This is better than fundamental-mode because it allows running
+globalized minor modes and can run user hooks.")
+
+
 
 ;;; FONT-LOCK
 ;; indulge elisp font-lock :) 
@@ -536,6 +542,7 @@ BODY contains code to be executed after the complete
    '(("(\\(define-polymode\\)\\s +\\(\\(\\w\\|\\s_\\)+\\)"
       (1 font-lock-keyword-face)
       (2 font-lock-variable-name-face)))))
+
 
 
 ;;; TOOLS for DEBUGGING

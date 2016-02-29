@@ -5,10 +5,17 @@
 ;; These are simple generic configuration objects. More specialized
 ;; configuration objects are defined in language-specific files (e.g. poly-R.el,
 ;; poly-markdown.el etc).
+
+(defcustom pm-inner/fallback
+  (pm-chunkmode "FallBack" :mode 'poly-fallback-mode)
+  "Polymode fall back inner mode."
+  :group 'hostmodes
+  :type 'object)
+
 (defcustom pm-poly/brew
   (pm-polymode-one "brew"
                  :hostmode 'pm-host/text
-                 :innermode 'pm-inner/fundamental)
+                 :innermode 'pm-inner/fallback)
   "Typical Brew configuration"
   :group 'polymodes
   :type 'object)
@@ -17,7 +24,7 @@
   ;; fixme: should probably be pm-polymode-multi
   (pm-polymode-one "html"
                  :hostmode 'pm-host/html
-                 :innermode 'pm-inner/fundamental)
+                 :innermode 'pm-inner/fallback)
   "HTML typical configuration"
   :group 'polymodes
   :type 'object)
@@ -25,7 +32,7 @@
 (defcustom pm-poly/C++
   (pm-polymode-one "C++"
                  :hostmode 'pm-host/C++
-                 :innermode 'pm-inner/fundamental)
+                 :innermode 'pm-inner/fallback)
   "C++ typical configuration"
   :group 'polymodes
   :type 'object)
@@ -33,11 +40,10 @@
 
 
 ;; HOST MODES
-(defcustom pm-host/blank
-  (pm-bchunkmode "blank")
-  "Blank chunkmode. This is the default :hostmode for all pm-polymode objects.
-On initalisation this chunkmode sets :mode to whatever major-mode
-is in place at that time."
+(defcustom pm-host/fallback
+  (pm-bchunkmode "FallBack"
+                 :mode 'poly-fallback-mode)
+  "Polymode fall back host mode."
   :group 'hostmodes
   :type 'object)
 
