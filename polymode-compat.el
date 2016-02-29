@@ -122,6 +122,10 @@ Propagate only real change."
   (advice-add 'font-lock-extend-region-multiline :around #'pm-check-for-real-change-in-extend-multiline))
 
 
+;;; Editing
+(advice-add 'fill-paragraph :around #'pm-execute-narowed-to-span)
+
+
 ;;; EVIL
 
 (defcustom polymode-evil-states '(normal insert emacs)
