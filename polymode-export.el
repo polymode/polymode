@@ -76,7 +76,13 @@
     :documentation
     "Sentinel function to be called by :function when a shell
     call is involved. Sentinel should return the output file
-    name."))
+    name.")
+   (quote
+    :initarg :quote
+    :initform nil
+    :type boolean
+    :documentation "Non-nil when file arguments must be quoted
+    with `shell-quote-argument'."))
   "Class to represent exporters that call external processes.")
 
 (defun pm-default-shell-export-function (command sentinel from to)

@@ -74,7 +74,8 @@ closing \"@\" and a newline if necessary."
                      :from
                      '(("latex" "\\.tex\\'" "LaTeX" "latexmk -jobname %O %t %i"))
                      :to
-                     '(("pdf"   "pdf"  "PDF" "")))
+                     '(("pdf"   "pdf"  "PDF" ""))
+                     :quote t)
   "Shell pdflatex exporter."
   :group 'polymode-export
   :type 'object)
@@ -86,7 +87,8 @@ closing \"@\" and a newline if necessary."
                      :to
                      '(("dvi"   "dvi"  "DVI" "-dvi")
                        ("pdf"   "pdf"  "PDF" "-pdf")
-                       ("ps"    "ps"  "PS" "-ps")))
+                       ("ps"    "ps"  "PS" "-ps"))
+                     :quote t)
   "Shell latexmk dvi, ps and pdf exporter."
   :group 'polymode-export
   :type 'object)

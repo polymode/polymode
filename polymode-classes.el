@@ -4,7 +4,13 @@
 ;;; ROOT CLASS
 (if (fboundp 'eieio-named)
     (progn 
-      (defclass pm-root (eieio-instance-inheritor eieio-named) ()
+      (defclass pm-root (eieio-instance-inheritor eieio-named)
+        ((-hist
+          :initform '()
+          :type list
+          :documentation "Internal. Used to store various user
+    history values. Use `pm--get-hist' and `pm--put-hist' to
+    place key value pairs into this list."))
         "Root polymode class.")
 
       (when (fboundp 'defmethod)

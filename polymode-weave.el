@@ -72,7 +72,13 @@
     :documentation
     "Sentinel function to be called by :function when a shell
      call is involved. Sentinel must return the output file
-     name."))
+     name.")
+   (quote
+    :initarg :quote
+    :initform nil
+    :type boolean
+    :documentation "Non-nil when file arguments must be quoted
+    with `shell-quote-argument'."))
   "Class for weavers that call external processes.")
 
 (defun pm-default-shell-weave-function (command sentinel from-to-id &rest args)
