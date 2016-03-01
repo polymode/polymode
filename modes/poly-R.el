@@ -257,7 +257,6 @@
 (define-polymode poly-Rd-mode pm-poly/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
 
-
 
 ;; R SHELL WEAVERS and EXPORTERS
 (defcustom pm-weaver/knitR
@@ -278,6 +277,75 @@
                           pm-poly/noweb+R pm-poly/markdown
                           pm-poly/rapport pm-poly/html+R)
 
+
+;; Rmarkdown
+
+(defcustom pm-exporter/Rmarkdown
+  (pm-shell-exporter "Rmarkdown"
+                     :from
+                     '(("Rmarkdown"  "\\.[rR]?md\\|rapport\\'" "R Markdown"
+                        "Rscript -e \"rmarkdown::render('%i', output_format = '%t', output_file = '%o')\""))
+                     :to
+                     '(("auto" . pm--rmarkdown-shell-auto-selector)
+                       ("html" "html" "html document" "html_document")
+                       ("pdf" "pdf" "pdf document" "pdf_document")
+                       ("word" "docx" "word document" "word_document")
+                       ("md" "md" "md document" "md_document")
+                       ("ioslides" "html" "ioslides presentation" "ioslides_presentation")
+                       ("slidy" "html" "slidy presentation" "slidy_presentation")
+                       ("beamer" "pdf" "beamer presentation" "beamer_presentation")))
+  "R Markdown exporter."
+  :group 'polymode-export
+  :type 'object)
+
+(polymode-register-exporter pm-exporter/Rmarkdown nil
+                            pm-poly/markdown pm-poly/rapport)
+
+(defun pm--rmarkdown-shell-auto-selector (action &rest ignore)
+  (cl-case action
+    (doc "AUTO DETECT")
+    (command "Rscript -e \"rmarkdown::render('%i', output_format = 'all')\"")
+    (output-file #'pm--rmarkdown-output-file-sniffer)))
+
+(defcustom pm-exporter/Rmarkdown-ESS
+  (pm-callback-exporter "Rmarkdown-ESS"
+                        :from
+                        '(("Rmarkdown"  "\\.[rR]?md\\|rapport\\'" "R Markdown"
+                           "rmarkdown::render('%i', output_format = '%t', output_file = '%o')\n"))
+                        :to
+                        '(("auto" . pm--rmarkdown-callback-auto-selector)
+                          ("html" "html" "html document" "html_document")
+                          ("pdf" "pdf" "pdf document" "pdf_document")
+                          ("word" "docx" "word document" "word_document")
+                          ("md" "md" "md document" "md_document")
+                          ("ioslides" "html" "ioslides presentation" "ioslides_presentation")
+                          ("slidy" "html" "slidy presentation" "slidy_presentation")
+                          ("beamer" "pdf" "beamer presentation" "beamer_presentation"))
+                        :function 'pm--ess-run-command
+                        :callback 'pm--ess-callback)
+  "R Markdown exporter."
+  :group 'polymode-export
+  :type 'object)
+
+(polymode-register-exporter pm-exporter/Rmarkdown-ESS nil
+                            pm-poly/markdown pm-poly/rapport)
+
+(defun pm--rmarkdown-callback-auto-selector (action &rest ignore)
+  (cl-case action
+    (doc "AUTO DETECT")
+    ;; last file is not auto-detected unless we cat new line
+    (command "rmarkdown::render('%i', output_format = 'all')")
+    (output-file #'pm--rmarkdown-output-file-sniffer)))
+
+(defun pm--rmarkdown-output-file-sniffer ()
+  (goto-char (point-min))
+  (let (files)
+    (while (re-search-forward "Output created: +\\(.*\\)" nil t)
+      (push (expand-file-name (match-string 1)) files))
+    (reverse (delete-dups files))))
+
+
+;; Sweave
 (defcustom pm-weaver/Sweave
   (pm-shell-weaver "sweave"
                    :from-to
@@ -289,10 +357,6 @@
 
 (polymode-register-weaver pm-weaver/Sweave nil
                           pm-poly/noweb+R)
-
-;; (oref pm-poly/rapport :weavers)
-;; (oref pm-poly/noweb+R :weavers)
-
 
 
 ;; R ESS WEAVERS
@@ -306,8 +370,8 @@
                         ("brew" "\\.r?brew\\'" "brew" "Brew" "knitr::knit('%i', output='%o')")
                         ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "knitr::knit('%i', output='%o')")
                         ("textile" "\\.textile\\'" "textile" "Textile" "knitr::knit('%i', output='%o')"))
-                      :function 'pm--run-shell-command-in-ESS
-                      :callback 'pm--ESS-callback)
+                      :function 'pm--ess-run-command
+                      :callback 'pm--ess-callback)
   "ESS knitR weaver."
   :group 'polymode-weave
   :type 'object)
@@ -320,8 +384,8 @@
   (pm-callback-weaver "ESS-Sweave"
                       :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'" "tex"
                                   "LaTeX" "Sweave('%i', output='%o')"))
-                      :function 'pm--run-shell-command-in-ESS
-                      :callback 'pm--ESS-callback)
+                      :function 'pm--ess-run-command
+                      :callback 'pm--ess-callback)
   "ESS 'Sweave' weaver."
   :group 'polymode-weave
   :type 'object)
@@ -333,23 +397,35 @@
 (declare-function ess-force-buffer-current nil)
 (declare-function ess-process-get nil)
 (declare-function ess-process-put nil)
-(declare-function comint-next-prompt nil)
+(declare-function comint-previous-prompt nil)
 
-(defun pm--ESS-callback (proc string)
-  (let ((ofile (process-get proc 'pm-output-file)))
+(defun pm--ess-callback (proc string)
+  (let ((ofile (process-get proc :output-file)))
+    ;; This is getting silly. Ess splits output for optimization reasons. So we
+    ;; are collecting output from 3 places:
+    ;;   - most recent STRING
+    ;;   - string in accumulation buffer 'accum-buffer-name
+    ;;   - string already in output buffer
+    (with-current-buffer (process-get proc 'accum-buffer-name)
+      (setq string (concat (buffer-substring (point-min) (point-max))
+                           string)))
     (with-current-buffer (process-buffer proc)
+      (setq string (concat (buffer-substring (or ess--tb-last-input (comint-previous-prompt)) (point-max))
+                           string)))
+    (with-temp-buffer
+      (insert string)
       (when (string-match-p "Error\\(:\\| +in\\)" string)
-        (error "Errors durring weaving.")))
+        (error "Errors durring weaving."))
+      (unless (stringp ofile)
+        (setq ofile (funcall ofile))))
     ofile))
 
-(defun pm--run-shell-command-in-ESS (command callback fromto-id)
+(defun pm--ess-run-command (command callback &rest ignore)
   (require 'ess)
   (let ((ess-eval-visibly t)
-        ;; R specific, should change eventually
-        (ess-dialect "R")
-        (weaver (symbol-value (oref pm/polymode :weaver))))
+        (ess-dialect "R"))
     (ess-force-buffer-current)
-    (ess-process-put 'pm-output-file pm--output-file)
+    (ess-process-put :output-file pm--output-file)
     (ess-process-put 'callbacks (list callback))
     (ess-process-put 'interruptable? t)
     (ess-process-put 'running-async? t)
