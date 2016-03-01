@@ -32,7 +32,14 @@
                                             "-" (int-to-string num)))
                                 (concat nm "-1")))))
             nobj))))
-  (defclass pm-root (eieio-instance-inheritor) ()
+  
+  (defclass pm-root (eieio-instance-inheritor)
+    ((-hist
+      :initform '()
+      :type list
+      :documentation "Internal. Used to store various user history
+    values. Use `pm--get-hist' and `pm--put-hist' to place key
+    value pairs into this list."))
     "Root polymode class."))
 
 ;;; CONFIG
@@ -135,13 +142,7 @@
     :initform '()
     :type list
     :documentation
-    "Holds all buffers associated with current buffer. Dynamically populated.")
-   (-hist
-    :initform '()
-    :type list
-    :documentation "Internal. Used to store various user history
-    values. Use `pm--get-hist' and `pm--put-hist' to place key
-    value pairs into this list."))
+    "Holds all buffers associated with current buffer. Dynamically populated."))
   
   "Configuration for a polymode. Each polymode buffer contains a local
 variable `pm/polymode' instantiated from this class or a subclass

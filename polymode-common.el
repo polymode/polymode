@@ -209,13 +209,48 @@ able to accept user interaction."
         ;; fixme: remove this later
         (sit-for .2)
         (goto-char (point-min))
-        (let ((case-fold-search t))
-          (if (not (re-search-forward error-regexp nil 'no-error))
-              (progn
-                (display-buffer (current-buffer))
-                (message "Done with %s" action)
-                (process-get process :output-file))              
-            (error "Bumps while %s (%s)" action name)))))))
+        (progn
+          (display-buffer (current-buffer))
+          (message "Done with %s" action)
+          (process-get process :output-file))))))
+
+(defun pm--make-selector (specs elements)
+  (cond ((listp elements)
+         (let ((spec-alist (cl-mapcar #'cons specs elements)))
+           (lambda (selsym &rest ignore)
+             (cdr (assoc selsym spec-alist)))))
+        ((functionp elements) elements)
+        (t (error "elements argument must be either a list or a function"))))
+
+(defun pm--selector (processor type id)
+  (let ((spec (or (assoc id (eieio-oref processor type))
+                  (error "%s spec '%s' cannot be found in '%s'"
+                         (symbol-name type) id (eieio-object-name processor))))
+        (names (cond ((eq type :from) '(regexp doc command))
+                     ((eq type :to) '(ext doc t-spec))
+                     (t (error "invalid type '%s'" type)))))
+    (pm--make-selector names (cdr spec))))
+
+(defun pm--selector-match (selector &optional file)
+  (or (funcall selector 'match file)
+      (string-match-p (funcall selector 'regexp)
+                      (or file buffer-file-name))))
+
+(defun pm--selectors (processor type)
+  (let ((ids (mapcar #'car (eieio-oref processor type))))
+    (mapcar (lambda (id) (cons id (pm--selector processor type id))) ids)))
+
+(defun pm--completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
+  "Wrapper for `completing-read'.
+Takes care when collection is an alist of (name . meta-info). If
+so, asks for names, but returns meta-info for that name. Enforce
+require-match = t."
+  (if (and (listp collection)
+           (listp (car collection)))
+      (let ((candidates (mapcar #'car collection)))
+        (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
+               collection))
+    (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))
 
 (provide 'polymode-common)
 
