@@ -178,9 +178,12 @@ able to accept user interaction."
          (process nil)
          (command-buff (current-buffer))
          (ofile pm--output-file)
+         ;; weave/export buffers are re-usable; need to transfer some vars
+         (dd default-directory)
          ;; (command (shell-quote-argument command))
          )
     (with-current-buffer buffer
+      (setq-local default-directory dd)
       (read-only-mode -1)
       (erase-buffer)
       (insert message)
