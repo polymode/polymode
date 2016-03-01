@@ -5,11 +5,11 @@
 (if (fboundp 'eieio-named)
     (progn 
       (defclass pm-root (eieio-instance-inheritor eieio-named)
-        ((-hist
+        ((-props
           :initform '()
           :type list
           :documentation "Internal. Used to store various user
-    history values. Use `pm--get-hist' and `pm--put-hist' to
+    history values. Use `pm--prop-get' and `pm--prop-put' to
     place key value pairs into this list."))
         "Root polymode class.")
 
@@ -34,12 +34,12 @@
             nobj))))
   
   (defclass pm-root (eieio-instance-inheritor)
-    ((-hist
+    ((-props
       :initform '()
       :type list
-      :documentation "Internal. Used to store various user history
-    values. Use `pm--get-hist' and `pm--put-hist' to place key
-    value pairs into this list."))
+      :documentation "Internal. Plist used to store various extra
+    metadata such as user history. Use `pm--prop-get' and
+    `pm--prop-put' to place key value pairs into this list."))
     "Root polymode class."))
 
 ;;; CONFIG

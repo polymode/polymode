@@ -110,12 +110,12 @@ string."
                     str-nm)))
           list))
 
-(defun pm--put-hist (key val &optional object)
-  (oset (or object pm/polymode) -hist
-        (plist-put (oref (or object pm/polymode) -hist) key val)))
+(defun pm--prop-put (key val &optional object)
+  (oset (or object pm/polymode) -props
+        (plist-put (oref (or object pm/polymode) -props) key val)))
 
-(defun pm--get-hist (key &optional object)
-  (plist-get (oref (or object pm/polymode) -hist) key))
+(defun pm--prop-get (key &optional object)
+  (plist-get (oref (or object pm/polymode) -props) key))
 
 (defun pm--comment-region (beg end)
   ;; mark as syntactic comment

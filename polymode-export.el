@@ -252,7 +252,7 @@ extension.  See class `pm-exporter' for the definitions."
              ((null from)
               (or
                ;; 1. repeated export; don't ask and use first entry in history
-               (pm--get-hist :export-from exporter)
+               (pm--prop-get :export-from exporter)
                
                ;; 2. select first entries whose REGEXP matches file name
                (let ((matched (cl-loop for el in (pm--selectors exporter :from)
@@ -281,22 +281,22 @@ extension.  See class `pm-exporter' for the definitions."
                                                         return (cons (car w) (car el))))))
                      (when pair
                        ;; this is the only case when hist is a cons
-                       (pm--put-hist :export-from pair exporter)))))
+                       (pm--prop-put :export-from pair exporter)))))
                
                ;; 4. nothing matched; ask
                (let* ((prompt (or gprompt
                                   (format "No `from' specs matched. Choose one: "
                                           (file-name-nondirectory fname) (eieio-object-name-string exporter))))
                       (sel (pm--completing-read prompt from-opts nil t nil
-                                                'pm--export:from-hist (pm--get-hist :export-from exporter))))
-                 (pm--put-hist :export-from (car sel) exporter)
+                                                'pm--export:from-hist (pm--prop-get :export-from exporter))))
+                 (pm--prop-put :export-from (car sel) exporter)
                  (cdr sel))))
              
              ;; B: C-u, force a :from spec
              ((equal from '(4))
               (let ((sel (pm--completing-read "Input type: " from-opts nil t nil
-                                              'pm--export:from-hist (pm--get-hist :export-from exporter))))
-                (pm--put-hist :export-from (car sel) exporter)
+                                              'pm--export:from-hist (pm--prop-get :export-from exporter))))
+                (pm--prop-put :export-from (car sel) exporter)
                 (cdr sel)))
              
              ;; C. string
@@ -315,12 +315,12 @@ extension.  See class `pm-exporter' for the definitions."
              ((null to)
               ;; 1. repeated export; don't ask and use first entry in history
               (unless (eq from '(4))
-                (pm--get-hist :export-to exporter))
+                (pm--prop-get :export-to exporter))
 
               ;; 2. First export or C-u
               (let ((sel (pm--completing-read "Export to: " to-opts nil t nil
-                                              'pm--export:to-hist (pm--get-hist :export-to exporter))))
-                (pm--put-hist :export-to (car sel) exporter)
+                                              'pm--export:to-hist (pm--prop-get :export-to exporter))))
+                (pm--prop-put :export-to (car sel) exporter)
                 (cdr sel)))
 
              ;; B. string

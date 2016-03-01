@@ -181,7 +181,7 @@ input-output specification alist. See also `pm-weave' generic."
           (cond
            ;; guess from-to spec
            ((null from-to-id) (let ((fname (file-name-nondirectory buffer-file-name))
-                                 (hist-from-to (pm--get-hist :weave-from-to))
+                                 (hist-from-to (pm--prop-get :weave-from-to))
                                  (case-fold-search t))
                              (or
                               ;; 1. repeated weave; don't ask and use first entry in history
@@ -197,13 +197,13 @@ input-output specification alist. See also `pm-weave' generic."
                                      (sel (completing-read prompt (mapcar #'car opts) nil t nil
                                                            'pm--weave:from-to-hist
                                                            hist-from-to)))
-                                (pm--put-hist :weave-from-to sel)
+                                (pm--prop-put :weave-from-to sel)
                                 (cdr (assoc sel opts))))))
            ;; C-u, force a :from-to spec
            ((equal from-to-id '(4)) (let ((sel (completing-read "Input type: " opts nil t nil
                                                              'pm--weave:from-to-hist
-                                                             (pm--get-hist :weave-from-to)) ))
-                                   (pm--put-hist :weave-from-to sel)
+                                                             (pm--prop-get :weave-from-to)) ))
+                                   (pm--prop-put :weave-from-to sel)
                                    (get-text-property 0 :id sel)))
            ;; string must match an entry
            ((stringp from-to-id) (if (assoc from-to-id w:fromto)
