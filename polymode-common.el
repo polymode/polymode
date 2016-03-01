@@ -110,12 +110,12 @@ string."
                     str-nm)))
           list))
 
-(defun pm--put-hist (key val)
-  (oset pm/polymode -hist
-        (plist-put (oref pm/polymode -hist) key val)))
+(defun pm--put-hist (key val &optional object)
+  (oset (or object pm/polymode) -hist
+        (plist-put (oref (or object pm/polymode) -hist) key val)))
 
-(defun pm--get-hist (key)
-  (plist-get (oref pm/polymode -hist) key))
+(defun pm--get-hist (key &optional object)
+  (plist-get (oref (or object pm/polymode) -hist) key))
 
 (defun pm--comment-region (beg end)
   ;; mark as syntactic comment
@@ -201,7 +201,7 @@ able to accept user interaction."
       (display-buffer buffer `(nil . ((inhibit-same-window . ,pop-up-windows)))))
     nil))
 
-(defun pm--make-shell-command-sentinel (error-regexp action)
+(defun pm--make-shell-command-sentinel (action)
   (lambda (process name)
     "Sentinel built with `pm--make-shell-command-sentinel'."
     (let ((buff (process-buffer process)))

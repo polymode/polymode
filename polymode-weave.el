@@ -89,7 +89,7 @@ that call a shell command"
   (pm--run-shell-command command sentinel "*polymode weave*"
                          (concat "weaving " from-to-id " with command:\n     " command "\n")))
 
-(fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "error" "weaving"))
+(fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "weaving"))
 
 
 ;;; METHODS
@@ -114,11 +114,11 @@ specification will be called.")
 (defmethod pm-weave ((weaver pm-shell-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :sentinel ifile))
         (pm--export-spec nil))
-    (pm--weave-internal weaver fromto-id ifile cb 'quote)))
+    (pm--weave-internal weaver fromto-id ifile cb (oref weaver :quote))))
 
-(defun pm--weave-internal (weaver from-to-id ifile &optional callback shell-quote)
+(defun pm--weave-internal (weaver from-to ifile &optional callback shell-quote)
   (flet ((squote (arg) (and arg (if shell-quote (shell-quote-argument arg) arg))))
-    (let ((from-to-spec (assoc from-to-id (oref weaver :from-to))))
+    (let ((from-to-spec (assoc from-to (oref weaver :from-to))))
       (if from-to-spec
           (let* ((ifile (or ifile buffer-file-name))
                  (base-ofile (concat (format polymode-weave-output-file-format
@@ -138,8 +138,8 @@ specification will be called.")
                    (pm--input-file ifile)
                    (fun (oref weaver :function))
                    (wfile (if callback
-                              (funcall fun command callback from-to-id)
-                            (funcall fun command from-to-id))))
+                              (funcall fun command callback from-to)
+                            (funcall fun command from-to))))
               ;; Display file when the worker returned a file.  Workers with
               ;; callbacks return nil and take care of display themselves.
               (when wfile
@@ -150,7 +150,7 @@ specification will be called.")
                   (pm--display-file wfile)
                   wfile))))
         (error "from-to spec '%s' is not supported by weaver '%s'"
-               from-to-id (eieio-object-name weaver))))))
+               from-to (eieio-object-name weaver))))))
 
 
 ;; UI

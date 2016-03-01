@@ -93,7 +93,7 @@ that call a shell command"
   (pm--run-shell-command command sentinel "*polymode export*"
                          (concat "Exporting " from "-->" to " with command:\n     " command "\n")))
 
-(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "error" "exporting"))
+(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "exporting"))
 
 
 ;;; METHODS
