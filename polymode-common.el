@@ -158,15 +158,17 @@ string."
             (with-current-buffer obuffer
               (let ((wfile (apply sentinel1 args))
                     (pm--export-spec nil))
-                (if wfile
-                    (pm-export exporter (car espec) (cdr espec) wfile)
-                  (error "Callback didn't return processed file."))))))
+                (when wfile
+                  (pm-export exporter (car espec) (cdr espec) wfile))))))
       (lambda (&rest args)
         (with-current-buffer obuffer
           (let ((wfile (apply sentinel1 args)))
-            (if wfile
-                (pm--display-file (expand-file-name wfile cur-dir))
-              (error "Callback didn't return processed file."))))))))
+            (when wfile
+              (pm--display-file (expand-file-name wfile cur-dir)))))))))
+
+(defun pm--file-mod-time (file)
+  (when (file-exists-p file)
+    (nth 5 (file-attributes file))))
 
 (defun pm--run-shell-command (command sentinel buff-name message)
   "Run shell command interactively.
@@ -196,23 +198,39 @@ able to accept user interaction."
       (set-marker (process-mark process) (point-max))
       ;; for communication with sentinel
       (process-put process :output-file pm--output-file)
-      (process-put process :input-file pm--input-file))
-    (when polymode-display-process-buffers
-      (display-buffer buffer `(nil . ((inhibit-same-window . ,pop-up-windows)))))
-    nil))
+      (process-put process :output-file-mod-time (pm--file-mod-time pm--output-file))
+      (process-put process :input-file pm--input-file)
+      (when polymode-display-process-buffers
+        (display-buffer buffer `(nil . ((inhibit-same-window . ,pop-up-windows)))))
+      nil)))
 
 (defun pm--make-shell-command-sentinel (action)
   (lambda (process name)
     "Sentinel built with `pm--make-shell-command-sentinel'."
-    (let ((buff (process-buffer process)))
-      (with-current-buffer buff
-        ;; fixme: remove this later
-        (sit-for .2)
-        (goto-char (point-min))
-        (progn
-          (display-buffer (current-buffer))
-          (message "Done with %s" action)
-          (process-get process :output-file))))))
+    (let ((buff (process-buffer process))
+          (status (process-exit-status process)))
+      (if (> status 0)
+          (progn
+            (message "Errors during %s; process exit status %d" action status)
+            (ding) (sit-for 1)
+            nil)
+        (with-current-buffer buff
+          ;; fixme: remove this later
+          (sit-for .05)
+          (let ((otime (process-get process :output-file-mod-time))
+                (ntime (pm--file-mod-time (process-get process :output-file))))
+            (if (or (null ntime)
+                    (and otime
+                         (not (time-less-p otime ntime))))
+                (progn
+                  (display-buffer (current-buffer))
+                  (message "Output file unchanged. Errors during %s?" action)
+                  (ding) (sit-for 1)
+                  nil)
+              ;; if all is good, we return the file name
+              (display-buffer (current-buffer))
+              (message "Done with %s" action)
+              (process-get process :output-file))))))))
 
 (defun pm--make-selector (specs elements)
   (cond ((listp elements)
