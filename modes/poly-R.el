@@ -259,17 +259,17 @@
 
 
 
-;; R SHELL WEAVERS
+;; R SHELL WEAVERS and EXPORTERS
 (defcustom pm-weaver/knitR
   (pm-shell-weaver "knitr"
                    :from-to
-                   '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-                     ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-                     ("markdown" "\\.r?md\\'" "md" "Markdown" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-                     ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-                     ("brew" "\\.r?brew\\'" "brew" "Brew" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-                     ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")
-                     ("textile" "\\.textile\\'" "textile" "Textile" "Rscript -e \"library(knitr); knit('%i', output='%o')\"")))
+                   '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("markdown" "\\.r?md\\'" "md" "Markdown" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("brew" "\\.r?brew\\'" "brew" "Brew" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("textile" "\\.textile\\'" "textile" "Textile" "Rscript -e \"knitr::knit('%i', output='%o')\"")))
   "Shell knitR weaver."
   :group 'polymode-weave
   :type 'object)
@@ -299,13 +299,13 @@
 (defcustom pm-weaver/knitR-ESS
   (pm-callback-weaver "knitR-ESS"
                       :from-to
-                      '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "library(knitr); knit('%i', output='%o')")
-                        ("html" "\\.x?html?\\'" "html" "HTML" "library(knitr); knit('%i', output='%o')")
-                        ("markdown" "\\.r?md\\'" "md" "Markdown" "library(knitr); knit('%i', output='%o')")
-                        ("rst" "\\.rst\\'" "rst" "ReStructuredText" "library(knitr); knit('%i', output='%o')")
-                        ("brew" "\\.r?brew\\'" "brew" "Brew" "library(knitr); knit('%i', output='%o')")
-                        ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "library(knitr); knit('%i', output='%o')")
-                        ("textile" "\\.textile\\'" "textile" "Textile" "library(knitr); knit('%i', output='%o')"))
+                      '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "knitr::knit('%i', output='%o')")
+                        ("html" "\\.x?html?\\'" "html" "HTML" "knitr::knit('%i', output='%o')")
+                        ("markdown" "\\.r?md\\'" "md" "Markdown" "knitr::knit('%i', output='%o')")
+                        ("rst" "\\.rst\\'" "rst" "ReStructuredText" "knitr::knit('%i', output='%o')")
+                        ("brew" "\\.r?brew\\'" "brew" "Brew" "knitr::knit('%i', output='%o')")
+                        ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "knitr::knit('%i', output='%o')")
+                        ("textile" "\\.textile\\'" "textile" "Textile" "knitr::knit('%i', output='%o')"))
                       :function 'pm--run-shell-command-in-ESS
                       :callback 'pm--ESS-callback)
   "ESS knitR weaver."
