@@ -163,17 +163,25 @@ a warning."
             (with-current-buffer obuffer
               (let ((wfile (apply sentinel1 args))
                     (pm--export-spec nil))
+                ;; If no wfile, probably errors occurred. So we stop.
                 (when wfile
+                  (when (listp wfile)
+                    ;; In an unlikely situation weaver can generate multiple
+                    ;; files (potentially). So pick the first one.
+                    (setq wfile (car wfile)))
                   (pm-export exporter (car espec) (cdr espec) wfile))))))
       (lambda (&rest args)
         (with-current-buffer obuffer
-          (let ((wfile (apply sentinel1 args)))
-            (when wfile
-              (pm--display-file (expand-file-name wfile cur-dir)))))))))
+          (let ((ofile (apply sentinel1 args)))
+            (when ofile
+              (let ((ofiles (if (listp ofile) ofile (list ofile))))
+                (dolist (f ofiles)
+                  (pm--display-file (expand-file-name f cur-dir)))))))))))
 
 (defun pm--file-mod-time (file)
-  (when (file-exists-p file)
-    (nth 5 (file-attributes file))))
+  (and (stringp file)
+       (file-exists-p file)
+       (nth 5 (file-attributes file))))
 
 (defun pm--run-shell-command (command sentinel buff-name message)
   "Run shell command interactively.
@@ -220,22 +228,29 @@ able to accept user interaction."
             (ding) (sit-for 1)
             nil)
         (with-current-buffer buff
-          ;; fixme: remove this later
-          (sit-for .05)
-          (let ((otime (process-get process :output-file-mod-time))
-                (ntime (pm--file-mod-time (process-get process :output-file))))
-            (if (or (null ntime)
-                    (and otime
-                         (not (time-less-p otime ntime))))
-                (progn
-                  (display-buffer (current-buffer))
-                  (message "Output file unchanged. Errors during %s?" action)
-                  (ding) (sit-for 1)
-                  nil)
-              ;; if all is good, we return the file name
-              (display-buffer (current-buffer))
-              (message "Done with %s" action)
-              (process-get process :output-file))))))))
+          (let ((ofile (process-get process :output-file)))
+            (cond
+             ;; 1. output-file guesser
+             ((functionp ofile) (funcall ofile))
+             ;; 2. string
+             (ofile
+              (let ((otime (process-get process :output-file-mod-time))
+                    (ntime (pm--file-mod-time ofile)))
+                (if (or (null ntime)
+                        (and otime
+                             (not (time-less-p otime ntime))))
+                    ;; mod time didn't change
+                    ;; tothink: shall we still return ofile for display?
+                    (progn
+                      (display-buffer (current-buffer))
+                      (message "Output file unchanged. Errors during %s?" action)
+                      (ding) (sit-for 1) nil)
+                  ;; else, all is good, we return the file name
+                  ;; (display-buffer (current-buffer))
+                  (message "Done with %s" action)
+                  ofile)))
+             ;; 3. output file is not known
+             (t (display-buffer (current-buffer)) nil))))))))
 
 (defun pm--make-selector (specs elements)
   (cond ((listp elements)
