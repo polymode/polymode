@@ -173,7 +173,9 @@ that call a shell command"
 (defun pm--export-internal (exporter from to ifile &optional callback shell-quote)
   (unless (and from to)
     (error "Both FROM and TO must be supplied (from: %s, to: %s)" from to))
-  (flet ((squote (arg) (or (and arg (if shell-quote (shell-quote-argument arg) arg)) "")))
+  (cl-flet ((squote (arg) (or (and (stringp arg)
+                                   (if shell-quote (shell-quote-argument arg) arg))
+                              "")))
     (let* ((sfrom (pm--selector exporter :from from))
            (sto (pm--selector exporter :to to))
            (ifile (or ifile buffer-file-name))
@@ -186,8 +188,10 @@ that call a shell command"
                                    (concat (format polymode-exporter-output-file-format
                                                    (file-name-base buffer-file-name))
                                            "." ext)))))
-               (ofile (and base-ofile
-                           (expand-file-name base-ofile (file-name-directory buffer-file-name))))
+               (ofile (and (stringp base-ofile)
+                           (expand-file-name base-ofile)))
+               (oname (and (stringp base-ofile)
+                           (file-name-base base-ofile)))
                (t-spec (funcall sto 't-spec))
                (command-w-formats (or (funcall sto 'command)
                                       (when (listp t-spec)
@@ -196,13 +200,13 @@ that call a shell command"
                (command (format-spec command-w-formats
                                      (list (cons ?i (squote (file-name-nondirectory ifile)))
                                            (cons ?f (squote ifile))
-                                           (cons ?O (squote (file-name-base base-ofile)))
+                                           (cons ?O (squote oname))
                                            (cons ?o (squote base-ofile))
                                            (cons ?p (squote ofile))
-                                           (cons ?t (if (listp t-spec) "" t-spec))))))
+                                           (cons ?t (squote t-spec))))))
           (message "Exporting '%s' with '%s' exporter ..."
                    (file-name-nondirectory ifile) (eieio-object-name exporter))
-          (let* ((pm--output-file ofile)
+          (let* ((pm--output-file (or ofile base-ofile))
                  (pm--input-file ifile)
                  (fun (oref exporter :function))
                  (efile (if callback
