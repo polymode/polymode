@@ -18,29 +18,87 @@
     :type list
     :custom list
     :documentation
-    "Input specifications. An alist elements of the form (id reg doc commmand).
-     ID is the unique identifier of the spec. REG is a regexp
-     that is used to identify if current file can be exported
-     with this spec. DOC is a short help string shown during
-     interactive export. COMMMAND is the actual exporter specific
-     command. It can contain the following format specs:
+    "Input exporter specifications.
+     This is an alist of elements of the form (id regexp doc
+     commmand) or (id . selector). ID is the unique identifier of
+     the spec. REGEXP is a regexp which, if matched on current
+     file name, implies that the current file can be exported
+     with this specification. DOC is a short help string shown
+     during interactive export. COMMAND is the exporter
+     command (string). It can contain the following format specs:
 
          %i - input file (no dir)
          %f - input file (full path) 
          %o - output file (no dir)
          %O - output file name (no dir, no extension)
          %p - output file (full path)
-         %t - 4th element of the :to spec")
+         %t - 4th element of the :to spec
+
+     When specification is of the form (id . selector), SELECTOR
+     is a function of variable arguments that accepts at least
+     one argument SELSYM. SELSYM is a symbol and can be one of
+     the following:
+
+         match - must return non-nil if this specification
+             applies to the file that current buffer is visiting,
+             or :nomatch if specification does not apply. This
+             selector can receive an optional file-name
+             argument. In that case the decision must be made
+             solely on that file and current buffer must be
+             ignored. This is useful for matching exporters to
+             weavers when exported file does not exist yet.
+
+         regexp - return a string which is used to match input
+             file against. If nil, `match' selector must return
+             non-nil value. This selector is ignored if `match'
+             returned non-nil.
+
+         doc - return documentation string
+
+         commmand - return a string with optional %i, %f,
+             etc. format specs as described above. It will be
+             passed to the processing :function.")
+   
    (to
     :initarg :to
     :initform '() 
     :type list
     :custom list
     :documentation
-    "Output specifications. An alist of elements of the form (id ext doc %t-spec).
-     EXT is the *exact* extension (not a regexp) of the ouput
-     file. %t-spec is a string what is used to format :from spec
-     commmand.")
+    "Output specifications alist. Each element is either a list
+     of the form (id ext doc t-spec) or a cons (id . selector).
+
+     In the former case EXT is an extension of the output
+     file. DOC is a short documentation string. t-spec is a
+     string what is substituted instead of %t in :from spec
+     commmand. `t-spec' can be a list of one element '(command),
+     in which case the whole :from spec command is substituted
+     with command from %t-spec.
+
+     When specification is of the form (id . selector), SELECTOR
+     is a function of variable arguments that accepts at least
+     one argument SELSYM. This function is called in a buffer
+     visiting input file. SELSYM is a symbol and can one of the
+     following:
+
+         output-file - return an output file name or a list of file
+           names. Receives input-file as argument. If this
+           command returns nil, the output is built from input
+           file and value of 'output-ext command.
+
+         ext - extension of output file. If nil and
+           `output' also returned nil, the exporter won't be able
+           to identify the output file and no automatic display
+           or preview will be available.
+     
+         doc - return documentation string
+
+         command - return a string to be used instead of
+           the :from command. If nil, :from spec command is used.
+
+         t-spec - return a string to be substituted as %t :from
+           spec in :from command. If `command' selector returned
+           non-nil, this spec is ignored.")
    (function
     :initarg :function
     :initform (lambda (command from to)
@@ -110,37 +168,47 @@ that call a shell command"
 
 (defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
-    (pm--export-internal exporter from to ifile cb 'quote)))
+    (pm--export-internal exporter from to ifile cb (oref exporter :quote))))
 
 (defun pm--export-internal (exporter from to ifile &optional callback shell-quote)
   (unless (and from to)
     (error "Both FROM and TO must be supplied (from: %s, to: %s)" from to))
-  (flet ((squote (arg) (and arg (if shell-quote (shell-quote-argument arg) arg))))
-    (let* ((from-spec (assoc from (oref exporter :from)))
-           (to-spec (assoc to (oref exporter :to)))
+  (flet ((squote (arg) (or (and arg (if shell-quote (shell-quote-argument arg) arg)) "")))
+    (let* ((sfrom (pm--selector exporter :from from))
+           (sto (pm--selector exporter :to to))
            (ifile (or ifile buffer-file-name))
-           (base-ofile (concat (format polymode-exporter-output-file-format
-                                       (file-name-base buffer-file-name))
-                               "." (nth 1 to-spec)))
-           (ofile (expand-file-name base-ofile (file-name-directory buffer-file-name)))
-           (command (format-spec (nth 3 from-spec)
-                                 (list (cons ?i (squote (file-name-nondirectory ifile)))
-                                       (cons ?f (squote ifile))
-                                       (cons ?O (squote (file-name-base base-ofile)))
-                                       (cons ?o (squote base-ofile))
-                                       (cons ?p (squote ofile))
-                                       (cons ?t (nth 3 to-spec))))))
-      (unless to-spec
-        (error "'to' spec `%s' is not defined for exporter '%s'" to (eieio-object-name exporter)))
-      (message "Exporting '%s' with '%s' exporter ..."
-               (file-name-nondirectory ifile) (eieio-object-name exporter))
-      (let* ((pm--output-file ofile)
-             (pm--input-file ifile)
-             (fun (oref exporter :function))
-             (efile (if callback
-                        (funcall fun command callback from to)
-                      (funcall fun command from to))))
-        (and efile (pm--display-file ofile))))))
+           (ibuffer (find-file-noselect ifile t)))
+
+      (with-current-buffer ibuffer
+        (let* ((base-ofile (or (funcall sto 'output-file)
+                               (let ((ext (funcall sto 'ext)))
+                                 (when ext
+                                   (concat (format polymode-exporter-output-file-format
+                                                   (file-name-base buffer-file-name))
+                                           "." ext)))))
+               (ofile (and base-ofile
+                           (expand-file-name base-ofile (file-name-directory buffer-file-name))))
+               (t-spec (funcall sto 't-spec))
+               (command-w-formats (or (funcall sto 'command)
+                                      (when (listp t-spec)
+                                        (car t-spec))
+                                      (funcall sfrom 'command)))
+               (command (format-spec command-w-formats
+                                     (list (cons ?i (squote (file-name-nondirectory ifile)))
+                                           (cons ?f (squote ifile))
+                                           (cons ?O (squote (file-name-base base-ofile)))
+                                           (cons ?o (squote base-ofile))
+                                           (cons ?p (squote ofile))
+                                           (cons ?t (if (listp t-spec) "" t-spec))))))
+          (message "Exporting '%s' with '%s' exporter ..."
+                   (file-name-nondirectory ifile) (eieio-object-name exporter))
+          (let* ((pm--output-file ofile)
+                 (pm--input-file ifile)
+                 (fun (oref exporter :function))
+                 (efile (if callback
+                            (funcall fun command callback from to)
+                          (funcall fun command from to))))
+            (and efile (pm--display-file ofile))))))))
 
 
 ;; UI
@@ -163,77 +231,112 @@ interactively, otherwise FROM and TO are determined automatically
 from the current exporter specification and current file
 extension.  See class `pm-exporter' for the definitions."
   (interactive "P")
-  (let* ((exporter (symbol-value (or (oref pm/polymode :exporter)
-                                     (polymode-set-exporter))))
-         (fname (file-name-nondirectory buffer-file-name))
-         (e:from (oref exporter :from))
-         (e:to (oref exporter :to))
-         (from-opts (mapcar (lambda (el)
-                              (cons (nth 2 el) (car el)))
-                            (oref exporter :from)))
-         (to-opts (mapcar (lambda (el)
-                            (cons (format "%s (%s)" (nth 2 el) (nth 1 el)) (car el)))
-                          (oref exporter :to)))
-         (from
-          (cond ((null from)
-                 ;; A: guess from spec
-                 (let ((case-fold-search  t))
-                   (or
-                    ;; 1. repeated export; don't ask and use first entry in history
-                    (and (pm--get-hist :export-from)
-                         (get-text-property 0 :id (pm--get-hist :export-from)))
-                    ;; 2. get first entry whose REG matches file name
-                    (car (cl-rassoc-if (lambda (el)
-                                         (string-match-p (car el) fname))
-                                       e:from))
-                    ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
-                    (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
-                                                    (polymode-set-weaver)))))
-                      (cl-loop for w in (oref weaver :from-to)
-                               ;; weaver intput extension matches the filename
-                               if (string-match-p (nth 1 w) fname) 
-                               return (cl-loop for e in e:from
-                                               ;; input exporter extensnion matches weaver output extension
-                                               if (string-match-p (nth 1 e) (concat "dummy." (nth 2 w)))
-                                               return (cons (car w) (car e)))))
-                    ;; 4. nothing matched; ask
-                    (let* ((prompt (format "No input spec for extension '.%s' in '%s' exporter. Choose one: "
-                                           (file-name-extension fname)
-                                           (eieio-object-name exporter)))
-                           (sel (completing-read prompt (mapcar #' car from-opts) nil t nil
-                                                 'pm--export:from-hist (pm--get-hist :export-from))))
-                      (pm--put-hist :export-from sel)
-                      (cdr (assoc sel from-opts))))))
-                ;; B: C-u, force a :from spec
-                ((equal from '(4))
-                 (let ((sel (completing-read "Input type: " (mapcar #' car from-opts) nil t nil
-                                             'pm--export:from-hist (pm--get-hist :export-from)) ))
-                   (pm--put-hist :export-from sel)
-                   (cdr (assoc sel from-opts))))
-                ;; C. string
-                ((stringp from)
-                 (if (assoc from e:from)
-                     from
-                   (error "Cannot find input spec '%s' in %s exporter"
-                          from (eieio-object-name exporter))))
-                (t (error "'from' argument must be nil, universal argument or a string"))))
-         (to
-          (cond ((null to)
-                 (let ((sel (completing-read "Export to: " (mapcar #'car to-opts) nil t nil
-                                             'pm--export:to-hist (pm--get-hist :export-to))))
-                   (pm--put-hist :export-to sel)
-                   (cdr (assoc sel to-opts))))
-                ((stringp to)
-                 (if (assoc to e:to)
-                     to
-                   (error "Cannot find output spec '%s' in %s exporter"
-                          to (eieio-object-name exporter))))
-                (t (error "'to' argument must be nil or a string")))))
-    (if (consp from)
-        ;; run through weaver
-        (let ((pm--export-spec (cons (cdr from) to)))
-          (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from)))
-      (pm-export exporter from to))))
+  (flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
+                                 (name (if ext
+                                           (format "%s (%s)" (funcall (cdr el) 'doc) ext)
+                                         (funcall (cdr el) 'doc))))
+                            (cons name (car el))))
+         (from-name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
+    (let* ((exporter (symbol-value (or (oref pm/polymode :exporter)
+                                       (polymode-set-exporter))))
+           (fname (file-name-nondirectory buffer-file-name))
+           (gprompt nil)
+           (case-fold-search t)
+           (e:from (oref exporter :from))
+           (e:to (oref exporter :to))
+
+           (from-opts (mapcar #'from-name.id (pm--selectors exporter :from)))
+           (from
+            (cond
+             ;; A: guess from spec
+             ((null from)
+              (or
+               ;; 1. repeated export; don't ask and use first entry in history
+               (pm--get-hist :export-from exporter)
+               
+               ;; 2. select first entries whose REGEXP matches file name
+               (let ((matched (cl-loop for el in (pm--selectors exporter :from)
+                                       when (pm--selector-match (cdr el))
+                                       collect (from-name.id el))))
+                 (when matched
+                   (if (> (length matched) 1)
+                       (cdr (pm--completing-read "Multiple `from' specs matched. Choose one: " matched))
+                     (cdr matched))))
+               
+               ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
+               (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
+                                               (progn
+                                                 (setq gprompt "Choose `from' spec: ")
+                                                 (when (y-or-n-p "No `from' specs matched. Set weaver?")
+                                                   (polymode-set-weaver)))))))
+                 (when weaver
+                   ;; fixme: weaver was not yet ported to selectors
+                   ;; fixme: currently only first match is returned
+                   (let ((pair (cl-loop for w in (oref weaver :from-to)
+                                        ;; weaver input extension matches the filename
+                                        if (string-match-p (nth 1 w) fname) 
+                                        return (cl-loop for el in (pm--selectors exporter :from)
+                                                        ;; input exporter extensnion matches weaver output extension
+                                                        when (pm--selector-match (cdr el) (concat "dummy." (nth 2 w)))
+                                                        return (cons (car w) (car el))))))
+                     (when pair
+                       ;; this is the only case when hist is a cons
+                       (pm--put-hist :export-from pair exporter)))))
+               
+               ;; 4. nothing matched; ask
+               (let* ((prompt (or gprompt
+                                  (format "No `from' specs matched. Choose one: "
+                                          (file-name-nondirectory fname) (eieio-object-name-string exporter))))
+                      (sel (pm--completing-read prompt from-opts nil t nil
+                                                'pm--export:from-hist (pm--get-hist :export-from exporter))))
+                 (pm--put-hist :export-from (car sel) exporter)
+                 (cdr sel))))
+             
+             ;; B: C-u, force a :from spec
+             ((equal from '(4))
+              (let ((sel (pm--completing-read "Input type: " from-opts nil t nil
+                                              'pm--export:from-hist (pm--get-hist :export-from exporter))))
+                (pm--put-hist :export-from (car sel) exporter)
+                (cdr sel)))
+             
+             ;; C. string
+             ((stringp from)
+              (if (assoc from e:from)
+                  from
+                (error "Cannot find input spec '%s' in %s exporter"
+                       from (eieio-object-name exporter))))
+             ;; D. error
+             (t (error "'from' argument must be nil, universal argument or a string"))))
+
+           (to-opts (mapcar #'to-name.id (pm--selectors exporter :to)))
+           (to
+            (cond
+             ;; A. guess from spec
+             ((null to)
+              ;; 1. repeated export; don't ask and use first entry in history
+              (unless (eq from '(4))
+                (pm--get-hist :export-to exporter))
+
+              ;; 2. First export or C-u
+              (let ((sel (pm--completing-read "Export to: " to-opts nil t nil
+                                              'pm--export:to-hist (pm--get-hist :export-to exporter))))
+                (pm--put-hist :export-to (car sel) exporter)
+                (cdr sel)))
+
+             ;; B. string
+             ((stringp to)
+              (if (assoc to e:to)
+                  to
+                (error "Cannot find output spec '%s' in %s exporter"
+                       to (eieio-object-name exporter))))
+             ;; C . Error
+             (t (error "'to' argument must be nil or a string")))))
+      
+      (if (consp from)
+          ;; run through weaver
+          (let ((pm--export-spec (cons (cdr from) to)))
+            (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from)))
+        (pm-export exporter from to)))))
 
 (defun polymode-set-exporter ()
   (interactive)
