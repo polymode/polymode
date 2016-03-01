@@ -263,11 +263,11 @@
 (defcustom pm-weaver/knitR
   (pm-shell-weaver "knitr"
                    :from-to
-                   '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                   '(("latex" "\\.\\(tex\\|[rR]nw\\)\\'" "tex" "LaTeX" "Rscript -e \"knitr::knit('%i', output='%o')\"")
                      ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("markdown" "\\.r?md\\'" "md" "Markdown" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("markdown" "\\.[rR]?md]\\'" "md" "Markdown" "Rscript -e \"knitr::knit('%i', output='%o')\"")
                      ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("brew" "\\.r?brew\\'" "brew" "Brew" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("brew" "\\.[rR]?brew\\'" "brew" "Brew" "Rscript -e \"knitr::knit('%i', output='%o')\"")
                      ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "Rscript -e \"knitr::knit('%i', output='%o')\"")
                      ("textile" "\\.textile\\'" "textile" "Textile" "Rscript -e \"knitr::knit('%i', output='%o')\"")))
   "Shell knitR weaver."
