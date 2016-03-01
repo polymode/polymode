@@ -415,7 +415,7 @@
     (with-temp-buffer
       (insert string)
       (when (string-match-p "Error\\(:\\| +in\\)" string)
-        (error "Errors durring weaving."))
+        (error "Errors durring ESS async command"))
       (unless (stringp ofile)
         (setq ofile (funcall ofile))))
     ofile))
