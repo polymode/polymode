@@ -151,7 +151,7 @@ that call a shell command"
   (pm--run-shell-command command sentinel "*polymode export*"
                          (concat "Exporting " from "-->" to " with command:\n     " command "\n")))
 
-(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "exporting"))
+(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "export"))
 
 
 ;;; METHODS
@@ -215,7 +215,9 @@ that call a shell command"
 
 (defvar pm--exporter-hist nil)
 (defvar pm--export:from-hist nil)
+(defvar pm--export:from-last nil)
 (defvar pm--export:to-hist nil)
+(defvar pm--export:to-last nil)
 (declare-function polymode-set-weaver "polymode-weave")
 (declare-function pm-weave "polymode-weave")
 
@@ -246,15 +248,15 @@ extension.  See class `pm-exporter' for the definitions."
            (e:to (oref exporter :to))
 
            (from-opts (mapcar #'from-name.id (pm--selectors exporter :from)))
-           (from
+           (from-id
             (cond
              ;; A: guess from spec
              ((null from)
               (or
                ;; 1. repeated export; don't ask and use first entry in history
-               (pm--prop-get :export-from exporter)
+               pm--export:from-last
                
-               ;; 2. select first entries whose REGEXP matches file name
+               ;; 2. select :from entries which match to current file
                (let ((matched (cl-loop for el in (pm--selectors exporter :from)
                                        when (pm--selector-match (cdr el))
                                        collect (from-name.id el))))
@@ -280,24 +282,19 @@ extension.  See class `pm-exporter' for the definitions."
                                                         when (pm--selector-match (cdr el) (concat "dummy." (nth 2 w)))
                                                         return (cons (car w) (car el))))))
                      (when pair
-                       ;; this is the only case when hist is a cons
-                       (pm--prop-put :export-from pair exporter)))))
+                       (message "Matching weaver found. Weaving to '%s' first." (car pair))
+                       pair))))
                
                ;; 4. nothing matched; ask
                (let* ((prompt (or gprompt
                                   (format "No `from' specs matched. Choose one: "
                                           (file-name-nondirectory fname) (eieio-object-name-string exporter))))
-                      (sel (pm--completing-read prompt from-opts nil t nil
-                                                'pm--export:from-hist (pm--prop-get :export-from exporter))))
-                 (pm--prop-put :export-from (car sel) exporter)
+                      (sel (pm--completing-read prompt from-opts nil t nil 'pm--export:from-hist)))
                  (cdr sel))))
              
              ;; B: C-u, force a :from spec
              ((equal from '(4))
-              (let ((sel (pm--completing-read "Input type: " from-opts nil t nil
-                                              'pm--export:from-hist (pm--prop-get :export-from exporter))))
-                (pm--prop-put :export-from (car sel) exporter)
-                (cdr sel)))
+              (cdr (pm--completing-read "Input type: " from-opts nil t nil 'pm--export:from-hist)))
              
              ;; C. string
              ((stringp from)
@@ -309,19 +306,17 @@ extension.  See class `pm-exporter' for the definitions."
              (t (error "'from' argument must be nil, universal argument or a string"))))
 
            (to-opts (mapcar #'to-name.id (pm--selectors exporter :to)))
-           (to
+           (to-id
             (cond
              ;; A. guess from spec
              ((null to)
-              ;; 1. repeated export; don't ask and use first entry in history
-              (unless (eq from '(4))
-                (pm--prop-get :export-to exporter))
+              (or 
+               ;; 1. repeated export; don't ask and use first entry in history
+               (unless (eq from '(4))
+                 pm--export:to-last)
 
-              ;; 2. First export or C-u
-              (let ((sel (pm--completing-read "Export to: " to-opts nil t nil
-                                              'pm--export:to-hist (pm--prop-get :export-to exporter))))
-                (pm--prop-put :export-to (car sel) exporter)
-                (cdr sel)))
+               ;; 2. First export or C-u
+               (cdr (pm--completing-read "Export to: " to-opts nil t nil 'pm--export:to-hist))))
 
              ;; B. string
              ((stringp to)
@@ -331,12 +326,15 @@ extension.  See class `pm-exporter' for the definitions."
                        to (eieio-object-name exporter))))
              ;; C . Error
              (t (error "'to' argument must be nil or a string")))))
+
+      (setq-local pm--export:from-last from-id)
+      (setq-local pm--export:to-last to-id)
       
-      (if (consp from)
+      (if (consp from-id)
           ;; run through weaver
-          (let ((pm--export-spec (cons (cdr from) to)))
-            (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from)))
-        (pm-export exporter from to)))))
+          (let ((pm--export-spec (cons (cdr from-id) to-id)))
+            (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from-id)))
+        (pm-export exporter from-id to-id)))))
 
 (defun polymode-set-exporter ()
   (interactive)
@@ -348,6 +346,8 @@ extension.  See class `pm-exporter' for the definitions."
          (sel (completing-read "Choose exporter: " (mapcar #'car exporters) nil t nil
                                'pm--exporter-hist (car pm--exporter-hist)))
          (out (intern (cdr (assoc sel exporters)))))
+    (setq-local pm--export:from-last nil)
+    (setq-local pm--export:to-last nil)
     (oset pm/polymode :exporter out)
     out))
 
@@ -406,8 +406,7 @@ for each polymode in CONFIGS."
                  ("slideous"    "html"  "Slideous HTML slide show" "slideous")
                  ("dzslides"    "html"  "HTML5 slide show" "dzslides")
                  ("s5"      "html"  "S5 HTML slide show" "s5")
-                 ("rtf"     "rtf"  "rich text format" "rtf")
-                 )
+                 ("rtf"     "rtf"  "rich text format" "rtf"))
                :function 'pm-default-shell-export-function
                :sentinel 'pm-default-export-sentinel)
   "Pandoc exporter"
