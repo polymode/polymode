@@ -104,36 +104,37 @@ that call a shell command"
 
 (defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
-    (pm--export-internal exporter from to ifile cb)))
+    (pm--export-internal exporter from to ifile cb 'quote)))
 
-(defun pm--export-internal (exporter from to ifile &optional callback)
+(defun pm--export-internal (exporter from to ifile &optional callback shell-quote)
   (unless (and from to)
     (error "Both FROM and TO must be supplied (from: %s, to: %s)" from to))
-  (let* ((from-spec (assoc from (oref exporter :from)))
-         (to-spec (assoc to (oref exporter :to)))
-         (ifile (or ifile buffer-file-name))
-         (base-ofile (concat (format polymode-exporter-output-file-format
-                                     (file-name-base buffer-file-name))
-                             "." (nth 1 to-spec)))
-         (ofile (expand-file-name base-ofile (file-name-directory buffer-file-name)))
-         (command (format-spec (nth 3 from-spec)
-                               (list (cons ?i (file-name-nondirectory ifile))
-                                     (cons ?f ifile)
-                                     (cons ?O (file-name-base base-ofile))
-                                     (cons ?o base-ofile)
-                                     (cons ?p ofile)
-                                     (cons ?t (nth 3 to-spec))))))
-    (unless to-spec
-      (error "'to' spec `%s' is not defined for exporter '%s'" to (eieio-object-name exporter)))
-    (message "Exporting '%s' with '%s' exporter ..."
-             (file-name-nondirectory ifile) (eieio-object-name exporter))
-    (let* ((pm--output-file ofile)
-           (pm--input-file ifile)
-           (fun (oref exporter :function))
-           (efile (if callback
-                      (funcall fun command callback from to)
-                    (funcall fun command from to))))
-      (and efile (pm--display-file ofile)))))
+  (flet ((squote (arg) (and arg (if shell-quote (shell-quote-argument arg) arg))))
+    (let* ((from-spec (assoc from (oref exporter :from)))
+           (to-spec (assoc to (oref exporter :to)))
+           (ifile (or ifile buffer-file-name))
+           (base-ofile (concat (format polymode-exporter-output-file-format
+                                       (file-name-base buffer-file-name))
+                               "." (nth 1 to-spec)))
+           (ofile (expand-file-name base-ofile (file-name-directory buffer-file-name)))
+           (command (format-spec (nth 3 from-spec)
+                                 (list (cons ?i (squote (file-name-nondirectory ifile)))
+                                       (cons ?f (squote ifile))
+                                       (cons ?O (squote (file-name-base base-ofile)))
+                                       (cons ?o (squote base-ofile))
+                                       (cons ?p (squote ofile))
+                                       (cons ?t (nth 3 to-spec))))))
+      (unless to-spec
+        (error "'to' spec `%s' is not defined for exporter '%s'" to (eieio-object-name exporter)))
+      (message "Exporting '%s' with '%s' exporter ..."
+               (file-name-nondirectory ifile) (eieio-object-name exporter))
+      (let* ((pm--output-file ofile)
+             (pm--input-file ifile)
+             (fun (oref exporter :function))
+             (efile (if callback
+                        (funcall fun command callback from to)
+                      (funcall fun command from to))))
+        (and efile (pm--display-file ofile))))))
 
 
 ;; UI
