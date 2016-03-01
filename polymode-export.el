@@ -36,7 +36,7 @@
 
      When specification is of the form (id . selector), SELECTOR
      is a function of variable arguments that accepts at least
-     one argument SELSYM. SELSYM is a symbol and can be one of
+     one argument ACTION. ACTION is a symbol and can be one of
      the following:
 
          match - must return non-nil if this specification
@@ -77,14 +77,20 @@
 
      When specification is of the form (id . selector), SELECTOR
      is a function of variable arguments that accepts at least
-     one argument SELSYM. This function is called in a buffer
-     visiting input file. SELSYM is a symbol and can one of the
+     one argument ACTION. This function is called in a buffer
+     visiting input file. ACTION is a symbol and can one of the
      following:
 
          output-file - return an output file name or a list of file
            names. Receives input-file as argument. If this
            command returns nil, the output is built from input
            file and value of 'output-ext command.
+
+           This selector can also return a function. This
+           function will be called on the output buffer and
+           should sniff for the output file names. It must return
+           nil if no such files have been detected, a file name
+           or a list of file names otherwise.
 
          ext - extension of output file. If nil and
            `output' also returned nil, the exporter won't be able
@@ -182,6 +188,7 @@ that call a shell command"
            (ibuffer (find-file-noselect ifile t)))
 
       (with-current-buffer ibuffer
+        ;; selectors are run in input buffer
         (let* ((base-ofile (or (funcall sto 'output-file)
                                (let ((ext (funcall sto 'ext)))
                                  (when ext
@@ -228,14 +235,22 @@ that call a shell command"
 (defun polymode-export (&optional from to)
   "Export current file.
 
-FROM and TO are the :from-id and :to-id in the definition of the
-current exporter. If current exporter hasn't been set yet, call
-`polymode-set-exporter' before exporting.
+FROM and TO are the ids of the :from and :to slots of the current
+exporter. If the current exporter hasn't been set yet, call
+`polymode-set-exporter' before doing anything else. You can
+always change the exporter by invoking `polymode-set-exporter'.
 
-If called interactively with C-u argument, ask for FROM
-interactively, otherwise FROM and TO are determined automatically
-from the current exporter specification and current file
-extension.  See class `pm-exporter' for the definitions."
+When FROM or TO are missing they are determined automatically
+from the current exporter's specifications and file's
+extension. If no appropriate export specification has been found,
+look into current weaver and try to match weaver's output to
+exporters input extension. When such combination is possible,
+settle on weaving first and exporting the weaved output. When
+none of the above worked, ask the user for `from' and `to' specs.
+
+When called interactively with C-u argument, ask for FROM and TO
+interactively. See class `pm-exporter' for the complete
+specification."
   (interactive "P")
   (flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
                                  (name (if ext
