@@ -100,8 +100,7 @@ a warning."
     VALS))
 
 (defun pm--abrev-names (list abrev-regexp)
-  "Abreviate names in LIST by replacing abrev-regexp with empty
-string."
+  "Abbreviate names in LIST by replacing abrev-regexp with empty string."
   (mapcar (lambda (nm)
             (let ((str-nm (if (symbolp nm)
                               (symbol-name nm)
@@ -262,10 +261,15 @@ able to accept user interaction."
   "Wrapper for `completing-read'.
 Takes care when collection is an alist of (name . meta-info). If
 so, asks for names, but returns meta-info for that name. Enforce
-require-match = t."
+require-match = t. Also takes care of adding the most relevant
+DEF from history."
   (if (and (listp collection)
            (listp (car collection)))
-      (let ((candidates (mapcar #'car collection)))
+      (let* ((candidates (mapcar #'car collection))
+             (thist (and hist
+                         (delq nil (mapcar (lambda (x) (car (member x candidates)))
+                                           (symbol-value hist)))))
+             (def (or def (car thist))))
         (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
                collection))
     (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))

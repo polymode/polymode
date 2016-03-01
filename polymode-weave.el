@@ -227,9 +227,10 @@ each polymode in CONFIGS."
   (let* ((weavers (pm--abrev-names
                      (delete-dups (pm--oref-with-parents pm/polymode :weavers))
                      "pm-weaver/"))
-         (sel (completing-read "Choose weaver: " (mapcar #'car weavers)
-                               nil t nil 'pm--weaver-hist (car pm--weaver-hist)))
-         (out (intern (cdr (assoc sel weavers)))))
+         (sel (pm--completing-read "Choose weaver: " weavers nil t nil 'pm--weaver-hist))
+         (out (intern (cdr sel))))
+    (setq-local pm--weaver:from-last nil)
+    (setq-local pm--weaver:to-last nil)
     (oset pm/polymode :weaver out)
     out))
 

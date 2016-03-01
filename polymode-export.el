@@ -263,7 +263,7 @@ extension.  See class `pm-exporter' for the definitions."
                  (when matched
                    (if (> (length matched) 1)
                        (cdr (pm--completing-read "Multiple `from' specs matched. Choose one: " matched))
-                     (cdr matched))))
+                     (cdar matched))))
                
                ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
                (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
@@ -294,7 +294,9 @@ extension.  See class `pm-exporter' for the definitions."
              
              ;; B: C-u, force a :from spec
              ((equal from '(4))
-              (cdr (pm--completing-read "Input type: " from-opts nil t nil 'pm--export:from-hist)))
+              (cdr (if (> (length from-opts) 1)
+                       (pm--completing-read "Input type: " from-opts nil t nil 'pm--export:from-hist)
+                     (car from-opts))))
              
              ;; C. string
              ((stringp from)
@@ -312,7 +314,7 @@ extension.  See class `pm-exporter' for the definitions."
              ((null to)
               (or 
                ;; 1. repeated export; don't ask and use first entry in history
-               (unless (eq from '(4))
+               (unless (equal from '(4))
                  pm--export:to-last)
 
                ;; 2. First export or C-u
@@ -343,9 +345,8 @@ extension.  See class `pm-exporter' for the definitions."
   (let* ((exporters (pm--abrev-names
                      (delete-dups (pm--oref-with-parents pm/polymode :exporters))
                      "pm-exporter/"))
-         (sel (completing-read "Choose exporter: " (mapcar #'car exporters) nil t nil
-                               'pm--exporter-hist (car pm--exporter-hist)))
-         (out (intern (cdr (assoc sel exporters)))))
+         (sel (pm--completing-read "Choose exporter: " exporters nil t nil 'pm--exporter-hist))
+         (out (intern (cdr sel))))
     (setq-local pm--export:from-last nil)
     (setq-local pm--export:to-last nil)
     (oset pm/polymode :exporter out)
