@@ -67,7 +67,13 @@ not rely on that.")
 
 ;;; UTILITIES
 (defun pm--display-file (ofile)
-  (display-buffer (find-file-noselect ofile 'nowarn)))
+  ;; errors might occur (most notably with open-with package errors are intentional)
+  ;; We need to catch those if we want to display multiple files like with Rmarkdown
+  (condition-case err
+      (display-buffer (find-file-noselect ofile 'nowarn))
+    (error (message "Error while displaying '%s': %s"
+                    (file-name-nondirectory ofile)
+                    (error-message-string err)))))
 
 (defun pm--get-mode-symbol-from-name (str &optional no-fallback)
   "Guess and return mode function."
