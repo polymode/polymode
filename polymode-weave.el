@@ -19,22 +19,62 @@
     :type list
     :custom list
     :documentation
-    "Input-output specifications. An alist with elements of the form
+    "Input-output specifications. An alist with elements of the
+    form (id reg-from ext-to doc command) or (id . selector).
 
-          (ID REG-FROM EXT-TO DOC COMMMAND)
-
-     ID is the unique identifier of the spec. REG-FROM is a
-     regexp that is used to identify if current file can be
-     weaved with this spec. EXT-TO is the *exact* (not regexp)
+     In both cases ID is the unique identifier of the spec. In
+     the former case REG-FROM is a regexp used to identify if
+     current file can be weaved with the spec. EXT-TO is the
      extension of the output file. DOC is a short help string
-     shown during interactive weaving. COMMMAND is the actual,
-     weaver specific, command. It can contain the following
-     format specs:
+     used for interactive completion and messages. COMMAND is a
+     weaver specific specific command. It can contain the
+     following format specs:
+
+
          %i - input file (no dir)
-         %f - input file (full path) 
+         %I - input file (full path) 
          %o - output file (no dir)
-         %O - output file name (no dir, no extension)
-         %p - output file (full path)")
+         %O - output file (full path)
+         %b - output file (base name only)
+         %t - 4th element of the :to spec
+
+     When specification is of the form (id . selector), SELECTOR
+     is a function of variable arguments that accepts at least
+     one argument ACTION. This function is called in a buffer
+     visiting input file. ACTION is a symbol and can one of the
+     following:
+
+         match - must return non-nil if this specification
+             applies to the file that current buffer is visiting,
+             or :nomatch if specification does not apply.
+
+         regexp - return a string which is used to match input
+             file name. If nil, `match' selector must return
+             non-nil value. This selector is ignored if `match'
+             returned non-nil.
+
+         output-file - return an output file name or a list of
+           file names. Receives input-file as argument. If this
+           command returns nil, the output is built from the
+           input file name and value of 'output-ext command.
+
+           This selector can also return a function. This
+           function will be called in the callback or sentinel of
+           the weaving process after the weaving was
+           completed. This function should sniff the output of
+           the process for errors or file names. It must return a
+           file name, a list of file names or nil if no such
+           files have been detected.
+
+         ext - extension of output file. If nil and
+           `output' also returned nil, the exporter won't be able
+           to identify the output file and no automatic display
+           or preview will be available.
+     
+         doc - return documentation string
+
+         command - return a string to be used instead of
+           the :from command. If nil, :from spec command is used.")
    (function
     :initarg :function
     :initform (lambda (command id)
@@ -87,7 +127,8 @@ Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all weavers
 that call a shell command"
   (pm--run-shell-command command sentinel "*polymode weave*"
-                         (concat "weaving " from-to-id " with command:\n     " command "\n")))
+                         (concat "weaving " from-to-id " with command:\n\n     "
+                                 command "\n\n")))
 
 (fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "weaving"))
 
@@ -109,48 +150,12 @@ specification will be called.")
 (defmethod pm-weave ((weaver pm-callback-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :callback ifile))
         (pm--export-spec nil))
-    (pm--weave-internal weaver fromto-id ifile cb)))
+    (pm--process-internal weaver fromto-id nil ifile cb)))
 
 (defmethod pm-weave ((weaver pm-shell-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :sentinel ifile))
         (pm--export-spec nil))
-    (pm--weave-internal weaver fromto-id ifile cb (oref weaver :quote))))
-
-(defun pm--weave-internal (weaver from-to ifile &optional callback shell-quote)
-  (flet ((squote (arg) (and arg (if shell-quote (shell-quote-argument arg) arg))))
-    (let ((from-to-spec (assoc from-to (oref weaver :from-to))))
-      (if from-to-spec
-          (let* ((ifile (or ifile buffer-file-name))
-                 (base-ofile (concat (format polymode-weave-output-file-format
-                                             (file-name-base ifile))
-                                     "." (nth 2 from-to-spec)))
-                 (ofile (expand-file-name base-ofile (file-name-directory buffer-file-name)))
-                 (command (format-spec (nth 4 from-to-spec)
-                                       (list (cons ?i (squote (file-name-nondirectory ifile)))
-                                             (cons ?f (squote ifile))
-                                             (cons ?O (squote (file-name-base base-ofile)))
-                                             (cons ?o (squote base-ofile))
-                                             (cons ?p ofile)))))
-            (message "Weaving '%s' with '%s' weaver ..."
-                     (file-name-nondirectory ifile) (eieio-object-name weaver))
-            ;; weave and pass to exporter if any
-            (let* ((pm--output-file ofile)
-                   (pm--input-file ifile)
-                   (fun (oref weaver :function))
-                   (wfile (if callback
-                              (funcall fun command callback from-to)
-                            (funcall fun command from-to))))
-              ;; Display file when the worker returned a file.  Workers with
-              ;; callbacks return nil and take care of display themselves.
-              (when wfile
-                (if pm--export-spec
-                    ;; called by exporter
-                    (pm-export (symbol-value (oref pm/polymode :exporter))
-                               (car pm--export-spec) (cdr pm--export-spec) wfile)
-                  (pm--display-file wfile)
-                  wfile))))
-        (error "from-to spec '%s' is not supported by weaver '%s'"
-               from-to (eieio-object-name weaver))))))
+    (pm--process-internal weaver fromto-id nil ifile cb (oref weaver :quote))))
 
 
 ;; UI

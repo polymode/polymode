@@ -38,6 +38,7 @@ not rely on that.")
 (defvar pm--input-buffer nil)
 (defvar pm--input-file nil)
 (defvar pm--export-spec nil)
+(defvar pm--export-input-not-real nil)
 (defvar pm/type)
 (defvar pm/polymode)
 (defvar pm/chunkmode)
@@ -67,13 +68,14 @@ not rely on that.")
 
 ;;; UTILITIES
 (defun pm--display-file (ofile)
-  ;; errors might occur (most notably with open-with package errors are intentional)
-  ;; We need to catch those if we want to display multiple files like with Rmarkdown
-  (condition-case err
-      (display-buffer (find-file-noselect ofile 'nowarn))
-    (error (message "Error while displaying '%s': %s"
-                    (file-name-nondirectory ofile)
-                    (error-message-string err)))))
+  (when ofile
+   ;; errors might occur (most notably with open-with package errors are intentional)
+   ;; We need to catch those if we want to display multiple files like with Rmarkdown
+   (condition-case err
+       (display-buffer (find-file-noselect ofile 'nowarn))
+     (error (message "Error while displaying '%s': %s"
+                     (file-name-nondirectory ofile)
+                     (error-message-string err))))))
 
 (defun pm--get-mode-symbol-from-name (str &optional no-fallback)
   "Guess and return mode function."
@@ -150,6 +152,27 @@ a warning."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
+
+(defun pm--completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
+  "Wrapper for `completing-read'.
+Takes care when collection is an alist of (name . meta-info). If
+so, asks for names, but returns meta-info for that name. Enforce
+require-match = t. Also takes care of adding the most relevant
+DEF from history."
+  (if (and (listp collection)
+           (listp (car collection)))
+      (let* ((candidates (mapcar #'car collection))
+             (thist (and hist
+                         (delq nil (mapcar (lambda (x) (car (member x candidates)))
+                                           (symbol-value hist)))))
+             (def (or def (car thist))))
+        (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
+               collection))
+    (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))
+
+
+;; Weaving and Exporting common utilities
+
 (defun pm--wrap-callback (processor slot ifile)
   ;; replace processor :sentinel or :callback temporally in order to export-spec as a
   ;; followup step or display the result
@@ -162,7 +185,8 @@ a warning."
           (lambda (&rest args)
             (with-current-buffer obuffer
               (let ((wfile (apply sentinel1 args))
-                    (pm--export-spec nil))
+                    (pm--export-spec nil)
+                    (pm--export-input-not-real t))
                 ;; If no wfile, probably errors occurred. So we stop.
                 (when wfile
                   (when (listp wfile)
@@ -264,9 +288,13 @@ able to accept user interaction."
   (let ((spec (or (assoc id (eieio-oref processor type))
                   (error "%s spec '%s' cannot be found in '%s'"
                          (symbol-name type) id (eieio-object-name processor))))
-        (names (cond ((eq type :from) '(regexp doc command))
-                     ((eq type :to) '(ext doc t-spec))
-                     (t (error "invalid type '%s'" type)))))
+        (names (cond
+                ;; exporter slots
+                ((eq type :from) '(regexp doc command))
+                ((eq type :to) '(ext doc t-spec))
+                ;; weaver slot
+                ((eq type :from-to) '(regexp ext doc command))
+                (t (error "invalid type '%s'" type)))))
     (pm--make-selector names (cdr spec))))
 
 (defun pm--selector-match (selector &optional file)
@@ -278,22 +306,77 @@ able to accept user interaction."
   (let ((ids (mapcar #'car (eieio-oref processor type))))
     (mapcar (lambda (id) (cons id (pm--selector processor type id))) ids)))
 
-(defun pm--completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
-  "Wrapper for `completing-read'.
-Takes care when collection is an alist of (name . meta-info). If
-so, asks for names, but returns meta-info for that name. Enforce
-require-match = t. Also takes care of adding the most relevant
-DEF from history."
-  (if (and (listp collection)
-           (listp (car collection)))
-      (let* ((candidates (mapcar #'car collection))
-             (thist (and hist
-                         (delq nil (mapcar (lambda (x) (car (member x candidates)))
-                                           (symbol-value hist)))))
-             (def (or def (car thist))))
-        (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
-               collection))
-    (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))
+(defun pm--output-command.file (output-file-format sfrom &optional sto quote)
+  ;; !!Must be run in input buffer!!
+  (cl-flet ((squote (arg) (or (and (stringp arg)
+                                   (if quote (shell-quote-argument arg) arg))
+                              "")))
+    (let* ((base-ofile (or (funcall (or sto sfrom) 'output-file)
+                           (let ((ext (funcall (or sto sfrom) 'ext)))
+                             (when ext
+                               (concat (format output-file-format
+                                               (file-name-base buffer-file-name))
+                                       "." ext)))))
+           (ofile (and (stringp base-ofile)
+                       (expand-file-name base-ofile)))
+           (oname (and (stringp base-ofile)
+                       (file-name-base base-ofile)))
+           (t-spec (and sto (funcall sto 't-spec)))
+           (command-w-formats (or (and sto (funcall sto 'command))
+                                  (and (listp t-spec) (car t-spec))
+                                  (funcall sfrom 'command)))
+           (command (format-spec command-w-formats
+                                 (list (cons ?i (squote (file-name-nondirectory buffer-file-name)))
+                                       (cons ?I (squote buffer-file-name))
+                                       (cons ?o (squote base-ofile))
+                                       (cons ?O (squote ofile))
+                                       (cons ?b (squote oname))
+                                       (cons ?t (squote t-spec))))))
+      (cons command ofile))))
+
+(defun pm--process-internal (processor from to ifile &optional callback shell-quote)
+  (let ((is-exporter (object-of-class-p processor 'pm-exporter)))
+    (if is-exporter
+        (unless (and from to)
+          (error "For exporter both FROM and TO must be supplied (from: %s, to: %s)" from to))
+      (unless from
+        ;; it represents :from-to slot
+        (error "For weaver FROM must be supplied (from: %s)" from)))
+    (let* ((sfrom (if is-exporter
+                      (pm--selector processor :from from)
+                    (pm--selector processor :from-to from)))
+           (sto (and is-exporter (pm--selector processor :to to)))
+           (ifile (or ifile buffer-file-name))
+           ;; fixme: nowarn is only right for inputs from weavers, you need to
+           ;; save otherwise
+           (ibuffer (if pm--export-input-not-real
+                        ;; for weaver output we silently re-fetch the file
+                        ;; even if it was modified
+                        (find-file-noselect ifile t)
+                      ;; if real user file, get it or fetch it
+                      (or (get-file-buffer ifile)
+                          (find-file-noselect ifile))))
+           (output-file-format (if is-exporter
+                                   polymode-exporter-output-file-format
+                                 polymode-weave-output-file-format)))
+      (with-current-buffer ibuffer
+        (save-buffer)
+        (let ((comm.ofile (pm--output-command.file output-file-format sfrom sto)))
+          (message "%s '%s' with '%s' ..." (if is-exporter "Exporting" "Weaving")
+                   (file-name-nondirectory ifile) (eieio-object-name processor))
+          (let* ((pm--output-file (cdr comm.ofile))
+                 (pm--input-file ifile)
+                 (fun (oref processor :function))
+                 (args (delq nil (list callback from to)))
+                 (ofile (apply fun (car comm.ofile) args)))
+            ;; ofile is non-nil only in synchronous back-ends (very uncommon)
+            (when ofile
+              (if pm--export-spec
+                  ;; run from weaver's callback
+                  (pm-export (symbol-value (oref pm/polymode :exporter))
+                             (car pm--export-spec) (cdr pm--export-spec)
+                             ofile)
+                (pm--display-file ofile)))))))))
 
 (provide 'polymode-common)
 

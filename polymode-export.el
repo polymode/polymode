@@ -28,10 +28,10 @@
      command (string). It can contain the following format specs:
 
          %i - input file (no dir)
-         %f - input file (full path) 
+         %I - input file (full path) 
          %o - output file (no dir)
-         %O - output file name (no dir, no extension)
-         %p - output file (full path)
+         %O - output file (full path)
+         %b - output file (base name only)
          %t - 4th element of the :to spec
 
      When specification is of the form (id . selector), SELECTOR
@@ -49,7 +49,7 @@
              weavers when exported file does not exist yet.
 
          regexp - return a string which is used to match input
-             file against. If nil, `match' selector must return
+             file name. If nil, `match' selector must return
              non-nil value. This selector is ignored if `match'
              returned non-nil.
 
@@ -86,11 +86,14 @@
            command returns nil, the output is built from input
            file and value of 'output-ext command.
 
+
            This selector can also return a function. This
-           function will be called on the output buffer and
-           should sniff for the output file names. It must return
-           nil if no such files have been detected, a file name
-           or a list of file names otherwise.
+           function will be called in the callback or sentinel of
+           the weaving process after the weaving was
+           completed. This function should sniff the output of
+           the process for errors or file names. It must return a
+           file name, a list of file names or nil if no such
+           files have been detected.
 
          ext - extension of output file. If nil and
            `output' also returned nil, the exporter won't be able
@@ -155,7 +158,8 @@ Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
 that call a shell command"
   (pm--run-shell-command command sentinel "*polymode export*"
-                         (concat "Exporting " from "-->" to " with command:\n     " command "\n")))
+                         (concat "Exporting " from "-->" to " with command:\n\n     "
+                                 command "\n\n")))
 
 (fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "export"))
 
@@ -166,61 +170,16 @@ that call a shell command"
   "Process IFILE with EXPORTER.")
 
 (defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
-  (pm--export-internal exporter from to ifile))
+  (pm--process-internal exporter from to ifile))
 
 (defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :callback ifile)))
-    (pm--export-internal exporter from to ifile cb)))
+    (pm--process-internal exporter from to ifile cb)))
 
 (defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
-    (pm--export-internal exporter from to ifile cb (oref exporter :quote))))
-
-(defun pm--export-internal (exporter from to ifile &optional callback shell-quote)
-  (unless (and from to)
-    (error "Both FROM and TO must be supplied (from: %s, to: %s)" from to))
-  (cl-flet ((squote (arg) (or (and (stringp arg)
-                                   (if shell-quote (shell-quote-argument arg) arg))
-                              "")))
-    (let* ((sfrom (pm--selector exporter :from from))
-           (sto (pm--selector exporter :to to))
-           (ifile (or ifile buffer-file-name))
-           (ibuffer (find-file-noselect ifile t)))
-
-      (with-current-buffer ibuffer
-        ;; selectors are run in input buffer
-        (let* ((base-ofile (or (funcall sto 'output-file)
-                               (let ((ext (funcall sto 'ext)))
-                                 (when ext
-                                   (concat (format polymode-exporter-output-file-format
-                                                   (file-name-base buffer-file-name))
-                                           "." ext)))))
-               (ofile (and (stringp base-ofile)
-                           (expand-file-name base-ofile)))
-               (oname (and (stringp base-ofile)
-                           (file-name-base base-ofile)))
-               (t-spec (funcall sto 't-spec))
-               (command-w-formats (or (funcall sto 'command)
-                                      (when (listp t-spec)
-                                        (car t-spec))
-                                      (funcall sfrom 'command)))
-               (command (format-spec command-w-formats
-                                     (list (cons ?i (squote (file-name-nondirectory ifile)))
-                                           (cons ?f (squote ifile))
-                                           (cons ?O (squote oname))
-                                           (cons ?o (squote base-ofile))
-                                           (cons ?p (squote ofile))
-                                           (cons ?t (squote t-spec))))))
-          (message "Exporting '%s' with '%s' exporter ..."
-                   (file-name-nondirectory ifile) (eieio-object-name exporter))
-          (let* ((pm--output-file (or ofile base-ofile))
-                 (pm--input-file ifile)
-                 (fun (oref exporter :function))
-                 (efile (if callback
-                            (funcall fun command callback from to)
-                          (funcall fun command from to))))
-            (and efile (pm--display-file ofile))))))))
-
+    (pm--process-internal exporter from to ifile cb (oref exporter :quote))))
+  
 
 ;; UI
 
