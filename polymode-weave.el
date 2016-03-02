@@ -149,12 +149,14 @@ specification will be called.")
 
 (defmethod pm-weave ((weaver pm-callback-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :callback ifile))
-        (pm--export-spec nil))
+        ;; with transitory output, callback might not run
+        (pm--export-spec (and pm--output-not-real pm--export-spec)))
     (pm--process-internal weaver fromto-id nil ifile cb)))
 
 (defmethod pm-weave ((weaver pm-shell-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :sentinel ifile))
-        (pm--export-spec nil))
+        ;; with transitory output, callback might not run
+        (pm--export-spec (and pm--output-not-real pm--export-spec)))
     (pm--process-internal weaver fromto-id nil ifile cb (oref weaver :quote))))
 
 

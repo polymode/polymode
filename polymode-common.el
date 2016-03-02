@@ -15,6 +15,13 @@
   :group 'polymode
   :type 'boolean)
 
+(defcustom polymode-skip-processing-when-unmodified t
+  "If non-nil, consider modification times of input and output files.
+Skip weaving or exporting process when output file is more recent
+than the input file."
+  :group 'polymode
+  :type 'boolean)
+
 (defvar polymode-switch-buffer-hook nil
   "Hook run on switching to a different buffer.
 Each function is run with two arguments `old-buffer' and
@@ -38,7 +45,8 @@ not rely on that.")
 (defvar pm--input-buffer nil)
 (defvar pm--input-file nil)
 (defvar pm--export-spec nil)
-(defvar pm--export-input-not-real nil)
+(defvar pm--input-not-real nil)
+(defvar pm--output-not-real nil)
 (defvar pm/type)
 (defvar pm/polymode)
 (defvar pm/chunkmode)
@@ -186,12 +194,12 @@ DEF from history."
             (with-current-buffer obuffer
               (let ((wfile (apply sentinel1 args))
                     (pm--export-spec nil)
-                    (pm--export-input-not-real t))
+                    (pm--input-not-real t))
                 ;; If no wfile, probably errors occurred. So we stop.
                 (when wfile
                   (when (listp wfile)
                     ;; In an unlikely situation weaver can generate multiple
-                    ;; files (potentially). So pick the first one.
+                    ;; files. Pick the first one.
                     (setq wfile (car wfile)))
                   (pm-export exporter (car espec) (cdr espec) wfile))))))
       (lambda (&rest args)
@@ -273,7 +281,7 @@ able to accept user interaction."
                   ;; (display-buffer (current-buffer))
                   (message "Done with %s" action)
                   ofile)))
-             ;; 3. output file is not known
+             ;; 3. output file is not known; display process buffer
              (t (display-buffer (current-buffer)) nil))))))))
 
 (defun pm--make-selector (specs elements)
@@ -349,7 +357,7 @@ able to accept user interaction."
            (ifile (or ifile buffer-file-name))
            ;; fixme: nowarn is only right for inputs from weavers, you need to
            ;; save otherwise
-           (ibuffer (if pm--export-input-not-real
+           (ibuffer (if pm--input-not-real
                         ;; for weaver output we silently re-fetch the file
                         ;; even if it was modified
                         (find-file-noselect ifile t)
@@ -368,14 +376,27 @@ able to accept user interaction."
                  (pm--input-file ifile)
                  (fun (oref processor :function))
                  (args (delq nil (list callback from to)))
-                 (ofile (apply fun (car comm.ofile) args)))
-            ;; ofile is non-nil only in synchronous back-ends (very uncommon)
+                 ;; skip weaving step if possible
+                 (omt (and polymode-skip-processing-when-unmodified
+                           (stringp pm--output-file)
+                           (pm--file-mod-time pm--output-file)))
+                 (imt (and omt (pm--file-mod-time pm--input-file)))
+                 (ofile (or (and imt (time-less-p imt omt) pm--output-file)
+                            (apply fun (car comm.ofile) args))))
+            ;; ofile is non-nil in two cases:
+            ;;  -- synchronous back-ends (very uncommon)
+            ;;  -- when output is transitional (not real) and mod time of input < output  
             (when ofile
               (if pm--export-spec
-                  ;; run from weaver's callback
-                  (pm-export (symbol-value (oref pm/polymode :exporter))
-                             (car pm--export-spec) (cdr pm--export-spec)
-                             ofile)
+                  ;; same logic as in pm--wrap-callback
+                  (let ((pm--input-not-real t)
+                        (espec pm--export-spec)
+                        (pm--export-spec nil))
+                    (when (listp ofile)
+                      (setq ofile (car ofile)))
+                    (pm-export (symbol-value (oref pm/polymode :exporter))
+                               (car espec) (cdr espec)
+                               ofile))
                 (pm--display-file ofile)))))))))
 
 (provide 'polymode-common)

@@ -13,7 +13,6 @@
 
 \end{definition}
 
-
 \end{definitions}
 You can also write inline expressions, e.g. $\pi=\Sexpr{pi}$, and
 \Sexpr{1.598673e8} is a big number.

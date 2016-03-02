@@ -312,7 +312,8 @@ specification."
       
       (if (consp from-id)
           ;; run through weaver
-          (let ((pm--export-spec (cons (cdr from-id) to-id)))
+          (let ((pm--export-spec (cons (cdr from-id) to-id))
+                (pm--output-not-real t))
             (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from-id)))
         (pm-export exporter from-id to-id)))))
 
