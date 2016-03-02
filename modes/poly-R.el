@@ -275,7 +275,7 @@
                        ("slidy" "html" "slidy presentation" "slidy_presentation")
                        ("beamer" "pdf" "beamer presentation" "beamer_presentation")))
   "R Markdown exporter.
-Please not that with 'auto detect' export options, output file
+Please not that with 'AUTO DETECT' export options, output file
 names are inferred by Rmarkdown from YAML description
 block. Thus, output file names don't comply with
 `polymode-exporter-output-file-format'."
@@ -287,7 +287,7 @@ block. Thus, output file names don't comply with
 
 (defun pm--rmarkdown-shell-auto-selector (action &rest ignore)
   (cl-case action
-    (doc "auto detect")
+    (doc "AUTO DETECT")
     (command "Rscript -e \"rmarkdown::render('%i', output_format = 'all')\"")
     (output-file #'pm--rmarkdown-output-file-sniffer)))
 
@@ -308,7 +308,7 @@ block. Thus, output file names don't comply with
                         :function 'pm--ess-run-command
                         :callback 'pm--ess-callback)
   "R Markdown exporter.
-Please not that with 'auto detect' export options, output file
+Please not that with 'AUTO DETECT' export options, output file
 names are inferred by Rmarkdown from YAML description
 block. Thus, output file names don't comply with
 `polymode-exporter-output-file-format'."
