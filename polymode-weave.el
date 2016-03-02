@@ -30,7 +30,6 @@
      weaver specific specific command. It can contain the
      following format specs:
 
-
          %i - input file (no dir)
          %I - input file (full path) 
          %o - output file (no dir)
@@ -159,63 +158,74 @@ specification will be called.")
 
 
 ;; UI
-(defvar pm--weaver-hist nil)
-(defvar pm--weave:from-to-hist nil)
 
-(defun polymode-weave (&optional from-to-id)
+(defvar pm--weaver-hist nil)
+(defvar pm--weave:fromto-hist nil)
+(defvar pm--weave:fromto-last nil)
+
+(defun polymode-weave (&optional from-to)
   "Weave current file.
 First time this command is called in a buffer the user is asked
 for the weaver to use from a list of known weavers.
 
-Each weaver knows about at least one input-output
-conversion. Appropriate input-output specification is set based
-on this file's extension. If this detection is ambiguous ask the
-user for weaver specification explicitly. If `from-to-id' is an
-universal argument ask for specification regardless. If `from-to-id'
-is a string, it is an ID of an entry in weaver's :from-to
-input-output specification alist. See also `pm-weave' generic."
+FROM-TO is the id of the specification declared in :from-to slot
+of the current weaver. If the weaver hasn't been set yet, set the
+weaver with `polymode-set-weaver'. You can always change the
+weaver manually by invoking `polymode-set-weaver'.
+
+If `from-to' dismissing detect automatically based on current
+weaver :from-to specifications. If this detection is ambiguous
+ask the user.
+
+When `from-to' is universal argument ask user for specification
+for the specification. See also `pm-weaveer' for the complete
+specification."
   (interactive "P")
-  (let* ((weaver (symbol-value (or (oref pm/polymode :weaver)
-                                   (polymode-set-weaver))))
-         (w:fromto (oref weaver :from-to))
-         (opts (mapcar (lambda (el)
-                         (cons (format "%s" (nth 3 el)) (car el)))
-                       w:fromto))
-         (wname (eieio-object-name weaver))
-         (ft-id
-          (cond
-           ;; guess from-to spec
-           ((null from-to-id) (let ((fname (file-name-nondirectory buffer-file-name))
-                                 (hist-from-to (pm--prop-get :weave-from-to))
-                                 (case-fold-search t))
-                             (or
-                              ;; 1. repeated weave; don't ask and use first entry in history
-                              (and hist-from-to (get-text-property 0 :id hist-from-to))
-                              ;; 2. get first entry whose REG-FROM matches current file 
-                              (car (cl-rassoc-if (lambda (el)
-                                                   (string-match-p (car el) fname))
-                                                 w:fromto))
-                              ;; 3. nothing matched, ask
-                              (let* ((prompt (format "No intpu-output spec for extension '.%s' in '%s' weaver. Choose one: "
-                                                     (file-name-extension fname)
-                                                     wname))
-                                     (sel (completing-read prompt (mapcar #'car opts) nil t nil
-                                                           'pm--weave:from-to-hist
-                                                           hist-from-to)))
-                                (pm--prop-put :weave-from-to sel)
-                                (cdr (assoc sel opts))))))
-           ;; C-u, force a :from-to spec
-           ((equal from-to-id '(4)) (let ((sel (completing-read "Input type: " opts nil t nil
-                                                             'pm--weave:from-to-hist
-                                                             (pm--prop-get :weave-from-to)) ))
-                                   (pm--prop-put :weave-from-to sel)
-                                   (get-text-property 0 :id sel)))
-           ;; string must match an entry
-           ((stringp from-to-id) (if (assoc from-to-id w:fromto)
-                                  from-to-id
-                                (error "Cannot find input-output spec '%s' in %s weaver" from-to-id wname)))
-           (t (error "'from-to-id' argument must be nil, universal argument or a string")))))
-    (pm-weave weaver ft-id)))
+  (flet ((name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
+    (let* ((weaver (symbol-value (or (oref pm/polymode :weaver)
+                                     (polymode-set-weaver))))
+           (fname (file-name-nondirectory buffer-file-name))
+           (case-fold-search t)
+
+           (opts (mapcar #'name.id (pm--selectors weaver :from-to)))
+           (ft-id
+            (cond
+             ;; A. guess from-to spec
+             ((null from-to)
+              (or 
+               ;; 1. repeated weaving; don't ask
+               pm--weave:fromto-last
+
+               ;; 2. select :from entries which match to current file
+               (let ((matched (cl-loop for el in (pm--selectors weaver :from-to)
+                                       when (pm--selector-match (cdr el))
+                                       collect (name.id el))))
+                 (when matched
+                   (if (> (length matched) 1)
+                       (cdr (pm--completing-read "Multiple `from-to' specs matched. Choose one: " matched))
+                     (cdar matched))))
+                 
+               ;; 3. nothing matched, ask
+               (let* ((prompt (format "No `from-to' specs matched. Choose one: "
+                                      (file-name-extension fname) (eieio-object-name weaver)))
+                      (sel (pm--completing-read prompt opts nil t nil 'pm--weave:fromto-hist)))
+                 (cdr sel))))
+              
+             ;; B. C-u, force a :from-to spec
+             ((equal from-to '(4))
+              (cdr (if (> (length opts) 1)
+                       (pm--completing-read "Weaver type: " opts nil t nil 'pm--weave:fromto-hist)
+                     (car opts))))
+             ;; C. string
+             ((stringp from-to)
+              (if (assoc from-to (oref weaver :from-to))
+                  from-to
+                (error "Cannot find `from-to' spec '%s' in %s weaver"
+                       from-to (eieio-object-name weaver))))
+             (t (error "'from-to' argument must be nil, universal argument or a string")))))
+      
+      (setq-local pm--weave:fromto-last ft-id)
+      (pm-weave weaver ft-id))))
 
 (defmacro polymode-register-weaver (weaver defaultp &rest configs)
   "Add WEAVER to :weavers slot of all config objects in CONFIGS.

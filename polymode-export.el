@@ -193,9 +193,9 @@ that call a shell command"
   "Export current file.
 
 FROM and TO are the ids of the :from and :to slots of the current
-exporter. If the current exporter hasn't been set yet, call
-`polymode-set-exporter' before doing anything else. You can
-always change the exporter by invoking `polymode-set-exporter'.
+exporter. If the current exporter hasn't been set yet, set the
+exporter with `polymode-set-exporter'. You can always change the
+exporter manually by invoking `polymode-set-exporter'.
 
 When FROM or TO are missing they are determined automatically
 from the current exporter's specifications and file's
@@ -220,8 +220,6 @@ specification."
            (fname (file-name-nondirectory buffer-file-name))
            (gprompt nil)
            (case-fold-search t)
-           (e:from (oref exporter :from))
-           (e:to (oref exporter :to))
 
            (from-opts (mapcar #'from-name.id (pm--selectors exporter :from)))
            (from-id
@@ -229,7 +227,7 @@ specification."
              ;; A: guess from spec
              ((null from)
               (or
-               ;; 1. repeated export; don't ask and use first entry in history
+               ;; 1. repeated export; don't ask
                pm--export:from-last
                
                ;; 2. select :from entries which match to current file
@@ -276,9 +274,9 @@ specification."
              
              ;; C. string
              ((stringp from)
-              (if (assoc from e:from)
+              (if (assoc from (oref exporter :from))
                   from
-                (error "Cannot find input spec '%s' in %s exporter"
+                (error "Cannot find `from' spec '%s' in %s exporter"
                        from (eieio-object-name exporter))))
              ;; D. error
              (t (error "'from' argument must be nil, universal argument or a string"))))
@@ -298,7 +296,7 @@ specification."
 
              ;; B. string
              ((stringp to)
-              (if (assoc to e:to)
+              (if (assoc to (oref exporter :to))
                   to
                 (error "Cannot find output spec '%s' in %s exporter"
                        to (eieio-object-name exporter))))
