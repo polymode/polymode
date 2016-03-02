@@ -79,11 +79,16 @@ not rely on that.")
   (when ofile
    ;; errors might occur (most notably with open-with package errors are intentional)
    ;; We need to catch those if we want to display multiple files like with Rmarkdown
-   (condition-case err
-       (display-buffer (find-file-noselect ofile 'nowarn))
-     (error (message "Error while displaying '%s': %s"
-                     (file-name-nondirectory ofile)
-                     (error-message-string err))))))
+    (condition-case err
+        (let ((buff (get-file-buffer ofile)))
+          ;; silently kill and re-open
+          (when buff
+            (with-current-buffer buff
+                (revert-buffer t t)))
+          (display-buffer (find-file-noselect ofile 'nowarn)))
+      (error (message "Error while displaying '%s': %s"
+                      (file-name-nondirectory ofile)
+                      (error-message-string err))))))
 
 (defun pm--get-mode-symbol-from-name (str &optional no-fallback)
   "Guess and return mode function."
@@ -361,7 +366,7 @@ able to accept user interaction."
            ;; fixme: nowarn is only right for inputs from weavers, you need to
            ;; save otherwise
            (ibuffer (if pm--input-not-real
-                        ;; for weaver output we silently re-fetch the file
+                        ;; for exporter input we silently re-fetch the file
                         ;; even if it was modified
                         (find-file-noselect ifile t)
                       ;; if real user file, get it or fetch it
@@ -378,6 +383,8 @@ able to accept user interaction."
           (let* ((pm--output-file (cdr comm.ofile))
                  (pm--input-file ifile)
                  ;; skip weaving step if possible
+                 ;; :fixme this should not happen after weaver/exporter change
+                 ;; or after errors in previous exporter
                  (omt (and polymode-skip-processing-when-unmodified
                            (stringp pm--output-file)
                            (pm--file-mod-time pm--output-file)))
