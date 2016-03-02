@@ -1,5 +1,5 @@
 *~
-.#*
+*#
 #*
 auto/
 *\[weaved\]*
@@ -7,3 +7,4 @@ tmp/
 *woven*
 *exported*
 .tmd
+tmp*
