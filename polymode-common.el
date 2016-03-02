@@ -284,6 +284,9 @@ able to accept user interaction."
              ;; 3. output file is not known; display process buffer
              (t (display-buffer (current-buffer)) nil))))))))
 
+(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "export"))
+(fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "weaving"))
+
 (defun pm--make-selector (specs elements)
   (cond ((listp elements)
          (let ((spec-alist (cl-mapcar #'cons specs elements)))
@@ -340,7 +343,7 @@ able to accept user interaction."
                                        (cons ?O (squote ofile))
                                        (cons ?b (squote oname))
                                        (cons ?t (squote t-spec))))))
-      (cons command ofile))))
+      (cons command (or ofile base-ofile)))))
 
 (defun pm--process-internal (processor from to ifile &optional callback shell-quote)
   (let ((is-exporter (object-of-class-p processor 'pm-exporter)))
@@ -374,15 +377,15 @@ able to accept user interaction."
                    (file-name-nondirectory ifile) (eieio-object-name processor))
           (let* ((pm--output-file (cdr comm.ofile))
                  (pm--input-file ifile)
-                 (fun (oref processor :function))
-                 (args (delq nil (list callback from to)))
                  ;; skip weaving step if possible
                  (omt (and polymode-skip-processing-when-unmodified
                            (stringp pm--output-file)
                            (pm--file-mod-time pm--output-file)))
                  (imt (and omt (pm--file-mod-time pm--input-file)))
                  (ofile (or (and imt (time-less-p imt omt) pm--output-file)
-                            (apply fun (car comm.ofile) args))))
+                            (let ((fun (oref processor :function))
+                                  (args (delq nil (list callback from to))))
+                              (apply fun (car comm.ofile) args)))))
             ;; ofile is non-nil in two cases:
             ;;  -- synchronous back-ends (very uncommon)
             ;;  -- when output is transitional (not real) and mod time of input < output  

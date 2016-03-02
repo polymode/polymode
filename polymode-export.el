@@ -161,8 +161,6 @@ that call a shell command"
                          (concat "Exporting " from "-->" to " with command:\n\n     "
                                  command "\n\n")))
 
-(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "export"))
-
 
 ;;; METHODS
 

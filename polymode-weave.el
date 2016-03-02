@@ -130,8 +130,6 @@ that call a shell command"
                          (concat "weaving " from-to-id " with command:\n\n     "
                                  command "\n\n")))
 
-(fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "weaving"))
-
 
 ;;; METHODS
 
