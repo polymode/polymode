@@ -72,7 +72,7 @@ closing \"@\" and a newline if necessary."
 (defcustom pm-exporter/pdflatex
   (pm-shell-exporter "pdflatex"
                      :from
-                     '(("latex" "\\.tex\\'" "LaTeX" "pdflatex -jobname %O %t %i"))
+                     '(("latex" "\\.tex\\'" "LaTeX" "pdflatex -jobname %b %t %i"))
                      :to
                      '(("pdf"   "pdf"  "PDF" ""))
                      :quote t)
@@ -83,7 +83,7 @@ closing \"@\" and a newline if necessary."
 (defcustom pm-exporter/latexmk
   (pm-shell-exporter "latexmk"
                      :from
-                     '(("latex" "\\.tex\\'" "LaTeX" "latexmk -jobname=%O %t %i"))
+                     '(("latex" "\\.tex\\'" "LaTeX" "latexmk -jobname=%b %t %i"))
                      :to
                      '(("pdf"   "pdf"  "PDF" "-pdf")
                        ("ps"    "ps"  "PS" "-ps")

@@ -290,8 +290,8 @@
 (defcustom pm-exporter/Rmarkdown-ESS
   (pm-callback-exporter "Rmarkdown-ESS"
                         :from
-                        '(("Rmarkdown"  "\\.[rR]?md\\|rapport\\'" "R Markdown"
-                           "rmarkdown::render('%i', output_format = '%t', output_file = '%o')\n"))
+                        '(("Rmarkdown" "\\.[rR]?md\\|rapport\\'" "R Markdown"
+                           "rmarkdown::render('%I', output_format = '%t', output_file = '%O')\n"))
                         :to
                         '(("auto" . pm--rmarkdown-callback-auto-selector)
                           ("html" "html" "html document" "html_document")
@@ -314,7 +314,7 @@
   (cl-case action
     (doc "AUTO DETECT")
     ;; last file is not auto-detected unless we cat new line
-    (command "rmarkdown::render('%i', output_format = 'all')")
+    (command "rmarkdown::render('%I', output_format = 'all')")
     (output-file #'pm--rmarkdown-output-file-sniffer)))
 
 (defun pm--rmarkdown-output-file-sniffer ()
@@ -347,13 +347,13 @@
 (defcustom pm-weaver/knitR-ESS
   (pm-callback-weaver "knitR-ESS"
                       :from-to
-                      '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "knitr::knit('%i', output='%o')")
-                        ("html" "\\.x?html?\\'" "html" "HTML" "knitr::knit('%i', output='%o')")
-                        ("markdown" "\\.r?md\\'" "md" "Markdown" "knitr::knit('%i', output='%o')")
-                        ("rst" "\\.rst\\'" "rst" "ReStructuredText" "knitr::knit('%i', output='%o')")
-                        ("brew" "\\.r?brew\\'" "brew" "Brew" "knitr::knit('%i', output='%o')")
-                        ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "knitr::knit('%i', output='%o')")
-                        ("textile" "\\.textile\\'" "textile" "Textile" "knitr::knit('%i', output='%o')"))
+                      '(("latex" "\\.\\(tex\\|rnw\\)\\'" "tex" "LaTeX" "knitr::knit('%I', output='%O')")
+                        ("html" "\\.x?html?\\'" "html" "HTML" "knitr::knit('%I', output='%O')")
+                        ("markdown" "\\.r?md\\'" "md" "Markdown" "knitr::knit('%I', output='%O')")
+                        ("rst" "\\.rst\\'" "rst" "ReStructuredText" "knitr::knit('%I', output='%O')")
+                        ("brew" "\\.r?brew\\'" "brew" "Brew" "knitr::knit('%I', output='%O')")
+                        ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "knitr::knit('%I', output='%O')")
+                        ("textile" "\\.textile\\'" "textile" "Textile" "knitr::knit('%I', output='%O')"))
                       :function 'pm--ess-run-command
                       :callback 'pm--ess-callback)
   "ESS knitR weaver."
@@ -367,7 +367,7 @@
 (defcustom pm-weaver/Sweave-ESS
   (pm-callback-weaver "ESS-Sweave"
                       :from-to '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'" "tex"
-                                  "LaTeX" "Sweave('%i', output='%o')"))
+                                  "LaTeX" "Sweave('%I', output='%O')"))
                       :function 'pm--ess-run-command
                       :callback 'pm--ess-callback)
   "ESS 'Sweave' weaver."
