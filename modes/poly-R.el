@@ -257,29 +257,9 @@
 (define-polymode poly-Rd-mode pm-poly/Rd)
 (add-hook 'Rd-mode-hook 'poly-Rd-mode)
 
-
-;; R SHELL WEAVERS and EXPORTERS
-(defcustom pm-weaver/knitR
-  (pm-shell-weaver "knitr"
-                   :from-to
-                   '(("latex" "\\.\\(tex\\|[rR]nw\\)\\'" "tex" "LaTeX" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("markdown" "\\.[rR]?md]\\'" "md" "Markdown" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("brew" "\\.[rR]?brew\\'" "brew" "Brew" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "Rscript -e \"knitr::knit('%i', output='%o')\"")
-                     ("textile" "\\.textile\\'" "textile" "Textile" "Rscript -e \"knitr::knit('%i', output='%o')\"")))
-  "Shell knitR weaver."
-  :group 'polymode-weave
-  :type 'object)
-
-(polymode-register-weaver pm-weaver/knitR nil
-                          pm-poly/noweb+R pm-poly/markdown
-                          pm-poly/rapport pm-poly/html+R)
 
 
 ;; Rmarkdown
-
 (defcustom pm-exporter/Rmarkdown
   (pm-shell-exporter "Rmarkdown"
                      :from
@@ -345,21 +325,25 @@
     (reverse (delete-dups files))))
 
 
-;; Sweave
-(defcustom pm-weaver/Sweave
-  (pm-shell-weaver "sweave"
+;; KnitR
+(defcustom pm-weaver/knitR
+  (pm-shell-weaver "knitr"
                    :from-to
-                   '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'"
-                      "tex" "LaTeX" "R CMD Sweave %i --options=\"output='%o'\"")))
-  "Shell 'Sweave' weaver."
+                   '(("latex" "\\.\\(tex\\|[rR]nw\\)\\'" "tex" "LaTeX" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("markdown" "\\.[rR]?md]\\'" "md" "Markdown" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("rst" "\\.rst" "rst" "ReStructuredText" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("brew" "\\.[rR]?brew\\'" "brew" "Brew" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("asciidoc" "\\.asciidoc\\'" "txt" "AsciiDoc" "Rscript -e \"knitr::knit('%i', output='%o')\"")
+                     ("textile" "\\.textile\\'" "textile" "Textile" "Rscript -e \"knitr::knit('%i', output='%o')\"")))
+  "Shell knitR weaver."
   :group 'polymode-weave
   :type 'object)
 
-(polymode-register-weaver pm-weaver/Sweave nil
-                          pm-poly/noweb+R)
+(polymode-register-weaver pm-weaver/knitR nil
+                          pm-poly/noweb+R pm-poly/markdown
+                          pm-poly/rapport pm-poly/html+R)
 
-
-;; R ESS WEAVERS
 (defcustom pm-weaver/knitR-ESS
   (pm-callback-weaver "knitR-ESS"
                       :from-to
@@ -392,6 +376,23 @@
 
 (polymode-register-weaver pm-weaver/Sweave-ESS nil
                           pm-poly/noweb+R)
+
+
+;; Sweave
+(defcustom pm-weaver/Sweave
+  (pm-shell-weaver "sweave"
+                   :from-to
+                   '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'"
+                      "tex" "LaTeX" "R CMD Sweave %i --options=\"output='%o'\"")))
+  "Shell 'Sweave' weaver."
+  :group 'polymode-weave
+  :type 'object)
+
+(polymode-register-weaver pm-weaver/Sweave nil
+                          pm-poly/noweb+R)
+
+
+;; ESS command
 
 (declare-function ess-async-command nil)
 (declare-function ess-force-buffer-current nil)

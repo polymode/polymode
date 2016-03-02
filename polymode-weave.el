@@ -212,13 +212,13 @@ input-output specification alist. See also `pm-weave' generic."
            (t (error "'from-to-id' argument must be nil, universal argument or a string")))))
     (pm-weave weaver ft-id)))
 
-(defmacro polymode-register-weaver (weaver default? &rest configs)
+(defmacro polymode-register-weaver (weaver defaultp &rest configs)
   "Add WEAVER to :weavers slot of all config objects in CONFIGS.
 When DEFAULT? is non-nil, also make weaver the default WEAVER for
 each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) :weavers ',weaver)
-     (when ,default? (oset (symbol-value pm) :weaver ',weaver))))
+     (when ,defaultp (oset (symbol-value pm) :weaver ',weaver))))
 
 (defun polymode-set-weaver ()
   (interactive)

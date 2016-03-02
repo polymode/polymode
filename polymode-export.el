@@ -358,6 +358,7 @@ specification."
         (pm-export exporter from-id to-id)))))
 
 (defun polymode-set-exporter ()
+  "Interactively set exporter for the current file."
   (interactive)
   (unless pm/polymode
     (error "No pm/polymode object found. Not in polymode buffer?"))
@@ -371,13 +372,13 @@ specification."
     (oset pm/polymode :exporter out)
     out))
 
-(defmacro polymode-register-exporter (exporter default? &rest configs)
+(defmacro polymode-register-exporter (exporter defaultp &rest configs)
   "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
 When DEFAULT? is non-nil, also make EXPORTER the default exporter
 for each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) :exporters ',exporter)
-     (when ,default? (oset (symbol-value pm) :exporter ',exporter))))
+     (when ,defaultp (oset (symbol-value pm) :exporter ',exporter))))
 
 
 ;;; GLOBAL EXPORTERS
