@@ -152,9 +152,6 @@ Fontifies chunk-by chunk within the region. Assigned to
                       ;; even when no font-lock, set to t
                       (put-text-property sbeg send 'fontified t)
 
-                    (when parse-sexp-lookup-properties
-                      (pm--comment-region 1 sbeg))
-                    
                     (let ((new-beg (max sbeg beg))
                           (new-end (min send end)))
                       (condition-case-unless-debug err
@@ -169,9 +166,6 @@ Fontifies chunk-by chunk within the region. Assigned to
                                         (error-message-string err))))
                       ;; even if failed set to t
                       (put-text-property new-beg new-end 'fontified t))
-                    
-                    (when parse-sexp-lookup-properties
-                      (pm--uncomment-region 1 sbeg)))
                   
                   (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode))))))
              beg end)))))
