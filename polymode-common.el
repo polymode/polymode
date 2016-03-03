@@ -280,8 +280,9 @@ able to accept user interaction."
                     ;; tothink: shall we still return ofile for display?
                     (progn
                       (display-buffer (current-buffer))
-                      (message "Output file unchanged. Errors during %s?" action)
-                      (ding) (sit-for 1) nil)
+                      (message "Output file unchanged. Either input unchanged or errors during %s." action)
+                      (ding) (sit-for 1)
+                      ofile)
                   ;; else, all is good, we return the file name
                   ;; (display-buffer (current-buffer))
                   (message "Done with %s" action)
