@@ -53,13 +53,6 @@
         (apply orig-fun new-beg new-end args))
     (apply orig-fun beg end args)))
 
-(eval-when-compile
-  (defmacro pm-with-narrowed-to-span (&rest body)
-    (declare (indent 0) (debug body))
-    `(save-restriction
-       (pm-narrow-to-span *span*)
-       ,@body)))
-
 (defun pm-execute-narowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.
 *span* in `pm-map-over-spans` has precedence over span at point."

@@ -165,7 +165,6 @@ a warning."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-
 (defun pm--completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
   "Wrapper for `completing-read'.
 Takes care when collection is an alist of (name . meta-info). If

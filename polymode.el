@@ -315,9 +315,9 @@ done."
 (defun pm-map-over-spans (fun beg end &optional count backwardp visuallyp no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args. It is executed with point at the
-beginning of the span and with the buffer narrowed to the
-span. If COUNT is non-nil, jump at most that many times. If
-BACKWARDP is non-nil, map backwards.
+beginning of the span. Buffer is *not* narrowed to the span. If
+COUNT is non-nil, jump at most that many times. If BACKWARDP is
+non-nil, map backwards.
  
 During the call of FUN, a dynamically bound variable *span* holds
 the current innermost span."
@@ -351,6 +351,18 @@ the current innermost span."
             (goto-char (max 1 (1- (nth 1 *span*)))) 
           (goto-char (min (point-max) (1+ (nth 2 *span*)))))))))
 
+(defun pm--reset-ppss-last-maybe (&optional span-start)
+  "Reset `syntax-ppss-last' cache if it was recorded before SPAN-START.
+If SPAN-START is nil, user span at point."
+  ;; syntax-ppss has its own condition-case for this case, but that means
+  ;; throwing an error each time it calls parse-partial-sexp
+  (setq span-start (or span-start (car (pm-get-innermost-range))))
+  (when (and syntax-ppss-last
+             (car syntax-ppss-last)
+             (< (car syntax-ppss-last) span-start))
+    (setq syntax-ppss-last
+          (cons span-start (list 0 nil span-start nil nil nil 0)))))
+
 (defun pm-narrow-to-span (&optional span)
   "Narrow to current chunk."
   (interactive)
@@ -359,8 +371,14 @@ the current innermost span."
                     (pm-get-innermost-span))))
       (let ((min (nth 1 span))
             (max (nth 2 span)))
-        ;; (setq syntax-ppss-last (cons min (list 0 nil min nil nil nil 0 nil nil nil)))
+        (pm--reset-ppss-last-maybe min)
         (narrow-to-region min max)))))
+
+(defmacro pm-with-narrowed-to-span (&rest body)
+  (declare (indent 0) (debug body))
+  `(save-restriction
+     (pm-narrow-to-span *span*)
+     ,@body))
 
 (defun polymode-post-command-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
@@ -662,15 +680,26 @@ Key bindings:
          (beg (nth 1 span))
          (end (nth 2 span))
          (obj (nth 3 span)))
-    (message "(%s) type:%s span:%s-%s %s"
-             major-mode (or (car span) 'host) beg end (pm-debug-info obj))))
+    (list major-mode (or (car span) 'host) beg end (pm-debug-info obj))))
+
+(defun pm--debug-info (&optional span)
+  (let* ((span (or span (and polymode-mode (pm-get-innermost-span))))
+         (message-log-max nil)
+         (beg (nth 1 span))
+         (end (nth 2 span))
+         (obj (nth 3 span))
+         (type (and span (or (car span) 'host))))
+    (list (point-min) (point) (point-max)
+          major-mode
+          type beg end
+          (and obj (pm-debug-info obj)))))
 
 (defun pm-debug-info-on-current-span ()
   (interactive)
   (if (not polymode-mode)
       (message "not in a polymode buffer")
     (let ((span (pm-get-innermost-span)))
-      (pm--debug-info span)
+      (apply 'message "min:%d pos:%d max:%d || (%s) type:%s span:%s-%s %s" (pm--debug-info span))
       (move-overlay pm--inverse-video-overlay (nth 1 span) (nth 2 span) (current-buffer)))))
 
 (defvar pm-debug-display-info-message nil)

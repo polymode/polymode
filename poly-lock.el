@@ -149,17 +149,17 @@ Fontifies chunk-by chunk within the region. Assigned to
                     (send (nth 2 *span*)))
                 (when (> send sbeg)
                   (if  (not (and font-lock-mode font-lock-keywords))
-                      ;; even when no font-lock, set to t
+                      ;; when no font-lock, set to t to avoid repeated calls
+                      ;; from display engine
                       (put-text-property sbeg send 'fontified t)
-
                     (let ((new-beg (max sbeg beg))
                           (new-end (min send end)))
                       (condition-case-unless-debug err
                           (if (oref pm/chunkmode :font-lock-narrow)
-                              (save-restriction
-                                (narrow-to-region sbeg send)
+                              (pm-with-narrowed-to-span
                                 (font-lock-unfontify-region new-beg new-end)
                                 (funcall pm--fontify-region-original new-beg new-end verbose))
+                            (font-lock-unfontify-region new-beg new-end)
                             (funcall pm--fontify-region-original new-beg new-end verbose))
                         (error (message "(poly-lock-fontify-region %s %s) -> (%s %s %s %s): %s "
                                         beg end pm--fontify-region-original new-beg new-end verbose
@@ -167,9 +167,9 @@ Fontifies chunk-by chunk within the region. Assigned to
                       ;; even if failed set to t
                       (put-text-property new-beg new-end 'fontified t))
                   
-                  (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode))))))
-             beg end)))))
-    (current-buffer))
+                    (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode)))))))
+           beg end))))
+    (current-buffer)))
 
 (defun poly-lock-refontify (&optional beg end)
   "Force refontification of the region BEG..END.
