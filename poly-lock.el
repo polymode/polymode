@@ -130,7 +130,6 @@ Fontifies chunk-by chunk within the region. Assigned to
     (let* ((font-lock-dont-widen t)
            (pmarker (point-marker))
            (dbuffer (current-buffer))
-           (pm--restrict-widen t)
            ;; Fontification in one buffer can trigger fontification in another
            ;; buffer. Particularly, this happens when new indirect buffers are
            ;; created and `normal-mode' triggers font-lock in those buffers. We

@@ -58,8 +58,7 @@
     (declare (indent 0) (debug body))
     `(save-restriction
        (pm-narrow-to-span *span*)
-       (let ((pm--restrict-widen t))
-         ,@body))))
+       ,@body)))
 
 (defun pm-execute-narowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.

@@ -461,43 +461,42 @@ Return a cons (chunkmode . span), for which START is closest to
 POS (and before it); i.e. the innermost span.  POS defaults to
 point."
   (save-restriction
-    (let (pm--restrict-widen)
-      (widen)
-      ;; fixme: host should be last, to take advantage of the chunkmodes computation
-      (let* ((smodes (cons (oref config -hostmode)
-                           (oref config -innermodes)))
-             (start (point-min))
-             (end (point-max))
-             (pos (or pos (point)))
-             (span (list nil start end nil))
-             val)
+    (widen)
+    ;; fixme: host should be last, to take advantage of the chunkmodes computation
+    (let* ((smodes (cons (oref config -hostmode)
+                         (oref config -innermodes)))
+           (start (point-min))
+           (end (point-max))
+           (pos (or pos (point)))
+           (span (list nil start end nil))
+           val)
 
-        (dolist (sm smodes)
-          (setq val (pm-get-span sm pos))
-          (when (and val
-                     (or (> (nth 1 val) start)
-                         (< (nth 2 val) end)))
-            (if (or (car val)
-                    (null span))
-                (setq span val
-                      start (nth 1 val)
-                      end (nth 2 val))
-              ;; nil car means outer chunkmode (usually host). And it can be an
-              ;; intersection of spans returned by 2 different neighbour inner
-              ;; chunkmodes. See rapport mode for an example
-              (setq start (max (nth 1 val)
-                               (nth 1 span))
-                    end (min (nth 2 val)
-                             (nth 2 span)))
-              (setcar (cdr span) start)
-              (setcar (cddr span) end))))
+      (dolist (sm smodes)
+        (setq val (pm-get-span sm pos))
+        (when (and val
+                   (or (> (nth 1 val) start)
+                       (< (nth 2 val) end)))
+          (if (or (car val)
+                  (null span))
+              (setq span val
+                    start (nth 1 val)
+                    end (nth 2 val))
+            ;; nil car means outer chunkmode (usually host). And it can be an
+            ;; intersection of spans returned by 2 different neighbour inner
+            ;; chunkmodes. See rapport mode for an example
+            (setq start (max (nth 1 val)
+                             (nth 1 span))
+                  end (min (nth 2 val)
+                           (nth 2 span)))
+            (setcar (cdr span) start)
+            (setcar (cddr span) end))))
 
-        (unless (and (<= start end) (<= pos end) (>= pos start))
-          (error "Bad polymode selection: span:%s pos:%s"
-                 (list start end) pos))
-        (when (null (car span)) ; chunkmodes can compute the host span by returning nil
-          (setcar (last span) (oref config -hostmode)))
-        span))))
+      (unless (and (<= start end) (<= pos end) (>= pos start))
+        (error "Bad polymode selection: span:%s pos:%s"
+               (list start end) pos))
+      (when (null (car span)) ; chunkmodes can compute the host span by returning nil
+        (setcar (last span) (oref config -hostmode)))
+      span)))
 
 ;; No need for this one so far. Basic method iterates through -innermodes
 ;; anyhow.
@@ -734,26 +733,25 @@ head  - head span
 tail  - tail span"
   ;; ! start of the span is part of the span !
   (save-restriction
-    (let (pm--restrict-widen)
-      (widen)
-      (goto-char (or pos (point)))
-      (cond ((and (stringp head-matcher)
-                  (stringp tail-matcher))
-             (pm--span-at-point-reg-reg head-matcher tail-matcher))
-            ((and (stringp head-matcher)
-                  (functionp tail-matcher))
-             (pm--span-at-point-fun-fun
-              (lambda (ahead) (pm--default-matcher head-matcher ahead))
-              tail-matcher))
-            ((and (functionp head-matcher)
-                  (stringp tail-matcher))
-             (pm--span-at-point-fun-fun
-              head-matcher
-              (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
-            ((and (functionp head-matcher)
-                  (functionp tail-matcher))
-             (pm--span-at-point-fun-fun head-matcher tail-matcher))
-            (t (error "head and tail matchers should be either regexp strings or functions"))))))
+    (widen)
+    (goto-char (or pos (point)))
+    (cond ((and (stringp head-matcher)
+                (stringp tail-matcher))
+           (pm--span-at-point-reg-reg head-matcher tail-matcher))
+          ((and (stringp head-matcher)
+                (functionp tail-matcher))
+           (pm--span-at-point-fun-fun
+            (lambda (ahead) (pm--default-matcher head-matcher ahead))
+            tail-matcher))
+          ((and (functionp head-matcher)
+                (stringp tail-matcher))
+           (pm--span-at-point-fun-fun
+            head-matcher
+            (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
+          ((and (functionp head-matcher)
+                (functionp tail-matcher))
+           (pm--span-at-point-fun-fun head-matcher tail-matcher))
+          (t (error "head and tail matchers should be either regexp strings or functions")))))
 
 
 ;;; INDENT
