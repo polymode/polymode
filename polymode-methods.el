@@ -140,6 +140,9 @@ object ...")
     (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
 
     (font-lock-mode t)
+
+    (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t)
+    (add-hook 'before-change-functions 'polymode-flush-ppss-cache t t)
     
     (current-buffer)))
 

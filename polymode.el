@@ -359,7 +359,7 @@ the current innermost span."
                     (pm-get-innermost-span))))
       (let ((min (nth 1 span))
             (max (nth 2 span)))
-        (setq syntax-ppss-last (cons min (list 0 nil min nil nil nil 0 nil nil nil)))
+        ;; (setq syntax-ppss-last (cons min (list 0 nil min nil nil nil 0 nil nil nil)))
         (narrow-to-region min max)))))
 
 (defun polymode-post-command-select-buffer ()
@@ -372,6 +372,18 @@ This funciton is placed in local `post-command-hook'."
         (pm-switch-to-buffer)
       (error (message "(pm-switch-to-buffer %s): %s"
                       (point) (error-message-string err))))))
+
+(defun polymode-flush-ppss-cache (beg end)
+  "Run `syntax-ppss-flush-cache' in all polymode buffers.
+This function is placed in `before-change-functions' hook."
+  ;; Modification hooks are run only in current buffer and not in other (base or
+  ;; indirect) buffers.
+  (dolist (buff (oref pm/polymode -buffers))
+    (with-current-buffer buff
+      ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future
+      (when (memq 'syntax-ppss-flush-cache before-change-functions)
+        (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
+      (syntax-ppss-flush-cache beg end))))
 
 
 ;;; DEFINE
