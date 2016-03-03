@@ -778,6 +778,7 @@ Key bindings:
     (insert . (self-insert-command))))
 
 (defun pm-debug-trace-background-1 (fn)
+  (interactive (trace--read-args "Trace function in background: "))
   (unless (symbolp fn)
     (error "can trace symbols only"))
   (unless (get fn 'cl--class)
@@ -809,7 +810,8 @@ If string, it must b an entry in
 (defun pm-debug-trace-functions-by-regexp (regexp)
   "Trace all functions whose name matched REGEXP."
   (cl-loop for sym being the symbols
-           when (fboundp sym)
+           when (and (fboundp sym)
+                     (not (eq sym 'pm-debug-trace-background-1)))
            when (string-match regexp (symbol-name sym))
            do (pm-debug-trace-background-1 sym)))
 
