@@ -367,15 +367,15 @@ If SPAN-START is nil, user span at point."
   (unless (= (point-min) (point-max))
     (let ((span (or span
                     (pm-get-innermost-span))))
-      (let ((min (nth 1 span))
-            (max (nth 2 span)))
-        (pm--reset-ppss-last-maybe min)
-        (narrow-to-region min max)))))
+      (let ((sbeg (nth 1 span))
+            (send (nth 2 span)))
+        (pm--reset-ppss-last sbeg t)
+        (narrow-to-region sbeg send)))))
 
-(defmacro pm-with-narrowed-to-span (&rest body)
-  (declare (indent 0) (debug body))
+(defmacro pm-with-narrowed-to-span (span &rest body)
+  (declare (indent 1) (debug body))
   `(save-restriction
-     (pm-narrow-to-span *span*)
+     (pm-narrow-to-span ,span)
      ,@body))
 
 (defun polymode-post-command-select-buffer ()

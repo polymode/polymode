@@ -156,7 +156,7 @@ Fontifies chunk-by chunk within the region. Assigned to
                           (new-end (min send end)))
                       (condition-case-unless-debug err
                           (if (oref pm/chunkmode :font-lock-narrow)
-                              (pm-with-narrowed-to-span
+                              (pm-with-narrowed-to-span *span*
                                 (font-lock-unfontify-region new-beg new-end)
                                 (funcall pm--fontify-region-original new-beg new-end verbose))
                             (font-lock-unfontify-region new-beg new-end)
