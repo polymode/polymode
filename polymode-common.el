@@ -35,7 +35,6 @@ not rely on that.")
 (defvar-local pm/type nil)
 (defvar-local pm--fontify-region-original nil)
 (defvar-local pm--indent-line-function-original nil)
-(defvar-local pm--syntax-begin-function-original nil)
 ;; (defvar-local pm--killed-once nil)
 (defvar-local polymode-mode nil
   "This variable is t if current \"mode\" is a polymode.")
@@ -59,7 +58,6 @@ not rely on that.")
 (declare-function pm-map-over-spans "polymode")
 (declare-function pm-narrow-to-span "polymode")
 (declare-function poly-lock-fontify-region "poly-lock")
-(declare-function pm-syntax-begin-function "polymode")
 
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")

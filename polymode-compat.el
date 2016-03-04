@@ -35,7 +35,7 @@ Return new name (symbol). FUN is an unquoted name of a function."
 
 (defun pm-apply-protected (fun args)
   (when fun
-    (condition-case err
+    (condition-case-unless-debug err
         (apply fun args)
       (error (message "(%s %s): %s %s"
                       (if (symbolp fun)
@@ -43,8 +43,12 @@ Return new name (symbol). FUN is an unquoted name of a function."
                         "anonymous")
                       (mapconcat (lambda (x) (format "%s" x)) args " ")
                       (error-message-string err)
-                      (or (and (symbolp fun) "")
-                          (replace-regexp-in-string "\n" "" (format "[%s]" fun))))
+                      ;; (or (and (symbolp fun) "")
+                      ;;     (replace-regexp-in-string "\n" "" (format "[%s]" fun)))
+                      "[M-x pm-debug-mode RET for more info]"
+                      )
+             (when pm-debug-mode
+               (backtrace))
              nil))))
 
 (defun pm-override-output-position (orig-fun &rest args)
@@ -145,14 +149,12 @@ Don't throw errors, but give relevant messages instead."
 
 
 ;;; C/C++/Java
-(when (fboundp 'advice-add)
-  (advice-add 'c-before-context-fl-expand-region :around #'pm-override-output-cons)
-  (advice-add 'c-state-semi-safe-place :around #'pm-override-output-position)
-  ;; (advice-remove 'c-state-semi-safe-place #'pm-override-output-position)
-
-  ;; c-font-lock-fontify-region calls it directly
-  ;; (advice-add 'font-lock-default-fontify-region :around #'pm-substitute-beg-end)
-  (advice-add 'c-determine-limit :around #'pm-execute-narrowed-to-span))
+(pm-around-advice 'c-before-context-fl-expand-region #'pm-override-output-cons)
+(pm-around-advice 'c-state-semi-safe-place #'pm-override-output-position)
+;; (advice-remove 'c-state-semi-safe-place #'pm-override-output-position)
+;; c-font-lock-fontify-region calls it directly
+;; (pm-around-advice 'font-lock-default-fontify-region #'pm-substitute-beg-end)
+(pm-around-advice 'c-determine-limit #'pm-execute-narrowed-to-span)
 
 
 ;;; Core Font Lock
@@ -167,13 +169,11 @@ Propagate only real change."
          (not (eq obeg font-lock-beg))
          (not (eq oend font-lock-end)))))
 
-(when (fboundp 'advice-add)
-  (advice-add 'font-lock-extend-region-multiline :around #'pm-check-for-real-change-in-extend-multiline))
+(pm-around-advice 'font-lock-extend-region-multiline #'pm-check-for-real-change-in-extend-multiline)
 
 
 ;;; Editing
-(when (fboundp 'advice-add)
-  (advice-add 'fill-paragraph :around #'pm-execute-narrowed-to-span))
+(pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
 
 
 ;;; EVIL

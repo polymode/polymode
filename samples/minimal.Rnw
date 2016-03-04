@@ -7,7 +7,7 @@
 \begin{definition}
 
 <<foo, fig.height=4>>=
-    1+1
+    aa <- "sdfdsf"
     plot(rnorm(100))
 @
 

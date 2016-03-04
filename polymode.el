@@ -349,15 +349,18 @@ bound variable *span* holds the current innermost span."
             (goto-char (max 1 (1- (nth 1 *span*)))) 
           (goto-char (min (point-max) (1+ (nth 2 *span*)))))))))
 
-(defun pm--reset-ppss-last-maybe (&optional span-start)
+(defun pm--reset-ppss-last (&optional span-start force)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN-START.
-If SPAN-START is nil, user span at point."
+If SPAN-START is nil, use span at point. If force, reset
+regardless of the position `syntax-ppss-last' was recorder at."
   ;; syntax-ppss has its own condition-case for this case, but that means
   ;; throwing an error each time it calls parse-partial-sexp
   (setq span-start (or span-start (car (pm-get-innermost-range))))
-  (when (and syntax-ppss-last
-             (car syntax-ppss-last)
-             (< (car syntax-ppss-last) span-start))
+  (when (or force
+            (and syntax-ppss-last
+                 (car syntax-ppss-last)
+                 ;; non-strict is intentional (occasionally ppss is screwed)
+                 (<= (car syntax-ppss-last) span-start)))
     (setq syntax-ppss-last
           (cons span-start (list 0 nil span-start nil nil nil 0)))))
 
@@ -683,7 +686,9 @@ Key bindings:
           (point-min) (point) (point-max)
           major-mode
           type beg end
-          (and obj (pm-debug-info obj)))))
+          (and obj (pm-debug-info obj))
+          (format "lppss:%s"
+                  syntax-ppss-last))))
 
 (defun pm-debug-info-on-current-span ()
   (interactive)

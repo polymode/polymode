@@ -97,15 +97,6 @@ object ...")
 
     (current-buffer)))
 
-(defun pm-syntax-begin-function ()
-  (goto-char
-   (max (car (pm-get-innermost-range))
-        (if pm--syntax-begin-function-original
-            (save-excursion
-              (funcall pm--syntax-begin-function-original)
-              (point))
-          (point-min)))))
-
 (defun pm--common-setup (&optional buffer)
   ;; General buffer setup. Should work for indirect and base buffers. Assumes
   ;; that the buffer was fully prepared and objects like pm/polymode and
@@ -136,15 +127,9 @@ object ...")
     ;; SYNTAX
     ;; We are executing `syntax-propertize' narrowed to span as per advice in
     ;; (polymode-compat.el)
-    (when syntax-begin-function ; obsolete as of 25.1
-      (setq-local pm--syntax-begin-function-original syntax-begin-function)
-      (setq-local syntax-begin-function #'pm-syntax-begin-function))
-
-    (when syntax-propertize-extend-region-functions
-      (cl-loop for fun in syntax-propertize-extend-region-functions
-               when (and (symbolp fun)
-                         (not (advice-member-p 'pm-override-output-cons fun)))
-               do (advice-add fun :around 'pm-override-output-cons)))
+    
+    (pm-around-advice syntax-begin-function 'pm-override-output-position) ; obsolete as of 25.1
+    (pm-around-advice syntax-propertize-extend-region-functions 'pm-override-output-cons)
 
     ;; flush ppss in all buffers
     (add-hook 'before-change-functions 'polymode-flush-ppss-cache t t)
