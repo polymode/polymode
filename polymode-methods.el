@@ -371,7 +371,9 @@ this method to work correctly, SUBMODE's class should define
       (save-excursion
         (goto-char (cadr span))
         (unless (eq type 'head)
-          (re-search-backward (oref proto :head-reg) nil 'noerr))
+          (if (functionp (oref proto :head-reg))
+              (goto-char (car (funcall (oref proto :head-reg) -1)))
+            (re-search-backward (oref proto :head-reg) nil 'noerr)))
         (let* ((str (or
                      ;; a. try regexp matcher
                      (and (oref proto :retriever-regexp)
