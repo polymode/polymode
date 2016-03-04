@@ -13,13 +13,47 @@
 
 (defvar *span* nil)
 
+;; advice doesn't provide named symbols. So we need to define specialized
+;; wrappers for some key functions; unfinished
+(defmacro pm-define-wrapp-protected (fun)
+  "Declare protected function with the name fun--pm-wrapped.
+Return new name (symbol). FUN is an unquoted name of a function."
+  (let* ((fun-name (symbol-name fun))
+         (new-fun (intern (format "%s--pm-wrapped" fun-name)))
+         (new-doc (format "  Error Protected function created with `pm-define-protected-wrapp'.\n\n%s"
+                          (or (documentation fun) ""))))
+    `(progn
+       (defun ,new-fun (&rest args)
+         ,new-doc
+         (condition-case err
+             (apply ',fun args)
+           (error (message "(%s %s): %s"
+                           ,fun-name
+                           (mapconcat (lambda (x) (format "%s" x)) args " ")
+                           (error-message-string err)))))
+       ',new-fun)))
+
+(defun pm-apply-protected (fun args)
+  (when fun
+    (condition-case err
+        (apply fun args)
+      (error (message "(%s %s): %s %s"
+                      (if (symbolp fun)
+                          (symbol-name fun)
+                        "anonymous")
+                      (mapconcat (lambda (x) (format "%s" x)) args " ")
+                      (error-message-string err)
+                      (or (and (symbolp fun) "")
+                          (replace-regexp-in-string "\n" "" (format "[%s]" fun))))
+             nil))))
+
 (defun pm-override-output-position (orig-fun &rest args)
   "Restrict returned value of ORIG-FUN to fall into the current span.
 *span* in `pm-map-over-spans` has precedence over span at point.'"
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-get-innermost-range)))
-            (pos (apply orig-fun args)))
+            (pos (pm-apply-protected orig-fun args)))
         (and pos
              (min (max pos (car range))
                   (cdr range))))
@@ -31,7 +65,7 @@
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-get-innermost-range)))
-            (be (apply orig-fun args)))
+            (be (pm-apply-protected orig-fun args)))
         (and be
              (cons (min (max (car be) (car range))
                         (cdr range))
@@ -50,41 +84,22 @@
                         (pm-get-innermost-range pos)))
              (new-beg (max beg (car range)))
              (new-end (min end (cdr range))))
-        (apply orig-fun new-beg new-end args))
+        (pm-apply-protected orig-fun (append (list new-beg new-end) args)))
     (apply orig-fun beg end args)))
 
-(defun pm-execute-narowed-to-span (orig-fun &rest args)
+(defun pm-execute-narrowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.
 *span* in `pm-map-over-spans` has precedence over span at point."
   (if (and polymode-mode pm/polymode)
       (pm-with-narrowed-to-span
-        (apply orig-fun args))
-    (apply orig-fun args)))
-
-(defun pm-execute-widened (orig-fun &rest args)
-  "Execute ORIG-FUN widened"
-  (if (and polymode-mode pm/polymode)
-      (save-restriction
-        (widen)
-        (apply orig-fun args))
+        (pm-apply-protected orig-fun args))
     (apply orig-fun args)))
 
 
 ;;; Syntax
 
-(defun pm-execute-syntax-propertize-narrowed-to-span (orig-fun &rest args)
-  "Execute `syntax-propertize' narrowed to the current span.
-Don't throw errors, but give relevant messages instead."
-  (if (and polymode-mode pm/polymode)
-      (condition-case err
-          (pm-with-narrowed-to-span
-            (apply orig-fun args))
-        (error (message "(syntax-propertize %s): %s" (car args)
-                        (error-message-string err))))
-    (apply orig-fun args)))
-
 (when (fboundp 'advice-add)
-  (advice-add 'syntax-propertize :around 'pm-execute-syntax-propertize-narrowed-to-span))
+  (advice-add 'syntax-propertize :around 'pm-execute-narrowed-to-span))
 
 
 ;;; Flyspel
@@ -101,7 +116,7 @@ Don't throw errors, but give relevant messages instead."
 
   ;; c-font-lock-fontify-region calls it directly
   ;; (advice-add 'font-lock-default-fontify-region :around #'pm-substitute-beg-end)
-  (advice-add 'c-determine-limit :around #'pm-execute-narowed-to-span))
+  (advice-add 'c-determine-limit :around #'pm-execute-narrowed-to-span))
 
 
 ;;; Core Font Lock
@@ -122,7 +137,7 @@ Propagate only real change."
 
 ;;; Editing
 (when (fboundp 'advice-add)
-  (advice-add 'fill-paragraph :around #'pm-execute-narowed-to-span))
+  (advice-add 'fill-paragraph :around #'pm-execute-narrowed-to-span))
 
 
 ;;; EVIL

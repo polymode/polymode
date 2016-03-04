@@ -444,8 +444,8 @@ block. Thus, output file names don't comply with
 ;; COMPAT
 
 (when (fboundp 'advice-add)
-  (advice-add 'ess-eval-paragraph :around 'pm-execute-narowed-to-span)
-  (advice-add 'ess-eval-buffer :around 'pm-execute-narowed-to-span)
-  (advice-add 'ess-beginning-of-function :around 'pm-execute-narowed-to-span))
+  (advice-add 'ess-eval-paragraph :around 'pm-execute-narrowed-to-span)
+  (advice-add 'ess-eval-buffer :around 'pm-execute-narrowed-to-span)
+  (advice-add 'ess-beginning-of-function :around 'pm-execute-narrowed-to-span))
 
 (provide 'poly-R)

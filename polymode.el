@@ -317,10 +317,8 @@ done."
 FUN is a function of no args. It is executed with point at the
 beginning of the span. Buffer is *not* narrowed to the span. If
 COUNT is non-nil, jump at most that many times. If BACKWARDP is
-non-nil, map backwards.
- 
-During the call of FUN, a dynamically bound variable *span* holds
-the current innermost span."
+non-nil, map backwards. During the call of FUN, a dynamically
+bound variable *span* holds the current innermost span."
   (save-restriction
     (widen)
     (goto-char (if backwardp end beg))
@@ -675,21 +673,14 @@ Key bindings:
           (call-next-method))
 
 (defun pm--debug-info (&optional span)
-  (let* ((span (or span (pm-get-innermost-span)))
-         (message-log-max nil)
-         (beg (nth 1 span))
-         (end (nth 2 span))
-         (obj (nth 3 span)))
-    (list major-mode (or (car span) 'host) beg end (pm-debug-info obj))))
-
-(defun pm--debug-info (&optional span)
   (let* ((span (or span (and polymode-mode (pm-get-innermost-span))))
          (message-log-max nil)
          (beg (nth 1 span))
          (end (nth 2 span))
          (obj (nth 3 span))
          (type (and span (or (car span) 'host))))
-    (list (point-min) (point) (point-max)
+    (list (current-buffer)
+          (point-min) (point) (point-max)
           major-mode
           type beg end
           (and obj (pm-debug-info obj)))))
