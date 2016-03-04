@@ -348,7 +348,7 @@ able to accept user interaction."
                                        (cons ?t (squote t-spec))))))
       (cons command (or ofile base-ofile)))))
 
-(defun pm--process-internal (processor from to ifile &optional callback shell-quote)
+(defun pm--process-internal (processor from to ifile &optional callback quote)
   (let ((is-exporter (object-of-class-p processor 'pm-exporter)))
     (if is-exporter
         (unless (and from to)
@@ -370,12 +370,12 @@ able to accept user interaction."
                       ;; if real user file, get it or fetch it
                       (or (get-file-buffer ifile)
                           (find-file-noselect ifile))))
-           (output-file-format (if is-exporter
-                                   polymode-exporter-output-file-format
-                                 polymode-weave-output-file-format)))
+           (output-format (if is-exporter
+                              polymode-exporter-output-file-format
+                            polymode-weave-output-file-format)))
       (with-current-buffer ibuffer
         (save-buffer)
-        (let ((comm.ofile (pm--output-command.file output-file-format sfrom sto)))
+        (let ((comm.ofile (pm--output-command.file output-format sfrom sto quote)))
           (message "%s '%s' with '%s' ..." (if is-exporter "Exporting" "Weaving")
                    (file-name-nondirectory ifile) (eieio-object-name processor))
           (let* ((pm--output-file (cdr comm.ofile))
