@@ -115,33 +115,38 @@ object ...")
 
     (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
 
-    (setq pm--syntax-begin-function-original syntax-begin-function)
-    (setq-local syntax-begin-function #'pm-syntax-begin-function)
-
-    ;; We are advising syntax-propertize to run on current chunk, no need to
-    ;; extend it further.
-    (setq-local syntax-propertize-extend-region-functions nil)
-    ;; Should be no need for these.
-    ;; (setq pm--syntax-propertize-function-original syntax-propertize-function)
-    ;; (setq-local syntax-propertize-function #'pm-syntax-propertize)
-
+    ;; INDENTATION
     (when (and indent-line-function ; not that it should ever be nil...
                (oref pm/chunkmode :protect-indent-line))
       (setq pm--indent-line-function-original indent-line-function)
-      (set (make-local-variable 'indent-line-function) 'pm-indent-line-dispatcher))
+      (setq-local indent-line-function 'pm-indent-line-dispatcher))
     
     (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
     (object-add-to-list pm/polymode '-buffers (current-buffer))
 
-    ;; (setq-local font-lock-mode t)
+    ;; FONT LOCK
+    ;; jit-lock-after-change-extend-region-functions is dealt with in
+    ;; `poly-lock-after-change'
     (setq-local font-lock-function 'poly-lock-mode)
     (setq-local font-lock-support-mode 'poly-lock-mode)
     (setq-local pm--fontify-region-original font-lock-fontify-region-function)
     (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
-
     (font-lock-mode t)
 
-    (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t)
+    ;; SYNTAX
+    ;; We are executing `syntax-propertize' narrowed to span as per advice in
+    ;; (polymode-compat.el)
+    (when syntax-begin-function ; obsolete as of 25.1
+      (setq-local pm--syntax-begin-function-original syntax-begin-function)
+      (setq-local syntax-begin-function #'pm-syntax-begin-function))
+
+    (when syntax-propertize-extend-region-functions
+      (cl-loop for fun in syntax-propertize-extend-region-functions
+               when (and (symbolp fun)
+                         (not (advice-member-p 'pm-override-output-cons fun)))
+               do (advice-add fun :around 'pm-override-output-cons)))
+
+    ;; flush ppss in all buffers
     (add-hook 'before-change-functions 'polymode-flush-ppss-cache t t)
     
     (current-buffer)))
