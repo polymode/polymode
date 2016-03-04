@@ -181,7 +181,7 @@ When `from-to' is universal argument ask user for specification
 for the specification. See also `pm-weaveer' for the complete
 specification."
   (interactive "P")
-  (flet ((name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
+  (cl-flet ((name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
     (let* ((weaver (symbol-value (or (oref pm/polymode :weaver)
                                      (polymode-set-weaver))))
            (fname (file-name-nondirectory buffer-file-name))

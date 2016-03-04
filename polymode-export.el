@@ -209,12 +209,12 @@ When called interactively with C-u argument, ask for FROM and TO
 interactively. See class `pm-exporter' for the complete
 specification."
   (interactive "P")
-  (flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
-                                 (name (if ext
-                                           (format "%s (%s)" (funcall (cdr el) 'doc) ext)
-                                         (funcall (cdr el) 'doc))))
-                            (cons name (car el))))
-         (from-name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
+  (cl-flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
+                                    (name (if ext
+                                              (format "%s (%s)" (funcall (cdr el) 'doc) ext)
+                                            (funcall (cdr el) 'doc))))
+                               (cons name (car el))))
+            (from-name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
     (let* ((exporter (symbol-value (or (oref pm/polymode :exporter)
                                        (polymode-set-exporter))))
            (fname (file-name-nondirectory buffer-file-name))
