@@ -99,6 +99,14 @@ Return new name (symbol). FUN is an unquoted name of a function."
         (pm-apply-protected orig-fun args))
     (apply orig-fun args)))
 
+(defun pm-execute-inhibit-modification-hooks (orig-fun &rest args)
+  "Execute ORIG-FUN with `inhibit-modification-hooks' set to t.
+*span* in `pm-map-over-spans` has precedence over span at point."
+  (if (and polymode-mode pm/polymode)
+      (let ((inhibit-modification-hooks t))
+        (apply orig-fun args))
+    (apply orig-fun args)))
+
 (defun pm-around-advice (fun advice)
   "Apply around ADVICE to FUN.
 Check for if new advice is available and if FUN is a symbol, do
@@ -140,6 +148,12 @@ Don't throw errors, but give relevant messages instead."
 
 (pm-around-advice 'syntax-propertize 'pm-execute-syntax-propertize-narrowed-to-span)
 
+
+;;; Query Replace
+;; `query-replace` misbehaves because after each replacement modification hooks
+;; are triggered and poly buffer is switched
+;; https://github.com/vspinu/polymode/issues/92
+(pm-around-advice 'perform-replace 'pm-execute-inhibit-modification-hooks)
 
 
 ;;; Flyspel
