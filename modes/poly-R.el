@@ -213,13 +213,21 @@
                    :mode 'R-mode
                    :head-reg "^Examples:"
                    :tail-reg "\\'"
-                   :indent-offset 5)
+                   :indent-offset 5
+                   :switch-buffer-functions '(pm--ess-help+R-turn-off-read-only))
   "Ess help R chunk"
   :group 'innermodes
   :type 'object)
 
+(defun pm--ess-help+R-turn-off-read-only (&rest ignore)
+  ;; don't transfer read only status from main help buffer
+  (cl-case pm/type
+    (body (read-only-mode -1))
+    (head (read-only-mode 1))))
+
 ;;;###autoload (autoload 'poly-ess-help+r-mode "poly-R")
 (define-polymode poly-ess-help+r-mode pm-poly/ess-help+R)
+
 (add-hook 'ess-help-mode-hook '(lambda ()
                                  (when (string= ess-dialect "R")
                                    (poly-ess-help+r-mode))))
