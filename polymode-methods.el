@@ -36,12 +36,8 @@ object ...")
       (pm--mode-setup host-mode)
           
       ;; maybe: fixme: inconsistencies?
-      ;; 
-      ;; 1) Not calling pm-install-buffer on host-buffer. But, we are not
-      ;; creating/installing a new buffer here, so it is a different thing and
-      ;; is probably ok.
       ;;
-      ;; 2) Not calling config's :minor-mode (polymode function). But polymode
+      ;; 1) Not calling config's :minor-mode (polymode function). But polymode
       ;; function calls pm-initialize, so it's probably ok.
       (oset chunkmode -buffer (current-buffer))
       (oset config -hostmode chunkmode)
@@ -70,6 +66,23 @@ object ...")
                   (clone (symbol-value sub-name)))
                 (oref config :innermodes)))
   (pm--run-init-hooks config))
+
+(defvar pm--ib-prefix "")
+(defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
+  ;; run in chunkmode indirect buffer
+  (setq mode (or mode (pm--get-chunkmode-mode chunkmode type)))
+  (let ((new-name  (generate-new-buffer-name
+                    (format "%s%s[%s]" pm--ib-prefix (buffer-name (pm-base-buffer))
+                            (replace-regexp-in-string "-mode" "" (symbol-name mode))))))
+    (rename-buffer new-name)
+    (pm--mode-setup (pm--get-existent-mode mode))
+    (pm--transfer-vars-from-base '(pm/polymode buffer-file-coding-system))
+    (setq pm/chunkmode chunkmode
+          pm/type type)
+    (funcall (oref pm/polymode :minor-mode))
+    (vc-find-file-hook)
+    (pm--common-setup)
+    (pm--run-init-hooks chunkmode)))
 
 (defun pm--mode-setup (mode &optional buffer)
   ;; General major-mode install. Should work for both indirect and base buffers.
@@ -150,93 +163,44 @@ Parents' hooks are run first."
       (run-hooks 'init-funs))))
 
 
-(defgeneric pm-install-buffer (chunkmode &optional type)
-  "Get or create an indirect buffer and install it into the relevant slot(s) of CHUNKMODE.
-Should return newly installed buffer.")
+(defgeneric pm-get-buffer-create (chunkmode &optional type)
+  "Get the indirect buffer associated with SUBMODE and
+SPAN-TYPE. Should return nil if buffer has not yet been
+installed. Also see `pm-get-span'.")
 
-(defmethod pm-install-buffer ((chunkmode pm-chunkmode) &optional type)
-  "Retrieve or create+initialize if doesn't exist the indirect buffer for CHUNKMODE.
-The buffer is assigned to CHUNKMODE's -buffer slot."
-  (oset chunkmode -buffer
-        (pm--get-chunkmode-buffer-create chunkmode type)))
+(defmethod pm-get-buffer-create ((chunkmode pm-chunkmode) &optional type)
+  (let ((buff (oref chunkmode -buffer)))
+    (or (and (buffer-live-p buff) buff)
+        (oset chunkmode -buffer
+              (pm--get-chunkmode-buffer-create chunkmode type)))))
 
-(defmethod pm-install-buffer ((chunkmode pm-hbtchunkmode) type)
-  "Retrieve or create+initialize if doesn't exist the indirect buffer for CHUNKMODE.
-The buffer is assigned to one or more CHUNKMODE's slots
-`-buffer', `-head-buffer' or `-tail-buffer'. This assignment
-depends on the TYPE and the values of `tail-mode' and `head-mode'
-slots of the CHUNKMODE object. See `pm--set-chunkmode-buffer' for
-how this is computed."
-  (pm--set-chunkmode-buffer chunkmode type
-                            (pm--get-chunkmode-buffer-create chunkmode type)))
-
-(defun pm--set-chunkmode-buffer (obj type buff)
-  "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
-  (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
-    (pcase (list type head-mode tail-mode)
-      (`(body body ,(or `nil `body))
-       (setq -buffer buff
-             -head-buffer buff
-             -tail-buffer buff))
-      (`(body ,_ body)
-       (setq -buffer buff
-             -tail-buffer buff))
-      (`(body ,_ ,_ )
-       (setq -buffer buff))
-      (`(head ,_ ,(or `nil `head))
-       (setq -head-buffer buff
-             -tail-buffer buff))
-      (`(head ,_ ,_)
-       (setq -head-buffer buff))
-      (`(tail ,_ ,(or `nil `head))
-       (setq -tail-buffer buff
-             -head-buffer buff))
-      (`(tail ,_ ,_)
-       (setq -tail-buffer buff))
-      (_ (error "type must be one of 'body, 'head or 'tail")))))
+(defmethod pm-get-buffer-create ((chunkmode pm-hbtchunkmode) &optional type)
+  (let ((buff (cond ((eq 'body type) (oref chunkmode -buffer))
+                    ((eq 'head type) (oref chunkmode -head-buffer))
+                    ((eq 'tail type) (oref chunkmode -tail-buffer))
+                    (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s' of class '%s'"
+                              type (eieio-object-name chunkmode) (class-of chunkmode))))))
+    (if (buffer-live-p buff)
+        buff
+      (pm--set-chunkmode-buffer chunkmode type
+                                (pm--get-chunkmode-buffer-create chunkmode type)))))
 
 (defun pm--get-chunkmode-buffer-create (chunkmode type)
-  (let ((mode (pm--get-chunkmode-mode chunkmode type)))
-    (or (pm--get-indirect-buffer-of-mode mode)
-        (pm--create-indirect-buffer chunkmode type mode))))
-
-(defun pm--get-indirect-buffer-of-mode (mode)
-  (loop for bf in (oref pm/polymode -buffers)
-        when (and (buffer-live-p bf)
-                  (eq mode (buffer-local-value 'major-mode bf)))
-        return bf))
-
-(defvar pm--ib-prefix "")
-(defun pm--create-indirect-buffer (chunkmode type mode)
-
-  (let ((config pm/polymode)
-        (mode (pm--get-existent-mode mode)))
-
-    (with-current-buffer (pm-base-buffer)
-      (let* ((new-name
-              (generate-new-buffer-name
-               (format "%s%s[%s]" pm--ib-prefix (buffer-name)
-                       (replace-regexp-in-string "-mode" "" (symbol-name mode)))))
-             (new-buffer (make-indirect-buffer (current-buffer)  new-name))
-             (file (buffer-file-name))
-             (base-name (buffer-name))
-             (coding buffer-file-coding-system))
-
-        (with-current-buffer new-buffer
-          (pm--mode-setup mode)
-
-          (setq buffer-file-coding-system coding
-                ;; Avoid the uniqified name for the indirect buffer in the mode line
-                ;; mode-line-buffer-identification (propertized-buffer-identification base-name)
-                pm/polymode config
-                pm/chunkmode chunkmode
-                pm/type type)
-          (funcall (oref pm/polymode :minor-mode))
-          (vc-find-file-hook)
-
-          (pm--common-setup))
-       
-        new-buffer))))
+  (let ((mode (pm--get-existent-mode
+               (pm--get-chunkmode-mode chunkmode type))))
+    (or
+     ;; 1. look through existent buffer list
+     (loop for bf in (oref pm/polymode -buffers)
+           when (and (buffer-live-p bf)
+                     (eq mode (buffer-local-value 'major-mode bf)))
+           return bf)
+     ;; 2. create new
+     (with-current-buffer (pm-base-buffer)
+       (let* ((new-name (generate-new-buffer-name (buffer-name)))
+              (new-buffer (make-indirect-buffer (current-buffer) new-name)))
+         (with-current-buffer new-buffer
+           (pm-initialize chunkmode type mode))
+         new-buffer)))))
 
 (defun pm--get-chunkmode-mode (obj type)
   (with-slots (mode head-mode tail-mode) obj
@@ -266,21 +230,30 @@ how this is computed."
              (oref obj :tail-mode)))
           (t (error "type must be one of 'head 'tail 'body")))))
 
-
-(defgeneric pm-get-buffer (chunkmode &optional span-type)
-  "Get the indirect buffer associated with SUBMODE and
-SPAN-TYPE. Should return nil if buffer has not yet been
-installed. Also see `pm-get-span'.")
-
-(defmethod pm-get-buffer ((chunkmode pm-chunkmode) &optional type)
-  (oref chunkmode -buffer))
-
-(defmethod pm-get-buffer ((chunkmode pm-hbtchunkmode) &optional type)
-  (cond ((eq 'body type) (oref chunkmode -buffer))
-        ((eq 'head type) (oref chunkmode -head-buffer))
-        ((eq 'tail type) (oref chunkmode -tail-buffer))
-        (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s' of class '%s'"
-                  type (eieio-object-name chunkmode) (class-of chunkmode)))))
+(defun pm--set-chunkmode-buffer (obj type buff)
+  "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
+  (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
+    (pcase (list type head-mode tail-mode)
+      (`(body body ,(or `nil `body))
+       (setq -buffer buff
+             -head-buffer buff
+             -tail-buffer buff))
+      (`(body ,_ body)
+       (setq -buffer buff
+             -tail-buffer buff))
+      (`(body ,_ ,_ )
+       (setq -buffer buff))
+      (`(head ,_ ,(or `nil `head))
+       (setq -head-buffer buff
+             -tail-buffer buff))
+      (`(head ,_ ,_)
+       (setq -head-buffer buff))
+      (`(tail ,_ ,(or `nil `head))
+       (setq -tail-buffer buff
+             -head-buffer buff))
+      (`(tail ,_ ,_)
+       (setq -tail-buffer buff))
+      (_ (error "type must be one of 'body, 'head or 'tail")))))
 
 
 (defvar pm--select-buffer-visually)
@@ -294,19 +267,16 @@ corresponding to the type of the SPAN returned by
   "Select the buffer associated with CHUNKMODE.
 Install a new indirect buffer if it is not already installed. For
 this method to work correctly, SUBMODE's class should define
-`pm-install-buffer' and `pm-get-buffer' methods."
+`pm-get-buffer-create' methods."
   (let* ((type (car span))
-         (buff (pm-get-buffer chunkmode type)))
-    (unless (buffer-live-p buff)
-      (pm-install-buffer chunkmode type)
-      (setq buff (pm-get-buffer chunkmode type)))
+         (buff (pm-get-buffer-create chunkmode type)))
     (pm--select-existent-buffer buff)))
 
 ;; extracted for debugging purpose
 (defun pm--select-existent-buffer (buffer)
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
-    (pm--transfer-vars-from-base buffer)
+    (pm--transfer-vars-from-base '(buffer-file-name) buffer)
     (if (or (not (boundp 'pm--select-buffer-visually))
             (not pm--select-buffer-visually))
         ;; fast selection
@@ -405,11 +375,12 @@ this method to work correctly, SUBMODE's class should define
             (move-overlay o (overlay-start o) (overlay-end o) new-buff)))
         (overlays-in 1 (1+ (buffer-size)))))
 
-(defun pm--transfer-vars-from-base (buffer)
-  (let ((bb (pm-base-buffer)))
+(defun pm--transfer-vars-from-base (vars &optional buffer)
+  (let ((buffer (or buffer (current-buffer)))
+        (bb (pm-base-buffer)))
     (unless (eq bb buffer)
       (with-current-buffer buffer
-       (dolist (var '(buffer-file-name))
+       (dolist (var vars)
          (set var (buffer-local-value var bb)))))))
 
 (defvar-local pm--killed-once nil)

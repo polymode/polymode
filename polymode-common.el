@@ -61,9 +61,8 @@ not rely on that.")
 
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")
-(declare-function pm-get-buffer "polymode-methods")
+(declare-function pm-get-buffer-create "polymode-methods")
 (declare-function pm-select-buffer "polymode-methods")
-(declare-function pm-install-buffer "polymode-methods")
 (declare-function pm-get-adjust-face "polymode-methods")
 (declare-function pm-get-span "polymode-methods")
 (declare-function pm-indent-line "polymode-methods")

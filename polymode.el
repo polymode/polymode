@@ -295,20 +295,26 @@ of the span."
 (defun pm-get-innermost-range (&optional pos no-cache)
   (pm-span-to-range (pm-get-innermost-span pos no-cache)))
 
-(defun pm-switch-to-buffer (&optional pos)
+(defun pm-switch-to-buffer (&optional pos-or-span)
   "Bring the appropriate polymode buffer to front.
 This is done visually for the user with `switch-to-buffer'. All
 necessary adjustment like overlay and undo history transport are
 performed."
-  (let ((span (pm-get-innermost-span pos))
+  (let ((span (if (or (null pos-or-span)
+                      (number-or-marker-p pos-or-span))
+                  (pm-get-innermost-span pos-or-span)
+                pos-or-span))
         (pm--select-buffer-visually t))
     (pm-select-buffer (car (last span)) span)))
 
-(defun pm-set-buffer (&optional pos)
-  "Set buffer to polymode buffer appropriate for location POS.
+(defun pm-set-buffer (&optional pos-or-span)
+  "Set buffer to polymode buffer appropriate for POS-OR-SPAN.
 This is done with `set-buffer' and no visual adjustments are
 done."
-  (let ((span (pm-get-innermost-span pos))
+  (let ((span (if (or (null pos-or-span)
+                      (number-or-marker-p pos-or-span))
+                  (pm-get-innermost-span pos-or-span)
+                pos-or-span))
         (pm--select-buffer-visually nil))
     (pm-select-buffer (car (last span)) span)))
 
@@ -807,7 +813,7 @@ Key bindings:
 
 (defvar pm-debug-relevant-functions-alist
   '((polymode-initialization . (pm-initialize pm--mode-setup pm--common-setup
-                                pm--create-indirect-buffer pm--get-chunkmode-buffer-create))
+                                pm--get-chunkmode-buffer-create))
     (poly-lock . (poly-lock-mode poly-lock-fontify-region
                                  poly-lock-fontification-function
                                  poly-lock-after-change
@@ -826,7 +832,7 @@ Key bindings:
                   font-lock-unfontify-region
                   font-lock-fontify-region font-lock-flush
                   font-lock-fontify-buffer font-lock-ensure))
-    (methods . (pm-select-buffer pm-get-buffer pm-))
+    (methods . (pm-select-buffer pm-get-buffer-create))
     (select . (pm-get-innermost-span pm-map-over-spans))
     (insert . (self-insert-command))))
 

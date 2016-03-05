@@ -342,6 +342,9 @@ todo
 
 
 ## Internals
+
+Warning: Following description is subject to change and might not be up-to-date.
+
 ### API
 
 All API classes and methods are named with `pm-` prefix. <!-- Actual instances have -->
@@ -356,9 +359,8 @@ Buffer local objects:
 Generics:
 
    - `pm-initialize` 
-   - `pm-get-buffer`
+   - `pm-get-buffer-create`
    - `pm-select-buffer`
-   - `pm-install-buffer`
    - `pm-get-span`
    - `pm-indent-line`
    - `pm-get-adjust-face`
@@ -370,6 +372,8 @@ Utilities:
    - `pm-narrow-to-span`
 
 ### Initialization of polymodes
+
+Note: This description is obsolete. Internals have changed.
 
 When called, `poly-XXX-mode` (created with `define-polymode`) clones
 `pm-poly/XXX` object and calls `pm-initialize` generic on it. The actual
@@ -392,6 +396,6 @@ Discovery of the spans is done by `pm-select-buffer` generic which is commonly
 called first by `jit-lock`. `pm-select-buffer` fist checks if the corresponding
 `pm-chunkmode` object (and associated indirect buffer) has been already
 created. If so, `pm-select-buffer` simply selects that buffer. Otherwise, it
-calls `pm-install-buffer` generic which, in turn, creates `pm-chunkmode` object
-and the associated indirect buffer.
+calls `pm-get-buffer-create` generic which, in turn, creates `pm-chunkmode`
+object and the associated indirect buffer.
 
