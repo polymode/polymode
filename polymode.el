@@ -319,6 +319,9 @@ beginning of the span. Buffer is *not* narrowed to the span. If
 COUNT is non-nil, jump at most that many times. If BACKWARDP is
 non-nil, map backwards. During the call of FUN, a dynamically
 bound variable *span* holds the current innermost span."
+  ;; Important! Never forget to save-excursion when calling
+  ;; map-overs-spans. Mapping can end different buffer and invalidate whatever
+  ;; caller that used your function.
   (save-restriction
     (widen)
     (goto-char (if backwardp end beg))

@@ -124,22 +124,23 @@ in a list. "
 (defun pm-execute-syntax-propertize-narrowed-to-span (orig-fun pos)
   "Execute `syntax-propertize' narrowed to the current span.
 Don't throw errors, but give relevant messages instead."
+  ;; in emacs 25.1 internal--syntax-propertize is called from C. We
+  ;; cannot advice it, but we can check for its argument. Very hackish
+  ;; but I don't see another way besides re-defining that function.
   (if (and polymode-mode pm/polymode)
       (condition-case err
-          ;; in emacs 25.1 internal--syntax-propertize is called from C. We
-          ;; cannot advice it, but we can check for its argument. Very hackish
-          ;; but I don't see another way besides re-defining that function.
-          (when (< syntax-propertize--done pos)
-            (pm-map-over-spans
-             (lambda ()
-               (when (< syntax-propertize--done pos)
-                 (pm-with-narrowed-to-span *span*
-                   (funcall orig-fun (min pos (point-max)))
-                   (let ((new--done syntax-propertize--done))
-                     (dolist (buff (oref pm/polymode -buffers))
-                       (with-current-buffer buff
-                         (setq-local syntax-propertize--done new--done)))))))
-             syntax-propertize--done pos))
+          (save-excursion
+            (when (< syntax-propertize--done pos)
+              (pm-map-over-spans
+               (lambda ()
+                 (when (< syntax-propertize--done pos)
+                   (pm-with-narrowed-to-span *span*
+                     (funcall orig-fun (min pos (point-max)))
+                     (let ((new--done syntax-propertize--done))
+                       (dolist (buff (oref pm/polymode -buffers))
+                         (with-current-buffer buff
+                           (setq-local syntax-propertize--done new--done)))))))
+               syntax-propertize--done pos)))
         (error (message "(syntax-propertize %s): %s [M-x pm-debug-info RET to see backtrace]"
                         pos (error-message-string err))
                (and pm-debug-mode
