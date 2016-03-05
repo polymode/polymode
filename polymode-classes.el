@@ -231,19 +231,33 @@ that are not known in advance. Examples are org-mode and markdown.")
     background. If positive - lighten the background on dark
     themes and darken on light thems. If negative - darken in
     dark thems and lighten in light thems.")
+
+   (init-functions
+    :initarg :init-functions
+    :initform '()
+    :type list
+    :documentation
+    "List of functions to called after the initialization of  chunkmode has finished.
+     Functions are called the buffer associated with this
+     chunkmode. All init-functions in the inheritance chain are
+     called. Parents hooks first. So, if current config object C
+     inherits from object B, which in turn inherits from object
+     A. Then A's init-functions are called first, then B's and
+     then C's. Either customize this slot or use
+     `object-add-to-list' function.")
    
    (-buffer
     :type (or null buffer)
     :initform nil))
   
-  "Representatioin of the chunkmode object.")
+  "Representatioin of a generic chunkmode object.")
 
 (defclass pm-bchunkmode (pm-chunkmode)
   ()
-  "Representation of the hostmode objects. Basemodes are the
-  main (parent) modes in the buffer. For example for a the
-  web-mdoe the hostmode is `html-mode', for nowweb mode the host
-  mode is usually `latex-mode', etc.")
+  "Representation of the body-only chunkmodes. Body-only
+  chunkmodes are commonly used as host modes. For example for a
+  the web-mdoe the hostmode is `html-mode', for nowweb mode the
+  host mode is usually `latex-mode', etc.")
 
 (defclass pm-hbtchunkmode (pm-chunkmode)
   ((head-mode
@@ -265,6 +279,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     from :HEAD-MODE slot. If set to 'body, the tail's mode is the
     same as chunk's body mode. If set to 'host, the mode will be
     of the parent host.")
+
    (head-reg
     :initarg :head-reg
     :initform ""
@@ -281,6 +296,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     :documentation "Regexp for chunk end (aka tail), or a
     function returning the start and end positions of the tail.
     See `pm--default-matcher' for an example function.")
+
    (adjust-face
     :initform 2)
    (head-adjust-face
@@ -309,7 +325,7 @@ that are not known in advance. Examples are org-mode and markdown.")
     :initform nil
     :type (or null buffer)))
   
-  "Representation of an inner chunkmode.")
+  "Representation of an inner Head-Body-Tail chunkmode.")
 
 (defclass pm-hbtchunkmode-auto (pm-hbtchunkmode)
   ((retriever-regexp :initarg :retriever-regexp

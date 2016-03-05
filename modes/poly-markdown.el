@@ -34,7 +34,8 @@
 
 (defcustom pm-host/markdown
   (pm-bchunkmode "Markdown"
-                 :mode 'markdown-mode)
+                 :mode 'markdown-mode
+                 :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown host chunkmode"
   :group 'hostmodes
   :type 'object)
@@ -52,8 +53,7 @@
 (defcustom pm-poly/markdown
   (pm-polymode-multi-auto "markdown"
                           :hostmode 'pm-host/markdown
-                          :auto-innermode 'pm-inner/markdown
-                          :init-functions '(poly-markdown-remove-markdown-hooks))
+                          :auto-innermode 'pm-inner/markdown)
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)

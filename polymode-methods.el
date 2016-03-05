@@ -104,17 +104,12 @@ object ...")
 
   (with-current-buffer (or buffer (current-buffer))
 
-    (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
-
     ;; INDENTATION
     (when (and indent-line-function ; not that it should ever be nil...
                (oref pm/chunkmode :protect-indent-line))
       (setq pm--indent-line-function-original indent-line-function)
       (setq-local indent-line-function 'pm-indent-line-dispatcher))
     
-    (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
-    (object-add-to-list pm/polymode '-buffers (current-buffer))
-
     ;; FONT LOCK
     ;; jit-lock-after-change-extend-region-functions is dealt with in
     ;; `poly-lock-after-change'
@@ -127,20 +122,23 @@ object ...")
     ;; SYNTAX
     ;; We are executing `syntax-propertize' narrowed to span as per advice in
     ;; (polymode-compat.el)
-    
     (pm-around-advice syntax-begin-function 'pm-override-output-position) ; obsolete as of 25.1
     (pm-around-advice syntax-propertize-extend-region-functions 'pm-override-output-cons)
-
     ;; flush ppss in all buffers
     (add-hook 'before-change-functions 'polymode-flush-ppss-cache t t)
+
+    ;; REST
+    (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
+    (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
+    (object-add-to-list pm/polymode '-buffers (current-buffer))
     
     (current-buffer)))
 
-(defun pm--run-init-hooks (config)
-  "Run hooks from :init-functions slot of CONFIG and its parent instances.
+(defun pm--run-init-hooks (object)
+  "Run hooks from :init-functions slot of OBJECT and its parent instances.
 Parents' hooks are run first."
   (unless pm-initialization-in-progress
-    (let ((parent-inst config) 
+    (let ((parent-inst object) 
           init-funs)
       ;; run hooks, parents first
       (while parent-inst
@@ -749,7 +747,8 @@ tail  - tail span"
 ;;; INDENT
 (defun pm-indent-line-dispatcher ()
   "Dispatch methods indent methods on current span."
-  (let ((span (pm-get-innermost-span)))
+  (let ((span (pm-get-innermost-span))
+        (inhibit-read-only t))
     (pm-indent-line (car (last span)) span)))
 
 (defgeneric pm-indent-line (&optional chunkmode span)
@@ -761,7 +760,8 @@ the chunkmode.")
   ;; istr is auto-indent string
   (unwind-protect
       (save-restriction
-        (pm--comment-region  1 (nth 1 span))
+        (pm--comment-region 1 (nth 1 span))
+        (pm-set-buffer span)
         (pm-narrow-to-span span)
         (funcall pm--indent-line-function-original))
     (pm--uncomment-region 1 (nth 1 span))))
@@ -773,47 +773,60 @@ the chunkmode.")
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
-  ;; sloppy work:
-  ;; Assumes multiline chunks and single-line head/tail.
-  ;; Assumes current buffer is the correct buffer.
   (let ((pos (point))
-        shift delta)
-    (cond ((or (eq 'head (car span))
-               (eq 'tail (car span)))
-           ;; use parent's indentation function in head and tail
-           (back-to-indentation)
-           (setq delta (- pos (point)))
-           (backward-char)
-           (let ((parent-span (pm-get-innermost-span)))
-             (pm-select-buffer (car (last parent-span)) parent-span)
-             (forward-char)
-             (pm--indent-line parent-span)
-             (when (eq 'tail (car span))
-               (setq shift (pm--get-head-shift parent-span))
-               (indent-to (+ shift (- (point) (point-at-bol))))))
-           (if (> delta 0)
-               (goto-char (+ (point) delta))))
-          (t
-           (setq shift (pm--get-head-shift span))
-           (pm--indent-line span)
-           (when (= (current-column) 0)
-             (setq shift (+ shift (oref chunkmode :indent-offset))))
-           (setq delta (- (point) (point-at-bol)))
-           (beginning-of-line)
-           (indent-to shift)
-           (goto-char (+ (point) delta))))))
+        (span (or span (pm-get-innermost-span)))
+        (cur-buff (current-buffer))
+        delta)
+    (unwind-protect
+        (cond
+         ;; 1. in head or tail (we assume head or tail fit in one line for now)
+         ((or (eq 'head (car span))
+              (eq 'tail (car span)))
+          (goto-char (nth 1 span))
+          (setq delta (- pos (point)))
+          (when (not (bobp))
+            (let ((prev-span (pm-get-innermost-span (1- pos))))
+              (if (and (eq 'tail (car span))
+                       (eq (point) (save-excursion (back-to-indentation) (point))))
+                  ;; if tail is first on the line, indent as head
+                  (indent-to (pm--get-head-shift prev-span))
+                (pm--indent-line prev-span)))))
+         ;; 2. body
+         (t
+          (let ((hindent (pm--get-head-indent span)))
+            (back-to-indentation)
+            (if (> (nth 1 span) (point))
+                ;; first body line in the same line with header (re-indent at indentation)
+                (pm-indent-line-dispatcher)
+              (setq delta (- pos (point)))
+              (pm--indent-line span)
+              (let ((first-line (<= (point-at-bol)
+                                    (save-excursion
+                                      (goto-char (nth 1 span))
+                                      (goto-char (point-at-eol))
+                                      (skip-chars-forward " \t\n")
+                                      (point)))))
+                (when first-line
+                  (indent-to
+                   (+ (- (point) (point-at-bol))
+                      hindent
+                      (oref chunkmode :indent-offset)))))))))
+      (when (and delta (> delta 0))
+        (goto-char (+ (point) delta)))
+      ;; simple save excursion
+      (set-buffer cur-buff))))
 
-;; fixme: This one is nowhere used?
-(defmethod pm-indent-line ((chunkmode pm-polymode-multi-auto) &optional span)
-  (pm-select-buffer chunkmode span)
-  (pm-indent-line pm/chunkmode span))
-
-(defun pm--get-head-shift (span)
+(defun pm--get-head-indent (span)
   (save-excursion
-    (goto-char (cadr span))
+    (goto-char (nth 1 span))
     (back-to-indentation)
     (- (point) (point-at-bol))))
 
+(defmethod pm-indent-line ((chunkmode pm-polymode-multi-auto) &optional span)
+  ;; fixme: pm-polymode-multi-auto is not a chunk, pm-get-innermost-span should
+  ;; not return it in the first place
+  (pm-set-buffer span)
+  (pm-indent-line pm/chunkmode span))
 
 
 ;;; FACES
