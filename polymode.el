@@ -324,33 +324,58 @@ bound variable *span* holds the current innermost span."
   ;; caller that used your function.
   (save-restriction
     (widen)
+    (setq end (min end (point-max)))
     (goto-char (if backwardp end beg))
-    (let ((nr 0)
-          (*span* (pm-get-innermost-span (point) no-cache)))
-      ;; if beg or end coincide with span's limit move to next/previous span
+    (let* ((nr 1)
+           (*span* (pm-get-innermost-span (point) no-cache))
+           old-span
+           moved)
+      ;; if beg (end) coincide with span's end (beg) don't process previous (next) span
       (if backwardp
           (and (eq end (nth 1 *span*))
+               (setq moved t)
                (not (bobp))
                (forward-char -1))
         (and (eq beg (nth 2 *span*))
+             (setq moved t)
              (not (eobp))
              (forward-char 1)))
+      (when moved
+        (setq *span* (pm-get-innermost-span (point) no-cache)))
       (while (and (if backwardp
                       (> (point) beg)
                     (< (point) end))
                   (or (null count)
                       (< nr count)))
-        (setq *span* (pm-get-innermost-span (point) no-cache)
-              nr (1+ nr))
         (let ((pm--select-buffer-visually visuallyp))
           (pm-select-buffer (car (last *span*)) *span*)) ;; object and span
+
+        ;; FUN might change buffer and invalidate our *span*. How can we
+        ;; intelligently check for this? After-change functions have not been
+        ;; run yet (or did they?). We can track buffer modification time
+        ;; explicitly (can we?)
         (goto-char (nth 1 *span*))
-        ;; (narrow-to-region (nth 1 *span*) (nth 2 *span*))
-        (funcall fun)
+        (save-excursion
+          (funcall fun))
+        
         ;; enter next/previous chunk as head-tails don't include their boundaries
         (if backwardp
             (goto-char (max 1 (1- (nth 1 *span*)))) 
-          (goto-char (min (point-max) (1+ (nth 2 *span*)))))))))
+          (goto-char (min (point-max) (1+ (nth 2 *span*)))))
+        
+        (setq old-span *span*)
+        (setq *span* (pm-get-innermost-span (point) no-cache)
+              nr (1+ nr))
+
+        ;; Ensure progress and avoid infloop due to bad regexp or who knows
+        ;; what. Move char by char till we get higher/lower span. Cache is not
+        ;; used.
+        (while (and (not (eobp))
+                    (if backwardp
+                        (> (nth 2 *span*) (nth 1 old-span))
+                      (< (nth 1 *span*) (nth 2 old-span))))
+          (forward-char 1)
+          (setq *span* (pm-get-innermost-span (point) t)))))))
 
 (defun pm--reset-ppss-last (&optional span-start force)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN-START.
