@@ -26,30 +26,30 @@ object ...")
   ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
   ;; Temporary fix: don't install twice
   (unless pm/polymode
-    (let* ((pm-initialization-in-progress t)
-           (chunkmode (clone (symbol-value (oref config :hostmode))))
-           ;; Set if nil! This allows unspecified host chunkmodes to be used in
-           ;; minor modes.
-           (host-mode (or (oref chunkmode :mode)
-                          (oset chunkmode :mode major-mode))))
+    (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
+      (let ((pm-initialization-in-progress t)
+            ;; Set if nil! This allows unspecified host chunkmodes to be used in
+            ;; minor modes.
+            (host-mode (or (oref chunkmode :mode)
+                           (oset chunkmode :mode major-mode))))
 
-      (pm--mode-setup host-mode)
-          
-      ;; maybe: fixme: inconsistencies?
-      ;;
-      ;; 1) Not calling config's :minor-mode (polymode function). But polymode
-      ;; function calls pm-initialize, so it's probably ok.
-      (oset chunkmode -buffer (current-buffer))
-      (oset config -hostmode chunkmode)
+        (pm--mode-setup host-mode)
+        
+        ;; maybe: fixme: inconsistencies?
+        ;;
+        ;; 1) Not calling config's :minor-mode (polymode function). But polymode
+        ;; function calls pm-initialize, so it's probably ok.
+        (oset chunkmode -buffer (current-buffer))
+        (oset config -hostmode chunkmode)
 
-      (setq pm/polymode config
-            pm/chunkmode chunkmode
-            pm/type 'host)
+        (setq pm/polymode config
+              pm/chunkmode chunkmode
+              pm/type 'host)
 
-      (pm--common-setup)
-      (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
-    
-    (pm--run-init-hooks config)))
+        (pm--common-setup)
+        (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
+      (pm--run-init-hooks config)
+      (pm--run-init-hooks chunkmode))))
 
 (defmethod pm-initialize ((config pm-polymode-one))
   (let ((pm-initialization-in-progress t))
@@ -76,7 +76,7 @@ object ...")
                             (replace-regexp-in-string "-mode" "" (symbol-name mode))))))
     (rename-buffer new-name)
     (pm--mode-setup (pm--get-existent-mode mode))
-    (pm--transfer-vars-from-base '(pm/polymode buffer-file-coding-system))
+    (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
     (setq pm/chunkmode chunkmode
           pm/type type)
     (funcall (oref pm/polymode :minor-mode))
@@ -273,7 +273,11 @@ installed. Also see `pm-get-span'.")
       (_ (error "type must be one of 'body, 'head or 'tail")))))
 
 
-(defvar pm--select-buffer-visually)
+(defvar pm--select-buffer-visibly)
+(defvar pm-move-vars-from-base '(buffer-file-name)
+  "Variables transferred from base buffer on buffer switch.")
+(defvar pm-move-vars-from-old-buffer '(buffer-invisibility-spec)
+  "Variables transferred from old buffer on buffer switch.")
 
 (defgeneric pm-select-buffer (chunkmode span)
   "Ask SUBMODE to select (make current) its indirect buffer
@@ -293,42 +297,68 @@ this method to work correctly, SUBMODE's class should define
 (defun pm--select-existent-buffer (buffer)
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
-    (pm--transfer-vars-from-base '(buffer-file-name) buffer)
-    (if (or (not (boundp 'pm--select-buffer-visually))
-            (not pm--select-buffer-visually))
+    (pm--move-vars pm-move-vars-from-base (pm-base-buffer) buffer)
+    (if (or (not (boundp 'pm--select-buffer-visibly))
+            (not pm--select-buffer-visibly))
         ;; fast selection
         (set-buffer buffer)
       ;; slow, visual selection
-      (pm--select-existent-buffer-visually buffer))))
+      (pm--select-existent-buffer-visibly buffer))))
 
 ;; extracted for debugging purpose
-(defun pm--select-existent-buffer-visually (new-buffer)
-  (let ((point (point))
+(defun pm--select-existent-buffer-visibly (new-buffer)
+  (let ((old-buffer (current-buffer))
+        (point (point))
         (window-start (window-start))
         (visible (pos-visible-in-window-p))
-        (old-buffer (current-buffer))
         (vlm visual-line-mode)
         (ractive (region-active-p))
         (mkt (mark t))
-        (bis buffer-invisibility-spec)
         (bro buffer-read-only))
-    (pm--move-overlays-to new-buffer)
+
+    (pm--move-vars pm-move-vars-from-old-buffer old-buffer new-buffer)
+    (pm--move-overlays old-buffer new-buffer)
+
     (switch-to-buffer new-buffer)
-    (setq buffer-invisibility-spec bis)
+    (bury-buffer-internal old-buffer)
+
     (unless (eq bro buffer-read-only)
       (read-only-mode (if bro 1 -1)))
     (pm--adjust-visual-line-mode vlm)
-    (bury-buffer old-buffer)
-    ;; fixme: wha tis the right way to do this ... activate-mark-hook?
+    ;; fixme: what is the right way to do this ... activate-mark-hook?
     (if (not ractive)
         (deactivate-mark)
       (set-mark mkt)
       (activate-mark))
+
     (goto-char point)
     ;; avoid display jumps
     (when visible
       (set-window-start (get-buffer-window buffer t) window-start))
-    (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)))
+
+    (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)
+    (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
+    (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
+  
+(defun pm--move-overlays (from-buffer to-buffer)
+  (with-current-buffer from-buffer
+    (mapc (lambda (o)
+            (unless (eq 'linum-str (car (overlay-properties o)))
+              (move-overlay o (overlay-start o) (overlay-end o) to-buffer)))
+          (overlays-in 1 (1+ (buffer-size))))))
+
+(defun pm--move-vars (vars from-buffer &optional to-buffer)
+  (let ((to-buffer (or to-buffer (current-buffer))))
+    (unless (eq to-buffer from-buffer)
+      (with-current-buffer to-buffer
+        (dolist (var vars)
+          (set var (buffer-local-value var from-buffer)))))))
+
+(defun pm--adjust-visual-line-mode (vlm)
+  (unless (eq visual-line-mode vlm)
+    (if (null vlm)
+        (visual-line-mode -1)
+      (visual-line-mode 1))))
 
 (defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
   ;; :fixme: pm-get-span on multi configs returns config as last object of
@@ -379,38 +409,6 @@ this method to work correctly, SUBMODE's class should define
                   ;; else, use hostmode
                   (oref pm/polymode -hostmode)))))
       (pm-select-buffer chunkmode span))))
-
-(defun pm--adjust-visual-line-mode (vlm)
-  (unless (eq visual-line-mode vlm)
-    (if (null vlm)
-        (visual-line-mode -1)
-      (visual-line-mode 1))))
-
-(defun pm--move-overlays-to (new-buff)
-  (mapc (lambda (o)
-          (unless (eq 'linum-str (car (overlay-properties o)))
-            (move-overlay o (overlay-start o) (overlay-end o) new-buff)))
-        (overlays-in 1 (1+ (buffer-size)))))
-
-(defun pm--transfer-vars-from-base (vars &optional buffer)
-  (let ((buffer (or buffer (current-buffer)))
-        (bb (pm-base-buffer)))
-    (unless (eq bb buffer)
-      (with-current-buffer buffer
-       (dolist (var vars)
-         (set var (buffer-local-value var bb)))))))
-
-(defvar-local pm--killed-once nil)
-(defun pm--kill-indirect-buffer ()
-  ;; find-alternate-file breaks (https://github.com/vspinu/polymode/issues/79)
-  (let ((base (buffer-base-buffer)))
-    (when  (and base (buffer-live-p base))
-      ;; 'base' is non-nil in indirect buffers only
-      (set-buffer-modified-p nil)
-      (unless (buffer-local-value 'pm--killed-once base)
-        (with-current-buffer base
-          (setq pm--killed-once t))
-        (kill-buffer base)))))
 
 
 ;;; SPAN MANIPULATION

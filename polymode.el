@@ -304,7 +304,7 @@ performed."
                       (number-or-marker-p pos-or-span))
                   (pm-get-innermost-span pos-or-span)
                 pos-or-span))
-        (pm--select-buffer-visually t))
+        (pm--select-buffer-visibly t))
     (pm-select-buffer (car (last span)) span)))
 
 (defun pm-set-buffer (&optional pos-or-span)
@@ -315,10 +315,10 @@ done."
                       (number-or-marker-p pos-or-span))
                   (pm-get-innermost-span pos-or-span)
                 pos-or-span))
-        (pm--select-buffer-visually nil))
+        (pm--select-buffer-visibly nil))
     (pm-select-buffer (car (last span)) span)))
 
-(defun pm-map-over-spans (fun beg end &optional count backwardp visuallyp no-cache)
+(defun pm-map-over-spans (fun beg end &optional count backwardp visiblyp no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args. It is executed with point at the
 beginning of the span. Buffer is *not* narrowed to the span. If
@@ -353,7 +353,7 @@ bound variable *span* holds the current innermost span."
                     (< (point) end))
                   (or (null count)
                       (< nr count)))
-        (let ((pm--select-buffer-visually visuallyp))
+        (let ((pm--select-buffer-visibly visiblyp))
           (pm-select-buffer (car (last *span*)) *span*)) ;; object and span
 
         ;; FUN might change buffer and invalidate our *span*. How can we
