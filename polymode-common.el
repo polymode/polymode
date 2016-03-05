@@ -27,7 +27,24 @@ than the input file."
 Each function is run with two arguments `old-buffer' and
 `new-buffer'. This hook is commonly used to transfer state
 between buffers. The hook is run in a new buffer, but you should
-not rely on that.")
+not rely on that. Slot :switch-buffer-functions in `pm-polymode'
+and `pm-chunkmode' objects provides same functionality for
+narrower scope.")
+
+(defvar polymode-init-host-hook nil
+  "Hook run on initialization of every hostmode.
+Ran in a base buffer from `pm-initialze'
+methods. Slot :init-functions in `pm-polymode' objects provides
+similar hook for more focused scope. See
+`polymode-init-inner-hook' and :init-functions slot in
+`pm-chunkmode' objects for similar hooks for inner chunkmodes.")
+
+(defvar polymode-init-inner-hook nil
+  "Hook run on initialization of every `pm-chunkmode' object.
+The hook is run in chunkmode's body buffer from `pm-initialze'
+`pm-chunkmode' methods. Slot :init-functions `pm-chunkmode'
+objects provides same functionality for narrower scope. See also
+`polymode-init-host-hook'.")
 
 ;; esential vars
 (defvar-local pm/polymode nil)

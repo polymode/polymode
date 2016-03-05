@@ -16,10 +16,7 @@ If this variable is non-nil, various chunk manipulation commands
 relying on `pm-get-span' might not function correctly.")
 
 (defgeneric pm-initialize (config)
-  "Initialize current buffer with CONFIG.
-
-First initialise the -hostmode and -innermodes slots of polymode
-object ...")
+  "Initialize current buffer with CONFIG.")
 
 (defmethod pm-initialize ((config pm-polymode))
   ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ...
@@ -36,7 +33,6 @@ object ...")
         (pm--mode-setup host-mode)
         
         ;; maybe: fixme: inconsistencies?
-        ;;
         ;; 1) Not calling config's :minor-mode (polymode function). But polymode
         ;; function calls pm-initialize, so it's probably ok.
         (oset chunkmode -buffer (current-buffer))
@@ -48,7 +44,7 @@ object ...")
 
         (pm--common-setup)
         (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
-      (pm--run-init-hooks config)
+      (pm--run-init-hooks config 'polymode-init-host-hook)
       (pm--run-init-hooks chunkmode))))
 
 (defmethod pm-initialize ((config pm-polymode-one))
@@ -56,7 +52,7 @@ object ...")
     (call-next-method))
   (eval `(oset config -innermodes
                (list (clone ,(oref config :innermode)))))
-  (pm--run-init-hooks config))
+  (pm--run-init-hooks config 'polymode-init-host-hook))
 
 (defmethod pm-initialize ((config pm-polymode-multi))
   (let ((pm-initialization-in-progress))
@@ -65,14 +61,14 @@ object ...")
         (mapcar (lambda (sub-name)
                   (clone (symbol-value sub-name)))
                 (oref config :innermodes)))
-  (pm--run-init-hooks config))
+  (pm--run-init-hooks config 'polymode-init-host-hook))
 
-(defvar pm--ib-prefix "")
 (defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-chunkmode-mode chunkmode type)))
-  (let ((new-name  (generate-new-buffer-name
-                    (format "%s%s[%s]" pm--ib-prefix (buffer-name (pm-base-buffer))
+  (let ((pm-initialization-in-progress t)
+        (new-name  (generate-new-buffer-name
+                    (format "%s[%s]" (buffer-name (pm-base-buffer))
                             (replace-regexp-in-string "-mode" "" (symbol-name mode))))))
     (rename-buffer new-name)
     (pm--mode-setup (pm--get-existent-mode mode))
@@ -82,7 +78,7 @@ object ...")
     (funcall (oref pm/polymode :minor-mode))
     (vc-find-file-hook)
     (pm--common-setup)
-    (pm--run-init-hooks chunkmode)))
+    (pm--run-init-hooks chunkmode 'polymode-init-inner-hook)))
 
 (defun pm--mode-setup (mode &optional buffer)
   ;; General major-mode install. Should work for both indirect and base buffers.
@@ -147,8 +143,10 @@ object ...")
     
     (current-buffer)))
 
-(defun pm--run-init-hooks (object)
+(defun pm--run-init-hooks (object &optional emacs-hook)
   (unless pm-initialization-in-progress
+    (when emacs-hook
+      (run-hooks emacs-hook))
     (pm--run-hooks object :init-functions)))
 
 (defun pm--run-hooks (object slot &rest args)
