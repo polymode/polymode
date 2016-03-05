@@ -148,19 +148,36 @@ object ...")
     (current-buffer)))
 
 (defun pm--run-init-hooks (object)
-  "Run hooks from :init-functions slot of OBJECT and its parent instances.
-Parents' hooks are run first."
   (unless pm-initialization-in-progress
-    (let ((parent-inst object) 
-          init-funs)
-      ;; run hooks, parents first
-      (while parent-inst
-        (setq init-funs (append (and (slot-boundp parent-inst :init-functions) ; don't cascade
-                                     (oref parent-inst :init-functions))
-                                init-funs)
-              parent-inst (and (slot-boundp parent-inst :parent-instance)
-                               (oref parent-inst :parent-instance))))
-      (run-hooks 'init-funs))))
+    (pm--run-hooks object :init-functions)))
+
+(defun pm--run-hooks (object slot &rest args)
+  "Run hooks from SLOT of OBJECT and its parent instances.
+Parents' hooks are run first."
+  (let ((inst object) 
+        funs)
+    ;; run hooks, parents first
+    (while inst
+      (setq funs (append (and (slot-boundp inst slot) ; don't cascade
+                              (eieio-oref inst slot))
+                         funs)
+            inst (and (slot-boundp inst :parent-instance)
+                      (oref inst :parent-instance))))
+    (if args
+        (apply 'run-hook-with-args 'funs args)
+      (run-hooks 'funs))))
+
+(defvar-local pm--killed-once nil)
+(defun pm--kill-indirect-buffer ()
+  ;; find-alternate-file breaks (https://github.com/vspinu/polymode/issues/79)
+  (let ((base (buffer-base-buffer)))
+    (when  (and base (buffer-live-p base))
+      ;; 'base' is non-nil in indirect buffers only
+      (set-buffer-modified-p nil)
+      (unless (buffer-local-value 'pm--killed-once base)
+        (with-current-buffer base
+          (setq pm--killed-once t))
+        (kill-buffer base)))))
 
 
 (defgeneric pm-get-buffer-create (chunkmode &optional type)

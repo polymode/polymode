@@ -104,6 +104,7 @@
     :initarg :map
     :initform 'polymode-mode-map
     :type (or symbol list)
+    :documentation
     "Has a similar role as the :keymap argument in
      `define-polymode' with the difference that this argument is
      inherited through cloning, but :keymap argument is not. That
@@ -127,6 +128,14 @@
      B, which in turn inherits from object A. Then A's init-functions
      are called first, then B's and then C's.
      Either customize this slot or use `object-add-to-list' function.")
+   (switch-buffer-functions
+    :initarg :switch-buffer-functions
+    :initform '()
+    :type list
+    :documentation
+    "List of functions to run at polymode buffer switch.
+     Each function is run with two arguments, OLD-BUFFER and
+     NEW-BUFFER.")
    
    (-hostmode
     :type (or null pm-chunkmode)
@@ -231,7 +240,6 @@ that are not known in advance. Examples are org-mode and markdown.")
     background. If positive - lighten the background on dark
     themes and darken on light thems. If negative - darken in
     dark thems and lighten in light thems.")
-
    (init-functions
     :initarg :init-functions
     :initform '()
@@ -245,6 +253,16 @@ that are not known in advance. Examples are org-mode and markdown.")
      A. Then A's init-functions are called first, then B's and
      then C's. Either customize this slot or use
      `object-add-to-list' function.")
+   (switch-buffer-functions
+    :initarg :switch-buffer-functions
+    :initform '()
+    :type list
+    :documentation
+    "List of functions to run at polymode buffer switch.
+     Each function is run with two arguments, OLD-BUFFER and
+     NEW-BUFFER. In contrast to identically named slot in
+     `pm-polymode' class, these functions are run only when
+     NEW-BUFFER is associated with this chunkmode.")
    
    (-buffer
     :type (or null buffer)
