@@ -763,6 +763,7 @@ to indent."
         delta)
     (unwind-protect
         (cond
+         
          ;; 1. in head or tail (we assume head or tail fit in one line for now)
          ((or (eq 'head (car span))
               (eq 'tail (car span)))
@@ -773,34 +774,47 @@ to indent."
               (if (and (eq 'tail (car span))
                        (eq (point) (save-excursion (back-to-indentation) (point))))
                   ;; if tail is first on the line, indent as head
-                  (indent-to (pm--get-head-shift prev-span))
+                  (indent-to (pm--head-indent prev-span))
                 (pm--indent-line prev-span)))))
+         
          ;; 2. body
          (t
-          (let ((hindent (pm--get-head-indent span)))
-            (back-to-indentation)
-            (if (> (nth 1 span) (point))
-                ;; first body line in the same line with header (re-indent at indentation)
-                (pm-indent-line-dispatcher)
-              (setq delta (- pos (point)))
-              (pm--indent-line span)
-              (let ((first-line (<= (point-at-bol)
-                                    (save-excursion
-                                      (goto-char (nth 1 span))
-                                      (goto-char (point-at-eol))
-                                      (skip-chars-forward " \t\n")
-                                      (point)))))
-                (when first-line
-                  (indent-to
-                   (+ (- (point) (point-at-bol))
-                      hindent
-                      (oref chunkmode :indent-offset)))))))))
+          (back-to-indentation)
+          (if (> (nth 1 span) (point))
+              ;; first body line in the same line with header (re-indent at indentation)
+              (pm-indent-line-dispatcher)
+            (setq delta (- pos (point)))
+            (pm--indent-line span)
+            (let ((fl-indent (pm--first-line-indent span)))
+              (if fl-indent
+                  (when (bolp)
+                    ;; Not first line. Indent only when original indent is at
+                    ;; 0. Otherwise it's a continuation indentation and we assume
+                    ;; the original function did it correctly with respect to
+                    ;; previous lines.
+                    (indent-to fl-indent))
+                ;; First line. Indent with respect to header line.
+                (indent-to
+                 (+ (- (point) (point-at-bol)) ;; non-0 if code in header line
+                    (pm--head-indent span) ;; indent with respect to header line
+                    (oref chunkmode :indent-offset))))))))
       (when (and delta (> delta 0))
         (goto-char (+ (point) delta)))
       ;; simple save excursion
       (set-buffer cur-buff))))
 
-(defun pm--get-head-indent (span)
+(defun pm--first-line-indent (span)
+  ;; return '(indent) if in first non-header line
+  (save-excursion
+    (let ((pos (point)))
+      (goto-char (nth 1 span))
+      (goto-char (point-at-eol))
+      (skip-chars-forward " \t\n")
+      (let ((indent (- (point) (point-at-bol))))
+        (when (< (point-at-eol) pos)
+          indent)))))
+
+(defun pm--head-indent (span)
   (save-excursion
     (goto-char (nth 1 span))
     (back-to-indentation)
