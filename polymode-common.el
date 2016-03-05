@@ -169,12 +169,12 @@ a warning."
                                      'polymode-comment 'end)))))))
 
 (defun pm--uncomment-region (beg end)
-  ;; remove all syntax-table properties. Should not cause any problem as it is
-  ;; always used before font locking
+  ;; Remove all syntax-table properties. 
+  ;; fixme: this beggs for problems
   (when (> end 1)
     (with-silent-modifications
       (let ((props '(syntax-table nil rear-nonsticky nil polymode-comment nil)))
-        (remove-text-properties beg end props)
+        (remove-text-properties (max beg (point-min)) (min end (point-max)) props)
         ;; (remove-text-properties beg (1+ beg) props)
         ;; (remove-text-properties end (1- end) props)
         ))))

@@ -20,6 +20,15 @@ x <- 2
 dnorm(x)
 ```    
 
+```{r sdf}
+
+
+dfdfd
+
+
+
+```
+
 We used `echo=-3` to remove the 3rd expression from the source code, and
 `gsub()` to strip `#'#'` off.
 
@@ -29,5 +38,5 @@ Example code:
 
 ```{r}
 ## Example code:
-aggregate(argent[, 2:5], by = list(Transect = argent$Transect, Season = argent$Season), FUN = sum)
+paggregate(argent[, 2:5], by = list(Transect = argent$Transect, Season = argent$Season), FUN = sum)
 ```

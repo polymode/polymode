@@ -360,53 +360,53 @@ this method to work correctly, SUBMODE's class should define
 
 (defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
   ;; :fixme: pm-get-span on multi configs returns config as last object of
-  ;; span. This is confusing.
+  ;; span. This unnatural and confusing. Same problem with pm-indent-line
+  (pm-select-buffer (pm--get-multi-chunk config span) span))
+
+(defun pm--get-multi-chunk (config span)
+  ;; fixme: cache somehow?
   (if (null (car span))
-      (pm-select-buffer (oref config -hostmode) span)
+      (oref config -hostmode)
     (let ((type (car span))
-          (proto (symbol-value (oref config :auto-innermode)))
-          chunkmode)
+          (proto (symbol-value (oref config :auto-innermode))))
       (save-excursion
         (goto-char (cadr span))
         (unless (eq type 'head)
-          (if (functionp (oref proto :head-reg))
-              (goto-char (car (funcall (oref proto :head-reg) -1)))
-            (re-search-backward (oref proto :head-reg) nil 'noerr)))
+          (let ((matcher (oref proto :head-reg)))
+           (if (functionp matcher)
+               (goto-char (car (funcall matcher -1)))
+             (re-search-backward matcher nil 'noerr))))
         (let* ((str (or
                      ;; a. try regexp matcher
                      (and (oref proto :retriever-regexp)
-                          (re-search-forward (oref proto :retriever-regexp))
+                          (re-search-forward (oref proto :retriever-regexp) nil t)
                           (match-string-no-properties (oref proto :retriever-num)))
                      ;; b. otherwise function (fixme: these should be merged)
                      (and (oref proto :retriever-function)
-                          (funcall (oref proto :retriever-function)))
-                     ;; else
-                     (error "retriever didn't match")))
+                          (funcall (oref proto :retriever-function)))))
                (mode (pm--get-mode-symbol-from-name str 'no-fallback)))
-          (setq chunkmode
-                (if mode
-                    ;; Inferred body MODE serves as ID; this not need be the
-                    ;; case in the future and a generic id getter might replace
-                    ;; it. Currently head/tail/body indirect buffers are shared
-                    ;; across chunkmodes. This currently works ok. A more
-                    ;; general approach would be to track head/tails/body with
-                    ;; associated chunks. Then for example r hbt-chunk and elisp
-                    ;; hbt-chunk will not share head/tail buffers. There could
-                    ;; be even two r hbt-chunks with providing different
-                    ;; functionality and thus not even sharing body buffer.
-                    (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
-                      (or
-                       ;; a. loop through installed inner modes
-                       (loop for obj in (oref config -auto-innermodes)
-                             when (equal name (object-name-string obj))
-                             return obj)
-                       ;; b. create new
-                       (let ((innermode (clone proto name :mode mode)))
-                         (object-add-to-list config '-auto-innermodes innermode)
-                         innermode)))
-                  ;; else, use hostmode
-                  (oref pm/polymode -hostmode)))))
-      (pm-select-buffer chunkmode span))))
+          (if mode
+              ;; Inferred body MODE serves as ID; this not need be the
+              ;; case in the future and a generic id getter might replace
+              ;; it. Currently head/tail/body indirect buffers are shared
+              ;; across chunkmodes. This currently works ok. A more
+              ;; general approach would be to track head/tails/body with
+              ;; associated chunks. Then for example r hbt-chunk and elisp
+              ;; hbt-chunk will not share head/tail buffers. There could
+              ;; be even two r hbt-chunks with providing different
+              ;; functionality and thus not even sharing body buffer.
+              (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
+                (or
+                 ;; a. loop through installed inner modes
+                 (loop for obj in (oref config -auto-innermodes)
+                       when (equal name (object-name-string obj))
+                       return obj)
+                 ;; b. create new
+                 (let ((innermode (clone proto name :mode mode)))
+                   (object-add-to-list config '-auto-innermodes innermode)
+                   innermode)))
+            ;; else, use hostmode
+            (oref pm/polymode -hostmode)))))))
 
 
 ;;; SPAN MANIPULATION
@@ -741,14 +741,21 @@ Protect and call original indentation function associated with
 the chunkmode.")
 
 (defun pm--indent-line (span)
-  ;; istr is auto-indent string
-  (unwind-protect
-      (save-restriction
-        (pm--comment-region 1 (nth 1 span))
-        (pm-set-buffer span)
-        (pm-narrow-to-span span)
-        (funcall pm--indent-line-function-original))
-    (pm--uncomment-region 1 (nth 1 span))))
+  (let (point)
+    (save-excursion
+      (pm-set-buffer span)
+      (pm-with-narrowed-to-span span
+        (funcall pm--indent-line-function-original)
+        (setq point (point))))
+    (goto-char point)
+    ;; (unwind-protect
+    ;;     (save-restriction
+    ;;       (pm--comment-region 1 (nth 1 span))
+    ;;       (pm-set-buffer span)
+    ;;       (pm-narrow-to-span span)
+    ;;       (funcall pm--indent-line-function-original))
+    ;;   (pm--uncomment-region 1 (nth 1 span)))
+    ))
 
 (defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
   (pm--indent-line span))
@@ -759,7 +766,6 @@ When point is at the beginning of head or tail, use parent chunk
 to indent."
   (let ((pos (point))
         (span (or span (pm-get-innermost-span)))
-        (cur-buff (current-buffer))
         delta)
     (unwind-protect
         (cond
@@ -798,10 +804,9 @@ to indent."
                  (+ (- (point) (point-at-bol)) ;; non-0 if code in header line
                     (pm--head-indent span) ;; indent with respect to header line
                     (oref chunkmode :indent-offset))))))))
+      ;; keep point on same characters
       (when (and delta (> delta 0))
-        (goto-char (+ (point) delta)))
-      ;; simple save excursion
-      (set-buffer cur-buff))))
+        (goto-char (+ (point) delta))))))
 
 (defun pm--first-line-indent (span)
   ;; return '(indent) if in first non-header line
@@ -820,11 +825,12 @@ to indent."
     (back-to-indentation)
     (- (point) (point-at-bol))))
 
-(defmethod pm-indent-line ((chunkmode pm-polymode-multi-auto) &optional span)
+(defmethod pm-indent-line ((config pm-polymode-multi-auto) &optional span)
   ;; fixme: pm-polymode-multi-auto is not a chunk, pm-get-innermost-span should
   ;; not return it in the first place
-  (pm-set-buffer span)
-  (pm-indent-line pm/chunkmode span))
+  ;; (pm-set-buffer span)
+  ;; (pm-indent-line pm/chunkmode span))
+  (pm-indent-line (pm--get-multi-chunk config span) span))
 
 
 ;;; FACES
