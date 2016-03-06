@@ -40,8 +40,9 @@ Preserves the `buffer-modified-p' state of the current buffer."
         (setq-local font-lock-support-mode 'poly-lock-mode)
         (setq-local font-lock-dont-widen t)
 
-        (setq-local poly-lock--fontify-region-original font-lock-fontify-region-function)
-        (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
+        (unless (eq font-lock-fontify-region-function 'poly-lock-fontify-region)
+          (setq-local poly-lock--fontify-region-original font-lock-fontify-region-function)
+          (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region))
         ;; we don't allow any other functions
         (setq-local fontification-functions '(poly-lock-fontification-function))
 
