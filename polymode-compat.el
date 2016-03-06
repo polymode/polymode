@@ -99,11 +99,20 @@ Return new name (symbol). FUN is an unquoted name of a function."
         (pm-apply-protected orig-fun args))
     (apply orig-fun args)))
 
-(defun pm-execute-inhibit-modification-hooks (orig-fun &rest args)
-  "Execute ORIG-FUN with `inhibit-modification-hooks' set to t.
-*span* in `pm-map-over-spans` has precedence over span at point."
+(defun pm-execute-with-no-polymode-hooks (orig-fun &rest args)
+  "Execute ORIG-FUN without allowing polymode core hooks.
+That is, bind `pm-allow-post-command-hook' and
+`pm-allow-after-change-hook' to nil. *span* in
+`pm-map-over-spans' has precedence over span at point."
   (if (and polymode-mode pm/polymode)
-      (let ((inhibit-modification-hooks t))
+      (let ((pm-allow-post-command-hook nil)
+            (pm-allow-after-change-hook nil)
+            (pm-allow-fontification nil))
+        ;; This advice is required when other functions can switch buffers or
+        ;; work inside base buffer (like basic-save-buffer does). Thus sync
+        ;; points first.
+        ;; fixme: Do we need to sync after the call as well?
+        (pm--synchronize-points)
         (apply orig-fun args))
     (apply orig-fun args)))
 
@@ -188,7 +197,7 @@ Propagate only real change."
 ;; replacement modification hooks are triggered and poly buffer is switched.
 ;; There are probably more such functions. https://github.com/vspinu/polymode/issues/93
 ;; fixme: There must be a generic way to fix this.
-(pm-around-advice 'basic-save-buffer #'pm-execute-inhibit-modification-hooks)
+(pm-around-advice 'basic-save-buffer #'pm-execute-with-no-polymode-hooks)
 
 ;; Query replace were probably misbehaving due to unsaved match data.
 ;; (https://github.com/vspinu/polymode/issues/92) The following is probably not

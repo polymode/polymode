@@ -1,4 +1,4 @@
-;;; polymode.el --- Versatile multiple modes with extensive literate programming support 
+;;; polymode.el --- Versatile multiple modes with extensive literate programming support
 ;;
 ;; Filename: polymode.el
 ;; Author: Spinu Vitalie
@@ -34,9 +34,9 @@
 ;;
 ;;  Extensible, fast, objected-oriented multimode specifically designed for
 ;;  literate programming. Extensible support for weaving, tangling and export.
-;; 
+;;
 ;;   Usage: https://github.com/vspinu/polymode
-;;   
+;;
 ;;   Design new polymodes: https://github.com/vspinu/polymode/tree/master/modes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -153,7 +153,7 @@ Return, how many chucks actually jumped over."
 Return, how many chucks actually jumped over."
   (interactive "p")
   (polymode-next-chunk (- N)))
-  
+
 (defun polymode-next-chunk-same-type (&optional N)
   "Go to next COUNT chunk.
 Return, how many chucks actually jumped over."
@@ -250,7 +250,7 @@ Return, how many chucks actually jumped over."
 
 ;;; CORE
 (defsubst pm-base-buffer ()
-  ;; fixme: redundant with :base-buffer 
+  ;; fixme: redundant with :base-buffer
   "Return base buffer of current buffer, or the current buffer if it's direct."
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
@@ -363,12 +363,12 @@ bound variable *span* holds the current innermost span."
         (goto-char (nth 1 *span*))
         (save-excursion
           (funcall fun))
-        
+
         ;; enter next/previous chunk as head-tails don't include their boundaries
         (if backwardp
-            (goto-char (max 1 (1- (nth 1 *span*)))) 
+            (goto-char (max 1 (1- (nth 1 *span*))))
           (goto-char (min (point-max) (1+ (nth 2 *span*)))))
-        
+
         (setq old-span *span*)
         (setq *span* (pm-get-innermost-span (point) no-cache)
               nr (1+ nr))
@@ -426,14 +426,23 @@ This funciton is placed in local `post-command-hook'."
       (error (message "(pm-switch-to-buffer %s): %s"
                       (point) (error-message-string err))))))
 
-(defun polymode-flush-ppss-cache (beg end)
+(defun polymode-before-change-setup (beg end)
   "Run `syntax-ppss-flush-cache' in all polymode buffers.
 This function is placed in `before-change-functions' hook."
   ;; Modification hooks are run only in current buffer and not in other (base or
-  ;; indirect) buffers.
+  ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
+  ;; care explicitly. We run some safety hooks checks here as well.
   (dolist (buff (oref pm/polymode -buffers))
+    ;; The following two checks are unnecessary by poly-lock design, but we are
+    ;; checking them here, just in case.
+    ;; VS[06-03-2016]: `fontification-functions' probably should be checked as well.
+    (when (memq 'font-lock-after-change-function after-change-functions)
+      (remove-hook 'after-change-functions 'font-lock-after-change-function t))
+    (when (memq 'jit-lock-after-change after-change-functions)
+      (remove-hook 'after-change-functions 'jit-lock-after-change t))
+
     (with-current-buffer buff
-      ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future
+      ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
       (when (memq 'syntax-ppss-flush-cache before-change-functions)
         (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
       (syntax-ppss-flush-cache beg end))))
@@ -487,13 +496,13 @@ BODY contains code to be executed after the complete
 
 :after-hook     A single lisp form which is evaluated after the mode hooks
                 have been run.  It should not be quoted."
-  (declare 
+  (declare
    (debug (&define name name
                    [&optional [&not keywordp] sexp]
                    [&rest [keywordp sexp]]
                    def-body)))
 
-  
+
   (when (keywordp keymap)
     (push keymap body)
     (setq keymap nil))
@@ -584,7 +593,7 @@ BODY contains code to be executed after the complete
                     (force-mode-line-update)))
                 ;; Return the new setting.
                 ,mode)
-         
+
          (add-minor-mode ',mode lighter ,keymap-sym)))))
 
 (define-minor-mode polymode-minor-mode
@@ -605,7 +614,7 @@ globalized minor modes and can run user hooks.")
 
 
 ;;; FONT-LOCK
-;; indulge elisp font-lock :) 
+;; indulge elisp font-lock :)
 (dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
   (font-lock-add-keywords
    mode
@@ -616,8 +625,6 @@ globalized minor modes and can run user hooks.")
 
 
 ;;; TOOLS for DEBUGGING
-(defvar pm-allow-post-command-hook t)
-
 (defvar pm--underline-overlay
   (let ((overlay (make-overlay (point) (point))))
     (overlay-put overlay 'face  '(:underline (:color "red" :style wave)))
@@ -699,11 +706,11 @@ Key bindings:
 (defmethod pm-debug-info (chunkmode)
   (format "class:%s" (eieio-object-class-name chunkmode)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
-  (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
+  (format "head-reg:\"%s\" tail-reg:\"%s\" %s"
           (oref chunkmode :head-reg) (oref chunkmode :tail-reg)
           (call-next-method)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
-  (format "head-reg:\"%s\" tail-reg:\"%s\" %s" 
+  (format "head-reg:\"%s\" tail-reg:\"%s\" %s"
           (oref chunkmode :head-reg) (oref chunkmode :tail-reg)
           (call-next-method)))
 (defmethod pm-debug-info ((chunkmode pm-hbtchunkmode-auto))
@@ -739,21 +746,21 @@ Key bindings:
 
 (defun pm-debug-toggle-fontification ()
   (interactive)
-  (if poly-lock-allow-fontification
+  (if pm-allow-fontification
       (progn
         (message "fontificaiton disabled")
-        (setq poly-lock-allow-fontification nil))
+        (setq pm-allow-fontification nil))
     (message "fontificaiton enabled")
-    (setq poly-lock-allow-fontification t)))
+    (setq pm-allow-fontification t)))
 
 (defun pm-debug-toggle-after-change ()
   (interactive)
-  (if poly-lock-allow-after-change
+  (if pm-allow-after-change-hook
       (progn
         (message "after-change disabled")
-        (setq poly-lock-allow-after-change nil))
+        (setq pm-allow-after-change-hook nil))
     (message "after-change enabled")
-    (setq poly-lock-allow-after-change t)))
+    (setq pm-allow-after-change-hook t)))
 
 (defun pm-debug-toggle-post-command ()
   (interactive)
@@ -766,27 +773,27 @@ Key bindings:
 
 (defun pm-debug-toggle-all ()
   (interactive)
-  (if poly-lock-allow-fontification
+  (if pm-allow-fontification
       (progn
         (message "fontificaiton, after-chnage and command-hook disabled")
-        (setq poly-lock-allow-fontification nil
-              poly-lock-allow-after-change nil
+        (setq pm-allow-fontification nil
+              pm-allow-after-change-hook nil
               pm-allow-post-command-hook nil))
     (message "fontificaiton, after-change and command-hook enabled")
-    (setq poly-lock-allow-fontification t
-          poly-lock-allow-after-change t
+    (setq pm-allow-fontification t
+          pm-allow-after-change-hook t
           pm-allow-post-command-hook t)))
 
 (defun pm-debug-fontify-current-span ()
   (interactive)
   (let ((span (pm-get-innermost-span))
-        (poly-lock-allow-fontification t))
+        (pm-allow-fontification t))
     (poly-lock-fontify-region (nth 1 span) (nth 2 span))))
 
 (defun pm-debug-fontify-last-font-lock-error ()
   (interactive)
   (let ((reg (pm--debug-get-last-fl-error))
-        (poly-lock-allow-fontification t))
+        (pm-allow-fontification t))
     (if reg
         (progn
           ;; (pm-debug-blink-region (car reg) (cdr reg) 2)
@@ -818,7 +825,7 @@ Key bindings:
                                  poly-lock-fontification-function
                                  poly-lock-after-change
                                  poly-lock-refontify
-                                 pm--fontify-region-original))
+                                 poly-lock--fontify-region-original))
     (jit-loc . (jit-lock-refontify jit-lock-mode jit-lock-fontify-now))
     (font-lock . (;; font-lock-mode turn-on-font-lock-if-desired
                   turn-on-font-lock
@@ -883,7 +890,7 @@ If string, it must b an entry in
                                       font-lock-unfontify-buffer-function
                                       post-command-hook
                                       indent-line-function))
-  
+
 (defun pm-debug-print-relevant-variables ()
   (interactive)
   (let ((buff (get-buffer-create "*polymode-vars*"))

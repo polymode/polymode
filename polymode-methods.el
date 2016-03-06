@@ -19,9 +19,10 @@ relying on `pm-get-span' might not function correctly.")
   "Initialize current buffer with CONFIG.")
 
 (defmethod pm-initialize ((config pm-polymode))
-  ;; fixme: reinstalation leads to infloop of pm--fontify-region-original and others ...
-  ;; On startup with local auto vars emacs reinstals the mode twice .. waf?
-  ;; Temporary fix: don't install twice
+  ;; fixme: (VS[06-03-2016]: probably not anymore) reinstalation leads to
+  ;; infloop of poly-lock--fontify-region-original and others ... On startup with local
+  ;; auto vars emacs reinstals the mode twice .. waf? Temporary fix: don't
+  ;; install twice
   (unless pm/polymode
     (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
       (let ((pm-initialization-in-progress t)
@@ -31,7 +32,7 @@ relying on `pm-get-span' might not function correctly.")
                            (oset chunkmode :mode major-mode))))
 
         (pm--mode-setup host-mode)
-        
+
         ;; maybe: fixme: inconsistencies?
         ;; 1) Not calling config's :minor-mode (polymode function). But polymode
         ;; function calls pm-initialize, so it's probably ok.
@@ -43,7 +44,8 @@ relying on `pm-get-span' might not function correctly.")
               pm/type 'host)
 
         (pm--common-setup)
-        (add-hook 'flyspell-incorrect-hook 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
+        (add-hook 'flyspell-incorrect-hook
+                  'pm--flyspel-dont-highlight-in-chunkmodes nil t))
       (pm--run-init-hooks config 'polymode-init-host-hook)
       (pm--run-init-hooks chunkmode))))
 
@@ -96,8 +98,8 @@ relying on `pm-get-span' might not function correctly.")
            ;; Mode functions can do arbitrary things. We inhibt all PM hooks
            ;; because PM objects have not been setup yet.
            (pm-debug-allow-post-command-hook nil)
-           (poly-lock-allow-after-change nil)
-           (poly-lock-allow-fontification nil))
+           (pm-allow-after-change-hook nil)
+           (pm-allow-fontification nil))
        (condition-case-unless-debug err
            (funcall mode)
          (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
@@ -118,14 +120,9 @@ relying on `pm-get-span' might not function correctly.")
                (oref pm/chunkmode :protect-indent-line))
       (setq pm--indent-line-function-original indent-line-function)
       (setq-local indent-line-function 'pm-indent-line-dispatcher))
-    
+
     ;; FONT LOCK
-    ;; jit-lock-after-change-extend-region-functions is dealt with in
-    ;; `poly-lock-after-change'
     (setq-local font-lock-function 'poly-lock-mode)
-    (setq-local font-lock-support-mode 'poly-lock-mode)
-    (setq-local pm--fontify-region-original font-lock-fontify-region-function)
-    (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region)
     (font-lock-mode t)
 
     ;; SYNTAX
@@ -133,14 +130,14 @@ relying on `pm-get-span' might not function correctly.")
     ;; (polymode-compat.el)
     (pm-around-advice syntax-begin-function 'pm-override-output-position) ; obsolete as of 25.1
     (pm-around-advice syntax-propertize-extend-region-functions 'pm-override-output-cons)
-    ;; flush ppss in all buffers
-    (add-hook 'before-change-functions 'polymode-flush-ppss-cache t t)
+    ;; flush ppss in all buffers and hook checks
+    (add-hook 'before-change-functions 'polymode-before-change-setup t t)
 
     ;; REST
     (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
     (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
     (object-add-to-list pm/polymode '-buffers (current-buffer))
-    
+
     (current-buffer)))
 
 (defun pm--run-init-hooks (object &optional emacs-hook)
@@ -152,7 +149,7 @@ relying on `pm-get-span' might not function correctly.")
 (defun pm--run-hooks (object slot &rest args)
   "Run hooks from SLOT of OBJECT and its parent instances.
 Parents' hooks are run first."
-  (let ((inst object) 
+  (let ((inst object)
         funs)
     ;; run hooks, parents first
     (while inst
@@ -337,7 +334,7 @@ this method to work correctly, SUBMODE's class should define
     (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)
     (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
     (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
-  
+
 (defun pm--move-overlays (from-buffer to-buffer)
   (with-current-buffer from-buffer
     (mapc (lambda (o)
@@ -631,11 +628,11 @@ sent to the new mode for syntax highlighting."
   ;; xxx2 relate to the second descending search
   (save-excursion
     (let* ((pos (point))
-           
+
            (head1-beg (and (re-search-backward head-matcher nil t)
                            (match-beginning 0)))
            (head1-end (and head1-beg (match-end 0))))
-      
+
       (if head1-end
           ;; we know that (>= pos head1-end)
           ;;            -----------------------
@@ -656,7 +653,7 @@ sent to the new mode for syntax highlighting."
                   ;;                  -----
                   ;; host](head](body](tail)[host](head)
                   (list 'tail tail1-beg tail1-end))
-              
+
               ;;                        ------------
               ;; host](head](body](tail)[host](head)
               (let* ((head2-beg (or (and (re-search-forward head-matcher nil t)
@@ -679,7 +676,7 @@ sent to the new mode for syntax highlighting."
           (if (null head2-beg)
               ;; no span found
               (list nil (point-min) (point-max))
-            
+
             (if (<= pos head2-beg)
                 ;; -----
                 ;; host](head)[body](tail)[host
@@ -761,7 +758,7 @@ to indent."
         delta)
     (unwind-protect
         (cond
-         
+
          ;; 1. in head or tail (we assume head or tail fit in one line for now)
          ((or (eq 'head (car span))
               (eq 'tail (car span)))
@@ -774,7 +771,7 @@ to indent."
                   ;; if tail is first on the line, indent as head
                   (indent-to (pm--head-indent prev-span))
                 (pm--indent-line prev-span)))))
-         
+
          ;; 2. body
          (t
           (back-to-indentation)

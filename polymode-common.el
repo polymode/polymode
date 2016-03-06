@@ -50,7 +50,6 @@ objects provides same functionality for narrower scope. See also
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
 (defvar-local pm/type nil)
-(defvar-local pm--fontify-region-original nil)
 (defvar-local pm--indent-line-function-original nil)
 ;; (defvar-local pm--killed-once nil)
 (defvar-local polymode-mode nil
@@ -67,6 +66,10 @@ objects provides same functionality for narrower scope. See also
 (defvar pm/polymode)
 (defvar pm/chunkmode)
 (defvar *span*)
+
+(defvar pm-allow-fontification t)
+(defvar pm-allow-after-change-hook t)
+(defvar pm-allow-post-command-hook t)
 
 ;; core api from polymode.el, which relies on polymode-methods.el.
 ;; fixme: some of these are not api, rename
