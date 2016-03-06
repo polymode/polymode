@@ -1,4 +1,4 @@
-(require 'polymode-common)
+(require 'polymode-core)
 (require 'poly-lock)
 
 

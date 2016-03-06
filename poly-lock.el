@@ -12,6 +12,8 @@
 ;;               -> (add-hook 'jit-lock-functions #'font-lock-fontify-region nil t)
 ;;               -> jit-lock-mode
 
+(require 'polymode-core)
+
 (defvar poly-lock-fontification-in-progress nil)
 (defvar pm-initialization-in-progress)
 (defvar-local poly-lock-mode nil)

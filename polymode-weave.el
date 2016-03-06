@@ -1,5 +1,5 @@
 ;;  -*- lexical-binding: t -*-
-(require 'polymode-common)
+(require 'polymode-core)
 (require 'polymode-classes)
 
 (defgroup polymode-weave nil

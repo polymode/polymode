@@ -1,4 +1,4 @@
-(require 'polymode-common)
+(require 'polymode-core)
 (require 'polymode-classes)
 
 (defgroup polymode-export nil

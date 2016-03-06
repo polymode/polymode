@@ -1,5 +1,5 @@
 (require 'eieio)
-(require 'polymode-common)
+(require 'polymode-core)
 
 ;;; ROOT CLASS
 (if (fboundp 'eieio-named)

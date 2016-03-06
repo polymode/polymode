@@ -43,7 +43,7 @@
 ;;
 ;;; Code:
 
-(require 'polymode-common)
+(require 'polymode-core)
 (require 'polymode-classes)
 (require 'polymode-methods)
 (require 'polymode-compat)

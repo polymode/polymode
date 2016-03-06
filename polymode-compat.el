@@ -1,6 +1,6 @@
 ;;; COMPATIBILITY and FIXES
 
-(require 'polymode-common)
+(require 'polymode-core)
 (require 'advice nil t)
 
 (defgroup polymode-compat nil
