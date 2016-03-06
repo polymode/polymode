@@ -9,6 +9,24 @@
 (require 'eieio-custom)
 (require 'format-spec)
 
+
+(defgroup polymode nil
+  "Object oriented framework for multiple modes based on indirect buffers"
+  :link '(emacs-commentary-link "polymode")
+  :group 'tools)
+
+(defgroup polymodes nil
+  "Polymode Configuration Objects"
+  :group 'polymode)
+
+(defgroup hostmodes nil
+  "Polymode Host Chunkmode Objects"
+  :group 'polymode)
+
+(defgroup innermodes nil
+  "Polymode Chunkmode Objects"
+  :group 'polymode)
+
 (defcustom polymode-display-process-buffers t
   "When non-nil, display weaving and exporting process buffers."
   :group 'polymode
@@ -70,14 +88,6 @@ objects provides same functionality for narrower scope. See also
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
 
-;; core api from polymode.el, which relies on polymode-methods.el.
-;; fixme: some of these are not api, rename
-(declare-function pm-base-buffer "polymode")
-(declare-function pm-get-innermost-span "polymode")
-(declare-function pm-map-over-spans "polymode")
-(declare-function pm-narrow-to-span "polymode")
-(declare-function poly-lock-fontify-region "poly-lock")
-
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")
 (declare-function pm-get-buffer-create "polymode-methods")
@@ -85,9 +95,6 @@ objects provides same functionality for narrower scope. See also
 (declare-function pm-get-adjust-face "polymode-methods")
 (declare-function pm-get-span "polymode-methods")
 (declare-function pm-indent-line "polymode-methods")
-
-;; other locals
-(defvar-local pm--process-buffer nil)
 
 
 ;;; CORE
@@ -136,6 +143,8 @@ of the span."
 
 (defun pm-get-innermost-range (&optional pos no-cache)
   (pm-span-to-range (pm-get-innermost-span pos no-cache)))
+
+(defvar pm--select-buffer-visibly nil)
 
 (defun pm-switch-to-buffer (&optional pos-or-span)
   "Bring the appropriate polymode buffer to front.
@@ -256,7 +265,6 @@ regardless of the position `syntax-ppss-last' was recorder at."
   `(save-restriction
      (pm-narrow-to-span ,span)
      ,@body))
-
 
 
 ;;; UTILITIES
@@ -415,6 +423,9 @@ DEF from history."
   (and (stringp file)
        (file-exists-p file)
        (nth 5 (file-attributes file))))
+
+
+(defvar-local pm--process-buffer nil)
 
 (defun pm--run-shell-command (command sentinel buff-name message)
   "Run shell command interactively.

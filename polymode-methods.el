@@ -268,7 +268,6 @@ installed. Also see `pm-get-span'.")
       (_ (error "type must be one of 'body, 'head or 'tail")))))
 
 
-(defvar pm--select-buffer-visibly)
 (defvar pm-move-vars-from-base '(buffer-file-name)
   "Variables transferred from base buffer on buffer switch.")
 (defvar pm-move-vars-from-old-buffer '(buffer-invisibility-spec)
@@ -293,12 +292,11 @@ this method to work correctly, SUBMODE's class should define
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
     (pm--move-vars pm-move-vars-from-base (pm-base-buffer) buffer)
-    (if (or (not (boundp 'pm--select-buffer-visibly))
-            (not pm--select-buffer-visibly))
-        ;; fast selection
-        (set-buffer buffer)
-      ;; slow, visual selection
-      (pm--select-existent-buffer-visibly buffer))))
+    (if pm--select-buffer-visibly
+        ;; slow, visual selection
+        (pm--select-existent-buffer-visibly buffer)
+      ;; fast set-buffer
+      (set-buffer buffer))))
 
 ;; extracted for debugging purpose
 (defun pm--select-existent-buffer-visibly (new-buffer)
