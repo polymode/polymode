@@ -4,17 +4,6 @@
 
 ;;; Initialization
 
-(defvar pm-initialization-in-progress nil
-  ;; We particularly need this during cascading call-next-method in
-  ;; pm-initialize. -innermodes are initialized after the hostmode setup has
-  ;; taken place. This means that pm-get-span and all the functionality that
-  ;; relies on it will fail to work correctly during the initialization in the
-  ;; call-next-method. This is particularly relevant to font-lock setup and user
-  ;; hooks.
-  "Non nil during the initialization.
-If this variable is non-nil, various chunk manipulation commands
-relying on `pm-get-span' might not function correctly.")
-
 (defgeneric pm-initialize (config)
   "Initialize current buffer with CONFIG.")
 

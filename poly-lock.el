@@ -15,7 +15,6 @@
 (require 'polymode-core)
 
 (defvar poly-lock-fontification-in-progress nil)
-(defvar pm-initialization-in-progress)
 (defvar-local poly-lock-mode nil)
 (defvar-local poly-lock--fontify-region-original nil)
 

@@ -88,6 +88,16 @@ objects provides same functionality for narrower scope. See also
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
 
+(defvar pm-initialization-in-progress nil
+  ;; We need this during cascading call-next-method in pm-initialize.
+  ;; -innermodes are initialized after the hostmode setup has taken place. This
+  ;; means that pm-get-span and all the functionality that relies on it will
+  ;; fail to work correctly during the initialization in the call-next-method.
+  ;; This is particularly relevant to font-lock setup and user hooks.
+  "Non nil during polymode objects initialization.
+If this variable is non-nil, various chunk manipulation commands
+relying on `pm-get-span' might not function correctly.")
+
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")
 (declare-function pm-get-buffer-create "polymode-methods")
