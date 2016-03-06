@@ -742,20 +742,12 @@ the chunkmode.")
 
 (defun pm--indent-line (span)
   (let (point)
-    (save-excursion
+    (save-current-buffer
       (pm-set-buffer span)
       (pm-with-narrowed-to-span span
         (funcall pm--indent-line-function-original)
         (setq point (point))))
-    (goto-char point)
-    ;; (unwind-protect
-    ;;     (save-restriction
-    ;;       (pm--comment-region 1 (nth 1 span))
-    ;;       (pm-set-buffer span)
-    ;;       (pm-narrow-to-span span)
-    ;;       (funcall pm--indent-line-function-original))
-    ;;   (pm--uncomment-region 1 (nth 1 span)))
-    ))
+    (goto-char point)))
 
 (defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
   (pm--indent-line span))
