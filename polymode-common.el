@@ -169,7 +169,7 @@ a warning."
                                      'polymode-comment 'end)))))))
 
 (defun pm--uncomment-region (beg end)
-  ;; Remove all syntax-table properties. 
+  ;; Remove all syntax-table properties.
   ;; fixme: this beggs for problems
   (when (> end 1)
     (with-silent-modifications
@@ -178,6 +178,18 @@ a warning."
         ;; (remove-text-properties beg (1+ beg) props)
         ;; (remove-text-properties end (1- end) props)
         ))))
+
+(defun pm--synchronize-points (&rest ignore)
+  "Synchronize points in all buffers.
+IGNORE is there to allow this function in advises."
+  (when polymode-mode
+    (let ((pos (point))
+          (cbuff (current-buffer)))
+      (dolist (buff (oref pm/polymode -buffers))
+        (when (and (not (eq buff cbuff))
+                   (buffer-live-p buff))
+          (with-current-buffer buff
+            (goto-char pos)))))))
 
 (defun pm--completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
   "Wrapper for `completing-read'.
@@ -409,7 +421,7 @@ able to accept user interaction."
                               (apply fun (car comm.ofile) args)))))
             ;; ofile is non-nil in two cases:
             ;;  -- synchronous back-ends (very uncommon)
-            ;;  -- when output is transitional (not real) and mod time of input < output  
+            ;;  -- when output is transitional (not real) and mod time of input < output
             (when ofile
               (if pm--export-spec
                   ;; same logic as in pm--wrap-callback
@@ -424,4 +436,3 @@ able to accept user interaction."
                 (pm--display-file ofile)))))))))
 
 (provide 'polymode-common)
-
