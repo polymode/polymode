@@ -28,7 +28,7 @@
      command (string). It can contain the following format specs:
 
          %i - input file (no dir)
-         %I - input file (full path) 
+         %I - input file (full path)
          %o - output file (no dir)
          %O - output file (full path)
          %b - output file (base name only)
@@ -58,10 +58,10 @@
          commmand - return a string with optional %i, %f,
              etc. format specs as described above. It will be
              passed to the processing :function.")
-   
+
    (to
     :initarg :to
-    :initform '() 
+    :initform '()
     :type list
     :custom list
     :documentation
@@ -99,7 +99,7 @@
            `output' also returned nil, the exporter won't be able
            to identify the output file and no automatic display
            or preview will be available.
-     
+
          doc - return documentation string
 
          command - return a string to be used instead of
@@ -177,7 +177,7 @@ that call a shell command"
 (defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
     (pm--process-internal exporter from to ifile cb (oref exporter :quote))))
-  
+
 
 ;; UI
 
@@ -229,7 +229,7 @@ specification."
               (or
                ;; 1. repeated export; don't ask
                pm--export:from-last
-               
+
                ;; 2. select :from entries which match to current file
                (let ((matched (cl-loop for el in (pm--selectors exporter :from)
                                        when (pm--selector-match (cdr el))
@@ -238,7 +238,7 @@ specification."
                    (if (> (length matched) 1)
                        (cdr (pm--completing-read "Multiple `from' specs matched. Choose one: " matched))
                      (cdar matched))))
-               
+
                ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
                (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
                                                (progn
@@ -250,7 +250,7 @@ specification."
                    ;; fixme: currently only first match is returned
                    (let ((pair (cl-loop for w in (oref weaver :from-to)
                                         ;; weaver input extension matches the filename
-                                        if (string-match-p (nth 1 w) fname) 
+                                        if (string-match-p (nth 1 w) fname)
                                         return (cl-loop for el in (pm--selectors exporter :from)
                                                         ;; input exporter extensnion matches weaver output extension
                                                         when (pm--selector-match (cdr el) (concat "dummy." (nth 2 w)))
@@ -258,20 +258,20 @@ specification."
                      (when pair
                        (message "Matching weaver found. Weaving to '%s' first." (car pair))
                        pair))))
-               
+
                ;; 4. nothing matched; ask
                (let* ((prompt (or gprompt
                                   (format "No `from' specs matched. Choose one: "
                                           (file-name-nondirectory fname) (eieio-object-name-string exporter))))
                       (sel (pm--completing-read prompt from-opts nil t nil 'pm--export:from-hist)))
                  (cdr sel))))
-             
+
              ;; B: C-u, force a :from spec
              ((equal from '(4))
               (cdr (if (> (length from-opts) 1)
                        (pm--completing-read "Input type: " from-opts nil t nil 'pm--export:from-hist)
                      (car from-opts))))
-             
+
              ;; C. string
              ((stringp from)
               (if (assoc from (oref exporter :from))
@@ -286,7 +286,7 @@ specification."
             (cond
              ;; A. guess from spec
              ((null to)
-              (or 
+              (or
                ;; 1. repeated export; don't ask and use first entry in history
                (unless (equal from '(4))
                  pm--export:to-last)
@@ -305,7 +305,7 @@ specification."
 
       (setq-local pm--export:from-last from-id)
       (setq-local pm--export:to-last to-id)
-      
+
       (if (consp from-id)
           ;; run through weaver
           (let ((pm--export-spec (cons (cdr from-id) to-id))

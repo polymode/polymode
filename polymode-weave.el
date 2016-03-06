@@ -31,7 +31,7 @@
      following format specs:
 
          %i - input file (no dir)
-         %I - input file (full path) 
+         %I - input file (full path)
          %o - output file (no dir)
          %O - output file (full path)
          %b - output file (base name only)
@@ -69,7 +69,7 @@
            `output' also returned nil, the exporter won't be able
            to identify the output file and no automatic display
            or preview will be available.
-     
+
          doc - return documentation string
 
          command - return a string to be used instead of
@@ -192,7 +192,7 @@ specification."
             (cond
              ;; A. guess from-to spec
              ((null from-to)
-              (or 
+              (or
                ;; 1. repeated weaving; don't ask
                pm--weave:fromto-last
 
@@ -204,13 +204,13 @@ specification."
                    (if (> (length matched) 1)
                        (cdr (pm--completing-read "Multiple `from-to' specs matched. Choose one: " matched))
                      (cdar matched))))
-                 
+
                ;; 3. nothing matched, ask
                (let* ((prompt (format "No `from-to' specs matched. Choose one: "
                                       (file-name-extension fname) (eieio-object-name weaver)))
                       (sel (pm--completing-read prompt opts nil t nil 'pm--weave:fromto-hist)))
                  (cdr sel))))
-              
+
              ;; B. C-u, force a :from-to spec
              ((equal from-to '(4))
               (cdr (if (> (length opts) 1)
@@ -223,7 +223,7 @@ specification."
                 (error "Cannot find `from-to' spec '%s' in %s weaver"
                        from-to (eieio-object-name weaver))))
              (t (error "'from-to' argument must be nil, universal argument or a string")))))
-      
+
       (setq-local pm--weave:fromto-last ft-id)
       (pm-weave weaver ft-id))))
 
