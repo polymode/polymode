@@ -149,12 +149,6 @@ Don't throw errors, but give relevant messages instead."
 
 (pm-around-advice 'syntax-propertize 'pm-execute-syntax-propertize-narrowed-to-span)
 
-
-;;; Query Replace
-;; `query-replace` misbehaves because after each replacement modification hooks
-;; are triggered and poly buffer is switched
-;; https://github.com/vspinu/polymode/issues/92
-(pm-around-advice 'perform-replace 'pm-execute-inhibit-modification-hooks)
 
 
 ;;; Flyspel
@@ -189,6 +183,17 @@ Propagate only real change."
 
 ;;; Editing
 (pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
+
+;; These are pseudo-fixes. `save-buffer` misbehaves because after each
+;; replacement modification hooks are triggered and poly buffer is switched.
+;; There are probably more such functions. https://github.com/vspinu/polymode/issues/93
+;; fixme: There must be a generic way to fix this.
+(pm-around-advice 'basic-save-buffer #'pm-execute-inhibit-modification-hooks)
+
+;; Query replace were probably misbehaving due to unsaved match data.
+;; (https://github.com/vspinu/polymode/issues/92) The following is probably not
+;; necessary.
+;; (pm-around-advice 'perform-replace 'pm-execute-inhibit-modification-hooks)
 
 
 ;;; EVIL
