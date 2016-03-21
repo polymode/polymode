@@ -784,20 +784,19 @@ to indent."
       (when (and delta (> delta 0))
         (goto-char (+ (point) delta))))))
 
-(defun pm--first-line-indent (span)
-  ;; return '(indent) if in first non-header line
+(defun pm--first-line-indent (&optional span)
   (save-excursion
     (let ((pos (point)))
-      (goto-char (nth 1 span))
+      (goto-char (nth 1 (or span (pm-get-innermost-span))))
       (goto-char (point-at-eol))
       (skip-chars-forward " \t\n")
       (let ((indent (- (point) (point-at-bol))))
         (when (< (point-at-eol) pos)
           indent)))))
 
-(defun pm--head-indent (span)
+(defun pm--head-indent (&optional span)
   (save-excursion
-    (goto-char (nth 1 span))
+    (goto-char (nth 1 (or span (pm-get-innermost-span))))
     (back-to-indentation)
     (- (point) (point-at-bol))))
 
