@@ -27,3 +27,13 @@ poly-markdown+r-mode RET` should do the job.
     
 }
 ```
+
+  ```python
+    if len($declaration) > 0 and $declaration::isTypedef:
+        $Symbols::types.add($IDENTIFIER.text)
+        print "define type "+$IDENTIFIER.text  # line 19
+  ```
+
+
+
+
