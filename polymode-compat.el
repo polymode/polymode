@@ -187,6 +187,18 @@ Don't throw errors, but give relevant messages instead."
 (pm-around-advice 'c-determine-limit #'pm-execute-narrowed-to-span)
 
 
+;;; Python
+(defun pm--python-dont-indent-to-0 (fun)
+  "Don't cycle to 0 indentation in polymode chunks."
+  (if (and polymode-mode pm/type)
+      (let ((last-command (unless (eq (pm--first-line-indent) (current-indentation))
+                            last-command)))
+        (funcall fun))
+    (funcall fun)))
+
+(pm-around-advice 'python-indent-line-function #'pm--python-dont-indent-to-0)
+
+
 ;;; Core Font Lock
 (defun pm-check-for-real-change-in-extend-multiline (fun)
   "Fix `font-lock-extend-region-multiline' which causes infloops on point-max.
