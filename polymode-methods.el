@@ -259,7 +259,10 @@ installed. Also see `pm-get-span'.")
 
 (defvar pm-move-vars-from-base '(buffer-file-name)
   "Variables transferred from base buffer on buffer switch.")
-(defvar pm-move-vars-from-old-buffer '(buffer-invisibility-spec)
+(defvar pm-move-vars-from-old-buffer
+  '(buffer-invisibility-spec
+    truncate-lines word-wrap selective-display overwrite-mode
+    line-move-visual truncate-partial-width-windows)
   "Variables transferred from old buffer on buffer switch.")
 
 (defgeneric pm-select-buffer (chunkmode span)
