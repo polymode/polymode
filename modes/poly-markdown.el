@@ -44,7 +44,7 @@
   (pm-hbtchunkmode-auto "markdown"
                         :head-reg "^[ \t]*```[{ \t]*\\w.*$"
                         :tail-reg "^[ \t]*```[ \t]*$"
-                        :retriever-regexp "```[ \t]*\\(?:{\\|lang=\\)?\\(\\(\\w\\|\\s_\\)*\\)"
+                        :retriever-regexp "```[ \t]*\\(?:{\\|lang=\\)?\\([^ \t\n]+\\)"
                         :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'innermodes
@@ -69,4 +69,3 @@
 
 
 (provide 'poly-markdown)
-
