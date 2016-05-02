@@ -316,8 +316,8 @@ regardless of the position `syntax-ppss-last' was recorder at."
 (defun pm--get-mode-symbol-from-name (str &optional no-fallback)
   "Guess and return mode function."
   (let* ((str (pm--symbol-name
-               (or (alist-get (intern (pm--symbol-name str))
-                              polymode-mode-name-override-alist)
+               (or (cdr (assq (intern (pm--symbol-name str))
+                              polymode-mode-name-override-alist))
                    str)))
          (mname (if (string-match-p "-mode$" str)
                     str
