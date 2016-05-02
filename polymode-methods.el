@@ -94,7 +94,6 @@
          (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
 
     (setq polymode-mode t)
-
     (current-buffer)))
 
 (defun pm--common-setup (&optional buffer)

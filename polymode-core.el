@@ -39,6 +39,21 @@ than the input file."
   :group 'polymode
   :type 'boolean)
 
+(defcustom polymode-mode-name-override-alist nil
+"An alist of inner mode overrides.
+When inner mode is automatically detected from the header of the
+inner chunk (such as in markdown mode), the detected symbol might
+not correspond to the desired mode. This alist maps discovered
+symbols into desired modes.
+
+For example
+
+  (add-to-list 'polymode-mode-name-override-alist '(julia . ess-julia))
+
+will cause installation of `ess-julia-mode' in markdown ```julia chunks."
+:group 'polymode
+:type 'alist)
+
 (defvar polymode-switch-buffer-hook nil
   "Hook run on switching to a different buffer.
 Each function is run with two arguments `old-buffer' and
@@ -293,11 +308,17 @@ regardless of the position `syntax-ppss-last' was recorder at."
                       (file-name-nondirectory ofile)
                       (error-message-string err))))))
 
+(defun pm--symbol-name (str-or-symbol)
+  (if (symbolp str-or-symbol)
+      (symbol-name str-or-symbol)
+    str-or-symbol))
+
 (defun pm--get-mode-symbol-from-name (str &optional no-fallback)
   "Guess and return mode function."
-  (let* ((str (if (symbolp str)
-                  (symbol-name str)
-                str))
+  (let* ((str (pm--symbol-name
+               (or (alist-get (intern (pm--symbol-name str))
+                              polymode-mode-name-override-alist)
+                   str)))
          (mname (if (string-match-p "-mode$" str)
                     str
                   (concat str "-mode"))))
