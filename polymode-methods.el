@@ -79,7 +79,7 @@
     ;; don't re-install if already there; polymodes can be used as minor modes.
     (unless (eq major-mode mode)
      (let ((polymode-mode t) ;major-modes might check this
-           (font-lock-fontified t)
+           ;; (font-lock-fontified t)
            ;; Modes often call font-lock functions directly. We prevent that.
            (font-lock-function 'ignore)
            (font-lock-flush-function 'ignore)
