@@ -39,7 +39,7 @@ than the input file."
   :group 'polymode
   :type 'boolean)
 
-(defcustom polymode-mode-name-override-alist nil
+(defcustom polymode-mode-name-override-alist '((elisp . emacs-lisp))
 "An alist of inner mode overrides.
 When inner mode is automatically detected from the header of the
 inner chunk (such as in markdown mode), the detected symbol might
