@@ -359,18 +359,26 @@ this method to work correctly, SUBMODE's class should define
         (goto-char (cadr span))
         (unless (eq type 'head)
           (let ((matcher (oref proto :head-reg)))
-           (if (functionp matcher)
-               (goto-char (car (funcall matcher -1)))
-             (re-search-backward matcher nil 'noerr))))
-        (let* ((str (or
-                     ;; a. try regexp matcher
-                     (and (oref proto :retriever-regexp)
-                          (re-search-forward (oref proto :retriever-regexp) nil t)
-                          (match-string-no-properties (oref proto :retriever-num)))
-                     ;; b. otherwise function (fixme: these should be merged)
-                     (and (oref proto :retriever-function)
-                          (funcall (oref proto :retriever-function)))))
-               (mode (pm--get-mode-symbol-from-name str 'no-fallback)))
+            (cond ((functionp matcher)
+                   (goto-char (car (funcall matcher -1))))
+                  ((consp matcher)
+                   (and (re-search-backward (car matcher) nil 'noerr)
+                        (goto-char (match-beginning (cdr matcher)))))
+                  ((stringp matcher)
+                   (re-search-backward matcher nil 'noerr))
+                  (t (error "invalid head matcher: %s" matcher)))))
+        (let* ((str (let* ((matcher (or (oref proto :retriever-regexp)
+                                        (oref proto :retriever-function)))
+                           (matcher (if (stringp matcher)
+                                        (cons matcher (or (oref proto :retriever-num)
+                                                          0))
+                                      matcher)))
+                      (cond  ((consp matcher)
+                              (re-search-forward (car matcher) (point-at-eol) t)
+                              (match-string-no-properties (cdr matcher)))
+                             ((functionp matcher)
+                              (funcall matcher)))))
+               (mode (and str (pm--get-mode-symbol-from-name str 'no-fallback))))
           (if mode
               ;; Inferred body MODE serves as ID; this not need be the
               ;; case in the future and a generic id getter might replace
@@ -560,12 +568,12 @@ sent to the new mode for syntax highlighting."
                           (throw 'break (point-max)))))
              (cons posn posn)))))))
 
-(defun pm--default-matcher (reg ahead)
+(defun pm--default-matcher (reg subexpr ahead)
   (if (< ahead 0)
       (if (re-search-backward reg nil t)
-          (cons (match-beginning 0) (match-end 0)))
+          (cons (match-beginning subexpr) (match-end subexpr)))
     (if (re-search-forward reg nil t)
-        (cons (match-beginning 0) (match-end 0)))))
+        (cons (match-beginning subexpr) (match-end subexpr)))))
 
 ;; fixme: there should be a simpler way... check the code and document
 (defun pm--span-at-point-fun-fun (hd-matcher tl-matcher)
@@ -610,6 +618,8 @@ sent to the new mode for syntax highlighting."
                     (list nil (cdr post) (car posh1))))))))))))
 
 (defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
+  ;; head-matcher and tail-matcher are conses of the form (REG . SUBEXPR-NUM).
+
   ;; Guaranteed to produce non-0 length spans. If no span has been found
   ;; (head-matcher didn't match) return (nil (point-min) (point-max)).
 
@@ -618,18 +628,18 @@ sent to the new mode for syntax highlighting."
   (save-excursion
     (let* ((pos (point))
 
-           (head1-beg (and (re-search-backward head-matcher nil t)
-                           (match-beginning 0)))
-           (head1-end (and head1-beg (match-end 0))))
+           (head1-beg (and (re-search-backward (car head-matcher) nil t)
+                           (match-beginning (cdr head-matcher))))
+           (head1-end (and head1-beg (match-end (cdr head-matcher)))))
 
       (if head1-end
           ;; we know that (>= pos head1-end)
           ;;            -----------------------
           ;; host](head)[body](tail)[host](head)
           (let* ((tail1-beg (and (goto-char head1-end)
-                                 (re-search-forward tail-matcher nil t)
-                                 (match-beginning 0)))
-                 (tail1-end (and tail1-beg (match-end 0)))
+                                 (re-search-forward (car tail-matcher) nil t)
+                                 (match-beginning (cdr tail-matcher))))
+                 (tail1-end (and tail1-beg (match-end (cdr tail-matcher))))
                  (tail1-beg (or tail1-beg (point-max)))
                  (tail1-end (or tail1-end (point-max))))
 
@@ -645,8 +655,8 @@ sent to the new mode for syntax highlighting."
 
               ;;                        ------------
               ;; host](head](body](tail)[host](head)
-              (let* ((head2-beg (or (and (re-search-forward head-matcher nil t)
-                                         (match-beginning 0))
+              (let* ((head2-beg (or (and (re-search-forward (car head-matcher) nil t)
+                                         (match-beginning (cdr head-matcher)))
                                     (point-max))))
                 (if (<= pos head2-beg)
                     ;;                        ------
@@ -654,13 +664,13 @@ sent to the new mode for syntax highlighting."
                     (list nil tail1-end head2-beg)
                   ;;                              ------
                   ;; host](head](body](tail)[host](head)
-                  (list 'head head2-beg (match-end 0))))))
+                  (list 'head head2-beg (match-end (cdr head-matcher)))))))
 
         ;; -----------
         ;; host](head)[body](tail)[host
         (let ((head2-beg (and (goto-char (point-min))
-                              (re-search-forward head-matcher nil t)
-                              (match-beginning 0))))
+                              (re-search-forward (car head-matcher) nil t)
+                              (match-beginning (cdr head-matcher)))))
 
           (if (null head2-beg)
               ;; no span found
@@ -672,7 +682,7 @@ sent to the new mode for syntax highlighting."
                 (list nil (point-min) head2-beg)
               ;;      ------
               ;; host](head)[body](tail)[host
-              (list 'head head2-beg (match-end 0)))))))))
+              (list 'head head2-beg (match-end (cdr head-matcher))))))))))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Basic span detector with head/tail.
@@ -695,23 +705,29 @@ tail  - tail span"
   (save-restriction
     (widen)
     (goto-char (or pos (point)))
-    (cond ((and (stringp head-matcher)
-                (stringp tail-matcher))
-           (pm--span-at-point-reg-reg head-matcher tail-matcher))
-          ((and (stringp head-matcher)
-                (functionp tail-matcher))
-           (pm--span-at-point-fun-fun
-            (lambda (ahead) (pm--default-matcher head-matcher ahead))
-            tail-matcher))
-          ((and (functionp head-matcher)
-                (stringp tail-matcher))
-           (pm--span-at-point-fun-fun
-            head-matcher
-            (lambda (ahead) (pm--default-matcher tail-matcher ahead))))
-          ((and (functionp head-matcher)
-                (functionp tail-matcher))
-           (pm--span-at-point-fun-fun head-matcher tail-matcher))
-          (t (error "head and tail matchers should be either regexp strings or functions")))))
+    (let ((head-matcher (if (stringp head-matcher)
+                            (cons head-matcher 0)
+                          head-matcher))
+          (tail-matcher (if (stringp tail-matcher)
+                            (cons tail-matcher 0)
+                          tail-matcher)))
+      (cond ((and (or (consp head-matcher))
+                  (or (consp tail-matcher)))
+             (pm--span-at-point-reg-reg head-matcher tail-matcher))
+            ((and (consp head-matcher)
+                  (functionp tail-matcher))
+             (pm--span-at-point-fun-fun
+              (lambda (ahead) (pm--default-matcher (car head-matcher) (cdr head-matcher) ahead))
+              tail-matcher))
+            ((and (functionp head-matcher)
+                  (consp tail-matcher))
+             (pm--span-at-point-fun-fun
+              head-matcher
+              (lambda (ahead) (pm--default-matcher (car tail-matcher) (cdr tail-matcher) ahead))))
+            ((and (functionp head-matcher)
+                  (functionp tail-matcher))
+             (pm--span-at-point-fun-fun head-matcher tail-matcher))
+            (t (error "head and tail matchers must be either regexp strings, cons cells or functions"))))))
 
 
 ;;; INDENT
