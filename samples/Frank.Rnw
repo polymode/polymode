@@ -35,30 +35,30 @@ require(rms)
 <<describe,results='asis'>>=
 Load(ras)
 ras <-
-  within(ras, {
-    label(age) <- 'Age'
-    diabetes <- ifelse(diabetes.after.review=='No', 0,
-                       ifelse(diabetes.after.review=='Yes', 1,
-                              ifelse(diabetes.search=='No', 0,
-                                     ifelse(diabetes.search=='Yes', 1,
-                                            NA))))
-    htn <- ifelse(htn.after.review=='No', 0,
-                  ifelse(htn.after.review=='Yes', 1,
-                         ifelse(htn.search=='No', 0,
-                                ifelse(htn.search=='Yes', 1,
-                                       NA))))
-    dialysis <- ifelse(dialysis.after.review=='No', 0,
-                       ifelse(dialysis.after.review=='Yes', 1,
-                              ifelse(dialysis.search=='No', 0,
-                                     NA)))
-   cad <- ifelse(cad.after.review=='No', 0,
-                 ifelse(cad.after.review=='Yes', 1,
-                        ifelse(cad.search=='No', 0,
-                        ifelse(cad.search=='Yes', 1,
-                                      NA))))
-    gender <- factor(ifelse(gender=='Female', 'Female',
-                            ifelse(gender=='Male', 'Male',
-                                   NA)))
+    within(ras, {
+        label(age) <- 'Age'
+        diabetes <- ifelse(diabetes.after.review=='No', 0,
+                    ifelse(diabetes.after.review=='Yes', 1,
+                    ifelse(diabetes.search=='No', 0,
+                    ifelse(diabetes.search=='Yes', 1,
+                           NA))))
+        htn <- ifelse(htn.after.review=='No', 0,
+               ifelse(htn.after.review=='Yes', 1,
+               ifelse(htn.search=='No', 0,
+               ifelse(htn.search=='Yes', 1,
+                      NA))))
+        dialysis <- ifelse(dialysis.after.review=='No', 0,
+                    ifelse(dialysis.after.review=='Yes', 1,
+                    ifelse(dialysis.search=='No', 0,
+                           NA)))
+        cad <- ifelse(cad.after.review=='No', 0,
+               ifelse(cad.after.review=='Yes', 1,
+               ifelse(cad.search=='No', 0,
+               ifelse(cad.search=='Yes', 1,
+                       NA))))
+        gender <- factor(ifelse(gender=='Female', 'Female',
+                         ifelse(gender=='Male', 'Male',
+                                NA)))
     })
 latex(describe(ras), file='')
 @

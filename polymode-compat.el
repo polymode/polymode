@@ -130,9 +130,8 @@ That is, bind `pm-allow-post-command-hook' and
 
 (defun pm-around-advice (fun advice)
   "Apply around ADVICE to FUN.
-Check for if new advice is available and if FUN is a symbol, do
-nothing otherwise. If FUN is a list, apply advice to each element
-in a list. "
+If `advice-add` is available apply advice to FUN. If FUN is a
+list, apply advice to each element of it."
   (when (and fun (fboundp 'advice-add))
     (cond ((listp fun)
            (dolist (el fun) (pm-around-advice el advice)))
