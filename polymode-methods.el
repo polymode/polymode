@@ -384,12 +384,12 @@ this method to work correctly, SUBMODE's class should define
               (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
                 (or
                  ;; a. loop through installed inner modes
-                 (loop for obj in (oref config -auto-innermodes)
+                 (loop for obj in (oref config -innermodes)
                        when (equal name (object-name-string obj))
                        return obj)
                  ;; b. create new
                  (let ((innermode (clone proto name :mode mode)))
-                   (object-add-to-list config '-auto-innermodes innermode)
+                   (object-add-to-list config '-innermodes innermode)
                    innermode)))
             ;; else, use hostmode
             (oref pm/polymode -hostmode)))))))

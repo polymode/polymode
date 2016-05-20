@@ -190,14 +190,8 @@ advance) innermodes.")
     :custom symbol
     :documentation
     "Name of pm-hbtchunkmode-auto object (a symbol). At run time
-     this object is cloned and placed in -auto-innermodes with
-     coresponding :mode slot initialized at run time.")
-   (-auto-innermodes
-    :type list
-    :initform '()
-    :documentation
-    "List of chunkmode objects that are auto-generated in
-    `pm-get-span' method for this class."))
+     this object is cloned and placed in -innermodes of the
+     pm-config object."))
 
   "Configuration for a polymode that allows multiple innermodes
 that are not known in advance. Examples are org-mode and markdown.")
@@ -301,19 +295,24 @@ that are not known in advance. Examples are org-mode and markdown.")
    (head-reg
     :initarg :head-reg
     :initform ""
-    :type (or string symbol)
-    :custom (or string symbol)
-    :documentation "Regexp for the chunk start (aka head), or a
-    function returning the start and end positions of the head.
-    See `pm--default-matcher' for an example function.")
+    :type (or string symbol list)
+    :custom (or string symbol list)
+    :documentation "Regexp for the chunk head, a cons cell (with
+    CAR - the regexp and CDR - the sub-expression), or a function
+    returning the start and end positions of the head. A function
+    must accept one numeric argument and it should search
+    backward if argument is negative, and forwards otherwise.")
    (tail-reg
     :initarg :tail-reg
     :initform ""
-    :type (or string symbol)
-    :custom (or string symbol)
-    :documentation "Regexp for chunk end (aka tail), or a
-    function returning the start and end positions of the tail.
-    See `pm--default-matcher' for an example function.")
+    :type (or string symbol cons)
+    :custom (or string symbol cons)
+    :documentation "Regexp for the tail of the chunk, a cons
+    cell (with CAR - a regexp and CDR - the sub-expression), or a
+    function returning the start and end positions of the tail. A
+    function must accept one numeric argument and it should
+    search backward if argument is negative, and forwards
+    otherwise.")
 
    (adjust-face
     :initform 2)
@@ -337,38 +336,40 @@ that are not known in advance. Examples are org-mode and markdown.")
     :type (or null buffer)
     :initform nil
     :documentation
-    "This buffer is set automatically to -buffer if :head-mode is
+    "[internal] This buffer is set automatically to -buffer if :head-mode is
     'body, and to base-buffer if :head-mode is 'host")
    (-tail-buffer
     :initform nil
-    :type (or null buffer)))
+    :type (or null buffer)
+    :documentation
+    "[internal] Same as -head-buffer, but for tail span."))
 
   "Representation of an inner Head-Body-Tail chunkmode.")
 
 (defclass pm-hbtchunkmode-auto (pm-hbtchunkmode)
   ((retriever-regexp :initarg :retriever-regexp
-             :type (or null string)
-             :custom string
-             :initform nil
-             :documentation
-             "Regexp that is used to retrive the modes symbol from the
-    head of the chunkmode chunk. fixme: elaborate")
+                     :type (or null string symbol cons)
+                     :custom string
+                     :initform nil
+                     :documentation
+                     "Regexp that is used to retrive the mode's symbol
+    from the chunk's head. Can be either a regexp string,
+    cons (regexp . subexp-num) or a function to be called with no
+    arguments. When a function it should return a string name of
+    the mode. The function is called with point at the beginning
+    of the head span.")
    (retriever-num :initarg :retriever-num
-          :type integer
-          :custom integer
-          :initform 1
-          :documentation
-          "Subexpression to be matched by :retriver-regexp")
+                  :type integer
+                  :custom integer
+                  :initform 1
+                  :documentation
+                  "[obsolete]")
    (retriever-function :initarg :retriever-function
-               :type symbol
-               :custom symbol
-               :initform nil
-               :documentation
-               "Function symbol used to retrive the modes symbol from the
-    head of the chunkmode chunk. It is called with no arguments
-    with the point positioned at the beginning of the chunk
-    header. It must return the mode name string or symbol (need
-    not include '-mode' postfix).)"))
+                       :type symbol
+                       :custom symbol
+                       :initform nil
+                       :documentation
+                       "[obsolete]"))
 
   "Representation of an inner chunkmode")
 
