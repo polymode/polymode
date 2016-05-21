@@ -41,8 +41,8 @@
 
 (defcustom  pm-inner/org
   (pm-hbtchunkmode-auto "org"
-                     :head-reg "^[ \t]*#\\+begin_src .*$"
-                     :tail-reg "^[ \t]*#\\+end_src"
+                     :head-matcher "^[ \t]*#\\+begin_src .*$"
+                     :tail-matcher "^[ \t]*#\\+end_src"
                      :head-mode 'host
                      :tail-mode 'host
                      :retriever-regexp "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
@@ -64,4 +64,3 @@
 (define-polymode poly-org-mode pm-poly/org)
 
 (provide 'poly-org)
-

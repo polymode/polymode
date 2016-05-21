@@ -1,3 +1,5 @@
+# _Note: polymode is undergoing a major simplification and structural refactoring. A lot of this information is out of date._ 
+
 # Developing with Polymode
 
 Polymode doesn't keep its modes in a single emacs buffer but in several indirect
@@ -188,7 +190,7 @@ Currently, there are three sub classes of `pm-chunkmode`:
    `pm-chunkmode` with additional slots, most importantly:
     * `head-mode` and `tail-mode`: names of emacs-modes for header/tail of the
       chunk
-    * `head-reg` and `tail-reg`: regular expressions or functions to detect the
+    * `head-matcher` and `tail-matcher`: regular expressions or functions to detect the
       header/tail
 
 3. `pm-hbtchunkmode-auto` - represents chunkmodes for which the mode type is not
@@ -226,8 +228,8 @@ Then define the noweb innermode:
 ```lisp
 (defcustom  pm-inner/noweb
   (pm-hbtchunkmode "noweb"
-                   :head-reg  "<<\\(.*\\)>>="
-                   :tail-reg    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
+                   :head-matcher  "<<\\(.*\\)>>="
+                   :tail-matcher    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
   "Noweb typical chunk."
   :group 'innermodes
   :type 'object)
@@ -295,8 +297,8 @@ This is an example of markdown polymode (from [poly-markdown.el](poly-markdown.e
 ;; 2. Define innermode object
 (defcustom  pm-inner/markdown
   (pm-hbtchunkmode-auto "markdown"
-                     :head-reg "^[ \t]*```[{ \t]*\\w.*$"
-                     :tail-reg "^[ \t]*```[ \t]*$"
+                     :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
+                     :tail-matcher "^[ \t]*```[ \t]*$"
                      :retriever-regexp "```[ \t]*{?\\(\\(\\w\\|\\s_\\)*\\)"
                      :font-lock-narrow t)
   "Markdown typical chunk."

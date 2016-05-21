@@ -15,8 +15,8 @@
 (defcustom pm-inner/erb
   (pm-hbtchunkmode "erb"
                    :mode 'ruby-mode
-                   :head-reg  "\"?\<\% *[-=]?"
-                   :tail-reg  "\%\>\"?")
+                   :head-matcher  "\"?\<\% *[-=]?"
+                   :tail-matcher  "\%\>\"?")
   "erb typical chunk."
   :group 'innermodes
   :type 'object)

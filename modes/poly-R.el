@@ -77,8 +77,8 @@
 (defcustom  pm-inner/rapport+YAML
   (pm-hbtchunkmode "rapport+YAML"
                    :mode 'yaml-mode
-                   :head-reg "<!--head"
-                   :tail-reg "head-->")
+                   :head-matcher "<!--head"
+                   :tail-matcher "head-->")
   "YAML header in Rapport files"
   :group 'innermodes
   :type 'object)
@@ -98,8 +98,8 @@
 (defcustom  pm-inner/html+R
   (pm-hbtchunkmode "html+R"
                    :mode 'R-mode
-                   :head-reg "<!--[ \t]*begin.rcode"
-                   :tail-reg "end.rcode[ \t]*-->")
+                   :head-matcher "<!--[ \t]*begin.rcode"
+                   :tail-matcher "end.rcode[ \t]*-->")
   "HTML KnitR innermode."
   :group 'innermodes
   :type 'object)
@@ -120,8 +120,8 @@
 (defcustom  pm-inner/brew+R
   (pm-hbtchunkmode "brew+R"
                    :mode 'R-mode
-                   :head-reg "<%[=%]?"
-                   :tail-reg "[#=%=-]?%>")
+                   :head-matcher "<%[=%]?"
+                   :tail-matcher "[#=%=-]?%>")
   "Brew R chunk."
   :group 'innermodes
   :type 'object)
@@ -156,8 +156,8 @@
   (pm-hbtchunkmode "R+C++"
                    :mode 'c++-mode
                    :head-mode 'host
-                   :head-reg 'pm--R+C++-head-matcher
-                   :tail-reg 'pm--R+C++-tail-matcher
+                   :head-matcher 'pm--R+C++-head-matcher
+                   :tail-matcher 'pm--R+C++-tail-matcher
                    :font-lock-narrow nil)
   "HTML KnitR chunk."
   :group 'innermodes
@@ -189,8 +189,8 @@
 (defcustom  pm-inner/C++R
   (pm-hbtchunkmode "C++R"
                    :mode 'R-mode
-                   :head-reg 'pm--C++R-head-matcher
-                   :tail-reg 'pm--C++R-tail-matcher)
+                   :head-matcher 'pm--C++R-head-matcher
+                   :tail-matcher 'pm--C++R-tail-matcher)
   "HTML KnitR chunk."
   :group 'polymodes
   :type 'object)
@@ -211,8 +211,8 @@
 (defcustom  pm-inner/ess-help+R
   (pm-hbtchunkmode "ess-help+R"
                    :mode 'R-mode
-                   :head-reg "^Examples:"
-                   :tail-reg "\\'"
+                   :head-matcher "^Examples:"
+                   :tail-matcher "\\'"
                    :indent-offset 5
                    :switch-buffer-functions '(pm--ess-help+R-turn-off-read-only))
   "Ess help R chunk"
@@ -255,8 +255,8 @@
   (pm-hbtchunkmode "R+C++"
                    :mode 'R-mode
                    :head-mode 'host
-                   :head-reg 'pm--Rd-examples-head-matcher
-                   :tail-reg 'pm--Rd-examples-tail-matcher)
+                   :head-matcher 'pm--Rd-examples-head-matcher
+                   :tail-matcher 'pm--Rd-examples-tail-matcher)
   "Rd examples chunk."
   :group 'innermodes
   :type 'object)

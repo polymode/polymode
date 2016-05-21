@@ -80,15 +80,15 @@ Key bindings:
 (defgeneric pm-debug-info (chunkmode))
 (defmethod pm-debug-info (chunkmode)
   (format "class:%s" (eieio-object-class-name chunkmode)))
-(defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
-  (format "head-reg:\"%s\" tail-reg:\"%s\" %s"
-          (oref chunkmode :head-reg) (oref chunkmode :tail-reg)
+(defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
+  (format "head-matcher:\"%s\" tail-matcher:\"%s\" %s"
+          (oref chunkmode :head-matcher) (oref chunkmode :tail-matcher)
           (call-next-method)))
-(defmethod pm-debug-info ((chunkmode pm-hbtchunkmode))
-  (format "head-reg:\"%s\" tail-reg:\"%s\" %s"
-          (oref chunkmode :head-reg) (oref chunkmode :tail-reg)
+(defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
+  (format "head-matcher:\"%s\" tail-matcher:\"%s\" %s"
+          (oref chunkmode :head-matcher) (oref chunkmode :tail-matcher)
           (call-next-method)))
-(defmethod pm-debug-info ((chunkmode pm-hbtchunkmode-auto))
+(defmethod pm-debug-info ((chunkmode pm-inner-auto-chunkmode))
           (call-next-method))
 
 (defun pm--debug-info (&optional span)
@@ -307,8 +307,8 @@ If string, it must b an entry in
 
 (defun pm--highlight-span (&optional hd-matcher tl-matcher)
   (interactive)
-  (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-reg)))
-         (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-reg)))
+  (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-matcher)))
+         (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-matcher)))
          (span (pm--span-at-point hd-matcher tl-matcher)))
     (pm-debug-blink-region (nth 1 span) (nth 2 span))
     (message "span: %s" span)))

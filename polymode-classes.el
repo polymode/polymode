@@ -286,18 +286,18 @@ advance) innermodes.")
     same as chunk's body mode. If set to 'host, the mode will be
     of the parent host.")
 
-   (head-reg
-    :initarg :head-reg
+   (head-matcher
+    :initarg :head-matcher
     :initform ""
-    :type (or string symbol list)
-    :custom (or string symbol list)
-    :documentation "Regexp for the chunk head, a cons cell (with
-    CAR - the regexp and CDR - the sub-expression), or a function
-    returning the start and end positions of the head. A function
-    must accept one numeric argument and it should search
-    backward if argument is negative, and forwards otherwise.")
-   (tail-reg
-    :initarg :tail-reg
+    :type (or string symbol cons)
+    :custom (or string symbol cons)
+    :documentation "Regexp for the chunk head, a cons cell or the
+    form (REGEXP . SUBEXPR), or a function returning the start
+    and end positions of the head. A function must accept one
+    numeric argument and it must search backward if argument is
+    negative, and forward if argument is positive.")
+   (tail-matcher
+    :initarg :tail-matcher
     :initform ""
     :type (or string symbol cons)
     :custom (or string symbol cons)

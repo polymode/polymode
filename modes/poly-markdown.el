@@ -42,8 +42,8 @@
 
 (defcustom  pm-inner/markdown
   (pm-hbtchunkmode-auto "markdown"
-                        :head-reg "^[ \t]*```[{ \t]*\\w.*$"
-                        :tail-reg "^[ \t]*```[ \t]*$"
+                        :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
+                        :tail-matcher "^[ \t]*```[ \t]*$"
                         :retriever-regexp "```[ \t]*\\(?:{\\|lang=\\)?\\([^ \t\n,}]+\\)"
                         :font-lock-narrow t)
   "Markdown typical chunk."
@@ -52,8 +52,8 @@
 
 (defcustom  pm-inner/markdown-inline
   (pm-hbtchunkmode-auto "markdown-inline"
-                        :head-reg (cons "[^`]\\(`{?[^ \t\n,}]\\) " 1)
-                        :tail-reg (cons "[^`]\\(`\\)[^`]" 1)
+                        :head-matcher (cons "[^`]\\(`{?[^ \t\n,}]\\) " 1)
+                        :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
                         :retriever-regexp (cons "`\\(?:{\\|lang=\\)?\\([^ \t\n,]+\\)" 1)
                         :font-lock-narrow t)
   "Markdown typical chunk."

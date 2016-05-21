@@ -21,8 +21,8 @@
                    :mode 'coffee-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
-                   :head-reg  'pm-slim-coffee-head-matcher
-                   :tail-reg  'pm-slim-coffee-tail-matcher)
+                   :head-matcher  'pm-slim-coffee-head-matcher
+                   :tail-matcher  'pm-slim-coffee-tail-matcher)
   "slim-coffee typical chunk."
   :group 'innermodes
   :type 'object)
@@ -33,8 +33,8 @@
                    :mode 'css-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
-                   :head-reg  'pm-slim-css-head-matcher
-                   :tail-reg  'pm-slim-css-tail-matcher)
+                   :head-matcher  'pm-slim-css-head-matcher
+                   :tail-matcher  'pm-slim-css-tail-matcher)
   "slim-css typical chunk."
   :group 'innermodes
   :type 'object)
@@ -45,8 +45,8 @@
                    :mode 'scss-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
-                   :head-reg  'pm-slim-scss-head-matcher
-                   :tail-reg  'pm-slim-scss-tail-matcher)
+                   :head-matcher  'pm-slim-scss-head-matcher
+                   :tail-matcher  'pm-slim-scss-tail-matcher)
   "slim-scss typical chunk."
   :group 'innermodes
   :type 'object)
@@ -57,8 +57,8 @@
                    :mode 'ruby-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
-                   :head-reg  'pm-slim-ruby-head-matcher
-                   :tail-reg  'pm-slim-ruby-tail-matcher)
+                   :head-matcher  'pm-slim-ruby-head-matcher
+                   :tail-matcher  'pm-slim-ruby-tail-matcher)
   "slim-ruby typical chunk."
   :group 'innermodes
   :type 'object)
@@ -69,8 +69,8 @@
                    :mode 'js-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
-                   :head-reg  'pm-slim-js-head-matcher
-                   :tail-reg  'pm-slim-js-tail-matcher)
+                   :head-matcher  'pm-slim-js-head-matcher
+                   :tail-matcher  'pm-slim-js-tail-matcher)
   "slim-js typical chunk."
   :group 'innermodes
   :type 'object)
@@ -81,8 +81,8 @@
                    :mode 'markdown-mode
                    :head-mode 'slim-mode
                    :tail-mode 'slim-mode
-                   :head-reg  'pm-slim-md-head-matcher
-                   :tail-reg  'pm-slim-md-tail-matcher)
+                   :head-matcher  'pm-slim-md-head-matcher
+                   :tail-matcher  'pm-slim-md-tail-matcher)
   "slim-markdown typical chunk."
   :group 'innermodes
   :type 'object)
