@@ -50,10 +50,21 @@
   :group 'innermodes
   :type 'object)
 
+(defcustom  pm-inner/markdown-inline
+  (pm-hbtchunkmode-auto "markdown-inline"
+                        :head-reg (cons "[^`]\\(`{?[^ \t\n,}]\\) " 1)
+                        :tail-reg (cons "[^`]\\(`\\)[^`]" 1)
+                        :retriever-regexp (cons "`\\(?:{\\|lang=\\)?\\([^ \t\n,]+\\)" 1)
+                        :font-lock-narrow t)
+  "Markdown typical chunk."
+  :group 'innermodes
+  :type 'object)
+
+
 (defcustom pm-poly/markdown
-  (pm-polymode-multi-auto "markdown"
-                          :hostmode 'pm-host/markdown
-                          :auto-innermode 'pm-inner/markdown)
+  (pm-polymode-multi "markdown"
+                     :hostmode 'pm-host/markdown
+                     :innermodes '(pm-inner/markdown pm-inner/markdown-inline))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)
