@@ -164,9 +164,8 @@ Parents' hooks are run first."
 
 
 (defgeneric pm-get-buffer-create (chunkmode &optional type)
-  "Get the indirect buffer associated with SUBMODE and
-SPAN-TYPE. Should return nil if buffer has not yet been
-installed. Also see `pm-get-span'.")
+  "Get the indirect buffer associated with SUBMODE and SPAN-TYPE.
+Create and initialize the buffer if does not exist yet.")
 
 (defmethod pm-get-buffer-create ((chunkmode pm-chunkmode) &optional type)
   (let ((buff (oref chunkmode -buffer)))
@@ -344,63 +343,59 @@ this method to work correctly, SUBMODE's class should define
         (visual-line-mode -1)
       (visual-line-mode 1))))
 
-(defmethod pm-select-buffer ((config pm-polymode-multi-auto) &optional span)
-  ;; :fixme: pm-get-span on multi configs returns config as last object of
-  ;; span. This unnatural and confusing. Same problem with pm-indent-line
-  (pm-select-buffer (pm--get-multi-chunk config span) span))
-
-(defun pm--get-multi-chunk (config span)
+(defun pm--get-multi-chunk (span)
   ;; fixme: cache somehow?
-  (if (null (car span))
-      (oref config -hostmode)
-    (let ((type (car span))
-          (proto (symbol-value (oref config :auto-innermode))))
-      (save-excursion
-        (goto-char (cadr span))
-        (unless (eq type 'head)
-          (let ((matcher (oref proto :head-reg)))
-            (cond ((functionp matcher)
-                   (goto-char (car (funcall matcher -1))))
-                  ((consp matcher)
-                   (and (re-search-backward (car matcher) nil 'noerr)
-                        (goto-char (match-beginning (cdr matcher)))))
-                  ((stringp matcher)
-                   (re-search-backward matcher nil 'noerr))
-                  (t (error "invalid head matcher: %s" matcher)))))
-        (let* ((str (let* ((matcher (or (oref proto :retriever-regexp)
-                                        (oref proto :retriever-function)))
-                           (matcher (if (stringp matcher)
-                                        (cons matcher (or (oref proto :retriever-num)
-                                                          0))
-                                      matcher)))
-                      (cond  ((consp matcher)
-                              (re-search-forward (car matcher) (point-at-eol) t)
-                              (match-string-no-properties (cdr matcher)))
-                             ((functionp matcher)
-                              (funcall matcher)))))
-               (mode (and str (pm--get-mode-symbol-from-name str 'no-fallback))))
-          (if mode
-              ;; Inferred body MODE serves as ID; this not need be the
-              ;; case in the future and a generic id getter might replace
-              ;; it. Currently head/tail/body indirect buffers are shared
-              ;; across chunkmodes. This currently works ok. A more
-              ;; general approach would be to track head/tails/body with
-              ;; associated chunks. Then for example r hbt-chunk and elisp
-              ;; hbt-chunk will not share head/tail buffers. There could
-              ;; be even two r hbt-chunks with providing different
-              ;; functionality and thus not even sharing body buffer.
-              (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
-                (or
-                 ;; a. loop through installed inner modes
-                 (loop for obj in (oref config -innermodes)
-                       when (equal name (object-name-string obj))
-                       return obj)
-                 ;; b. create new
-                 (let ((innermode (clone proto name :mode mode)))
-                   (object-add-to-list config '-innermodes innermode)
-                   innermode)))
-            ;; else, use hostmode
-            (oref pm/polymode -hostmode)))))))
+  (let ((type (car span))
+        (proto (nth 3 span)))
+    (save-excursion
+      (goto-char (nth 1 span))
+      (unless (eq type 'head)
+        (let ((matcher (oref proto :head-reg)))
+          (cond ((functionp matcher)
+                 (goto-char (car (funcall matcher -1))))
+                ((consp matcher)
+                 (when (> (cdr matcher) 0)
+                   (goto-char (nth 2 span)))
+                 (and (re-search-backward (car matcher) nil 'noerr)
+                      (goto-char (match-beginning (cdr matcher)))))
+                ((stringp matcher)
+                 (re-search-backward matcher nil 'noerr))
+                (t (error "invalid head matcher: %s" matcher)))))
+      (let* ((str (let* ((matcher (or (oref proto :retriever-regexp)
+                                      (oref proto :retriever-function)))
+                         (matcher (if (stringp matcher)
+                                      (cons matcher (or (oref proto :retriever-num)
+                                                        0))
+                                    matcher)))
+                    (cond  ((consp matcher)
+                            (re-search-forward (car matcher) (point-at-eol) t)
+                            (match-string-no-properties (cdr matcher)))
+                           ((functionp matcher)
+                            (funcall matcher)))))
+             (mode (and str (pm--get-mode-symbol-from-name str 'no-fallback))))
+        (if mode
+            ;; Inferred body MODE serves as ID; this not need be the
+            ;; case in the future and a generic id getter might replace
+            ;; it. Currently head/tail/body indirect buffers are shared
+            ;; across chunkmodes. This currently works ok. A more
+            ;; general approach would be to track head/tails/body with
+            ;; associated chunks. Then for example r hbt-chunk and elisp
+            ;; hbt-chunk will not share head/tail buffers. There could
+            ;; be even two r hbt-chunks with providing different
+            ;; functionality and thus not even sharing body buffer.
+            (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
+              (or
+               ;; a. loop through installed inner modes
+               (loop for obj in (oref pm/polymode -auto-innermodes)
+                     when (equal name (object-name-string obj))
+                     return obj)
+               ;; b. create new
+               (let ((innermode (clone proto name :mode mode)))
+                 (object-add-to-list pm/polymode '-auto-innermodes innermode)
+                 innermode)))
+          ;; else, use hostmode
+          (oref pm/polymode -hostmode))))))
+
 
 
 ;;; SPAN MANIPULATION
@@ -466,30 +461,6 @@ point."
         (setcar (last span) (oref config -hostmode)))
       span)))
 
-;; No need for this one so far. Basic method iterates through -innermodes
-;; anyhow.
-;; (defmethod pm-get-span ((config pm-polymode-multi) &optional pos))
-
-(defmethod pm-get-span ((config pm-polymode-multi-auto) &optional pos)
-  (let ((span-other (call-next-method))
-        (proto (symbol-value (oref config :auto-innermode))))
-    (if (oref proto :head-reg)
-        (let ((span (pm--span-at-point (oref proto :head-reg)
-                                       (oref proto :tail-reg)
-                                       pos)))
-          (if (and span-other
-                   (or (> (nth 1 span-other) (nth 1 span))
-                       (< (nth 2 span-other) (nth 2 span))))
-              ;; treat intersections with the host mode
-              (if (car span-other)
-                  span-other ;not host
-                ;; here, car span should better be nil; no explicit check
-                (setcar (cdr span-other) (max (nth 1 span-other) (nth 1 span)))
-                (setcar (cddr span-other) (min (nth 2 span-other) (nth 2 span)))
-                span-other)
-            (append span (list config)))) ;fixme: this returns config as last object
-      span-other)))
-
 (defmethod pm-get-span ((chunkmode pm-hbtchunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
@@ -497,12 +468,19 @@ in this case."
   (with-slots (head-reg tail-reg head-mode tail-mode) chunkmode
     (let* ((span (pm--span-at-point head-reg tail-reg pos))
            (type (car span)))
-      (when (or (and (eq type 'head) (eq head-mode 'host))
-                (and (eq type 'tail) (or (eq tail-mode 'host)
-                                         (and (null tail-mode)
-                                              (eq head-mode 'host)))))
-        (setcar span nil))
-      (append span (list chunkmode)))))
+      (if (or (and (eq type 'head) (eq head-mode 'host))
+              (and (eq type 'tail) (or (eq tail-mode 'host)
+                                       (and (null tail-mode)
+                                            (eq head-mode 'host)))))
+          (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
+        (append span (list chunkmode))))))
+
+(defmethod pm-get-span ((chunkmode pm-hbtchunkmode-auto) &optional pos)
+  (let ((span (call-next-method)))
+    (if (null (car span))
+        span
+      (setf (nth 3 span) (pm--get-multi-chunk span))
+      span)))
 
 (defmacro pm-create-indented-block-matchers (name regex)
   "Defines 2 functions, each return a list of the start and end points of the
@@ -522,7 +500,7 @@ In the example below,
 The head matcher will match against 'coffee:', returning the positions of the
 start and end of 'coffee:'
 The tail matcher will return a list (n, n) of the final characters is the block.
-
+g
     |<----- Uses this indentation to define the left edge of the 'block'
     |
     |<--->|  This region is higlighted by the :head-mode in the block-matchers
@@ -818,13 +796,6 @@ to indent."
     (back-to-indentation)
     (- (point) (point-at-bol))))
 
-(defmethod pm-indent-line ((config pm-polymode-multi-auto) &optional span)
-  ;; fixme: pm-polymode-multi-auto is not a chunk, pm-get-innermost-span should
-  ;; not return it in the first place
-  ;; (pm-set-buffer span)
-  ;; (pm-indent-line pm/chunkmode span))
-  (pm-indent-line (pm--get-multi-chunk config span) span))
-
 
 ;;; FACES
 (defgeneric pm-get-adjust-face (chunkmode &optional type))
@@ -863,5 +834,6 @@ to indent."
         ;;                      `(,face ,@(get-text-property beg 'face)))
         ;;   (setq beg pchange))
         (font-lock-prepend-text-property beg end 'face face)))))
+
 
 (provide 'polymode-methods)

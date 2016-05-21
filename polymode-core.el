@@ -1,14 +1,14 @@
 ;;  -*- lexical-binding: t -*-
 ;; COMMON INITIALIZATION, UTILITIES and INTERNALS which didn't fit anywhere else
 
-(require 'cl)
+(eval-when-compile (require 'cl-lib))
+(require 'gv)
 (require 'font-lock)
 (require 'color)
 (require 'eieio)
 (require 'eieio-base)
 (require 'eieio-custom)
 (require 'format-spec)
-
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"

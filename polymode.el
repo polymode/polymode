@@ -53,6 +53,8 @@
 (require 'poly-lock)
 (require 'poly-base)
 
+(require 'polymode-obsolete)
+
 (defcustom polymode-prefix-key "\M-n"
   "Prefix key for the polymode mode keymap.
 Not effective after loading the polymode library."
