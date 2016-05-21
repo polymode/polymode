@@ -1,6 +1,7 @@
 (require 'polymode-core)
 (require 'poly-lock)
 
+
 
 ;;; Initialization
 
@@ -33,26 +34,32 @@
               pm/type 'host)
 
         (pm--common-setup)
+
+        (oset config -innermodes
+              (mapcar (lambda (sub-name)
+                        (clone (symbol-value sub-name)))
+                      (oref config :innermodes)))
+
         (add-hook 'flyspell-incorrect-hook
                   'pm--flyspel-dont-highlight-in-chunkmodes nil t))
       (pm--run-init-hooks config 'polymode-init-host-hook)
       (pm--run-init-hooks chunkmode))))
 
-(defmethod pm-initialize ((config pm-polymode-one))
-  (let ((pm-initialization-in-progress t))
-    (call-next-method))
-  (eval `(oset config -innermodes
-               (list (clone ,(oref config :innermode)))))
-  (pm--run-init-hooks config 'polymode-init-host-hook))
+;; (defmethod pm-initialize ((config pm-polymode-one))
+;;   (let ((pm-initialization-in-progress t))
+;;     (call-next-method))
+;;   (eval `(oset config -innermodes
+;;                (list (clone ,(oref config :innermode)))))
+;;   (pm--run-init-hooks config 'polymode-init-host-hook))
 
-(defmethod pm-initialize ((config pm-polymode-multi))
-  (let ((pm-initialization-in-progress))
-    (call-next-method))
-  (oset config -innermodes
-        (mapcar (lambda (sub-name)
-                  (clone (symbol-value sub-name)))
-                (oref config :innermodes)))
-  (pm--run-init-hooks config 'polymode-init-host-hook))
+;; (defmethod pm-initialize ((config pm-polymode-multi))
+;;   (let ((pm-initialization-in-progress))
+;;     (call-next-method))
+;;   (oset config -innermodes
+;;         (mapcar (lambda (sub-name)
+;;                   (clone (symbol-value sub-name)))
+;;                 (oref config :innermodes)))
+;;   (pm--run-init-hooks config 'polymode-init-host-hook))
 
 (defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
   ;; run in chunkmode indirect buffer
@@ -173,7 +180,7 @@ Create and initialize the buffer if does not exist yet.")
         (oset chunkmode -buffer
               (pm--get-chunkmode-buffer-create chunkmode type)))))
 
-(defmethod pm-get-buffer-create ((chunkmode pm-hbtchunkmode) &optional type)
+(defmethod pm-get-buffer-create ((chunkmode pm-inner-chunkmode) &optional type)
   (let ((buff (cond ((eq 'body type) (oref chunkmode -buffer))
                     ((eq 'head type) (oref chunkmode -head-buffer))
                     ((eq 'tail type) (oref chunkmode -tail-buffer))
@@ -343,14 +350,14 @@ this method to work correctly, SUBMODE's class should define
         (visual-line-mode -1)
       (visual-line-mode 1))))
 
-(defun pm--get-multi-chunk (span)
+(defun pm--get-auto-chunk (span)
   ;; fixme: cache somehow?
   (let ((type (car span))
         (proto (nth 3 span)))
     (save-excursion
       (goto-char (nth 1 span))
       (unless (eq type 'head)
-        (let ((matcher (oref proto :head-reg)))
+        (let ((matcher (oref proto :head-matcher)))
           (cond ((functionp matcher)
                  (goto-char (car (funcall matcher -1))))
                 ((consp matcher)
@@ -361,11 +368,9 @@ this method to work correctly, SUBMODE's class should define
                 ((stringp matcher)
                  (re-search-backward matcher nil 'noerr))
                 (t (error "invalid head matcher: %s" matcher)))))
-      (let* ((str (let* ((matcher (or (oref proto :retriever-regexp)
-                                      (oref proto :retriever-function)))
+      (let* ((str (let* ((matcher (oref proto :mode-matcher))
                          (matcher (if (stringp matcher)
-                                      (cons matcher (or (oref proto :retriever-num)
-                                                        0))
+                                      (cons matcher 0)
                                     matcher)))
                     (cond  ((consp matcher)
                             (re-search-forward (car matcher) (point-at-eol) t)
@@ -426,7 +431,7 @@ point."
   (save-restriction
     (widen)
     ;; fixme: host should be last, to take advantage of the chunkmodes computation
-    (let* ((smodes (cons (oref config -hostmode)
+    (let* ((imodes (cons (oref config -hostmode)
                          (oref config -innermodes)))
            (start (point-min))
            (end (point-max))
@@ -434,8 +439,8 @@ point."
            (span (list nil start end nil))
            val)
 
-      (dolist (sm smodes)
-        (setq val (pm-get-span sm pos))
+      (dolist (im imodes)
+        (setq val (pm-get-span im pos))
         (when (and val
                    (or (> (nth 1 val) start)
                        (< (nth 2 val) end)))
@@ -457,16 +462,16 @@ point."
       (unless (and (<= start end) (<= pos end) (>= pos start))
         (error "Bad polymode selection: span:%s pos:%s"
                (list start end) pos))
-      (when (null (car span)) ; chunkmodes can compute the host span by returning nil
+      (when (null (car span)) ; chunkmodes can compute the host span by returning nil span type
         (setcar (last span) (oref config -hostmode)))
       span)))
 
-(defmethod pm-get-span ((chunkmode pm-hbtchunkmode) &optional pos)
+(defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
 in this case."
-  (with-slots (head-reg tail-reg head-mode tail-mode) chunkmode
-    (let* ((span (pm--span-at-point head-reg tail-reg pos))
+  (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
+    (let* ((span (pm--span-at-point head-matcher tail-matcher pos))
            (type (car span)))
       (if (or (and (eq type 'head) (eq head-mode 'host))
               (and (eq type 'tail) (or (eq tail-mode 'host)
@@ -475,11 +480,11 @@ in this case."
           (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
         (append span (list chunkmode))))))
 
-(defmethod pm-get-span ((chunkmode pm-hbtchunkmode-auto) &optional pos)
+(defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
   (let ((span (call-next-method)))
     (if (null (car span))
         span
-      (setf (nth 3 span) (pm--get-multi-chunk span))
+      (setf (nth 3 span) (pm--get-auto-chunk span))
       span)))
 
 (defmacro pm-create-indented-block-matchers (name regex)
@@ -675,8 +680,8 @@ respectively. See `pm--default-matcher' for an example.
 Return (type span-start span-end) where type is one of the
 follwoing symbols:
 
-nil   - pos is between point-min and head-reg, or between tail-reg and point-max
-body  - pos is between head-reg and tail-reg (exclusively)
+nil   - pos is between point-min and head-matcher, or between tail-matcher and point-max
+body  - pos is between head-matcher and tail-matcher (exclusively)
 head  - head span
 tail  - tail span"
   ;; ! start of the span is part of the span !
@@ -732,7 +737,7 @@ the chunkmode.")
 (defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
   (pm--indent-line span))
 
-(defmethod pm-indent-line ((chunkmode pm-hbtchunkmode) &optional span)
+(defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) &optional span)
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
@@ -799,9 +804,11 @@ to indent."
 
 ;;; FACES
 (defgeneric pm-get-adjust-face (chunkmode &optional type))
+
 (defmethod pm-get-adjust-face ((chunkmode pm-chunkmode) &optional type)
   (oref chunkmode :adjust-face))
-(defmethod pm-get-adjust-face ((chunkmode pm-hbtchunkmode) &optional type)
+
+(defmethod pm-get-adjust-face ((chunkmode pm-inner-chunkmode) &optional type)
   (setq type (or type pm/type))
   (cond ((eq type 'head)
          (oref chunkmode :head-adjust-face))

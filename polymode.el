@@ -46,6 +46,7 @@
 (require 'polymode-core)
 (require 'polymode-classes)
 (require 'polymode-methods)
+(require 'polymode-obsolete)
 (require 'polymode-compat)
 (require 'polymode-debug)
 (require 'polymode-export)
@@ -53,7 +54,7 @@
 (require 'poly-lock)
 (require 'poly-base)
 
-(require 'polymode-obsolete)
+
 
 (defcustom polymode-prefix-key "\M-n"
   "Prefix key for the polymode mode keymap.

@@ -1,7 +1,6 @@
 (require 'eieio)
 (require 'polymode-core)
 
-;;; ROOT CLASS
 (if (fboundp 'eieio-named)
     (progn
       (defclass pm-root (eieio-instance-inheritor eieio-named)
@@ -41,8 +40,7 @@
     metadata such as user history. Use `pm--prop-get' and
     `pm--prop-put' to place key value pairs into this list."))
     "Root polymode class."))
-
-;;; CONFIG
+
 (defclass pm-polymode (pm-root)
   ((hostmode
     :initarg :hostmode
@@ -52,6 +50,14 @@
     :documentation
     "Symbol pointing to an object of class pm-chunkmode
     representing the host chunkmode.")
+   (innermodes
+    :initarg :innermodes
+    :type list
+    :custom list
+    :initform nil
+    :documentation
+    "List of names of the chunkmode objects that are associated
+     with this polymode.")
    (minor-mode
     :initarg :minor-mode
     :initform 'polymode-minor-mode
@@ -60,8 +66,8 @@
     :documentation
     "Symbol pointing to minor-mode function that should be
     activated in all buffers (base and indirect). This is a
-    \"glue\" mode and is `polymode-minor-mode' by default. You
-    will rarely need to change this.")
+    \"glue\" mode and is set to `polymode-minor-mode' by default.
+    You should rarely need to change this.")
    (lighter
     :initarg :lighter
     :initform " PM"
@@ -163,64 +169,39 @@
 variable `pm/polymode' instantiated from this class or a subclass
 of this class.")
 
-(defclass pm-polymode-one (pm-polymode)
-  ((innermode
-    :initarg :innermode
-    :type symbol
-    :custom symbol
-    :documentation
-    "Symbol of the chunkmode. At run time this object is cloned
-     and placed in -innermodes slot."))
 
-  "Configuration for a simple polymode that allows only one
-innermode. For example noweb.")
-
-(defclass pm-polymode-multi (pm-polymode)
-  ((innermodes
-    :initarg :innermodes
-    :type list
-    :custom list
-    :initform nil
-    :documentation
-    "List of names of the chunkmode objects that are associated
-     with this configuration. At initialization time, all of
-     these are cloned and plased in -innermodes slot."))
-
-  "Configuration for a polymode that allows multiple (known in
-advance) innermodes.")
-
-
-
-;;; CHUNKMODE CLASSES
 (defclass pm-chunkmode (pm-root)
   ((mode :initarg :mode
      :type symbol
      :initform nil
      :custom symbol)
-   (protect-indent-line :initarg :protect-indent-line
-            :type boolean
-            :initform t
-            :custom boolean
-            :documentation
-            "Whether to modify local `indent-line-function' by narrowing
+   (protect-indent-line
+    :initarg :protect-indent-line
+    :type boolean
+    :initform t
+    :custom boolean
+    :documentation
+    "Whether to modify local `indent-line-function' by narrowing
     to current span first")
-   (indent-offset :initarg :indent-offset
-          :type integer
-          :initform 0
-          :documentation
-          "Offset to add when indenting chunk's line. Takes effect only
+   (indent-offset
+    :initarg :indent-offset
+    :type integer
+    :initform 0
+    :documentation
+    "Offset to add when indenting chunk's line. Takes effect only
     when :protect-indent-line is non-nil.")
    (font-lock-narrow :initarg :font-lock-narrow
              :type boolean
              :initform t
              :documentation
              "Whether to narrow to span during font lock")
-   (adjust-face :initarg :adjust-face
-        :type (or number face list)
-        :custom (or number face list)
-        :initform nil
-        :documentation
-        "Fontification adjustments chunk face. It should be either,
+   (adjust-face
+    :initarg :adjust-face
+    :type (or number face list)
+    :custom (or number face list)
+    :initform nil
+    :documentation
+    "Fontification adjustments chunk face. It should be either,
     nil, number, face or a list of text properties as in
     `put-text-property' specification. If nil no highlighting
     occurs. If a face, use that face. If a number, it is a
@@ -256,16 +237,15 @@ advance) innermodes.")
     :type (or null buffer)
     :initform nil))
 
-  "Representatioin of a generic chunkmode object.")
+  "Generic chunkmode object.")
 
-(defclass pm-bchunkmode (pm-chunkmode)
+(defclass pm-host-chunkmode (pm-chunkmode)
   ()
-  "Representation of the body-only chunkmodes. Body-only
-  chunkmodes are commonly used as host modes. For example for a
-  the web-mdoe the hostmode is `html-mode', for nowweb mode the
-  host mode is usually `latex-mode', etc.")
+  "This chunkmode doesn't know how to compute spans and takes
+  over all the other space not claimed by other chunkmodes in the
+  buffer.")
 
-(defclass pm-hbtchunkmode (pm-chunkmode)
+(defclass pm-inner-chunkmode (pm-chunkmode)
   ((head-mode
     :initarg :head-mode
     :type symbol
@@ -316,15 +296,15 @@ advance) innermodes.")
     :type (or null number face list)
     :custom (or null number face list)
     :documentation
-    "Can be a number, list or face.")
+    "Can be a number, list of properties or a face.")
    (tail-adjust-face
     :initarg :tail-adjust-face
     :initform nil
     :type (or null number face list)
     :custom (or null number face list)
     :documentation
-    "Can be a number, list or face. If nil, take the
-    configuration from :head-adjust-face.")
+    "Can be a number, list of properties or a face. If nil, take
+    the configuration from :head-adjust-face.")
 
    (-head-buffer
     :type (or null buffer)
@@ -338,33 +318,27 @@ advance) innermodes.")
     :documentation
     "[internal] Same as -head-buffer, but for tail span."))
 
-  "Representation of an inner Head-Body-Tail chunkmode.")
+  "Chunkmode to represent submodes within a buffer. These
+  chunkmodes are commonly delimited by head and tail markup but
+  can be delimited by some other logic (e.g. indentation). In the
+  latter case, heads or tails have zero length and are not
+  physically present in the buffer.")
 
-(defclass pm-hbtchunkmode-auto (pm-hbtchunkmode)
-  ((retriever-regexp :initarg :retriever-regexp
-                     :type (or null string symbol cons)
-                     :custom string
-                     :initform nil
-                     :documentation
-                     "Regexp that is used to retrive the mode's symbol
-    from the chunk's head. Can be either a regexp string,
-    cons (regexp . subexp-num) or a function to be called with no
-    arguments. When a function it should return a string name of
-    the mode. The function is called with point at the beginning
-    of the head span.")
-   (retriever-num :initarg :retriever-num
-                  :type integer
-                  :custom integer
-                  :initform 1
-                  :documentation
-                  "[obsolete]")
-   (retriever-function :initarg :retriever-function
-                       :type symbol
-                       :custom symbol
-                       :initform nil
-                       :documentation
-                       "[obsolete]"))
+(defclass pm-inner-auto-chunkmode (pm-inner-chunkmode)
+  ((mode-matcher :initarg :mode-matcher
+                 :type (or null string symbol cons)
+                 :custom string
+                 :initform nil
+                 :documentation
+                 "Matcher used to retrive the mode's symbol from
+    the chunk's head. Can be either a regexp string, cons of the
+    form (REGEXP . SUBEXPR) or a function to be called with no
+    arguments. If a function function, it must return a string
+    name of the mode. The matcher function is called with point
+    at the beginning of the head span."))
 
-  "Representation of an inner chunkmode")
+  "Class for inner chunkmodes with unknown (at definition time)
+  mode of the body span. The mode is determined dynamically by
+  retrieving the mode name with :mode-matcher.")
 
 (provide 'polymode-classes)
