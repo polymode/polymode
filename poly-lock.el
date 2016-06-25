@@ -201,6 +201,8 @@ Installed on `after-change-functions'."
                             beg end old-len (error-message-string err))
                    (setq jit-lock-start beg
                          jit-lock-end end)))
+          (setq beg (min beg jit-lock-start)
+                end (max end jit-lock-end))
           (pm-map-over-spans
            (lambda ()
              (with-buffer-prepared-for-poly-lock
