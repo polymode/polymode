@@ -13,6 +13,7 @@
 ;;               -> jit-lock-mode
 
 (require 'polymode-core)
+(require 'polymode-compat)
 
 (defvar poly-lock-fontification-in-progress nil)
 (defvar-local poly-lock-mode nil)
@@ -26,6 +27,14 @@ Preserves the `buffer-modified-p' state of the current buffer."
     `(let ((inhibit-point-motion-hooks t))
        (with-silent-modifications
          ,@body))))
+
+(defun poly-lock-no-jit-lock-in-polymode-buffers (orig-fun arg)
+  "Don't activate `jit-lock-mode' when in `polymode' buffers.
+We are reusing some of the jit-lock functionality but don't want
+to activate jit-lock."
+  (unless (and polymode-mode pm/polymode)
+    (funcall orig-fun arg)))
+(pm-around-advice 'jit-lock-mode #'poly-lock-no-jit-lock-in-polymode-buffers)
 
 (defun poly-lock-mode (arg)
   ;; value of `font-lock-function' in polymode buffers
@@ -41,14 +50,19 @@ Preserves the `buffer-modified-p' state of the current buffer."
         (setq-local font-lock-support-mode 'poly-lock-mode)
         (setq-local font-lock-dont-widen t)
 
-        (unless (eq font-lock-fontify-region-function 'poly-lock-fontify-region)
-          (setq-local poly-lock--fontify-region-original font-lock-fontify-region-function)
-          (setq-local font-lock-fontify-region-function #'poly-lock-fontify-region))
+        ;; re-use jit-lock registration. Some minor modes (adaptive-wrap)
+        ;; register extra functionality.
+
+        (jit-lock-register 'font-lock-fontify-region)
+        ;; (unless (eq font-lock-fontify-region-function 'poly-lock-fontify-now)
+        ;;   (setq-local poly-lock--fontify-region-original font-lock-fontify-region-function)
+        ;;   (setq-local font-lock-fontify-region-function #'poly-lock-fontify-now))
+
         ;; we don't allow any other functions
         (setq-local fontification-functions '(poly-lock-fontification-function))
 
         (setq-local font-lock-flush-function 'poly-lock-refontify)
-        (setq-local font-lock-ensure-function 'poly-lock-fontify-region)
+        (setq-local font-lock-ensure-function 'poly-lock-fontify-now)
         (setq-local font-lock-fontify-buffer-function 'poly-lock-refontify)
 
         ;; There are some more, jit-lock doesn't change those, neither do we:
@@ -83,18 +97,92 @@ Preserves the `buffer-modified-p' state of the current buffer."
 (defun poly-lock-fontification-function (start)
   "The only function in `fontification-functions'.
 This is the entry point called by the display engine. START is
-defined in `fontification-functions'."
+defined in `fontification-functions'. This function is has the
+same scope as `jit-lock-function'."
   (unless pm-initialization-in-progress
     (if pm-allow-fontification
-        (when (and poly-lock-mode
-                   (not memory-full))
+        (when (and poly-lock-mode (not memory-full))
           (unless (input-pending-p)
             (let ((end (or (text-property-any start (point-max) 'fontified t)
                            (point-max))))
               (when (< start end)
-                (poly-lock-fontify-region start end)))))
+                (poly-lock-fontify-now start end)))))
       (with-buffer-prepared-for-poly-lock
        (put-text-property start (point-max) 'fontified t)))))
+
+(defun poly-lock-fontify-now (beg end &optional verbose)
+  "Polymode font-lock fontification function.
+Fontifies chunk-by chunk within the region BEG END."
+  (unless (or poly-lock-fontification-in-progress
+              pm-initialization-in-progress)
+    (let* ((font-lock-dont-widen t)
+           (pmarker (point-marker))
+           (dbuffer (current-buffer))
+           ;; Fontification in one buffer can trigger fontification in another
+           ;; buffer. Particularly, this happens when new indirect buffers are
+           ;; created and `normal-mode' triggers font-lock in those buffers. We
+           ;; avoid this by dynamically binding
+           ;; `poly-lock-fontification-in-progress' and un-setting
+           ;; `fontification-functions' in case re-display suddenly decides to
+           ;; fontify something else in other buffer.
+           (poly-lock-fontification-in-progress t)
+           (fontification-functions nil))
+      (save-restriction
+        (widen)
+        (save-excursion
+          (pm-map-over-spans
+           (lambda ()
+             (with-buffer-prepared-for-poly-lock
+              (let ((sbeg (nth 1 *span*))
+                    (send (nth 2 *span*)))
+                (when (> send sbeg)
+                  (if  (not (and font-lock-mode font-lock-keywords))
+                      ;; when no font-lock, set to t to avoid repeated calls
+                      ;; from display engine
+                      (put-text-property sbeg send 'fontified t)
+                    (let ((new-beg (max sbeg beg))
+                          (new-end (min send end)))
+                      (condition-case-unless-debug err
+                          ;; (if (oref pm/chunkmode :font-lock-narrow)
+                          ;;     (pm-with-narrowed-to-span *span*
+                          ;;       (font-lock-unfontify-region new-beg new-end)
+                          ;;       (font-lock-fontify-region new-beg new-end verbose))
+                          ;;   (font-lock-unfontify-region new-beg new-end)
+                          ;;   (font-lock-fontify-region new-beg new-end verbose))
+                          (if (oref pm/chunkmode :font-lock-narrow)
+                              (pm-with-narrowed-to-span *span*
+                                (jit-lock-fontify-now new-beg new-end))
+                            (jit-lock-fontify-now new-beg new-end))
+                        (error (message "(poly-lock-fontify-now %s %s) -> (%s %s %s %s): %s "
+                                        beg end poly-lock--fontify-region-original new-beg new-end verbose
+                                        (error-message-string err))))
+                      ;; even if failed set to t
+                      (put-text-property new-beg new-end 'fontified t))
+
+                    (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode)))))))
+           beg end))))
+    (current-buffer)))
+
+(defun poly-lock-refontify (&optional beg end)
+  "Force refontification of the region BEG..END.
+END is extended to the next chunk separator. This function is
+pleased in `font-lock-flush-function' and
+`font-lock-ensure-function'"
+  (when (and pm-allow-fontification
+             (not poly-lock-fontification-in-progress)
+             (not pm-initialization-in-progress))
+    (with-buffer-prepared-for-poly-lock
+     (save-restriction
+       (widen)
+       (cond ((and beg end)
+              (setq end (cdr (pm-get-innermost-range end))))
+             (beg
+              (setq end (cdr (pm-get-innermost-range beg))))
+             (t
+              (setq beg (point-min)
+                    end (point-max))))
+       (put-text-property beg end 'fontified nil)))))
+
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
@@ -130,76 +218,5 @@ Installed on `after-change-functions'."
                   (put-text-property gl-beg gl-end 'fontified nil)))))
            beg end nil nil nil 'no-cache)
           (cons gl-beg gl-end))))))
-
-(defun poly-lock-fontify-region (beg end &optional verbose)
-  "Polymode font-lock fontification function.
-Fontifies chunk-by chunk within the region. Assigned to
-`font-lock-fontify-region-function'."
-  (unless (or poly-lock-fontification-in-progress
-              pm-initialization-in-progress)
-    (let* ((font-lock-dont-widen t)
-           (pmarker (point-marker))
-           (dbuffer (current-buffer))
-           ;; Fontification in one buffer can trigger fontification in another
-           ;; buffer. Particularly, this happens when new indirect buffers are
-           ;; created and `normal-mode' triggers font-lock in those buffers. We
-           ;; avoid this by dynamically binding
-           ;; `poly-lock-fontification-in-progress' and un-setting
-           ;; `fontification-functions' in case re-display suddenly decides to
-           ;; fontify something else in other buffer.
-           (poly-lock-fontification-in-progress t)
-           (fontification-functions nil))
-      (save-restriction
-        (widen)
-        (save-excursion
-          (pm-map-over-spans
-           (lambda ()
-             (with-buffer-prepared-for-poly-lock
-              (let ((sbeg (nth 1 *span*))
-                    (send (nth 2 *span*)))
-                (when (> send sbeg)
-                  (if  (not (and font-lock-mode font-lock-keywords))
-                      ;; when no font-lock, set to t to avoid repeated calls
-                      ;; from display engine
-                      (put-text-property sbeg send 'fontified t)
-                    (let ((new-beg (max sbeg beg))
-                          (new-end (min send end)))
-                      (condition-case-unless-debug err
-                          (if (oref pm/chunkmode :font-lock-narrow)
-                              (pm-with-narrowed-to-span *span*
-                                (font-lock-unfontify-region new-beg new-end)
-                                (funcall poly-lock--fontify-region-original new-beg new-end verbose))
-                            (font-lock-unfontify-region new-beg new-end)
-                            (funcall poly-lock--fontify-region-original new-beg new-end verbose))
-                        (error (message "(poly-lock-fontify-region %s %s) -> (%s %s %s %s): %s "
-                                        beg end poly-lock--fontify-region-original new-beg new-end verbose
-                                        (error-message-string err))))
-                      ;; even if failed set to t
-                      (put-text-property new-beg new-end 'fontified t))
-
-                    (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode)))))))
-           beg end))))
-    (current-buffer)))
-
-(defun poly-lock-refontify (&optional beg end)
-  "Force refontification of the region BEG..END.
-END is extended to the next chunk separator. This function is
-pleased in `font-lock-flush-function' and
-`font-lock-ensure-function'"
-  (when (and pm-allow-fontification
-             (not poly-lock-fontification-in-progress)
-             (not pm-initialization-in-progress))
-    (with-buffer-prepared-for-poly-lock
-     (save-restriction
-       (widen)
-       (cond ((and beg end)
-              (setq end (cdr (pm-get-innermost-range end))))
-             (beg
-              (setq end (cdr (pm-get-innermost-range beg))))
-             (t
-              (setq beg (point-min)
-                    end (point-max))))
-       (put-text-property beg end 'fontified nil)))))
-
 
 (provide 'poly-lock)
