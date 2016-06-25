@@ -52,13 +52,9 @@ to activate jit-lock."
 
         ;; re-use jit-lock registration. Some minor modes (adaptive-wrap)
         ;; register extra functionality.
-
         (jit-lock-register 'font-lock-fontify-region)
-        ;; (unless (eq font-lock-fontify-region-function 'poly-lock-fontify-now)
-        ;;   (setq-local poly-lock--fontify-region-original font-lock-fontify-region-function)
-        ;;   (setq-local font-lock-fontify-region-function #'poly-lock-fontify-now))
 
-        ;; we don't allow any other functions
+        ;; don't allow other functions
         (setq-local fontification-functions '(poly-lock-fontification-function))
 
         (setq-local font-lock-flush-function 'poly-lock-refontify)
@@ -183,7 +179,6 @@ pleased in `font-lock-flush-function' and
                     end (point-max))))
        (put-text-property beg end 'fontified nil)))))
 
-
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
 Installed on `after-change-functions'."
@@ -199,7 +194,7 @@ Installed on `after-change-functions'."
             exp-error)
         (save-excursion
           (condition-case err
-              ;; This sets jit-lock-start and jit-lock-end.
+              ;; set jit-lock-start and jit-lock-end locally
               (run-hook-with-args 'jit-lock-after-change-extend-region-functions
                                   beg end old-len)
             (error (message "(poly-lock-after-change:jl-expand (%s %s %s)): %s"

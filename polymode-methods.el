@@ -86,7 +86,6 @@
            (font-lock-fontify-buffer-function 'ignore)
            ;; Mode functions can do arbitrary things. We inhibt all PM hooks
            ;; because PM objects have not been setup yet.
-           (pm-debug-allow-post-command-hook nil)
            (pm-allow-after-change-hook nil)
            (pm-allow-fontification nil))
        (condition-case-unless-debug err
