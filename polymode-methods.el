@@ -257,9 +257,12 @@ installed. Also see `pm-get-span'.")
 
 (defvar pm-move-vars-from-base '(buffer-file-name)
   "Variables transferred from base buffer on buffer switch.")
+
 (defvar pm-move-vars-from-old-buffer
   '(buffer-invisibility-spec
-    truncate-lines word-wrap selective-display overwrite-mode
+    selective-display overwrite-mode
+    ;; truncation and word-wrap
+    truncate-lines word-wrap
     line-move-visual truncate-partial-width-windows)
   "Variables transferred from old buffer on buffer switch.")
 
@@ -296,6 +299,8 @@ this method to work correctly, SUBMODE's class should define
         (visible (pos-visible-in-window-p))
         (vlm visual-line-mode)
         (ractive (region-active-p))
+        (scale (and (boundp 'text-scale-mode) text-scale-mode))
+        (scale-amount (and (boundp 'text-scale-mode-amount) text-scale-mode-amount))
         (mkt (mark t))
         (bro buffer-read-only))
 
@@ -308,6 +313,14 @@ this method to work correctly, SUBMODE's class should define
     (unless (eq bro buffer-read-only)
       (read-only-mode (if bro 1 -1)))
     (pm--adjust-visual-line-mode vlm)
+
+    (when (and (boundp 'text-scale-mode-amount)
+               (not (and (eq scale text-scale-mode)
+                         (= scale-amount text-scale-mode-amount))))
+      (if scale
+          (text-scale-set scale-amount)
+        (text-scale-set 0)))
+
     ;; fixme: what is the right way to do this ... activate-mark-hook?
     (if (not ractive)
         (deactivate-mark)
@@ -335,7 +348,8 @@ this method to work correctly, SUBMODE's class should define
     (unless (eq to-buffer from-buffer)
       (with-current-buffer to-buffer
         (dolist (var vars)
-          (set var (buffer-local-value var from-buffer)))))))
+          (and (boundp var)
+               (set var (buffer-local-value var from-buffer))))))))
 
 (defun pm--adjust-visual-line-mode (vlm)
   (unless (eq visual-line-mode vlm)
