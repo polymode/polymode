@@ -299,10 +299,15 @@ this method to work correctly, SUBMODE's class should define
         (visible (pos-visible-in-window-p))
         (vlm visual-line-mode)
         (ractive (region-active-p))
+        ;; text-scale-mode
         (scale (and (boundp 'text-scale-mode) text-scale-mode))
         (scale-amount (and (boundp 'text-scale-mode-amount) text-scale-mode-amount))
+        (hl-line (and (boundp 'hl-line-mode) hl-line-mode))
         (mkt (mark t))
         (bro buffer-read-only))
+
+    (when hl-line
+      (hl-line-mode -1))
 
     (pm--move-vars pm-move-vars-from-old-buffer old-buffer new-buffer)
     (pm--move-overlays old-buffer new-buffer)
@@ -327,10 +332,13 @@ this method to work correctly, SUBMODE's class should define
       (set-mark mkt)
       (activate-mark))
 
-    (goto-char point)
     ;; avoid display jumps
+    (goto-char point)
     (when visible
       (set-window-start (get-buffer-window buffer t) window-start))
+
+    (when hl-line
+      (hl-line-mode 1))
 
     (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)
     (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
