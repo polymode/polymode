@@ -293,6 +293,11 @@ regardless of the position `syntax-ppss-last' was recorder at."
 
 
 ;;; UTILITIES
+(defvar polymode-display-output-file t
+  "When non-nil automatically display output file in emacs.
+This is temporary variable, it might be changed or removed in the
+near future.")
+
 (defun pm--display-file (ofile)
   (when ofile
    ;; errors might occur (most notably with open-with package errors are intentional)
@@ -302,8 +307,11 @@ regardless of the position `syntax-ppss-last' was recorder at."
           ;; silently kill and re-open
           (when buff
             (with-current-buffer buff
-                (revert-buffer t t)))
-          (display-buffer (find-file-noselect ofile 'nowarn)))
+              (revert-buffer t t)))
+          (when polymode-display-output-file
+            (if (string-match-p "html\\|htm$")
+                (browse-url ofile)
+              (display-buffer (find-file-noselect ofile 'nowarn)))))
       (error (message "Error while displaying '%s': %s"
                       (file-name-nondirectory ofile)
                       (error-message-string err))))))
