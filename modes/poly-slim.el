@@ -101,6 +101,7 @@
   :group 'polymodes
   :type 'object)
 
+;;;###autoload  (autoload 'poly-slim-mode "poly-slim")
 (define-polymode poly-slim-mode pm-poly/slim)
 
 (provide 'poly-slim)
