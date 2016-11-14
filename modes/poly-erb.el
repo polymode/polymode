@@ -29,6 +29,7 @@
   :group 'polymodes
   :type 'object)
 
+;;;###autoload  (autoload 'poly-coffee+erb-mode "poly-erb")
 (define-polymode poly-coffee+erb-mode pm-poly/coffee-erb)
 (define-obsolete-function-alias 'poly-coffee-erb-mode 'poly-coffee+erb-mode)
 
@@ -40,6 +41,7 @@
   :group 'polymodes
   :type 'object)
 
+;;;###autoload  (autoload 'poly-javascript+erb-mode "poly-erb")
 (define-polymode poly-javascript+erb-mode pm-poly/javascript-erb)
 (define-obsolete-function-alias 'poly-javascript-erb-mode 'poly-javascript+erb-mode)
 
@@ -51,6 +53,7 @@
   :group 'polymodes
   :type 'object)
 
+;;;###autoload  (autoload 'poly-html+erb-mode "poly-erb")
 (define-polymode poly-html+erb-mode pm-poly/html-erb)
 (define-obsolete-function-alias 'poly-html-erb-mode 'poly-html+erb-mode)
 
