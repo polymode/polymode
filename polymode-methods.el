@@ -1,7 +1,6 @@
 (require 'polymode-core)
 (require 'poly-lock)
 
-
 
 ;;; Initialization
 
