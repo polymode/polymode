@@ -47,4 +47,5 @@
   :group 'innermodes
   :type 'object)
 
+;;;###autoload  (autoload 'poly-noweb+c-mode "poly-c")
 (define-polymode poly-noweb+c-mode pm-poly/noweb+c :lighter " PM-Cnw")
