@@ -309,7 +309,7 @@ near future.")
             (with-current-buffer buff
               (revert-buffer t t)))
           (when polymode-display-output-file
-            (if (string-match-p "html\\|htm$")
+            (if (string-match-p "html\\|htm$" ofile)
                 (browse-url ofile)
               (display-buffer (find-file-noselect ofile 'nowarn)))))
       (error (message "Error while displaying '%s': %s"
