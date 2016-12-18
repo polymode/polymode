@@ -35,7 +35,10 @@
   (pm-polymode-one "noweb"
                    :hostmode 'pm-host/latex
                    :innermode 'pm-inner/noweb
-                   :exporters '(pm-exporter/latexmk pm-exporter/pdflatex)
+                   :exporters '(pm-exporter/latexmk
+                                pm-exporter/pdflatex
+                                pm-exporter/lualatex
+                                pm-exporter/xelatex)
                    :map '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymodes
@@ -80,14 +83,38 @@ closing \"@\" and a newline if necessary."
   :group 'polymode-export
   :type 'object)
 
+(defcustom pm-exporter/lualatex
+  (pm-shell-exporter "LuaLaTeX"
+                     :from
+                     '(("latex" "\\.tex\\'" "LuaLaTeX" "lualatex -jobname %b %t %i"))
+                     :to
+                     '(("pdf"   "pdf"  "PDF" ""))
+                     :quote t)
+  "Shell pdflatex exporter."
+  :group 'polymode-export
+  :type 'object)
+
+(defcustom pm-exporter/xelatex
+  (pm-shell-exporter "XeLaTeX"
+                     :from
+                     '(("latex" "\\.tex\\'" "XeLaTeX" "xelatex -jobname %b %t %i"))
+                     :to
+                     '(("pdf"   "pdf"  "PDF" ""))
+                     :quote t)
+  "Shell pdflatex exporter."
+  :group 'polymode-export
+  :type 'object)
+
 (defcustom pm-exporter/latexmk
   (pm-shell-exporter "latexmk"
                      :from
-                     '(("latex" "\\.tex\\'" "LaTeX" "latexmk -jobname=%b %t %i"))
+                     '(("latex" "\\.tex\\'" "LaTeX(MK)" "latexmk -jobname=%b %t %i"))
                      :to
-                     '(("pdf"   "pdf"  "PDF" "-pdf")
-                       ("ps"    "ps"  "PS" "-ps")
-                       ("dvi"   "dvi"  "DVI" "-dvi"))
+                     '(("pdf"        "pdf"  "latex" "-pdf")
+                       ("xelatex"    "pdf"  "xe" "-xelatex")
+                       ("lualatex"   "pdf"  "lua" "-lualatex")
+                       ("ps"         "ps"  "latex" "-ps")
+                       ("dvi"        "dvi"  "latex" "-dvi"))
                      :quote t)
   "Shell latexmk dvi, ps and pdf exporter."
   :group 'polymode-export
