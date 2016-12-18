@@ -243,8 +243,7 @@ specification."
                (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
                                                (progn
                                                  (setq gprompt "Choose `from' spec: ")
-                                                 (when (y-or-n-p "No `from' specs matched. Set weaver?")
-                                                   (polymode-set-weaver)))))))
+                                                 (polymode-set-weaver))))))
                  (when weaver
                    ;; fixme: weaver was not yet ported to selectors
                    ;; fixme: currently only first match is returned
