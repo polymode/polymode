@@ -44,7 +44,7 @@
   (pm-hbtchunkmode-auto "markdown"
                         :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                         :tail-matcher "^[ \t]*```[ \t]*$"
-                        :retriever-regexp "```[ \t]*\\(?:{\\|lang=\\)?\\([^ \t\n,}]+\\)"
+                        :retriever-regexp "```[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)"
                         :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'innermodes
@@ -54,12 +54,11 @@
   (pm-hbtchunkmode-auto "markdown-inline"
                         :head-matcher (cons "[^`]\\(`{?[^ \t\n,}]\\) " 1)
                         :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
-                        :retriever-regexp (cons "`\\(?:{\\|lang=\\)?\\([^ \t\n,]+\\)" 1)
+                        :retriever-regexp (cons "`[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)" 1)
                         :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'innermodes
   :type 'object)
-
 
 (defcustom pm-poly/markdown
   (pm-polymode-multi "markdown"
