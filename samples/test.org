@@ -23,3 +23,12 @@
   }
 #+end_src
 
+#+begin_src C++
+class myfirstjavaprog
+  {
+    public static void main(String args[])
+    {
+      System.out.println("Hello World!");
+    }
+  }
+#+end_src
