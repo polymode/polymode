@@ -330,7 +330,8 @@ near future.")
          (mname (if (string-match-p "-mode$" str)
                     str
                   (concat str "-mode"))))
-    (pm--get-existent-mode (intern mname) no-fallback)))
+    (or (pm--get-existent-mode (intern mname) t)
+        (pm--get-existent-mode (intern (downcase mname))) no-fallback)))
 
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
