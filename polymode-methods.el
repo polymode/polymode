@@ -734,6 +734,38 @@ tail  - tail span"
            (pm--span-at-point-fun-fun head-matcher tail-matcher))
           (t (error "head and tail matchers should be either regexp strings or functions")))))
 
+(defun pm-map-over-chunks-same-type (type fun)
+  "Execute function FUN, a function of no arguments, for all chunks of TYPE."
+  (interactive "p")
+  (save-excursion
+    (condition-case nil
+        (pm-map-over-spans
+         (lambda ()
+           (when (eq type (pm-span-for-mode *span*))
+             (funcall fun)))
+         (point-min) (point-max)))))
+
+(defun pm-buffer-modes ()
+  "Return list of all major modes for current buffer."
+  (let ((modes ()))
+    (save-excursion
+      (pm-map-over-spans
+       (lambda ()
+         (add-to-list 'modes (pm-mode-for-span *span*)))
+       (point-min) (point-max)))
+    modes))
+
+(defun pm-mode-for-span (span)
+  "Return the major mode that handles SPAN."
+  (let ((obj (car (last span))))
+    (pm--get-chunkmode-mode
+     (case (eieio-object-class obj)
+       ('pm-polymode-multi-auto (pm--get-multi-chunk obj span))
+       ('pm-hbtchunkmode-auto (pm--get-multi-chunk obj span))
+       ('pm-bchunkmode obj)
+       ('pm-hbtchunkmode obj))
+     'body)))
+
 
 ;;; INDENT
 (defun pm-indent-line-dispatcher ()
