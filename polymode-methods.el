@@ -734,16 +734,18 @@ tail  - tail span"
            (pm--span-at-point-fun-fun head-matcher tail-matcher))
           (t (error "head and tail matchers should be either regexp strings or functions")))))
 
-(defun pm-map-over-chunks-same-type (type fun)
+(defun pm-map-over-chunks-same-type (types fun &optional beg end)
   "Execute function FUN, a function of no arguments, for all chunks of TYPE."
   (interactive "p")
-  (save-excursion
-    (condition-case nil
-        (pm-map-over-spans
-         (lambda ()
-           (when (eq type (pm-span-for-mode *span*))
-             (funcall fun)))
-         (point-min) (point-max)))))
+  (let ((beg (or beg (point-min)))
+        (end (or end (point-max))))
+    (save-excursion
+      (condition-case nil
+          (pm-map-over-spans
+           (lambda ()
+             (when (memq (pm-mode-for-span *span*) types)
+               (funcall fun)))
+           beg end)))))
 
 (defun pm-buffer-modes ()
   "Return list of all major modes for current buffer."

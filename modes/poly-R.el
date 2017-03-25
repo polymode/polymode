@@ -456,4 +456,35 @@ block. Thus, output file names don't comply with
   (advice-add 'ess-eval-buffer :around 'pm-execute-narrowed-to-span)
   (advice-add 'ess-beginning-of-function :around 'pm-execute-narrowed-to-span))
 
+(defun ess-Rmd-eval-chunk (vis)
+  "Send the current Rmd chunk to inferior R process."
+  (interactive "p")
+  (pm-execute-narrowed-to-span
+   'ess-eval-region (point-min) (point-max) vis "Eval chunk"))
+
+(defun ess-Rmd-eval-region (beg end vis)
+  "Send all R chunks in region BEG to END to inferior R process."
+  (interactive "r\np")
+  (pm-map-over-chunks-same-type
+   '(R-mode r-mode)
+   (lambda ()
+     (ess-Rmd-eval-chunk vis))
+   beg end))
+
+(defun ess-Rmd-eval-buffer (vis)
+  "Send all R chunks in the buffer to inferior R process."
+  (interactive "P")
+  (ess-Rmd-eval-region (point-min) (point-max) vis))
+
+(defun ess-Rmd-eval-buffer-from-beg-to-here (vis)
+  "Send all R chunks from the start of the buffer to current
+point to inferior R process."
+  (interactive "P")
+  (ess-Rmd-eval-region (point-min) (point) vis))
+
+(defun ess-Rmd-eval-buffer-from-here-to-end (vis)
+  "Send all R chunks from current point to the end of the buffer to inferior R process."
+  (interactive "P")
+  (ess-Rmd-eval-region (point) (point-max) vis))
+
 (provide 'poly-R)
