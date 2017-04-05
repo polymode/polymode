@@ -58,11 +58,9 @@
 (define-polymode poly-noweb+r-mode pm-poly/noweb+R :lighter " PM-Rnw")
 
 
-
+
 ;; MARKDOWN
 (require 'poly-markdown)
-;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
-(define-polymode poly-markdown+r-mode pm-poly/markdown :lighter " PM-Rmd")
 
 
 ;; RAPPORT
@@ -489,5 +487,25 @@ point to inferior R process."
   "Send all R chunks from current point to the end of the buffer to inferior R process."
   (interactive "P")
   (ess-Rmd-eval-region (point) (point-max) vis))
+
+;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
+(defvar poly-markdown+r-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap ess-eval-buffer-from-beg-to-here]
+      'ess-Rmd-eval-buffer-from-beg-to-here)
+    (define-key map [remap ess-eval-buffer-from-here-to-end]
+      'ess-Rmd-eval-buffer-from-here-to-end)
+    (define-key map [remap ess-eval-buffer]
+      'ess-Rmd-eval-buffer)
+    (define-key map [remap ess-eval-chunk]
+      'ess-Rmd-eval-chunk)
+    (define-key map [remap ess-eval-region]
+      'ess-Rmd-eval-region)
+    map))
+
+(define-polymode poly-markdown+r-mode pm-poly/markdown
+  :lighter " PM-Rmd"
+  :map poly-markdown+r-mode-map)
+
 
 (provide 'poly-R)
