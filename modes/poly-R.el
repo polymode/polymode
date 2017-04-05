@@ -416,6 +416,7 @@ block. Thus, output file names don't comply with
 (declare-function ess-process-put nil)
 (declare-function comint-previous-prompt nil)
 
+
 (defun pm--ess-callback (proc string)
   (let ((ofile (process-get proc :output-file)))
     ;; This is getting silly. Ess splits output for optimization reasons. So we
@@ -448,24 +449,26 @@ block. Thus, output file names don't comply with
     (ess-process-put 'running-async? t)
     (ess-eval-linewise command)))
 
+
 
 ;; COMPAT
 
 (when (fboundp 'advice-add)
   (advice-add 'ess-eval-paragraph :around 'pm-execute-narrowed-to-span)
   (advice-add 'ess-eval-buffer :around 'pm-execute-narrowed-to-span)
-  (advice-add 'ess-beginning-of-function :around 'pm-execute-narrowed-to-span))
+  (advice-add 'ess-beginning-of-function :around 'pm-execute-narrowed-to-span)
+  (advice-add 'ess-eval-region-or-line-and-step :around 'pm-execute-narrowed-to-span))
 
-(defun ess-Rmd-eval-chunk (vis)
+(defun ess-Rmd-eval-chunk (&optional vis)
   "Send the current Rmd chunk to inferior R process."
-  (interactive "p")
+  (interactive "P")
   (pm-execute-narrowed-to-span
    'ess-eval-region (point-min) (point-max) vis "Eval chunk"))
 
 (defun ess-Rmd-eval-region (beg end vis)
   "Send all R chunks in region BEG to END to inferior R process."
-  (interactive "r\np")
-  (pm-map-over-chunks-same-type
+  (interactive "r\nP")
+  (pm-map-over-body-spans-same-type
    '(R-mode r-mode)
    (lambda ()
      (ess-Rmd-eval-chunk vis))

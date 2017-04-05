@@ -734,8 +734,8 @@ tail  - tail span"
            (pm--span-at-point-fun-fun head-matcher tail-matcher))
           (t (error "head and tail matchers should be either regexp strings or functions")))))
 
-(defun pm-map-over-chunks-same-type (types fun &optional beg end)
-  "Execute function FUN, a function of no arguments, for all chunks of TYPE."
+(defun pm-map-over-body-spans-same-type (types fun &optional beg end)
+  "Execute function FUN, a function of no arguments, for all chunks of TYPES."
   (interactive "p")
   (let ((beg (or beg (point-min)))
         (end (or end (point-max))))
@@ -743,7 +743,8 @@ tail  - tail span"
       (condition-case nil
           (pm-map-over-spans
            (lambda ()
-             (when (memq (pm-mode-for-span *span*) types)
+             (when (and (eq (car *span*) 'body)
+                        (memq (pm-mode-for-span *span*) types))
                (funcall fun)))
            beg end)))))
 
