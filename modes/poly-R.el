@@ -497,7 +497,7 @@ point to inferior R process."
       'ess-Rmd-eval-buffer-from-here-to-end)
     (define-key map [remap ess-eval-buffer]
       'ess-Rmd-eval-buffer)
-    (define-key map [remap ess-eval-chunk]
+    (define-key map "C-M-x"
       'ess-Rmd-eval-chunk)
     (define-key map [remap ess-eval-region]
       'ess-Rmd-eval-region)
