@@ -52,7 +52,7 @@
 
 (defcustom  pm-inner/markdown-inline
   (pm-hbtchunkmode-auto "markdown-inline"
-                        :head-matcher (cons "[^`]\\(`{?[^ \t\n,}]\\) " 1)
+                        :head-matcher (cons "[^`]\\(`{?[^] \t\n.!?:;,})]\\) " 1)
                         :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
                         :retriever-regexp (cons "`[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)" 1)
                         :font-lock-narrow t)
