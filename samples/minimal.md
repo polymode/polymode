@@ -1,3 +1,4 @@
+
 If `poly-markdown.el` is loaded. This should work by default. Otherwise `M-x
 poly-markdown+r-mode RET` should do the job.
 
@@ -28,12 +29,16 @@ poly-markdown+r-mode RET` should do the job.
 }
 ```
 
+
   ```python
     if len($declaration) > 0 and $declaration::isTypedef:
         $Symbols::types.add($IDENTIFIER.text)
         print "define type "+$IDENTIFIER.text  # line 19
   ```
-
-
-
+  
+  
+$$\begin{equation}
+  L(\theta) = f(x_1,x_2, \ldots, x_n | \theta )
+  (\#eq:reference)
+\end{equation}$$
 

@@ -60,10 +60,20 @@
   :group 'innermodes
   :type 'object)
 
+(defcustom  pm-inner/markdown-latex
+  (pm-hbtchunkmode "latex"
+                   :head-matcher (cons "^[ \t]*\\(\\$\\$\\)" 1)
+                   :tail-matcher (cons "\\(\\$\\$\\)[ \t]*$" 1)
+                   :mode 'latex-mode
+                   :font-lock-narrow t)
+  "Latex typical inner chunk."
+  :group 'innermodes
+  :type 'object)
+
 (defcustom pm-poly/markdown
   (pm-polymode-multi "markdown"
                      :hostmode 'pm-host/markdown
-                     :innermodes '(pm-inner/markdown pm-inner/markdown-inline))
+                     :innermodes '(pm-inner/markdown pm-inner/markdown-inline pm-inner/markdown-latex))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)
