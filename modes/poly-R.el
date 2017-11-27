@@ -58,11 +58,9 @@
 (define-polymode poly-noweb+r-mode pm-poly/noweb+R :lighter " PM-Rnw")
 
 
-
+
 ;; MARKDOWN
 (require 'poly-markdown)
-;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
-(define-polymode poly-markdown+r-mode pm-poly/markdown :lighter " PM-Rmd")
 
 
 ;; RAPPORT
@@ -416,6 +414,7 @@ block. Thus, output file names don't comply with
 (declare-function ess-process-put nil)
 (declare-function comint-previous-prompt nil)
 
+
 (defun pm--ess-callback (proc string)
   (let ((ofile (process-get proc :output-file)))
     ;; This is getting silly. Ess splits output for optimization reasons. So we
@@ -448,12 +447,65 @@ block. Thus, output file names don't comply with
     (ess-process-put 'running-async? t)
     (ess-eval-linewise command)))
 
+
 
 ;; COMPAT
 
 (when (fboundp 'advice-add)
   (advice-add 'ess-eval-paragraph :around 'pm-execute-narrowed-to-span)
   (advice-add 'ess-eval-buffer :around 'pm-execute-narrowed-to-span)
-  (advice-add 'ess-beginning-of-function :around 'pm-execute-narrowed-to-span))
+  (advice-add 'ess-beginning-of-function :around 'pm-execute-narrowed-to-span)
+  (advice-add 'ess-eval-region-or-line-and-step :around 'pm-execute-narrowed-to-span))
+
+(defun ess-Rmd-eval-chunk (&optional vis)
+  "Send the current Rmd chunk to inferior R process."
+  (interactive "P")
+  (pm-execute-narrowed-to-span
+   'ess-eval-region (point-min) (point-max) vis "Eval chunk"))
+
+(defun ess-Rmd-eval-region (beg end vis)
+  "Send all R chunks in region BEG to END to inferior R process."
+  (interactive "r\nP")
+  (pm-map-over-body-spans-same-type
+   '(R-mode r-mode)
+   (lambda ()
+     (ess-Rmd-eval-chunk vis))
+   beg end))
+
+(defun ess-Rmd-eval-buffer (vis)
+  "Send all R chunks in the buffer to inferior R process."
+  (interactive "P")
+  (ess-Rmd-eval-region (point-min) (point-max) vis))
+
+(defun ess-Rmd-eval-buffer-from-beg-to-here (vis)
+  "Send all R chunks from the start of the buffer to current
+point to inferior R process."
+  (interactive "P")
+  (ess-Rmd-eval-region (point-min) (point) vis))
+
+(defun ess-Rmd-eval-buffer-from-here-to-end (vis)
+  "Send all R chunks from current point to the end of the buffer to inferior R process."
+  (interactive "P")
+  (ess-Rmd-eval-region (point) (point-max) vis))
+
+;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
+(defvar poly-markdown+r-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap ess-eval-buffer-from-beg-to-here]
+      'ess-Rmd-eval-buffer-from-beg-to-here)
+    (define-key map [remap ess-eval-buffer-from-here-to-end]
+      'ess-Rmd-eval-buffer-from-here-to-end)
+    (define-key map [remap ess-eval-buffer]
+      'ess-Rmd-eval-buffer)
+    (define-key map (kbd "C-M-x")
+      'ess-Rmd-eval-chunk)
+    (define-key map [remap ess-eval-region]
+      'ess-Rmd-eval-region)
+    map))
+
+(define-polymode poly-markdown+r-mode pm-poly/markdown
+  :lighter " PM-Rmd"
+  :map poly-markdown+r-mode-map)
+
 
 (provide 'poly-R)
