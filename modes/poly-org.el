@@ -76,8 +76,8 @@ to be able to find the process buffer associated with the current code block."
 				hostbuf 'org-outline-level)))))
 
 ;; Run `poly-org-mode-fix-outlines' whenever we navigate into a code block in org-mode.
-(add-hook 'polymode-switch-buffer-hook #'poly-org-fix-outlines)
-;;(remove-hook 'polymode-switch-buffer-hook #'poly-org-fix-outlines)
+(add-hook 'polymode-switch-buffer-hook #'poly-org-mode-fix-outlines)
+;;(remove-hook 'polymode-switch-buffer-hook #'poly-org-mode-fix-outlines)
 
 (defun poly-org-mode-process-buffer-name (&optional a b c d e)
   "Return the name of the process buffer associated with the current babel block.
@@ -113,7 +113,5 @@ advised by this function. This function will not work properly unless `outline-r
 (if (featurep 'python-mode)
     (advice-add 'py--choose-buffer-name :before-until #'poly-org-mode-process-buffer-name))
 ;;(advice-remove 'ess-get-process #'poly-org-mode-process-buffer-name)
-
-
 
 (provide 'poly-org)
