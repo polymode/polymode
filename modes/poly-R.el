@@ -303,7 +303,7 @@ block. Thus, output file names don't comply with
   (pm-callback-exporter "Rmarkdown-ESS"
                         :from
                         '(("Rmarkdown" "\\.[rR]?md\\|rapport\\'" "R Markdown"
-                           "rmarkdown::render('%I', output_format = '%t', output_file = '%O')\n"))
+                           "rmarkdown::render('%I', output_format = '%t', output_file = '%O', knit_root_dir=getwd())\n"))
                         :to
                         '(("auto" . pm--rmarkdown-callback-auto-selector)
                           ("html" "html" "html document" "html_document")
@@ -330,7 +330,7 @@ block. Thus, output file names don't comply with
   (cl-case action
     (doc "AUTO DETECT")
     ;; last file is not auto-detected unless we cat new line
-    (command "rmarkdown::render('%I', output_format = 'all')")
+    (command "rmarkdown::render('%I', output_format = 'all', knit_root_dir=getwd())")
     (output-file #'pm--rmarkdown-output-file-sniffer)))
 
 (defun pm--rmarkdown-output-file-sniffer ()
