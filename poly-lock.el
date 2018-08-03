@@ -1,6 +1,33 @@
 
+;; FONT-LOCK COMPONENTS:
+;;
+;; All * functions are lazy in poly-lock and jit-lock because they just mark
+;; 'fontified nil.
+;;
+;;  fontification-functions ->                                           jit-lock-function  / poly-lock-function
+;; *font-lock-flush  ->           font-lock-flush-function  ->           jit-lock-refontify / poly-lock-refontify
+;;  font-lock-ensure ->           font-lock-ensure-function ->           jit-lock-fontify-now/poly-lock-fontify-now
+;;  font-lock-fontify-region ->   font-lock-fontify-region-function ->   font-lock-default-fontify-region
+;; *font-lock-fontify-buffer ->   font-lock-fontify-buffer-function ->   jit-lock-refontify / poly-lock-refontify
+;;  font-lock-unfontify-region -> font-lock-unfontify-region-function -> font-lock-default-unfontify-region
+;;  font-lock-unfontify-buffer -> font-lock-unfontify-buffer-function -> font-lock-default-unfontify-buffer
+
+;; Jit-lock components:
+;; fontification-functions (called by display engine)
+;;   --> jit-lock-function
+;;     --> jit-lock-fontify-now (or deferred through timer/text-properties)
+;;       --> jit-lock--run-functions
+;;         --> jit-lock-functions (font-lock-fontify-region bug-reference-fontify)
+;;
+
+;; Poly-lock components:
+;; fontification-functions
+;;   --> poly-lock-function
+;;    --> poly-lock-fontify-now
+;;      --> jit-lock-fontify-now
+
 ;; `font-lock-mode' call graph:
-;; -> font-lock-function <- we are replacing this with `poly-lock-mode'
+;; -> font-lock-function <---- replaced by `poly-lock-mode'
 ;;   -> font-lock-default-function
 ;;     -> font-lock-mode-internal
 ;;        -> font-lock-turn-on-thing-lock
@@ -12,12 +39,13 @@
 ;;               -> (add-hook 'jit-lock-functions #'font-lock-fontify-region nil t)
 ;;               -> jit-lock-mode
 
+
 (require 'polymode-core)
 (require 'polymode-compat)
 
+(defvar poly-lock-verbose nil)
 (defvar poly-lock-fontification-in-progress nil)
 (defvar-local poly-lock-mode nil)
-(defvar-local poly-lock--fontify-region-original nil)
 
 (eval-when-compile
   (defmacro with-buffer-prepared-for-poly-lock (&rest body)
