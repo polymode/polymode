@@ -78,11 +78,12 @@ The hook is run in chunkmode's body buffer from `pm-initialze'
 objects provides same functionality for narrower scope. See also
 `polymode-init-host-hook'.")
 
-;; esential vars
+
+;;; ESSENTIAL DECLARATIONS
+
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
 (defvar-local pm/type nil)
-(defvar-local pm--indent-line-function-original nil)
 ;; (defvar-local pm--killed-once nil)
 (defvar-local polymode-mode nil
   "This variable is t if current \"mode\" is a polymode.")
@@ -99,10 +100,19 @@ objects provides same functionality for narrower scope. See also
 (defvar pm/chunkmode)
 (defvar *span*)
 
+;; methods api from polymode-methods.el
+(declare-function pm-initialize "polymode-methods")
+(declare-function pm-get-buffer-create "polymode-methods")
+(declare-function pm-select-buffer "polymode-methods")
+(declare-function pm-get-adjust-face "polymode-methods")
+(declare-function pm-get-span "polymode-methods")
+
+
+;;; SHIELDS
+
 (defvar pm-allow-fontification t)
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
-
 (defvar pm-initialization-in-progress nil
   ;; We need this during cascading call-next-method in pm-initialize.
   ;; -innermodes are initialized after the hostmode setup has taken place. This
@@ -113,13 +123,33 @@ objects provides same functionality for narrower scope. See also
 If this variable is non-nil, various chunk manipulation commands
 relying on `pm-get-span' might not function correctly.")
 
-;; methods api from polymode-methods.el
-(declare-function pm-initialize "polymode-methods")
-(declare-function pm-get-buffer-create "polymode-methods")
-(declare-function pm-select-buffer "polymode-methods")
-(declare-function pm-get-adjust-face "polymode-methods")
-(declare-function pm-get-span "polymode-methods")
-(declare-function pm-indent-line "polymode-methods")
+(defvar pm-last-error-time (current-time))
+(defun pm-last-error-far-off-p ()
+  "Return t if last error occurred \"long time ago\".
+If so, reset `pm-last-error-time' to current time."
+  (let ((cur-time (current-time)))
+    (when (time-less-p (time-add pm-last-error-time 0.005)
+                       cur-time)
+      (setq pm-last-error-time (current-time))
+      t)))
+
+(defvar-local pm--syntax-propertize-function-original nil)
+(defun pm-syntax-propertize (start end)
+  (save-excursion
+    ;; (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer))
+    ;; (message "syntax-propertize--done: %d [%s]" syntax-propertize--done (current-buffer))
+    (pm-map-over-spans
+     (lambda ()
+       (pm-with-narrowed-to-span *span*
+         (when pm--syntax-propertize-function-original
+           (let ((pos0 (max (nth 1 *span*) start))
+                 (pos1 (min (nth 2 *span*) end)))
+             (condition-case err
+                 (funcall pm--syntax-propertize-function-original pos0 pos1)
+               (error
+                (message "(syntax-propertize %d %d) fun: %s  error: %s"
+                         pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
+     start end)))
 
 
 ;;; CORE

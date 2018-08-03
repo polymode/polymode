@@ -60,12 +60,13 @@ Preserves the `buffer-modified-p' state of the current buffer."
   "Don't activate `jit-lock-mode' when in `polymode' buffers.
 We are reusing some of the jit-lock functionality but don't want
 to activate jit-lock."
-  (unless (and polymode-mode pm/polymode)
+  (unless (or polymode-mode pm/polymode)
     (funcall orig-fun arg)))
 (pm-around-advice 'jit-lock-mode #'poly-lock-no-jit-lock-in-polymode-buffers)
 
 (defun poly-lock-mode (arg)
-  ;; value of `font-lock-function' in polymode buffers
+  "This is the value of `font-lock-function' in all polymode buffers.
+Mode activated when `font-lock' is toggled."
   (unless polymode-mode
     (error "Trying to (de)activate `poly-lock-mode' in a non-polymode buffer (%s)" (current-buffer)))
   (setq poly-lock-mode arg)
@@ -83,7 +84,7 @@ to activate jit-lock."
         (jit-lock-register 'font-lock-fontify-region)
 
         ;; don't allow other functions
-        (setq-local fontification-functions '(poly-lock-fontification-function))
+        (setq-local fontification-functions '(poly-lock-function))
 
         (setq-local font-lock-flush-function 'poly-lock-refontify)
         (setq-local font-lock-ensure-function 'poly-lock-fontify-now)
@@ -107,7 +108,7 @@ to activate jit-lock."
         (remove-hook 'after-change-functions 'jit-lock-after-change t)
         (add-hook 'after-change-functions 'poly-lock-after-change nil t)
 
-        ;; Reusing jit-lock var becuase mode populate it directly. We are using
+        ;; Reusing jit-lock var becuase modes populate it directly. We are using
         ;; this in `poly-lock-after-change' below. Taken from `jit-lock
         ;; initialization.
         (add-hook 'jit-lock-after-change-extend-region-functions
@@ -115,14 +116,14 @@ to activate jit-lock."
                   nil t))
 
     (remove-hook 'after-change-functions 'poly-lock-after-change t)
-    (remove-hook 'fontification-functions 'poly-lock-fontification-function t))
+    (remove-hook 'fontification-functions 'poly-lock-function t))
   (current-buffer))
 
-(defun poly-lock-fontification-function (start)
-  "The only function in `fontification-functions'.
+(defun poly-lock-function (start)
+  "The only function in `fontification-functions' in polymode buffers.
 This is the entry point called by the display engine. START is
-defined in `fontification-functions'. This function is has the
-same scope as `jit-lock-function'."
+defined in `fontification-functions'. This function has the same
+scope as `jit-lock-function'."
   (unless pm-initialization-in-progress
     (if pm-allow-fontification
         (when (and poly-lock-mode (not memory-full))
@@ -135,11 +136,12 @@ same scope as `jit-lock-function'."
        (put-text-property start (point-max) 'fontified t)))))
 
 (defun poly-lock-fontify-now (beg end &optional verbose)
-  "Polymode font-lock fontification function.
+  "Polymode main fontification function.
 Fontifies chunk-by chunk within the region BEG END."
   (unless (or poly-lock-fontification-in-progress
               pm-initialization-in-progress)
     (let* ((font-lock-dont-widen t)
+           (font-lock-extend-region-functions nil)
            (pmarker (point-marker))
            (dbuffer (current-buffer))
            ;; Fontification in one buffer can trigger fontification in another
@@ -177,12 +179,13 @@ Fontifies chunk-by chunk within the region BEG END."
                               (pm-with-narrowed-to-span *span*
                                 (jit-lock-fontify-now new-beg new-end))
                             (jit-lock-fontify-now new-beg new-end))
-                        (error (message "(poly-lock-fontify-now %s %s) -> (%s %s %s %s): %s "
-                                        beg end poly-lock--fontify-region-original new-beg new-end verbose
-                                        (error-message-string err))))
+                        (error
+                         (message "(poly-lock-fontify-now %s %s [span %d %d %s]) -> (%s %s %s): %s"
+                                  beg end sbeg send (current-buffer)
+                                  font-lock-fontify-region-function new-beg new-end
+                                  (error-message-string err))))
                       ;; even if failed set to t
                       (put-text-property new-beg new-end 'fontified t))
-
                     (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode)))))))
            beg end))))
     (current-buffer)))
@@ -209,39 +212,33 @@ pleased in `font-lock-flush-function' and
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region as not fontified after change.
-Installed on `after-change-functions'."
-  (save-match-data
-    (when (and poly-lock-mode
-               pm-allow-after-change-hook
-               (not memory-full))
-      (let ((jit-lock-start beg)
-            (jit-lock-end end)
-            ;; useful info for tracing
-            (gl-beg end)
-            (gl-end beg)
-            exp-error)
-        (save-excursion
-          (condition-case err
-              ;; set jit-lock-start and jit-lock-end locally
-              (run-hook-with-args 'jit-lock-after-change-extend-region-functions
-                                  beg end old-len)
-            (error (message "(poly-lock-after-change:jl-expand (%s %s %s)): %s"
-                            beg end old-len (error-message-string err))
-                   (setq jit-lock-start beg
-                         jit-lock-end end)))
-          (setq beg (min beg jit-lock-start)
-                end (max end jit-lock-end))
-          (pm-map-over-spans
-           (lambda ()
-             (with-buffer-prepared-for-poly-lock
-              (let ((sbeg (nth 1 *span*))
-                    (send (nth 2 *span*)))
-                (save-restriction
-                  (widen)
-                  (setq gl-beg (min gl-beg (max jit-lock-start sbeg))
-                        gl-end (max gl-beg jit-lock-end send))
-                  (put-text-property gl-beg gl-end 'fontified nil)))))
-           beg end nil nil nil 'no-cache)
-          (cons gl-beg gl-end))))))
+Installed in `after-change-functions' and behaves similarly to
+`jit-lock-after-change' in what it calls
+`jit-lock-after-change-extend-region-functions' in turn but with
+the buffer narrowed to the relevant spans."
+  (save-excursion
+    (save-match-data
+      (when (and poly-lock-mode
+                 pm-allow-after-change-hook
+                 (not memory-full))
+        (pm-map-over-spans
+         (lambda ()
+           (with-buffer-prepared-for-poly-lock
+            (let ((sbeg (nth 1 *span*))
+                  (send (nth 2 *span*)))
+              (pm-with-narrowed-to-span *span*
+                (let ((jit-lock-start (max beg sbeg))
+                      (jit-lock-end (min end send)))
+                  (when (or (> beg sbeg) (< end send))
+                    (condition-case err
+                        ;; set jit-lock-start and jit-lock-end locally
+                        (run-hook-with-args 'jit-lock-after-change-extend-region-functions
+                                            jit-lock-start jit-lock-end old-len)
+                      (error (message "(poly-lock-after-change:jl-expand (%s %s %s)): %s"
+                                      jit-lock-start jit-lock-end old-len (error-message-string err)))))
+                  (setq jit-lock-start (max jit-lock-start sbeg)
+                        jit-lock-end (min jit-lock-end send))
+                  (put-text-property jit-lock-start jit-lock-end 'fontified nil))))))
+         beg end nil nil nil 'no-cache)))))
 
 (provide 'poly-lock)
