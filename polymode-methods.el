@@ -1,3 +1,4 @@
+
 (require 'polymode-core)
 (require 'poly-lock)
 
@@ -8,10 +9,7 @@
   "Initialize current buffer with CONFIG.")
 
 (defmethod pm-initialize ((config pm-polymode))
-  ;; fixme: (VS[06-03-2016]: probably not anymore) reinstalation leads to
-  ;; infloop of poly-lock--fontify-region-original and others ... On startup with local
-  ;; auto vars emacs reinstals the mode twice .. waf? Temporary fix: don't
-  ;; install twice
+  "Initialization of host buffers."
   (unless pm/polymode
     (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
       (let ((pm-initialization-in-progress t)
@@ -61,6 +59,7 @@
 ;;   (pm--run-init-hooks config 'polymode-init-host-hook))
 
 (defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
+  "Initialization of chunk (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-chunkmode-mode chunkmode type)))
   (let ((pm-initialization-in-progress t)
@@ -84,35 +83,44 @@
   (with-current-buffer (or buffer (current-buffer))
     ;; don't re-install if already there; polymodes can be used as minor modes.
     (unless (eq major-mode mode)
-     (let ((polymode-mode t) ;major-modes might check this
-           ;; (font-lock-fontified t)
-           ;; Modes often call font-lock functions directly. We prevent that.
-           (font-lock-function 'ignore)
-           (font-lock-flush-function 'ignore)
-           (font-lock-fontify-buffer-function 'ignore)
-           ;; Mode functions can do arbitrary things. We inhibt all PM hooks
-           ;; because PM objects have not been setup yet.
-           (pm-allow-after-change-hook nil)
-           (pm-allow-fontification nil))
-       (condition-case-unless-debug err
-           (funcall mode)
-         (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
+      (let ((polymode-mode t) ;major-modes might check this
+            ;; (font-lock-fontified t)
+            ;; Modes often call font-lock functions directly. We prevent that.
+            (font-lock-function 'ignore)
+            (font-lock-flush-function 'ignore)
+            (font-lock-fontify-buffer-function 'ignore)
+            ;; Mode functions can do arbitrary things. We inhibt all PM hooks
+            ;; because PM objects have not been setup yet.
+            (pm-allow-after-change-hook nil)
+            (pm-allow-fontification nil))
+        (condition-case-unless-debug err
+            (funcall mode)
+          (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
 
     (setq polymode-mode t)
     (current-buffer)))
 
 (defun pm--common-setup (&optional buffer)
-  ;; General buffer setup. Should work for indirect and base buffers. Assumes
-  ;; that the buffer was fully prepared and objects like pm/polymode and
-  ;; pm/chunkmode have been initialised. Return the BUFFER.
+  "Common setup for all polymode buffers.
+Runs after major mode and core polymode structures have been
+initialized. Return the buffer."
 
   (with-current-buffer (or buffer (current-buffer))
 
     ;; INDENTATION
     (when (and indent-line-function ; not that it should ever be nil...
                (oref pm/chunkmode :protect-indent-line))
-      (setq pm--indent-line-function-original indent-line-function)
-      (setq-local indent-line-function 'pm-indent-line-dispatcher))
+      (setq-local pm--indent-line-function-original indent-line-function)
+      (setq-local indent-line-function #'pm-indent-line-dispatcher))
+
+    ;; SYNTAX
+    ;; ideally this should be called in some hook to avoid minor-modes messing it up
+    (setq-local syntax-propertize-extend-region-functions nil)
+    (when (and syntax-propertize-function
+               (not (eq syntax-propertize-function
+                        #'pm-syntax-propertize)))
+      (setq-local pm--syntax-propertize-function-original syntax-propertize-function)
+      (setq-local syntax-propertize-function #'pm-syntax-propertize))
 
     ;; FONT LOCK
     (setq-local font-lock-function 'poly-lock-mode)
@@ -430,8 +438,8 @@ this method to work correctly, SUBMODE's class should define
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE
 is a symbol representing the type of the span surrounding
 POS (head, tail, body). BEG and END are the coordinates of the
-span. OBJECT is a sutable object which is 'responsable' for this
-span. This is an object that could be dispached upon with
+span. OBJECT is a suitable object which is 'responsible' for this
+span. This is an object that could be dispatched upon with
 `pm-select-buffer',  .. (fixme: complete this list).
 
 Should return nil if there is no SUBMODE specific span around POS.")
@@ -734,17 +742,8 @@ tail  - tail span"
 
 
 ;;; INDENT
-(defun pm-indent-line-dispatcher ()
-  "Dispatch methods indent methods on current span."
-  (let ((span (pm-get-innermost-span))
-        (inhibit-read-only t))
-    (pm-indent-line (car (last span)) span)))
 
-(defgeneric pm-indent-line (&optional chunkmode span)
-  "Indent current line.
-Protect and call original indentation function associated with
-the chunkmode.")
-
+(defvar-local pm--indent-line-function-original nil)
 (defun pm--indent-line (span)
   (let (point)
     (save-current-buffer
@@ -753,6 +752,18 @@ the chunkmode.")
         (funcall pm--indent-line-function-original)
         (setq point (point))))
     (goto-char point)))
+
+(defun pm-indent-line-dispatcher ()
+  "Dispatch methods indent methods on current span.
+Value of `indent-line-function' in polymode buffers."
+  (let ((span (pm-get-innermost-span))
+        (inhibit-read-only t))
+    (pm-indent-line (car (last span)) span)))
+
+(defgeneric pm-indent-line (&optional chunkmode span)
+  "Indent current line.
+Protect and call original indentation function associated with
+the chunkmode.")
 
 (defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
   (pm--indent-line span))

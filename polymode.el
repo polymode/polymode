@@ -7,7 +7,7 @@
 ;; Version: 1.0
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/vitoshka/polymode
- ;; Keywords: emacs
+;; Keywords: emacs
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
