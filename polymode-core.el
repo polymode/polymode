@@ -39,20 +39,20 @@ than the input file."
   :group 'polymode
   :type 'boolean)
 
-(defcustom polymode-mode-name-override-alist '((elisp . emacs-lisp))
-"An alist of inner mode overrides.
+(defcustom polymode-mode-name-override-alist
+  '((elisp . emacs-lisp) (el . emacs-lisp)
+    (bash . shell-mode) (sh . shell-mode))
+  "An alist of inner mode overrides.
 When inner mode is automatically detected from the header of the
 inner chunk (such as in markdown mode), the detected symbol might
 not correspond to the desired mode. This alist maps discovered
-symbols into desired modes.
-
-For example
+symbols into desired modes. For example
 
   (add-to-list 'polymode-mode-name-override-alist '(julia . ess-julia))
 
 will cause installation of `ess-julia-mode' in markdown ```julia chunks."
-:group 'polymode
-:type 'alist)
+  :group 'polymode
+  :type 'alist)
 
 (defvar polymode-switch-buffer-hook nil
   "Hook run on switching to a different buffer.
