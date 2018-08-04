@@ -135,6 +135,7 @@ If so, reset `pm-last-error-time' to current time."
 
 (defvar-local pm--syntax-propertize-function-original nil)
 (defun pm-syntax-propertize (start end)
+  ;; called from syntax-propertize and thus at the beginning of syntax-ppss
   (save-excursion
     ;; (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer))
     ;; (message "syntax-propertize--done: %d [%s]" syntax-propertize--done (current-buffer))
@@ -289,20 +290,22 @@ bound variable *span* holds the current innermost span."
           (forward-char 1)
           (setq *span* (pm-get-innermost-span (point) t)))))))
 
-(defun pm--reset-ppss-last (&optional span-start force)
+(defvar pm--emacs>26 (version<= "26" emacs-version))
+
+(defun pm--reset-ppss-last (span-start)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN-START.
-If SPAN-START is nil, use span at point. If force, reset
-regardless of the position `syntax-ppss-last' was recorder at."
-  ;; syntax-ppss has its own condition-case for this case, but that means
-  ;; throwing an error each time it calls parse-partial-sexp
-  (setq span-start (or span-start (car (pm-get-innermost-range))))
-  (when (or force
-            (and syntax-ppss-last
-                 (car syntax-ppss-last)
-                 ;; non-strict is intentional (occasionally ppss is screwed)
-                 (<= (car syntax-ppss-last) span-start)))
-    (setq syntax-ppss-last
-          (cons span-start (list 0 nil span-start nil nil nil 0)))))
+If SPAN-START is nil, use span at point."
+  (let ((new-ppss (list span-start 0 nil span-start nil nil nil 0 nil nil nil nil)))
+    (if pm--emacs>26
+        ;; in emacs 26 there are two caches syntax-ppss-wide and
+        ;; syntax-ppss-narrow. The latter is reset automatically each time a
+        ;; different narrowing is in place so we don't deal with it for now.
+        (let ((cache (cdr syntax-ppss-wide)))
+          (while (and cache (>= (caar cache) span-start))
+            (setq cache (cdr cache)))
+          (setq cache (cons new-ppss cache))
+          (setq syntax-ppss-wide (cons new-ppss cache)))
+      (setq syntax-ppss-last new-ppss))))
 
 (defun pm-narrow-to-span (&optional span)
   "Narrow to current chunk."
@@ -312,7 +315,8 @@ regardless of the position `syntax-ppss-last' was recorder at."
                     (pm-get-innermost-span))))
       (let ((sbeg (nth 1 span))
             (send (nth 2 span)))
-        (pm--reset-ppss-last sbeg t)
+        (unless pm--emacs>26
+          (pm--reset-ppss-last sbeg))
         (narrow-to-region sbeg send)))))
 
 (defmacro pm-with-narrowed-to-span (span &rest body)

@@ -96,7 +96,6 @@
         (condition-case-unless-debug err
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
-
     (setq polymode-mode t)
     (current-buffer)))
 
@@ -122,10 +121,6 @@ initialized. Return the buffer."
       (setq-local pm--syntax-propertize-function-original syntax-propertize-function)
       (setq-local syntax-propertize-function #'pm-syntax-propertize))
 
-    ;; FONT LOCK
-    (setq-local font-lock-function 'poly-lock-mode)
-    (font-lock-mode t)
-
     ;; SYNTAX
     ;; We are executing `syntax-propertize' narrowed to span as per advice in
     ;; (polymode-compat.el)
@@ -133,11 +128,17 @@ initialized. Return the buffer."
     (pm-around-advice syntax-propertize-extend-region-functions 'pm-override-output-cons)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
+    (setq-local syntax-ppss-narrow (cons nil nil))
+    (setq-local syntax-ppss-wide (cons nil nil))
 
     ;; REST
     (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
     (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
     (object-add-to-list pm/polymode '-buffers (current-buffer))
+
+    ;; FONT LOCK
+    (setq-local font-lock-function 'poly-lock-mode)
+    (font-lock-mode t)
 
     (current-buffer)))
 
@@ -288,15 +289,19 @@ corresponding to the type of the SPAN returned by
   "Select the buffer associated with CHUNKMODE.
 Install a new indirect buffer if it is not already installed. For
 this method to work correctly, SUBMODE's class should define
-`pm-get-buffer-create' methods."
+`pm-get-buffer-create' method."
   (let* ((type (car span))
          (buff (pm-get-buffer-create chunkmode type)))
-    (pm--select-existent-buffer buff)))
+    (pm--select-existing-buffer buff span)))
 
 ;; extracted for debugging purpose
-(defun pm--select-existent-buffer (buffer)
+(defun pm--select-existing-buffer (buffer span)
+  ;; no action if BUFFER is already the current buffer
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
+    (with-current-buffer buffer
+      ;; (message (pm--debug-info span))
+      (pm--reset-ppss-last (nth 1 span)))
     (pm--move-vars pm-move-vars-from-base (pm-base-buffer) buffer)
     (if pm--select-buffer-visibly
         ;; slow, visual selection
@@ -440,7 +445,7 @@ is a symbol representing the type of the span surrounding
 POS (head, tail, body). BEG and END are the coordinates of the
 span. OBJECT is a suitable object which is 'responsible' for this
 span. This is an object that could be dispatched upon with
-`pm-select-buffer',  .. (fixme: complete this list).
+`pm-select-buffer'.
 
 Should return nil if there is no SUBMODE specific span around POS.")
 

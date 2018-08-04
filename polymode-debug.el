@@ -111,7 +111,9 @@ Key bindings:
                      type beg end
                      (and obj (pm-debug-info obj))
                      (format "lppss:%s"
-                             syntax-ppss-last))))
+                             (if pm--emacs>26
+                                 (car syntax-ppss-wide)
+                               syntax-ppss-last)))))
       (if as-list
           out
         (apply #'format
