@@ -220,7 +220,7 @@ pleased in `font-lock-flush-function' and
        (put-text-property beg end 'fontified nil)))))
 
 (defun poly-lock-after-change (beg end old-len)
-  "Mark changed region as not fontified.
+  "Mark changed region with 'fontified nil.
 Installed in `after-change-functions' and behaves similarly to
 `jit-lock-after-change' in what it calls
 `jit-lock-after-change-extend-region-functions' in turn but with
