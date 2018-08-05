@@ -26,6 +26,7 @@
     (define-key map (kbd "M-n M-t p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t a")   #'pm-debug-toggle-all)
+    (define-key map (kbd "M-n M-t v")   #'pm-debug-toggle-verbose)
     (define-key map (kbd "M-n M-t t")   #'pm-debug-trace-relevant-functions)
     (define-key map (kbd "M-n M-t u")   #'pm-debug-untrace-relevant-functions)
     (define-key map (kbd "M-n M-t M-i")   #'pm-debug-toogle-info-message)
@@ -33,6 +34,7 @@
     (define-key map (kbd "M-n M-t M-p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t M-c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t M-a")   #'pm-debug-toggle-all)
+    (define-key map (kbd "M-n M-t M-v")   #'pm-debug-toggle-verbose)
     (define-key map (kbd "M-n M-t M-t")   #'pm-debug-trace-relevant-functions)
     (define-key map (kbd "M-n M-t M-u")   #'pm-debug-untrace-relevant-functions)
 
@@ -144,6 +146,17 @@ Key bindings:
     (message "fontificaiton enabled")
     (setq pm-allow-fontification t
           font-lock-mode t)))
+
+(defun pm-debug-toggle-verbose ()
+  (interactive)
+  (if (or poly-lock-verbose pm-verbose)
+      (progn
+        (message "verbose log disabled")
+        (setq poly-lock-verbose nil
+              pm-verbose nil))
+    (message "verbose log enabled")
+    (setq poly-lock-verbose t
+          pm-verbose t)))
 
 (defun pm-debug-toggle-after-change ()
   (interactive)

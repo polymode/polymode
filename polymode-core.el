@@ -110,6 +110,7 @@ objects provides same functionality for narrower scope. See also
 
 ;;; SHIELDS
 
+(defvar pm-verbose nil)
 (defvar pm-allow-fontification t)
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
@@ -123,6 +124,7 @@ objects provides same functionality for narrower scope. See also
 If this variable is non-nil, various chunk manipulation commands
 relying on `pm-get-span' might not function correctly.")
 
+;; not used
 (defvar pm-last-error-time (current-time))
 (defun pm-last-error-far-off-p ()
   "Return t if last error occurred \"long time ago\".
