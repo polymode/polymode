@@ -473,11 +473,6 @@ point."
            (end (point-max))
            (pos (or pos (point)))
            (span (list nil start end nil))
-           ;; Needed to inhibit re-search-forward and other search functions to
-           ;; trigger full internal-syntax-propertize on the whole buffer on
-           ;; every buffer modification. This is a small price to pay for a much
-           ;; improved efficiency.
-           (parse-sexp-lookup-properties nil)
            val)
 
       (dolist (im imodes)

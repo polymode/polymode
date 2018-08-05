@@ -163,7 +163,13 @@ of the span."
   (save-excursion
     (save-restriction
       (widen)
-      (let* ((span (or (and (not no-cache)
+      (let* (;; `re-search-forward' and other search functions trigger full
+             ;; `internal--syntax-propertize' on the whole buffer on every
+             ;; single buffer modification. This is a small price to pay for a
+             ;; much improved efficiency in modes which heavily rely on
+             ;; `syntax-propertize' like `markdown-mode'.
+             (parse-sexp-lookup-properties nil)
+             (span (or (and (not no-cache)
                             (pm-get-cached-span pos))
                        (pm-get-span pm/polymode pos)))
              (beg (nth 1 span))
