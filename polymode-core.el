@@ -135,25 +135,6 @@ If so, reset `pm-last-error-time' to current time."
       (setq pm-last-error-time (current-time))
       t)))
 
-(defvar-local pm--syntax-propertize-function-original nil)
-(defun pm-syntax-propertize (start end)
-  ;; called from syntax-propertize and thus at the beginning of syntax-ppss
-  (save-excursion
-    ;; (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer))
-    ;; (message "syntax-propertize--done: %d [%s]" syntax-propertize--done (current-buffer))
-    (pm-map-over-spans
-     (lambda ()
-       (pm-with-narrowed-to-span *span*
-         (when pm--syntax-propertize-function-original
-           (let ((pos0 (max (nth 1 *span*) start))
-                 (pos1 (min (nth 2 *span*) end)))
-             (condition-case err
-                 (funcall pm--syntax-propertize-function-original pos0 pos1)
-               (error
-                (message "(syntax-propertize %d %d) fun: %s  error: %s"
-                         pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
-     start end)))
-
 
 ;;; CORE
 (defsubst pm-base-buffer ()

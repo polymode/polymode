@@ -99,6 +99,8 @@
     (setq polymode-mode t)
     (current-buffer)))
 
+(defvar-local pm--indent-line-function-original nil)
+(defvar-local pm--syntax-propertize-function-original nil)
 (defun pm--common-setup (&optional buffer)
   "Common setup for all polymode buffers.
 Runs after major mode and core polymode structures have been
@@ -107,38 +109,38 @@ initialized. Return the buffer."
   (with-current-buffer (or buffer (current-buffer))
 
     ;; INDENTATION
-    (when (and indent-line-function ; not that it should ever be nil...
+    (when (and indent-line-function     ; not that it should ever be nil...
                (oref pm/chunkmode :protect-indent-line))
       (setq-local pm--indent-line-function-original indent-line-function)
       (setq-local indent-line-function #'pm-indent-line-dispatcher))
 
     ;; SYNTAX
     ;; ideally this should be called in some hook to avoid minor-modes messing it up
-    (setq-local syntax-propertize-extend-region-functions nil)
     (when (and syntax-propertize-function
-               (not (eq syntax-propertize-function
-                        #'pm-syntax-propertize)))
+               (not (eq syntax-propertize-function #'polymode-syntax-propertize)))
       (setq-local pm--syntax-propertize-function-original syntax-propertize-function)
-      (setq-local syntax-propertize-function #'pm-syntax-propertize))
-
-    ;; SYNTAX
-    ;; We are executing `syntax-propertize' narrowed to span as per advice in
-    ;; (polymode-compat.el)
-    (pm-around-advice syntax-begin-function 'pm-override-output-position) ; obsolete as of 25.1
+      (setq-local syntax-propertize-function #'polymode-syntax-propertize))
+    ;; [OBSOLETE as of 25.1] We know that syntax starts at span start.
+    (pm-around-advice syntax-begin-function 'pm-override-output-position)
+    ;; Make sure that none of the `syntax-propertize-extend-region-functions'
+    ;; extends the region beyond current span. In practice the only negative
+    ;; effect of such extra-extension is slight performance hit. Not sure here,
+    ;; but there might be situations when extending beyond current span does
+    ;; make sense. Remains to be seen.
     (pm-around-advice syntax-propertize-extend-region-functions 'pm-override-output-cons)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-narrow (cons nil nil))
     (setq-local syntax-ppss-wide (cons nil nil))
 
+    ;; FONT LOCK (see poly-lock.el)
+    (setq-local font-lock-function 'poly-lock-mode)
+    (font-lock-mode t)
+
     ;; REST
     (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
     (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
     (object-add-to-list pm/polymode '-buffers (current-buffer))
-
-    ;; FONT LOCK
-    (setq-local font-lock-function 'poly-lock-mode)
-    (font-lock-mode t)
 
     (current-buffer)))
 
@@ -296,6 +298,7 @@ this method to work correctly, SUBMODE's class should define
 
 ;; extracted for debugging purpose
 (defun pm--select-existing-buffer (buffer span)
+  ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
   ;; no action if BUFFER is already the current buffer
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
@@ -470,6 +473,11 @@ point."
            (end (point-max))
            (pos (or pos (point)))
            (span (list nil start end nil))
+           ;; Needed to inhibit re-search-forward and other search functions to
+           ;; trigger full internal-syntax-propertize on the whole buffer on
+           ;; every buffer modification. This is a small price to pay for a much
+           ;; improved efficiency.
+           (parse-sexp-lookup-properties nil)
            val)
 
       (dolist (im imodes)
@@ -748,7 +756,6 @@ tail  - tail span"
 
 ;;; INDENT
 
-(defvar-local pm--indent-line-function-original nil)
 (defun pm--indent-line (span)
   (let (point)
     (save-current-buffer

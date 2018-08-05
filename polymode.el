@@ -232,13 +232,13 @@ Return, how many chucks actually jumped over."
                       if (buffer-local-value 'pm--process-buffer b)
                       return b)))
     (if buf
-    (pop-to-buffer buf `(nil . ((inhibit-same-window . ,pop-up-windows))))
+        (pop-to-buffer buf `(nil . ((inhibit-same-window . ,pop-up-windows))))
       (message "No polymode process buffers found."))))
 
 
 ;;; HOOKS
-;; In addition to these hooks there is poly-lock-after-change which is placed in
-;; after-change-functions. See poly-lock.el
+;; In addition to these hooks there is `poly-lock-after-change' which is placed
+;; in `after-change-functions'. See poly-lock.el
 
 (defun polymode-post-command-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
@@ -271,6 +271,25 @@ This function is placed in `before-change-functions' hook."
       (when (memq 'syntax-ppss-flush-cache before-change-functions)
         (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
       (syntax-ppss-flush-cache beg end))))
+
+(defun polymode-syntax-propertize (start end)
+  ;; called from syntax-propertize and thus at the beginning of syntax-ppss
+  (save-excursion
+    (when pm-verbose
+      (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+    (pm-map-over-spans
+     (lambda ()
+       (pm-with-narrowed-to-span *span*
+         (when pm--syntax-propertize-function-original
+           (let ((pos0 (max (nth 1 *span*) start))
+                 (pos1 (min (nth 2 *span*) end)))
+             (condition-case err
+                 (funcall pm--syntax-propertize-function-original pos0 pos1)
+               (error
+                (message "(syntax-propertize %d %d) fun: %s  error: %s"
+                         pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
+     start end)))
+
 
 
 ;;; DEFINE
@@ -339,18 +358,18 @@ BODY contains code to be executed after the complete
                        " polymode"))
          (keymap-sym (intern (concat mode-name "-map")))
          (hook (intern (concat mode-name "-hook")))
-     (extra-keywords nil)
-     (after-hook nil)
-     keyw lighter)
+         (extra-keywords nil)
+         (after-hook nil)
+         keyw lighter)
 
     ;; Check keys.
     (while (keywordp (setq keyw (car body)))
       (setq body (cdr body))
       (pcase keyw
-    (`:lighter (setq lighter (purecopy (pop body))))
-    (`:keymap (setq keymap (pop body)))
-    (`:after-hook (setq after-hook (pop body)))
-    (_ (push keyw extra-keywords) (push (pop body) extra-keywords))))
+        (`:lighter (setq lighter (purecopy (pop body))))
+        (`:keymap (setq keymap (pop body)))
+        (`:after-hook (setq after-hook (pop body)))
+        (_ (push keyw extra-keywords) (push (pop body) extra-keywords))))
 
     `(progn
        :autoload-end
