@@ -448,9 +448,9 @@ is a symbol representing the type of the span surrounding
 POS (head, tail, body). BEG and END are the coordinates of the
 span. OBJECT is a suitable object which is 'responsible' for this
 span. This is an object that could be dispatched upon with
-`pm-select-buffer'.
-
-Should return nil if there is no SUBMODE specific span around POS.")
+`pm-select-buffer'. Should return nil if there is no SUBMODE
+specific span around POS. Not to be used in programs directly;
+use `pm-get-innermost-span'.")
 
 (defmethod pm-get-span (chunkmode &optional pos)
   "Return nil.
