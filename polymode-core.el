@@ -39,7 +39,7 @@ than the input file."
   :group 'polymode
   :type 'boolean)
 
-(defcustom polymode-mode-name-override-alist
+(defcustom polymode-mode-name-alias-alist
   '((elisp . emacs-lisp) (el . emacs-lisp)
     (bash . shell-mode) (sh . shell-mode))
   "An alist of inner mode overrides.
@@ -53,6 +53,8 @@ symbols into desired modes. For example
 will cause installation of `ess-julia-mode' in markdown ```julia chunks."
   :group 'polymode
   :type 'alist)
+
+(define-obsolete-variable-alias 'polymode-mode-name-override-alist 'polymode-mode-name-alias-alist "2018-08")
 
 (defvar polymode-switch-buffer-hook nil
   "Hook run on switching to a different buffer.
@@ -354,16 +356,23 @@ near future.")
                     str
                   (concat str "-mode"))))
     (or (pm--get-existent-mode (intern mname) t)
-        (pm--get-existent-mode (intern (downcase mname))) no-fallback)))
+        (pm--get-existent-mode (intern (downcase mname))
+                               no-fallback))))
 
+;; (defvar-local pm--fallback-message-modes nil
+;;   "Set of symbols for which 'Cannot find function ...' message
+;;   has been already shown in this buffer.")
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return `poly-fallback-mode' and issue
 a warning."
   (cond ((fboundp mode) mode)
         (no-fallback nil)
-        (t (message "Cannot find function `%s', using `poly-fallback-mode'" mode)
-           'poly-fallback-mode)))
+        (t
+         ;; (unless (member mode pm--fallback-message-modes)
+         ;;   (setq pm--fallback-message-modes (cons mode pm--fallback-message-modes))
+         ;;   (message "Cannot find function `%s'; using `poly-fallback-mode'. Need `polymode-mode-name-alias-alist'?" mode))
+         'poly-fallback-mode)))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."

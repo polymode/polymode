@@ -415,14 +415,13 @@ this method to work correctly, SUBMODE's class should define
                             (funcall matcher)))))
              (mode (and str (pm--get-mode-symbol-from-name str 'no-fallback))))
         (if mode
-            ;; Inferred body MODE serves as ID; this not need be the
-            ;; case in the future and a generic id getter might replace
-            ;; it. Currently head/tail/body indirect buffers are shared
-            ;; across chunkmodes. This currently works ok. A more
-            ;; general approach would be to track head/tails/body with
-            ;; associated chunks. Then for example r hbt-chunk and elisp
-            ;; hbt-chunk will not share head/tail buffers. There could
-            ;; be even two r hbt-chunks with providing different
+            ;; Inferred body MODE serves as ID; this not need be the case in the
+            ;; future and a generic id getter might replace it. Currently
+            ;; head/tail/body indirect buffers are shared across chunkmodes.
+            ;; This currently works ok. A more general approach would be to
+            ;; track head/tails/body with associated chunks. Then for example R
+            ;; hbt-chunk and elisp hbt-chunk will not share head/tail buffers.
+            ;; There could be even two R hbt-chunks providing different
             ;; functionality and thus not even sharing body buffer.
             (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
               (or
