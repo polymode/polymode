@@ -52,9 +52,9 @@
 
 (defcustom  pm-inner/markdown-inline
   (pm-hbtchunkmode-auto "markdown-inline"
-                        :head-matcher (cons "[^`]\\(`{?[^] \t\n`'.!?:;,})]+\\)[ \t]" 1)
+                        :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                         :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
-                        :retriever-regexp (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n`';=,}]+\\)" 1)
+                        :retriever-regexp (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
                         :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'innermodes
