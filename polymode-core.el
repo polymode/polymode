@@ -459,6 +459,17 @@ DEF from history."
                collection))
     (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))
 
+(defun pm-kill-indirect-buffers ()
+  (dbg "*kill*")
+  (let ((buf (pm-base-buffer)))
+    (dolist (b (buffer-list))
+      (when (and (buffer-live-p b)
+                 (eq (buffer-base-buffer b) buf))
+        (let ((kill-buffer-query-functions nil)
+              (kill-buffer-hook nil))
+          (kill-buffer b))))))
+
+
 
 ;; Weaving and Exporting common utilities
 

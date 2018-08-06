@@ -42,22 +42,6 @@
       (pm--run-init-hooks config 'polymode-init-host-hook)
       (pm--run-init-hooks chunkmode))))
 
-;; (defmethod pm-initialize ((config pm-polymode-one))
-;;   (let ((pm-initialization-in-progress t))
-;;     (call-next-method))
-;;   (eval `(oset config -innermodes
-;;                (list (clone ,(oref config :innermode)))))
-;;   (pm--run-init-hooks config 'polymode-init-host-hook))
-
-;; (defmethod pm-initialize ((config pm-polymode-multi))
-;;   (let ((pm-initialization-in-progress))
-;;     (call-next-method))
-;;   (oset config -innermodes
-;;         (mapcar (lambda (sub-name)
-;;                   (clone (symbol-value sub-name)))
-;;                 (oref config :innermodes)))
-;;   (pm--run-init-hooks config 'polymode-init-host-hook))
-
 (defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
   "Initialization of chunk (indirect) buffers."
   ;; run in chunkmode indirect buffer
@@ -135,6 +119,10 @@ initialized. Return the buffer."
 
     ;; FONT LOCK (see poly-lock.el)
     (setq-local font-lock-function 'poly-lock-mode)
+    ;; HOOKS
+    (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes t t)
+    (add-hook 'post-command-hook #'polymode-post-command-select-buffer nil t)
+
     (font-lock-mode t)
 
     ;; REST
@@ -165,18 +153,6 @@ Parents' hooks are run first."
     (if args
         (apply 'run-hook-with-args 'funs args)
       (run-hooks 'funs))))
-
-(defvar-local pm--killed-once nil)
-(defun pm--kill-indirect-buffer ()
-  ;; find-alternate-file breaks (https://github.com/vspinu/polymode/issues/79)
-  (let ((base (buffer-base-buffer)))
-    (when  (and base (buffer-live-p base))
-      ;; 'base' is non-nil in indirect buffers only
-      (set-buffer-modified-p nil)
-      (unless (buffer-local-value 'pm--killed-once base)
-        (with-current-buffer base
-          (setq pm--killed-once t))
-        (kill-buffer base)))))
 
 
 (defgeneric pm-get-buffer-create (chunkmode &optional type)

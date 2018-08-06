@@ -290,6 +290,45 @@ This function is placed in `before-change-functions' hook."
                          pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
      start end)))
 
+(defvar-local pm--killed-once nil)
+(defun polymode-after-kill-fixes ()
+  "Various fixes for polymode indirect buffers."
+  (when pm/polymode
+    (let ((base (pm-base-buffer)))
+      (when (buffer-live-p base)
+        (set-buffer-modified-p nil)
+        (unless (buffer-local-value 'pm--killed-once base)
+          (with-current-buffer base
+            (setq pm--killed-once t)
+            ;; Prevent various tools like `find-file' to re-find this file. We
+            ;; use buffer-list instead of `-buffers' slot here because on some
+            ;; occasions (e.g. switch from polymode to other mode and then back
+            ;; , or when user creates an indirect buffer manually) cause loose
+            ;; indirect buffers.
+            (dolist (b (buffer-list))
+              (when (and (buffer-live-p b)
+                         (eq (buffer-base-buffer b) base))
+                (with-current-buffer b
+                  (setq buffer-file-name nil)
+	              (setq buffer-file-number nil)
+	              (setq buffer-file-truename nil))))))))))
+
+(defun polymode-with-current-base-buffer (orig-fun &rest args)
+  "Switch to base buffer and kill all indirect buffers before calling ORIG-FUN."
+  (if (and polymode-mode pm/polymode (buffer-base-buffer))
+      (let ((cur-buf (current-buffer))
+            (base (buffer-base-buffer)))
+        (with-current-buffer base
+          (if (eq (car-safe args) cur-buf)
+              (apply orig-fun base (cdr args))
+            (apply orig-fun args))))
+    (apply orig-fun args)))
+
+(pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
+(pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
+;; (advice-remove #'kill-buffer #'pm-with-current-base-buffer)
+;; (advice-remove #'find-alternate-file #'pm-with-current-base-buffer)
+
 
 
 ;;; DEFINE
