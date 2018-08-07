@@ -86,19 +86,17 @@ Key bindings:
           (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))
       (error (message "%s" (error-message-string err))))))
 
+
 (defgeneric pm-debug-info (chunkmode))
 (defmethod pm-debug-info (chunkmode)
-  (format "class:%s" (eieio-object-class-name chunkmode)))
+  (eieio-object-name chunkmode))
 (defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
-  (format "head-matcher:\"%s\" tail-matcher:\"%s\" %s"
-          (oref chunkmode :head-matcher) (oref chunkmode :tail-matcher)
-          (call-next-method)))
-(defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
-  (format "head-matcher:\"%s\" tail-matcher:\"%s\" %s"
-          (oref chunkmode :head-matcher) (oref chunkmode :tail-matcher)
-          (call-next-method)))
+  (format "%s head-matcher:\"%s\" tail-matcher:\"%s\""
+          (call-next-method)
+          (oref chunkmode :head-matcher)
+          (oref chunkmode :tail-matcher)))
 (defmethod pm-debug-info ((chunkmode pm-inner-auto-chunkmode))
-          (call-next-method))
+  (call-next-method))
 
 (defun pm--debug-info (&optional span as-list)
   (let* ((span (or span (and polymode-mode (pm-get-innermost-span))))
@@ -138,13 +136,13 @@ Key bindings:
 
 (defun pm-debug-toggle-fontification ()
   (interactive)
-  (if pm-allow-fontification
+  (if poly-lock-allow-fontification
       (progn
         (message "fontificaiton disabled")
-        (setq pm-allow-fontification nil
+        (setq poly-lock-allow-fontification nil
               font-lock-mode nil))
     (message "fontificaiton enabled")
-    (setq pm-allow-fontification t
+    (setq poly-lock-allow-fontification t
           font-lock-mode t)))
 
 (defun pm-debug-toggle-verbose ()
@@ -178,34 +176,34 @@ Key bindings:
 
 (defun pm-debug-toggle-all ()
   (interactive)
-  (if pm-allow-fontification
+  (if poly-lock-allow-fontification
       (progn
         (message "fontificaiton, after-chnage and command-hook disabled")
-        (setq pm-allow-fontification nil
+        (setq poly-lock-allow-fontification nil
               pm-allow-after-change-hook nil
               pm-allow-post-command-hook nil))
     (message "fontificaiton, after-change and command-hook enabled")
-    (setq pm-allow-fontification t
+    (setq poly-lock-allow-fontification t
           pm-allow-after-change-hook t
           pm-allow-post-command-hook t)))
 
 (defun pm-debug-fontify-current-span ()
   (interactive)
   (let ((span (pm-get-innermost-span))
-        (pm-allow-fontification t))
-    (poly-lock-refontify (nth 1 span) (nth 2 span))
+        (poly-lock-allow-fontification t))
+    (poly-lock-flush (nth 1 span) (nth 2 span))
     (poly-lock-fontify-now (nth 1 span) (nth 2 span))))
 
 (defun pm-debug-fontify-current-buffer ()
   (interactive)
-  (let ((pm-allow-fontification t))
+  (let ((poly-lock-allow-fontification t))
     (poly-lock-refontify (point-min) (point-max))
     (poly-lock-fontify-now (point-min) (point-max))))
 
 (defun pm-debug-fontify-last-font-lock-error ()
   (interactive)
   (let ((reg (pm--debug-get-last-fl-error))
-        (pm-allow-fontification t))
+        (poly-lock-allow-fontification t))
     (if reg
         (progn
           ;; (pm-debug-blink-region (car reg) (cdr reg) 2)
@@ -345,6 +343,7 @@ On prefix, fontify current span only."
 ;;   (ess-display-help-on-object "ls"))
 
 (defvar pm-debug-relevant-variables '(fontification-functions
+                                      font-lock-function
                                       font-lock-flush-function
                                       font-lock-ensure-function
                                       font-lock-fontify-region-function
@@ -400,13 +399,13 @@ On prefix, fontify current span only."
                          (sit-for 1)))
                      (point-min) (point-max) nil nil t))
 
-(defun pm--highlight-span (&optional hd-matcher tl-matcher)
-  (interactive)
-  (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-matcher)))
-         (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-matcher)))
-         (span (pm--span-at-point hd-matcher tl-matcher)))
-    (pm-debug-blink-region (nth 1 span) (nth 2 span))
-    (message "span: %s" span)))
+;; (defun pm--highlight-span (&optional hd-matcher tl-matcher)
+;;   (interactive)
+;;   (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-matcher)))
+;;          (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-matcher)))
+;;          (span (pm--span-at-point hd-matcher tl-matcher)))
+;;     (pm-debug-blink-region (nth 1 span) (nth 2 span))
+;;     (message (pm--debug-info span))))
 
 (defun pm-debug-run-over-check ()
   (interactive)

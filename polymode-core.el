@@ -86,7 +86,6 @@ objects provides same functionality for narrower scope. See also
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
 (defvar-local pm/type nil)
-;; (defvar-local pm--killed-once nil)
 (defvar-local polymode-mode nil
   "This variable is t if current \"mode\" is a polymode.")
 

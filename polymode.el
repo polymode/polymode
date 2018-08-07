@@ -457,14 +457,11 @@ BODY contains code to be executed after the complete
                 (interactive)
                 (unless ,mode
                   (let ((,last-message (current-message)))
-                    (unless pm/polymode ;; don't reinstall for time being
-                      (let ((config (clone ,config)))
-                        (oset config :minor-mode ',mode)
-                        (pm-initialize config)))
-                    ;; set our "minor" mode
+                    (let ((config (clone ,config)))
+                      (oset config :minor-mode ',mode)
+                      (pm-initialize config))
                     (setq ,mode t)
                     ,@body
-                    (run-hooks ',hook)
                     ;; Avoid overwriting a message shown by the body,
                     ;; but do overwrite previous messages.
                     (when (and (called-interactively-p 'any)
@@ -473,7 +470,14 @@ BODY contains code to be executed after the complete
                                                (current-message)))))
                       (message ,(format "%s enabled" pretty-name)))
                     ,@(when after-hook `(,after-hook))
-                    (force-mode-line-update)))
+                    (force-mode-line-update)
+                    ;; Minor modes run-hooks, major-modes run-mode-hooks.
+                    ;; Polymodes is a minor mode. One cannot derive modes from
+                    ;; it but can use it as major-mode in . Within pm-initialize
+                    ;; potentially several modes might be initialized. Hence
+                    ;; delay-hooks seems like a bad idea. Each mode has to hack
+                    ;; it's own buffer locals somehow.
+                    (run-hooks ',hook)))
                 ;; Return the new setting.
                 ,mode)
 

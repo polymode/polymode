@@ -9,7 +9,11 @@
   "Initialize current buffer with CONFIG.")
 
 (defmethod pm-initialize ((config pm-polymode))
-  "Initialization of host buffers."
+  "Initialization of host buffers.
+Ran directly by the polymode modes."
+  ;; This 'unless' is needed here because inner modes call the same polymode
+  ;; minor-mode which triggers this `pm-initialize'. FIXME: move to minor-mode
+  ;; logic.
   (unless pm/polymode
     (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
       (let ((pm-initialization-in-progress t)
@@ -18,10 +22,11 @@
             (host-mode (or (oref chunkmode :mode)
                            (oset chunkmode :mode major-mode))))
 
+        ;; host-mode hooks are run here, but polymode is not initialized
         (pm--mode-setup host-mode)
 
-        ;; maybe: fixme: inconsistencies?
-        ;; 1) Not calling config's :minor-mode (polymode function). But polymode
+        ;; FIXME: inconsistency?
+        ;; Not calling config's :minor-mode (polymode function). But polymode
         ;; function calls pm-initialize, so it's probably ok.
         (oset chunkmode -buffer (current-buffer))
         (oset config -hostmode chunkmode)
@@ -32,13 +37,16 @@
 
         (pm--common-setup)
 
+        ;; Initialize innermodes
         (oset config -innermodes
               (mapcar (lambda (sub-name)
                         (clone (symbol-value sub-name)))
                       (oref config :innermodes)))
 
+        ;; FIXME: must go into polymode-compat.el
         (add-hook 'flyspell-incorrect-hook
                   'pm--flyspel-dont-highlight-in-chunkmodes nil t))
+
       (pm--run-init-hooks config 'polymode-init-host-hook)
       (pm--run-init-hooks chunkmode))))
 
@@ -55,7 +63,10 @@
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
     (setq pm/chunkmode chunkmode
           pm/type type)
+    ;; Call polymode mode for the sake of the keymap. Same minor mode which runs
+    ;; in the host buffer but without all the heavy initialization.
     (funcall (oref pm/polymode :minor-mode))
+    ;; FIXME: should not be here?
     (vc-find-file-hook)
     (pm--common-setup)
     (pm--run-init-hooks chunkmode 'polymode-init-inner-hook)))
@@ -67,7 +78,7 @@
   (with-current-buffer (or buffer (current-buffer))
     ;; don't re-install if already there; polymodes can be used as minor modes.
     (unless (eq major-mode mode)
-      (let ((polymode-mode t) ;major-modes might check this
+      (let ((polymode-mode t)           ;major-modes might check this
             ;; (font-lock-fontified t)
             ;; Modes often call font-lock functions directly. We prevent that.
             (font-lock-function 'ignore)
@@ -81,7 +92,6 @@
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
     (setq polymode-mode t)
-    (setq polymode-was-here t)
     (current-buffer)))
 
 (defvar-local pm--indent-line-function-original nil)
@@ -92,6 +102,11 @@ Runs after major mode and core polymode structures have been
 initialized. Return the buffer."
 
   (with-current-buffer (or buffer (current-buffer))
+
+    (object-add-to-list pm/polymode '-buffers (current-buffer))
+
+    (when pm-verbose
+      (message "common-setup: [%s]" (current-buffer)))
 
     ;; INDENTATION
     (when (and indent-line-function     ; not that it should ever be nil...
@@ -112,7 +127,7 @@ initialized. Return the buffer."
     ;; effect of such extra-extension is slight performance hit. Not sure here,
     ;; but there might be situations when extending beyond current span does
     ;; make sense. Remains to be seen.
-    (pm-around-advice syntax-propertize-extend-region-functions 'pm-override-output-cons)
+    (pm-around-advice syntax-propertize-extend-region-functions #'pm-override-output-cons)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-narrow (cons nil nil))
@@ -455,6 +470,7 @@ point."
 
       (dolist (im imodes)
         (setq val (pm-get-span im pos))
+        ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info im))
         (when (and val
                    (or (> (nth 1 val) start)
                        (< (nth 2 val) end)))
@@ -478,6 +494,15 @@ point."
                (list start end) pos))
       (when (null (car span)) ; chunkmodes can compute the host span by returning nil span type
         (setcar (last span) (oref config -hostmode)))
+      ;; cache span
+      (with-silent-modifications
+        (let ((sbeg (nth 1 span))
+              (send (nth 2 span)))
+          (add-text-properties sbeg send
+                               (list :pm-span span
+                                     :pm-span-type (car span)
+                                     :pm-span-beg sbeg
+                                     :pm-span-end send))))
       span)))
 
 (defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
