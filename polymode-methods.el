@@ -76,11 +76,12 @@
             ;; Mode functions can do arbitrary things. We inhibt all PM hooks
             ;; because PM objects have not been setup yet.
             (pm-allow-after-change-hook nil)
-            (pm-allow-fontification nil))
+            (poly-lock-allow-fontification nil))
         (condition-case-unless-debug err
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
     (setq polymode-mode t)
+    (setq polymode-was-here t)
     (current-buffer)))
 
 (defvar-local pm--indent-line-function-original nil)
@@ -117,18 +118,20 @@ initialized. Return the buffer."
     (setq-local syntax-ppss-narrow (cons nil nil))
     (setq-local syntax-ppss-wide (cons nil nil))
 
-    ;; FONT LOCK (see poly-lock.el)
-    (setq-local font-lock-function 'poly-lock-mode)
     ;; HOOKS
     (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes t t)
     (add-hook 'post-command-hook #'polymode-post-command-select-buffer nil t)
 
-    (font-lock-mode t)
+    ;; FONT LOCK (see poly-lock.el)
+    (setq-local font-lock-function 'poly-lock-mode)
+    ;; Font lock is initialized `after-change-major-mode-hook' by means of
+    ;; `run-mode-hooks' and poly-lock won't get installed if polymode is
+    ;; installed as minor mode or interactively.
 
-    ;; REST
-    (add-hook 'kill-buffer-hook 'pm--kill-indirect-buffer t t)
-    (add-hook 'post-command-hook 'polymode-post-command-select-buffer nil t)
-    (object-add-to-list pm/polymode '-buffers (current-buffer))
+    ;; Use font-lock-mode instead of poly-lock-mode because modes which don't
+    ;; want font-lock can simply set `font-lock-mode' to nil.
+    (font-lock-mode t)
+    (font-lock-flush)
 
     (current-buffer)))
 
