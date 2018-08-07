@@ -163,25 +163,15 @@ of the span."
   (save-excursion
     (save-restriction
       (widen)
-      (let* (;; `re-search-forward' and other search functions trigger full
-             ;; `internal--syntax-propertize' on the whole buffer on every
-             ;; single buffer modification. This is a small price to pay for a
-             ;; much improved efficiency in modes which heavily rely on
-             ;; `syntax-propertize' like `markdown-mode'.
-             (parse-sexp-lookup-properties nil)
-             (span (or (and (not no-cache)
-                            (pm-get-cached-span pos))
-                       (pm-get-span pm/polymode pos)))
-             (beg (nth 1 span))
-             (end (nth 2 span)))
-        ;; might be used by external applications like flyspell
-        (with-silent-modifications
-          (add-text-properties beg end
-                               (list :pm-span span
-                                     :pm-span-type (car span)
-                                     :pm-span-beg beg
-                                     :pm-span-end end)))
-        span))))
+      (let (;; `re-search-forward' and other search functions trigger full
+            ;; `internal--syntax-propertize' on the whole buffer on every
+            ;; single buffer modification. This is a small price to pay for a
+            ;; much improved efficiency in modes which heavily rely on
+            ;; `syntax-propertize' like `markdown-mode'.
+            (parse-sexp-lookup-properties nil))
+        (or (unless no-cache
+              (pm-get-cached-span pos))
+            (pm-get-span pm/polymode pos))))))
 
 (defun pm-span-to-range (span)
   (and span (cons (nth 1 span) (nth 2 span))))
