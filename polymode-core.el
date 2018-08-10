@@ -142,44 +142,133 @@ If so, reset `pm-last-error-time' to current time."
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
-(defun pm-get-cached-span (&optional pos)
-  "Get cached span at POS"
-  (let ((span (get-text-property (or pos (point)) :pm-span)))
+(defmethod pm-get-span (chunkmode &optional pos)
+  "Return nil.
+Base mode usually do not compute the span."
+  (unless chunkmode
+    (error "Dispatching `pm-get-span' on a nil object"))
+  nil)
+
+(defun pm--intersect-spans (config &optional pos)
+  "Intersect CHNK-MODES' spans at POS to get the innermost."
+  ;; fixme: host should be last, to take advantage of the chunkmodes computation?
+  (let* ((start (point-min))
+         (end (point-max))
+         (pos (or pos (point)))
+         (span (list nil start end nil))
+         (chnk-modes (cons (oref config -hostmode)
+                           (oref config -innermodes)))
+         val)
+    (dolist (im chnk-modes)
+      (setq val (pm-get-span im pos))
+      ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info im))
+      (when (and val
+                 (or (> (nth 1 val) start)
+                     (< (nth 2 val) end)))
+        (if (or (car val)
+                (null span))
+            (setq span val
+                  start (nth 1 val)
+                  end (nth 2 val))
+          ;; nil car means outer chunkmode (usually host). And it can be an
+          ;; intersection of spans returned by 2 different neighbour inner
+          ;; chunkmodes. See rapport mode for an example
+          (setq start (max (nth 1 val)
+                           (nth 1 span))
+                end (min (nth 2 val)
+                         (nth 2 span)))
+          (setcar (cdr span) start)
+          (setcar (cddr span) end))))
+
+    (unless (and (<= start end) (<= pos end) (>= pos start))
+      (error "Bad polymode selection: span:%s pos:%s"
+             (list start end) pos))
+
+    (when (null (car span)) ; chunkmodes can compute the host span by returning nil span type
+      (setcar (last span) (oref config -hostmode)))
+
+    ;; cache span
+    (with-silent-modifications
+      (let ((sbeg (nth 1 span))
+            (send (nth 2 span)))
+        (add-text-properties sbeg send
+                             (list :pm-span span
+                                   :pm-span-type (car span)
+                                   :pm-span-beg sbeg
+                                   :pm-span-end send))))
+    span))
+
+(defun pm--chop-span (span beg end)
+  ;; destructive!
+  (when (> beg (nth 1 span))
+    (setcar (cdr span) beg))
+  (when (< end (nth 2 span))
+    (setcar (cddr span) end))
+  span)
+
+(defun pm--innermost-span (config &optional pos)
+  (let ((pos (or pos (point)))
+        (obeg (point-min))
+        (oend (point-max)))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let ((span (pm--intersect-spans config pos)))
+          (when (and (= oend pos)
+                     (= oend (nth 1 span))
+                     (> oend obeg))
+            ;; when pos == point-max and it's end of span, return preceding span
+            (setq span (pm--intersect-spans config (1- pos))))
+          (pm--chop-span span obeg oend))))))
+
+(defun pm--cached-span (&optional pos)
+  ;; fixme: add basic miss statistics
+  (let* ((pos (or pos (point)))
+         (pos (if (= pos (point-max))
+                  (max (point-min) (1- pos))
+                pos))
+         (span (get-text-property pos :pm-span))
+         (obeg (point-min))
+         (oend (point-max)))
     (when span
       (save-restriction
         (widen)
         (let* ((beg (nth 1 span))
                (end (max beg (1- (nth 2 span)))))
-          (when (<= end (point-max))
-            (and (eq span (get-text-property beg :pm-span))
-                 (eq span (get-text-property end :pm-span))
-                 span)))))))
+          (when (and (< end (point-max)) ; buffer size might have changed
+                     (eq span (get-text-property beg :pm-span))
+                     (eq span (get-text-property end :pm-span)))
+            (pm--chop-span (copy-sequence span) obeg oend)))))))
 
-(defun pm-get-innermost-span (&optional pos no-cache)
+(define-obsolete-function-alias 'pm-get-innermost-span 'pm-innermost-span "2018-08")
+(defun pm-innermost-span (&optional pos no-cache)
   "Get span object at POS.
 If NO-CACHE is non-nil, don't use cache and force re-computation
-of the span."
-  (save-excursion
-    (save-restriction
-      (widen)
-      (let (;; `re-search-forward' and other search functions trigger full
-            ;; `internal--syntax-propertize' on the whole buffer on every
-            ;; single buffer modification. This is a small price to pay for a
-            ;; much improved efficiency in modes which heavily rely on
-            ;; `syntax-propertize' like `markdown-mode'.
-            (parse-sexp-lookup-properties nil))
-        (or (unless no-cache
-              (pm-get-cached-span pos))
-            (pm-get-span pm/polymode pos))))))
+of the span. Return a cons (type start end chunkmode). POS
+defaults to point. Guarantied to return a non-empty span."
+  (when (and pos (or (< pos (point-min)) (> pos (point-max))))
+    (signal 'args-out-of-range
+            (list :pos pos
+                  :point-min (point-min)
+                  :point-max (point-max))))
+  (let (;; `re-search-forward' and other search functions trigger full
+        ;; `internal--syntax-propertize' on the whole buffer on every
+        ;; single buffer modification. This is a small price to pay for a
+        ;; much improved efficiency in modes which heavily rely on
+        ;; `syntax-propertize' like `markdown-mode'.
+        (parse-sexp-lookup-properties nil))
+    (or (unless no-cache
+          (pm--cached-span pos))
+        (pm--innermost-span pm/polymode pos))))
 
 (defun pm-span-to-range (span)
   (and span (cons (nth 1 span) (nth 2 span))))
 
-(defun pm-get-innermost-range (&optional pos no-cache)
+(define-obsolete-function-alias 'pm-get-innermost-range 'pm-innermost-range "2018-08")
+(defun pm-innermost-range (&optional pos no-cache)
   (pm-span-to-range (pm-get-innermost-span pos no-cache)))
 
 (defvar pm--select-buffer-visibly nil)
-
 (defun pm-switch-to-buffer (&optional pos-or-span)
   "Bring the appropriate polymode buffer to front.
 This is done visually for the user with `switch-to-buffer'. All
@@ -187,7 +276,7 @@ necessary adjustment like overlay and undo history transport are
 performed."
   (let ((span (if (or (null pos-or-span)
                       (number-or-marker-p pos-or-span))
-                  (pm-get-innermost-span pos-or-span)
+                  (pm-innermost-span pos-or-span)
                 pos-or-span))
         (pm--select-buffer-visibly t))
     (pm-select-buffer (car (last span)) span)))
@@ -195,7 +284,8 @@ performed."
 (defun pm-set-buffer (&optional pos-or-span)
   "Set buffer to polymode buffer appropriate for POS-OR-SPAN.
 This is done with `set-buffer' and no visual adjustments are
-done."
+done. See `pm-switch-to-buffer' for a more comprehensive
+alternative."
   (let ((span (if (or (null pos-or-span)
                       (number-or-marker-p pos-or-span))
                   (pm-get-innermost-span pos-or-span)
@@ -210,29 +300,37 @@ beginning of the span. Buffer is *not* narrowed to the span. If
 COUNT is non-nil, jump at most that many times. If BACKWARDP is
 non-nil, map backwards. During the call of FUN, a dynamically
 bound variable *span* holds the current innermost span."
-  ;; Important! Never forget to save-excursion when calling
-  ;; map-overs-spans. Mapping can end different buffer and invalidate whatever
-  ;; caller that used your function.
+  ;; Important! Don't forget to save-excursion when calling map-overs-spans.
+  ;; Mapping can end different buffer and invalidate whatever caller that used
+  ;; your function.
   (save-restriction
     (widen)
-    (setq end (min end (point-max)))
+    (setq beg (or beg (point-min))
+          end (or end (point-max)))
     (goto-char (if backwardp end beg))
     (let* ((nr 1)
            (*span* (pm-get-innermost-span (point) no-cache))
            old-span
            moved)
-      ;; if beg (end) coincide with span's end (beg) don't process previous (next) span
+      ;; VS[09-08-2018]: FIXME: This cannot happen by design as spans are right
+      ;; open but special case occurs at eob. It actually can due to uncorrected
+      ;; implementation in pm-get-span. Fix and add tests asap! (reg-reg was fixed)
+
+      ;; If beg (end) coincide with span's end (beg) don't process previous (next) span
       (if backwardp
           (and (eq end (nth 1 *span*))
-               (setq moved t)
                (not (bobp))
+               (setq moved t)
                (forward-char -1))
         (and (eq beg (nth 2 *span*))
-             (setq moved t)
              (not (eobp))
+             (setq moved t)
              (forward-char 1)))
       (when moved
         (setq *span* (pm-get-innermost-span (point) no-cache)))
+      ;; process one span when beg == end
+      (when (= beg end)
+        (setq end (nth 2 *span*)))
       (while (and (if backwardp
                       (> (point) beg)
                     (< (point) end))
@@ -446,8 +544,8 @@ DEF from history."
                collection))
     (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))
 
+;; unused
 (defun pm-kill-indirect-buffers ()
-  (dbg "*kill*")
   (let ((buf (pm-base-buffer)))
     (dolist (b (buffer-list))
       (when (and (buffer-live-p b)
@@ -455,7 +553,6 @@ DEF from history."
         (let ((kill-buffer-query-functions nil)
               (kill-buffer-hook nil))
           (kill-buffer b))))))
-
 
 
 ;; Weaving and Exporting common utilities

@@ -456,79 +456,20 @@ span. This is an object that could be dispatched upon with
 specific span around POS. Not to be used in programs directly;
 use `pm-get-innermost-span'.")
 
-(defmethod pm-get-span (chunkmode &optional pos)
-  "Return nil.
-Base mode usually do not compute the span."
-  (unless chunkmode
-    (error "Dispatching `pm-get-span' on a nil object"))
-  nil)
-
-(defmethod pm-get-span ((config pm-polymode) &optional pos)
-  "Apply pm-get-span on every element of chunkmodes slot of config object.
-Return a cons (chunkmode . span), for which START is closest to
-POS (and before it); i.e. the innermost span.  POS defaults to
-point."
-  (save-restriction
-    (widen)
-    ;; fixme: host should be last, to take advantage of the chunkmodes computation
-    (let* ((imodes (cons (oref config -hostmode)
-                         (oref config -innermodes)))
-           (start (point-min))
-           (end (point-max))
-           (pos (or pos (point)))
-           (span (list nil start end nil))
-           val)
-
-      (dolist (im imodes)
-        (setq val (pm-get-span im pos))
-        ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info im))
-        (when (and val
-                   (or (> (nth 1 val) start)
-                       (< (nth 2 val) end)))
-          (if (or (car val)
-                  (null span))
-              (setq span val
-                    start (nth 1 val)
-                    end (nth 2 val))
-            ;; nil car means outer chunkmode (usually host). And it can be an
-            ;; intersection of spans returned by 2 different neighbour inner
-            ;; chunkmodes. See rapport mode for an example
-            (setq start (max (nth 1 val)
-                             (nth 1 span))
-                  end (min (nth 2 val)
-                           (nth 2 span)))
-            (setcar (cdr span) start)
-            (setcar (cddr span) end))))
-
-      (unless (and (<= start end) (<= pos end) (>= pos start))
-        (error "Bad polymode selection: span:%s pos:%s"
-               (list start end) pos))
-      (when (null (car span)) ; chunkmodes can compute the host span by returning nil span type
-        (setcar (last span) (oref config -hostmode)))
-      ;; cache span
-      (with-silent-modifications
-        (let ((sbeg (nth 1 span))
-              (send (nth 2 span)))
-          (add-text-properties sbeg send
-                               (list :pm-span span
-                                     :pm-span-type (car span)
-                                     :pm-span-beg sbeg
-                                     :pm-span-end send))))
-      span)))
-
 (defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
 in this case."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
-    (let* ((span (pm--span-at-point head-matcher tail-matcher pos))
-           (type (car span)))
-      (if (or (and (eq type 'head) (eq head-mode 'host))
-              (and (eq type 'tail) (or (eq tail-mode 'host)
-                                       (and (null tail-mode)
-                                            (eq head-mode 'host)))))
-          (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
-        (append span (list chunkmode))))))
+    (let ((span (pm--span-at-point head-matcher tail-matcher pos)))
+      (when span
+        (let ((type (car span)))
+          (if (or (and (eq type 'head) (eq head-mode 'host))
+                  (and (eq type 'tail) (or (eq tail-mode 'host)
+                                           (and (null tail-mode)
+                                                (eq head-mode 'host)))))
+              (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
+            (append span (list chunkmode))))))))
 
 (defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
   (let ((span (call-next-method)))
@@ -609,6 +550,7 @@ sent to the new mode for syntax highlighting."
         (cons (match-beginning subexpr) (match-end subexpr)))))
 
 ;; fixme: there should be a simpler way... check the code and document
+;; VS[10-08-2018]: should follow same logic as reg-reg version?
 (defun pm--span-at-point-fun-fun (hd-matcher tl-matcher)
   (save-excursion
     (let ((pos (point))
@@ -653,69 +595,87 @@ sent to the new mode for syntax highlighting."
 (defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
   ;; head-matcher and tail-matcher are conses of the form (REG . SUBEXPR-NUM).
 
-  ;; Guaranteed to produce non-0 length spans. If no span has been found
-  ;; (head-matcher didn't match) return (nil (point-min) (point-max)).
+  ;; Guaranteed to produce non-0 length spans or nil if no span has been found.
 
   ;; xxx1 relate to the first ascending search
   ;; xxx2 relate to the second descending search
+
+  ;; VS[10-08-2018]: optimization opportunity: this searches till the end of
+  ;; buffer but the outermost pm-get-span caller has computed a few span already
+  ;; so we can pass limits or narrow to pre-computed span.
+
   (save-excursion
     (let* ((pos (point))
-
+           (at-max (eq pos (point-max)))
            (head1-beg (and (re-search-backward (car head-matcher) nil t)
                            (match-beginning (cdr head-matcher))))
            (head1-end (and head1-beg (match-end (cdr head-matcher)))))
 
       (if head1-end
-          ;; we know that (>= pos head1-end)
-          ;;            -----------------------
-          ;; host](head)[body](tail)[host](head)
-          (let* ((tail1-beg (and (goto-char head1-end)
-                                 (re-search-forward (car tail-matcher) nil t)
-                                 (match-beginning (cdr tail-matcher))))
-                 (tail1-end (and tail1-beg (match-end (cdr tail-matcher))))
-                 (tail1-beg (or tail1-beg (point-max)))
-                 (tail1-end (or tail1-end (point-max))))
+          (if (and at-max (eq head1-end pos))
+              ;;           |
+              ;; host)[head)
+              (list 'head head1-beg head1-end)
+            ;;            -----------------------
+            ;; host)[head)[body)[tail)[host)[head)
+            (let* ((tail1-beg (and (goto-char head1-end)
+                                   (re-search-forward (car tail-matcher) nil t)
+                                   (match-beginning (cdr tail-matcher))))
+                   (tail1-end (and tail1-beg (match-end (cdr tail-matcher)))))
 
-            (if (or (< pos tail1-end)
-                    (= tail1-end (point-max)))
-                (if (<= pos tail1-beg)
-                    ;;            ------
-                    ;; host](head)[body](tail)[host](head))
-                    (list 'body head1-end tail1-beg)
-                  ;;                  -----
-                  ;; host](head](body](tail)[host](head)
-                  (list 'tail tail1-beg tail1-end))
+              (if tail1-end
+                  (if (< pos tail1-end)
+                      (if (< pos tail1-beg)
+                          ;;            -----
+                          ;; host)[head)[body)[tail)[host)[head)
+                          (list 'body head1-end tail1-beg)
+                        ;;                  -----
+                        ;; host)[head)[body)[tail)[host)[head)
+                        (list 'tail tail1-beg tail1-end))
 
-              ;;                        ------------
-              ;; host](head](body](tail)[host](head)
-              (let* ((head2-beg (or (and (re-search-forward (car head-matcher) nil t)
-                                         (match-beginning (cdr head-matcher)))
-                                    (point-max))))
-                (if (<= pos head2-beg)
-                    ;;                        ------
-                    ;; host](head](body](tail)[host](head)
-                    (list nil tail1-end head2-beg)
-                  ;;                              ------
-                  ;; host](head](body](tail)[host](head)
-                  (list 'head head2-beg (match-end (cdr head-matcher)))))))
+                    (if (and at-max (eq tail1-end pos))
+                        ;;                       |
+                        ;; host)[head)[body)[tail)
+                        (list 'tail tail1-beg tail1-end)
+                      ;;                        -----------
+                      ;; host)[head)[body)[tail)[host)[head)
+                      (let* ((head2-beg (and (re-search-forward (car head-matcher) nil t)
+                                             (match-beginning (cdr head-matcher)))))
+                        (if head2-beg
+                            (if (< pos head2-beg)
+                                ;;                        -----
+                                ;; host)[head)[body)[tail)[host)[head)
+                                (list nil tail1-end head2-beg)
+                              ;;                              -----
+                              ;; host)[head)[body)[tail)[host)[head)[body
+                              (list 'head head2-beg (match-end (cdr head-matcher))))
+                          ;;                        -----
+                          ;; host)[head)[body)[tail)[host)
+                          (list nil tail1-end (point-max))))))
+                ;;            -----
+                ;; host)[head)[body)
+                (list 'body head1-end (point-max)))))
 
-        ;; -----------
-        ;; host](head)[body](tail)[host
+        ;; ----------
+        ;; host)[head)[body)[tail)[host
         (let ((head2-beg (and (goto-char (point-min))
+                              ;; fixme: optimization opportunity: if we know
+                              ;; that head-tail cannot span multilines there is
+                              ;; no need to search till the end of buffer, just
+                              ;; till (pos-at-eol)
                               (re-search-forward (car head-matcher) nil t)
                               (match-beginning (cdr head-matcher)))))
 
-          (if (null head2-beg)
-              ;; no span found
-              (list nil (point-min) (point-max))
-
-            (if (<= pos head2-beg)
-                ;; -----
-                ;; host](head)[body](tail)[host
-                (list nil (point-min) head2-beg)
-              ;;      ------
-              ;; host](head)[body](tail)[host
-              (list 'head head2-beg (match-end (cdr head-matcher))))))))))
+          (if head2-beg
+              (if (< pos head2-beg)
+                  ;; ----
+                  ;; host)[head)[body)[tail)[host
+                  (list nil (point-min) head2-beg)
+                ;;      -----
+                ;; host)[head)[body)[tail)[host
+                (list 'head head2-beg (match-end (cdr head-matcher))))
+            ;; no span found
+            nil))))))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Basic span detector with head/tail.

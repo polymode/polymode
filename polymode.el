@@ -274,21 +274,23 @@ This function is placed in `before-change-functions' hook."
 
 (defun polymode-syntax-propertize (start end)
   ;; called from syntax-propertize and thus at the beginning of syntax-ppss
-  (save-excursion
-    (when pm-verbose
-      (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer)))
-    (pm-map-over-spans
-     (lambda ()
-       (pm-with-narrowed-to-span *span*
-         (when pm--syntax-propertize-function-original
-           (let ((pos0 (max (nth 1 *span*) start))
-                 (pos1 (min (nth 2 *span*) end)))
-             (condition-case err
-                 (funcall pm--syntax-propertize-function-original pos0 pos1)
-               (error
-                (message "(syntax-propertize %d %d) fun: %s  error: %s"
-                         pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
-     start end)))
+  (save-restriction
+    (widen)
+    (save-excursion
+      (when pm-verbose
+        (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+      (pm-map-over-spans
+       (lambda ()
+         (pm-with-narrowed-to-span *span*
+           (when pm--syntax-propertize-function-original
+             (let ((pos0 (max (nth 1 *span*) start))
+                   (pos1 (min (nth 2 *span*) end)))
+               (condition-case err
+                   (funcall pm--syntax-propertize-function-original pos0 pos1)
+                 (error
+                  (message "(syntax-propertize %d %d) fun: %s  error: %s"
+                           pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
+       start end))))
 
 (defvar-local pm--killed-once nil)
 (defun polymode-after-kill-fixes ()
