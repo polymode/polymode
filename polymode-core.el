@@ -111,7 +111,6 @@ objects provides same functionality for narrower scope. See also
 
 ;;; SHIELDS
 
-(defvar pm-verbose nil)
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
 (defvar pm-initialization-in-progress nil

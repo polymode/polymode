@@ -16,6 +16,7 @@ Ran directly by the polymode modes."
   ;; logic.
   (unless pm/polymode
     (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
+
       (let ((pm-initialization-in-progress t)
             ;; Set if nil! This allows unspecified host chunkmodes to be used in
             ;; minor modes.
@@ -265,16 +266,26 @@ Create and initialize the buffer if does not exist yet.")
       (_ (error "type must be one of 'body, 'head or 'tail")))))
 
 
+;;; BUFFER SELECTION
+
 (defvar pm-move-vars-from-base '(buffer-file-name)
   "Variables transferred from base buffer on buffer switch.")
 
 (defvar pm-move-vars-from-old-buffer
-  '(buffer-invisibility-spec
-    selective-display overwrite-mode
-    ;; truncation and word-wrap
-    truncate-lines word-wrap
-    line-move-visual truncate-partial-width-windows)
+  '(buffer-undo-list
+    buffer-invisibility-spec
+    selective-display
+    overwrite-mode
+    truncate-lines
+    word-wrap
+    line-move-visual
+    truncate-partial-width-windows)
   "Variables transferred from old buffer on buffer switch.")
+
+;; Moving buffer-undo-list between indirect buffers is managed internally by
+;; emacs
+;; (defvar pm-move-vars-to-base '(buffer-undo-list)
+;;   "Variables transferred to base buffer on buffer switch.")
 
 (defgeneric pm-select-buffer (chunkmode span)
   "Ask SUBMODE to select (make current) its indirect buffer
