@@ -36,18 +36,18 @@ melpa: version $(MELPA_DIR)
 start: version
 	$(EMACSRUN) -L ~/VC/markdown-mode/ \
 		--load tests/*.el \
-		--file tests/poly-markdown-test.el 
-
-test: version
-	$(EMACSBATCH) \
-		--load targets/melpa.el \
-		--load tests/*test.el \
-		--funcall ert-run-tests-batch-and-exit
+		--file tests/poly-markdown-tests.el 
 
 # test: version
-# 	$(EMACSBATCH) -L ~/VC/markdown-mode/ \
-# 		--load tests/*test.el \
+# 	$(EMACSBATCH) \
+# 		--load targets/melpa.el \
+# 		--load tests/*tests.el \
 # 		--funcall ert-run-tests-batch-and-exit
+
+test: version
+	$(EMACSBATCH) -L ~/VC/markdown-mode/ \
+		--load tests/*tests.el \
+		--funcall ert-run-tests-batch-and-exit
 
 version:
 	@echo POLYMODE: $(VERSION)
