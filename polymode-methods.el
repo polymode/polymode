@@ -32,9 +32,9 @@ Ran directly by the polymode modes."
         (oset chunkmode -buffer (current-buffer))
         (oset config -hostmode chunkmode)
 
-        (setq pm/polymode config
-              pm/chunkmode chunkmode
-              pm/type 'host)
+        (setq pm/polymode config)
+        (setq pm/chunkmode chunkmode)
+        (setq pm/type 'host)
 
         (pm--common-setup)
 
@@ -200,10 +200,10 @@ Create and initialize the buffer if does not exist yet.")
                (pm--get-chunkmode-mode chunkmode type))))
     (or
      ;; 1. look through existent buffer list
-     (loop for bf in (oref pm/polymode -buffers)
-           when (and (buffer-live-p bf)
-                     (eq mode (buffer-local-value 'major-mode bf)))
-           return bf)
+     (cl-loop for bf in (oref pm/polymode -buffers)
+              when (and (buffer-live-p bf)
+                        (eq mode (buffer-local-value 'major-mode bf)))
+              return bf)
      ;; 2. create new
      (with-current-buffer (pm-base-buffer)
        (let* ((new-name (generate-new-buffer-name (buffer-name)))
@@ -310,7 +310,13 @@ this method to work correctly, SUBMODE's class should define
     (with-current-buffer buffer
       ;; (message (pm--debug-info span))
       (pm--reset-ppss-last (nth 1 span)))
-    (pm--move-vars pm-move-vars-from-base (pm-base-buffer) buffer)
+
+    (let ((base (pm-base-buffer)))
+      (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
+      (pm--move-vars pm-move-vars-from-base base buffer)
+      ;; (pm--move-vars pm-move-vars-to-base (current-buffer) base)
+      )
+
     (if pm--select-buffer-visibly
         ;; slow, visual selection
         (pm--select-existent-buffer-visibly buffer)
@@ -335,7 +341,6 @@ this method to work correctly, SUBMODE's class should define
     (when hl-line
       (hl-line-mode -1))
 
-    (pm--move-vars pm-move-vars-from-old-buffer old-buffer new-buffer)
     (pm--move-overlays old-buffer new-buffer)
 
     (switch-to-buffer new-buffer)
@@ -431,9 +436,9 @@ this method to work correctly, SUBMODE's class should define
             (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
               (or
                ;; a. loop through installed inner modes
-               (loop for obj in (oref pm/polymode -auto-innermodes)
-                     when (equal name (object-name-string obj))
-                     return obj)
+               (cl-loop for obj in (oref pm/polymode -auto-innermodes)
+                        when (equal name (object-name-string obj))
+                        return obj)
                ;; b. create new
                (let ((innermode (clone proto name :mode mode)))
                  (object-add-to-list pm/polymode '-auto-innermodes innermode)
@@ -829,30 +834,5 @@ to indent."
              (oref pm/chunkmode :head-adjust-face)
            (oref pm/chunkmode :tail-adjust-face)))
         (t (oref pm/chunkmode :adjust-face))))
-
-(defun pm--get-adjusted-background (prop)
-  ;; if > lighten on dark backgroun. Oposite on light.
-  (color-lighten-name (face-background 'default)
-                      (if (eq (frame-parameter nil 'background-mode) 'light)
-                          (- prop) ;; darken
-                        prop)))
-
-(defun pm--adjust-chunk-face (beg end face)
-  ;; propertize 'face of the region by adding chunk specific configuration
-  (interactive "r")
-  (when face
-    (with-current-buffer (current-buffer)
-      (let ((face (or (and (numberp face)
-                           (list (cons 'background-color
-                                       (pm--get-adjusted-background face))))
-                      face))
-            (pchange nil))
-        ;; (while (not (eq pchange end))
-        ;;   (setq pchange (next-single-property-change beg 'face nil end))
-        ;;   (put-text-property beg pchange 'face
-        ;;                      `(,face ,@(get-text-property beg 'face)))
-        ;;   (setq beg pchange))
-        (font-lock-prepend-text-property beg end 'face face)))))
-
 
 (provide 'polymode-methods)

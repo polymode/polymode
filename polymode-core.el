@@ -135,7 +135,36 @@ If so, reset `pm-last-error-time' to current time."
       t)))
 
 
+;;; Messages
+
+(defvar pm-verbose nil)
+(defvar pm-extra-span-info nil)
+
+(defun pm-format-span (&optional span prefixp)
+  (let* ((span (cond
+                ((number-or-marker-p span) (pm-get-innermost-span span))
+                ((null span) (pm-get-innermost-span))
+                (span)))
+         (message-log-max nil)
+         (beg (nth 1 span))
+         (end (nth 2 span))
+         (type (and span (or (car span) 'host)))
+         (extra (if pm-extra-span-info
+                    (format "%s " pm-extra-span-info)
+                  "")))
+    (if prefixp
+        (format "%s[%s %d-%d %s]" extra type beg end (current-buffer))
+      (format "[%s %d-%d %s] (%s)" type beg end (current-buffer) extra))))
+
+(defun pm-message (str span &rest fmts)
+  (when pm-verbose
+    (let ((msg (apply #'format str fmts)))
+      (message (format-spec msg `(?N . ,(pm-format-span)))))))
+
+
+
 ;;; CORE
+
 (defsubst pm-base-buffer ()
   ;; fixme: redundant with :base-buffer
   "Return base buffer of current buffer, or the current buffer if it's direct."
@@ -293,7 +322,12 @@ alternative."
         (pm--select-buffer-visibly nil))
     (pm-select-buffer (car (last span)) span)))
 
-(defun pm-map-over-spans (fun beg end &optional count backwardp visiblyp no-cache)
+(defun pm-goto-char (pos)
+  "Go to POS and switch to indirect buffer at POS."
+  (prog1 (goto-char pos)
+    (pm-switch-to-buffer pos)))
+
+(defun pm-map-over-spans (fun &optional beg end count backwardp visiblyp no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args. It is executed with point at the
 beginning of the span. Buffer is *not* narrowed to the span. If
