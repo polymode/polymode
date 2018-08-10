@@ -46,6 +46,7 @@
 
 (defvar poly-lock-verbose nil)
 (defvar poly-lock-allow-fontification t)
+(defvar poly-lock-allow-background-adjustment t)
 (defvar poly-lock-fontification-in-progress nil)
 (defvar-local poly-lock-mode nil)
 
@@ -197,7 +198,9 @@ Fontifies chunk-by chunk within the region BEG END."
                                   (error-message-string err))))
                       ;; even if failed set to t
                       (put-text-property new-beg new-end 'fontified t))
-                    (pm--adjust-chunk-face sbeg send (pm-get-adjust-face pm/chunkmode)))))))
+                    (when poly-lock-allow-background-adjustment
+                      (poly-lock-adjust-chunk-face sbeg send
+                                                   (pm-get-adjust-face pm/chunkmode))))))))
            beg end))))
     (current-buffer)))
 
@@ -257,3 +260,28 @@ the buffer narrowed to the relevant spans."
          beg end nil nil nil 'no-cache)))))
 
 (provide 'poly-lock)
+(defun poly-lock--adjusted-background (prop)
+  ;; if > lighten on dark backgroun. Oposite on light.
+  (color-lighten-name (face-background 'default)
+                      (if (eq (frame-parameter nil 'background-mode) 'light)
+                          (- prop) ;; darken
+                        prop)))
+
+(defun poly-lock-adjust-chunk-face (beg end face)
+  ;; propertize 'face of the region by adding chunk specific configuration
+  (interactive "r")
+  (when face
+    (with-current-buffer (current-buffer)
+      (let ((face (or (and (numberp face)
+                           (list (cons 'background-color
+                                       (poly-lock--adjusted-background face))))
+                      face))
+            (pchange nil))
+        ;; (while (not (eq pchange end))
+        ;;   (setq pchange (next-single-property-change beg 'face nil end))
+        ;;   (put-text-property beg pchange 'face
+        ;;                      `(,face ,@(get-text-property beg 'face)))
+        ;;   (setq beg pchange))
+        (font-lock-prepend-text-property beg end 'face face)))))
+
+
