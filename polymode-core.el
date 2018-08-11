@@ -178,6 +178,24 @@ Base mode usually do not compute the span."
     (error "Dispatching `pm-get-span' on a nil object"))
   nil)
 
+(defun pm-cache-span (span)
+  ;; cache span
+  (unless pm-initialization-in-progress
+    (with-silent-modifications
+      ;; (message "caching: %s %s" (car span) (pm-span-to-range span))
+      (let ((sbeg (nth 1 span))
+            (send (nth 2 span)))
+        (add-text-properties sbeg send
+                             (list :pm-span span
+                                   :pm-span-type (car span)
+                                   :pm-span-beg sbeg
+                                   :pm-span-end send))))))
+
+(defun pm-flush-span-cache (beg end &optional buffer)
+  (remove-list-of-text-properties
+   beg end '(:pm-span :pm-span-type :pm-span-beg :pm-span-end)
+   buffer))
+
 (defun pm--intersect-spans (config &optional pos)
   "Intersect CHNK-MODES' spans at POS to get the innermost."
   ;; fixme: host should be last, to take advantage of the chunkmodes computation?
@@ -216,15 +234,8 @@ Base mode usually do not compute the span."
     (when (null (car span)) ; chunkmodes can compute the host span by returning nil span type
       (setcar (last span) (oref config -hostmode)))
 
-    ;; cache span
-    (with-silent-modifications
-      (let ((sbeg (nth 1 span))
-            (send (nth 2 span)))
-        (add-text-properties sbeg send
-                             (list :pm-span span
-                                   :pm-span-type (car span)
-                                   :pm-span-beg sbeg
-                                   :pm-span-end send))))
+    (pm-cache-span span)
+
     span))
 
 (defun pm--chop-span (span beg end)

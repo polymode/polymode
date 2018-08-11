@@ -164,7 +164,8 @@ Fontifies chunk-by chunk within the region BEG END."
            ;; avoid this by dynamically binding
            ;; `poly-lock-fontification-in-progress' and un-setting
            ;; `fontification-functions' in case re-display suddenly decides to
-           ;; fontify something else in other buffer.
+           ;; fontify something else in other buffer. There are also font-lock
+           ;; guards in pm--mode-setup.
            (poly-lock-fontification-in-progress t)
            (fontification-functions nil))
       (save-restriction
@@ -178,8 +179,7 @@ Fontifies chunk-by chunk within the region BEG END."
                 ;; (message "%d-%d" sbeg send)
                 (when (> send sbeg)
                   (if  (not (and font-lock-mode font-lock-keywords))
-                      ;; when no font-lock, set to t to avoid repeated calls
-                      ;; from display engine
+                      ;; no font-lock
                       (put-text-property sbeg send 'fontified t)
                     (let ((new-beg (max sbeg beg))
                           (new-end (min send end)))
@@ -223,6 +223,7 @@ placed in `font-lock-flush-function''"
       (with-buffer-prepared-for-poly-lock
        (save-restriction
          (widen)
+         (pm-flush-span-cache beg end)
          (put-text-property beg end 'fontified nil))))))
 
 (defun poly-lock-after-change (beg end old-len)
@@ -233,6 +234,8 @@ Installed in `after-change-functions' and behaves similarly to
 the buffer narrowed to the relevant spans."
   (save-excursion
     (save-match-data
+      ;; just in case
+      (pm-flush-span-cache beg end)
       (when (and poly-lock-mode
                  pm-allow-after-change-hook
                  (not memory-full))
