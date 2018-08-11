@@ -39,45 +39,41 @@
 (defmethod pm-initialize ((config pm-polymode))
   "Initialization of host buffers.
 Ran directly by the polymode modes."
-  ;; This 'unless' is needed here because inner modes call the same polymode
-  ;; minor-mode which triggers this `pm-initialize'. FIXME: move to minor-mode
-  ;; logic.
-  (unless pm/polymode
-    (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
+  (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
 
-      (let ((pm-initialization-in-progress t)
-            ;; Set if nil! This allows unspecified host chunkmodes to be used in
-            ;; minor modes.
-            (host-mode (or (oref chunkmode :mode)
-                           (oset chunkmode :mode major-mode))))
+    (let ((pm-initialization-in-progress t)
+          ;; Set if nil! This allows unspecified host chunkmodes to be used in
+          ;; minor modes.
+          (host-mode (or (oref chunkmode :mode)
+                         (oset chunkmode :mode major-mode))))
 
-        ;; host-mode hooks are run here, but polymode is not initialized
-        (pm--mode-setup host-mode)
+      ;; host-mode hooks are run here, but polymode is not initialized
+      (pm--mode-setup host-mode)
 
-        ;; FIXME: inconsistency?
-        ;; Not calling config's :minor-mode (polymode function). But polymode
-        ;; function calls pm-initialize, so it's probably ok.
-        (oset chunkmode -buffer (current-buffer))
-        (oset config -hostmode chunkmode)
+      ;; FIXME: inconsistency?
+      ;; Not calling config's :minor-mode (polymode function). But polymode
+      ;; function calls pm-initialize, so it's probably ok.
+      (oset chunkmode -buffer (current-buffer))
+      (oset config -hostmode chunkmode)
 
-        (setq pm/polymode config)
-        (setq pm/chunkmode chunkmode)
-        (setq pm/type 'host)
+      (setq pm/polymode config)
+      (setq pm/chunkmode chunkmode)
+      (setq pm/type 'host)
 
-        (pm--common-setup)
+      (pm--common-setup)
 
-        ;; Initialize innermodes
-        (oset config -innermodes
-              (mapcar (lambda (sub-name)
-                        (clone (symbol-value sub-name)))
-                      (oref config :innermodes)))
+      ;; Initialize innermodes
+      (oset config -innermodes
+            (mapcar (lambda (sub-name)
+                      (clone (symbol-value sub-name)))
+                    (oref config :innermodes)))
 
-        ;; FIXME: must go into polymode-compat.el
-        (add-hook 'flyspell-incorrect-hook
-                  'pm--flyspel-dont-highlight-in-chunkmodes nil t))
+      ;; FIXME: must go into polymode-compat.el
+      (add-hook 'flyspell-incorrect-hook
+                'pm--flyspel-dont-highlight-in-chunkmodes nil t))
 
-      (pm--run-init-hooks config 'polymode-init-host-hook)
-      (pm--run-init-hooks chunkmode))))
+    (pm--run-init-hooks config 'polymode-init-host-hook)
+    (pm--run-init-hooks chunkmode)))
 
 (defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
   "Initialization of chunk (indirect) buffers."

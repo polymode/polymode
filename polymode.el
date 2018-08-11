@@ -486,9 +486,13 @@ BODY contains code to be executed after the complete
                 (interactive)
                 (unless ,mode
                   (let ((,last-message (current-message)))
-                    (let ((config (clone ,config)))
-                      (oset config :minor-mode ',mode)
-                      (pm-initialize config))
+                    ;; The 'unless' is needed because inner modes during
+                    ;; initialization call the same polymode minor-mode which
+                    ;; triggered this `pm-initialize'.
+                    (unless pm/polymode
+                      (let ((config (clone ,config)))
+                        (oset config :minor-mode ',mode)
+                        (pm-initialize config)))
                     (setq ,mode t)
                     ,@body
                     ;; Avoid overwriting a message shown by the body,
