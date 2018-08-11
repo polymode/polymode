@@ -258,27 +258,34 @@ This function is placed in `before-change-functions' hook."
   ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
   ;; care explicitly. We run some safety hooks checks here as well.
   (dolist (buff (oref pm/polymode -buffers))
-    ;; The following two checks are unnecessary by poly-lock design, but we are
-    ;; checking them here, just in case.
-    ;; VS[06-03-2016]: `fontification-functions' probably should be checked as well.
-    (when (memq 'font-lock-after-change-function after-change-functions)
-      (remove-hook 'after-change-functions 'font-lock-after-change-function t))
-    (when (memq 'jit-lock-after-change after-change-functions)
-      (remove-hook 'after-change-functions 'jit-lock-after-change t))
-
     (with-current-buffer buff
       ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
       (when (memq 'syntax-ppss-flush-cache before-change-functions)
         (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
-      (syntax-ppss-flush-cache beg end))))
+      (syntax-ppss-flush-cache beg end)
 
+      ;; Check if something has changed our hooks. (Am I theoretically paranoid or
+      ;; this is indeed needed?) `fontification-functions' (and others?) should be
+      ;; checked as well I guess.
+      ;; (when (memq 'font-lock-after-change-function after-change-functions)
+      ;;   (remove-hook 'after-change-functions 'font-lock-after-change-function t))
+      ;; (when (memq 'jit-lock-after-change after-change-functions)
+      ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
+      )))
+
+;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
-  ;; called from syntax-propertize and thus at the beginning of syntax-ppss
+  ;; syntax-propertize sets 'syntax-propertize--done to end in the original
+  ;; buffer just before calling syntax-propertize-function; we set it in all
+  ;; buffers.
+  (dolist (b (oref pm/polymode -buffers))
+    (with-current-buffer b
+      (setq-local syntax-propertize--done end)))
   (save-restriction
     (widen)
     (save-excursion
       (when pm-verbose
-        (message "(pm-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+        (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
       (pm-map-over-spans
        (lambda ()
          (pm-with-narrowed-to-span *span*
@@ -288,9 +295,30 @@ This function is placed in `before-change-functions' hook."
                (condition-case err
                    (funcall pm--syntax-propertize-function-original pos0 pos1)
                  (error
-                  (message "(syntax-propertize %d %d) fun: %s  error: %s"
-                           pos0 pos1 pm--syntax-propertize-function-original (error-message-string err))))))))
+                  (message "ERROR: (%s %d %d) -> %s"
+                           (if (symbolp pm--syntax-propertize-function-original)
+                               pm--syntax-propertize-function-original
+                             (format "polymode-syntax-propertize:%s" major-mode))
+                           pos0 pos1
+                           (error-message-string err))))))))
        start end))))
+
+(defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
+  (if (and polymode-mode pm/polymode)
+      (let* ((span (pm-get-innermost-span beg))
+             (range (pm-span-to-range span)))
+        (if (and (eq beg (car range))
+                 (eq end (cdr range)))
+            ;; in the most common case when span == beg-end, simply return
+            range
+          (when pm-verbose
+            (message "(polymode-restrict-syntax-propertize-extension %s %s) %s"
+                     beg end (pm-format-span span)))
+          (let ((be (funcall orig-fun beg end)))
+            (and be
+                 (cons (max (car be) (car range))
+                       (min (cdr be) (cdr range)))))))
+    (funcall orig-fun beg end)))
 
 (defvar-local pm--killed-once nil)
 (defun polymode-after-kill-fixes ()

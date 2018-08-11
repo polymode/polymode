@@ -152,7 +152,7 @@
     :initform '()
     :documentation
     "Dynamically populated list of chunkmodes objects that
-    inherit from `pm-hbtchunkmode'.")
+    inherit from `pm-chunkmode'.")
    (-auto-innermodes
     :type list
     :initform '()

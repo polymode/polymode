@@ -149,12 +149,15 @@ If so, reset `pm-last-error-time' to current time."
          (beg (nth 1 span))
          (end (nth 2 span))
          (type (and span (or (car span) 'host)))
+         (oname (if span
+                    (eieio-object-name (nth 3 span))
+                  (current-buffer)))
          (extra (if pm-extra-span-info
-                    (format "%s " pm-extra-span-info)
+                    (format (if prefixp "%s " " (%s)") pm-extra-span-info)
                   "")))
     (if prefixp
-        (format "%s[%s %d-%d %s]" extra type beg end (current-buffer))
-      (format "[%s %d-%d %s] (%s)" type beg end (current-buffer) extra))))
+        (format "%s[%s %d-%d %s]" extra type beg end oname)
+      (format "[%s %d-%d %s]%s" type beg end oname extra))))
 
 (defun pm-message (str span &rest fmts)
   (when pm-verbose
@@ -248,37 +251,43 @@ Base mode usually do not compute the span."
 
 (defun pm--innermost-span (config &optional pos)
   (let ((pos (or pos (point)))
-        (obeg (point-min))
-        (oend (point-max)))
+        (omin (point-min))
+        (omax (point-max)))
     (save-excursion
       (save-restriction
         (widen)
         (let ((span (pm--intersect-spans config pos)))
-          (when (and (= oend pos)
-                     (= oend (nth 1 span))
-                     (> oend obeg))
-            ;; when pos == point-max and it's end of span, return preceding span
-            (setq span (pm--intersect-spans config (1- pos))))
-          (pm--chop-span span obeg oend))))))
+          (if (= omax pos)
+              (when (and (= omax (nth 1 span))
+                         (> omax omin))
+                ;; When pos == point-max and it's beg of span, return the
+                ;; previous span. This occurs because the computation of
+                ;; pm--intersect-spans is done on a widened buffer.
+                (setq span (pm--intersect-spans config (1- pos))))
+            (when (= pos (nth 2 span))
+              (error "Span ends at %d in (pm-inermost-span %d) %s"
+                     pos pos (pm-format-span span))))
+          (pm--chop-span span omin omax))))))
 
 (defun pm--cached-span (&optional pos)
   ;; fixme: add basic miss statistics
-  (let* ((pos (or pos (point)))
-         (pos (if (= pos (point-max))
-                  (max (point-min) (1- pos))
-                pos))
-         (span (get-text-property pos :pm-span))
-         (obeg (point-min))
-         (oend (point-max)))
-    (when span
-      (save-restriction
-        (widen)
-        (let* ((beg (nth 1 span))
-               (end (max beg (1- (nth 2 span)))))
-          (when (and (< end (point-max)) ; buffer size might have changed
-                     (eq span (get-text-property beg :pm-span))
-                     (eq span (get-text-property end :pm-span)))
-            (pm--chop-span (copy-sequence span) obeg oend)))))))
+  (unless pm-initialization-in-progress
+    (let* ((pos (or pos (point)))
+           (pos (if (= pos (point-max))
+                    (max (point-min) (1- pos))
+                  pos))
+           (span (get-text-property pos :pm-span))
+           (obeg (point-min))
+           (oend (point-max)))
+      (when span
+        (save-restriction
+          (widen)
+          (let* ((beg (nth 1 span))
+                 (end (max beg (1- (nth 2 span)))))
+            (when (and (< end (point-max)) ; buffer size might have changed
+                       (eq span (get-text-property beg :pm-span))
+                       (eq span (get-text-property end :pm-span)))
+              (pm--chop-span (copy-sequence span) obeg oend))))))))
 
 (define-obsolete-function-alias 'pm-get-innermost-span 'pm-innermost-span "2018-08")
 (defun pm-innermost-span (&optional pos no-cache)
@@ -351,65 +360,35 @@ bound variable *span* holds the current innermost span."
   (save-restriction
     (widen)
     (setq beg (or beg (point-min))
-          end (or end (point-max)))
-    (goto-char (if backwardp end beg))
-    (let* ((nr 1)
-           (*span* (pm-get-innermost-span (point) no-cache))
-           old-span
-           moved)
-      ;; VS[09-08-2018]: FIXME: This cannot happen by design as spans are right
-      ;; open but special case occurs at eob. It actually can due to uncorrected
-      ;; implementation in pm-get-span. Fix and add tests asap! (reg-reg was fixed)
-
-      ;; If beg (end) coincide with span's end (beg) don't process previous (next) span
-      (if backwardp
-          (and (eq end (nth 1 *span*))
-               (not (bobp))
-               (setq moved t)
-               (forward-char -1))
-        (and (eq beg (nth 2 *span*))
-             (not (eobp))
-             (setq moved t)
-             (forward-char 1)))
-      (when moved
-        (setq *span* (pm-get-innermost-span (point) no-cache)))
-      ;; process one span when beg == end
-      (when (= beg end)
-        (setq end (nth 2 *span*)))
-      (while (and (if backwardp
-                      (> (point) beg)
-                    (< (point) end))
-                  (or (null count)
-                      (< nr count)))
+          end (if end
+                  (min end (point-max))
+                (point-max)))
+    (unless count
+      (setq count most-positive-fixnum))
+    (let* ((nr 0)
+           (pos (if backwardp end beg))
+           (*span* (pm-get-innermost-span pos no-cache)))
+      (while *span*
+        (setq nr (1+ nr))
         (let ((pm--select-buffer-visibly visiblyp))
-          (pm-select-buffer (car (last *span*)) *span*)) ;; object and span
-
-        ;; FUN might change buffer and invalidate our *span*. How can we
-        ;; intelligently check for this? After-change functions have not been
-        ;; run yet (or did they?). We can track buffer modification time
-        ;; explicitly (can we?)
+          (pm-select-buffer (nth 3 *span*) *span*))
+        ;; FUN might change buffer and invalidate our *span*. Should we care or
+        ;; reserve pm-map-over-spans for "read-only" actions only? Does
+        ;; after-change runs immediately or after this function ends?
         (goto-char (nth 1 *span*))
         (save-excursion
+          ;; FIXME: call with *span* argument
           (funcall fun))
-
-        ;; enter next/previous chunk as head-tails don't include their boundaries
+        ;; enter previous/next chunk
         (if backwardp
             (goto-char (max 1 (1- (nth 1 *span*))))
-          (goto-char (min (point-max) (1+ (nth 2 *span*)))))
-
-        (setq old-span *span*)
-        (setq *span* (pm-get-innermost-span (point) no-cache)
-              nr (1+ nr))
-
-        ;; Ensure progress and avoid infloop due to bad regexp or who knows
-        ;; what. Move char by char till we get higher/lower span. Cache is not
-        ;; used.
-        (while (and (not (eobp))
-                    (if backwardp
-                        (> (nth 2 *span*) (nth 1 old-span))
-                      (< (nth 1 *span*) (nth 2 old-span))))
-          (forward-char 1)
-          (setq *span* (pm-get-innermost-span (point) t)))))))
+          (goto-char (min (point-max) (nth 2 *span*))))
+        (setq *span*
+              (and (if backwardp
+                       (> (point) beg)
+                     (< (point) end))
+                   (< nr count)
+                   (pm-innermost-span (point) no-cache)))))))
 
 (defvar pm--emacs>26 (version<= "26" emacs-version))
 

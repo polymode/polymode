@@ -63,20 +63,25 @@ Return new name (symbol). FUN is an unquoted name of a function."
                   (cdr range))))
     (apply orig-fun args)))
 
+
 (defun pm-override-output-cons (orig-fun &rest args)
   "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
-*span* in `pm-map-over-spans` has precedence over span at point.'"
+*span* in `pm-map-over-spans` has precedence over span at point.
+This will break badly if (point) is not inside expected range."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-get-innermost-range)))
             (be (pm-apply-protected orig-fun args)))
-        (and be
-             (cons (and (car be)
-                        (min (max (car be) (car range))
-                             (cdr range)))
-                   (and (cdr be)
-                        (max (min (cdr be) (cdr range))
-                             (car range))))))
+        (let ((out (and be
+                        (cons (and (car be)
+                                   (min (max (car be) (car range))
+                                        (cdr range)))
+                              (and (cdr be)
+                                   (max (min (cdr be) (cdr range))
+                                        (car range)))))))
+          (when pm-verbose
+            (message "(pm-override-output-cons %s) -> %s" args out))
+          out))
     (apply orig-fun args)))
 
 (defun pm-narrowed-override-output-cons (orig-fun &rest args)
