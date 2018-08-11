@@ -6,20 +6,11 @@
 (setq python-indent-offset 4
       python-indent-guess-indent-offset nil)
 
-(ert-deftest poly-markdown/headings ()
-  (pm-test-poly-lock poly-markdown-mode "markdown.md"
-    ((insert-1 61)
-     (insert " ")
-     (pm-test-chunks)
-     (delete-backward-char 1))
-    ((delete-2 1842)
-     (backward-kill-word 1))
-    ((insert-new-line-3 2173)
-     (insert "\n")
-     (pm-test-chunks)
-     (delete-backward-char 1))))
+(message "markdown-mode: %s in %s"
+         markdown-mode-version
+         (cdr (find-function-library #'markdown-mode)))
 
-(ert-deftest poly-markdown/headings2 ()
+(ert-deftest poly-markdown/headings ()
   (pm-test-poly-lock poly-markdown-mode "markdown.md"
     ((insert-1 ("^## Intro" beg))
      (insert " ")
@@ -49,6 +40,7 @@
      (kill-sexp))
     ((elisp-kill-defun ("(defun delete-dups" beg))
      (kill-sexp))))
+
 
 (ert-deftest poly-markdown/spans-at-borders ()
   (pm-test-run-on-file poly-markdown-mode "markdown.md"

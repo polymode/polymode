@@ -42,6 +42,28 @@
    (file-name-directory
     (or load-file-name buffer-file-name))))
 
+(defun pm-test-matcher (string span-alist matcher &optional dry-run)
+  (with-temp-buffer
+    (insert string)
+    (goto-char (point-min))
+    (let (prev-span)
+      (when dry-run
+        (message "("))
+      (while (not (eobp))
+        (if dry-run
+            (let ((span (funcall matcher)))
+              (unless (equal prev-span span)
+                (setq prev-span span)
+                (message " (%d . %S)" (nth 1 span) span)))
+          (let* ((span (funcall matcher))
+                 (sbeg (nth 1 span))
+                 (ref-span (alist-get sbeg span-alist)))
+            (unless (equal span ref-span)
+              (ert-fail (list :pos (point) :span span :ref-span ref-span)))))
+        (forward-char 1))
+      (when dry-run
+        (message ")")))))
+
 (defmacro pm-test-run-on-string (mode string &rest body)
   "Run BODY in a temporary buffer containing STRING in MODE."
   (declare (indent 2)
@@ -116,13 +138,13 @@
                     (list
                      :face face
                      :oface oface
+                     :pos pos
+                     :opos opos
                      :line (progn (goto-char pos)
                                   (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
                      :oline (with-current-buffer obuf
                               (goto-char opos)
                               (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
-                     :pos pos
-                     :opos opos
                      :mode smode))))
               (ert-fail data)))
           (setq opos (next-single-property-change opos 'face obuf)))))))
@@ -171,8 +193,9 @@ indentation."
        ((null col)
         (back-to-indentation))
        (t (error "Invalid col spec %s" col))))))
-  ;; pm-set-buffer would do for programs but not for interactive debugging
-  (pm-switch-to-buffer (point)))
+  (when polymode-mode
+    ;; pm-set-buffer would do for programs but not for interactive debugging
+    (pm-switch-to-buffer (point))))
 
 (defun pm-test-goto-loc-other-window (&optional loc)
   "Utility to navigate to LOC at point in other buffer.
@@ -181,9 +204,7 @@ LOC is as in `pm-test-goto-loc'."
   (let* ((loc (or (sexp-at-point)
                   (read--expression "Loc: "))))
     (other-window 1)
-    (if polymode-mode
-        (pm-test-goto-loc loc)
-      (user-error "Not in polymode buffer"))))
+    (pm-test-goto-loc loc)))
 
 (defun pm-test-invoke-fontification (&rest _ignore)
   "Mimic calls to fontification functions by redisplay.

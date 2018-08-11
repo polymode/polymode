@@ -38,16 +38,11 @@ start: version
 		--load tests/*.el \
 		--file tests/poly-markdown-tests.el 
 
-# test: version
-# 	$(EMACSBATCH) \
-# 		--load targets/melpa.el \
-# 		--load tests/*tests.el \
-# 		--funcall ert-run-tests-batch-and-exit
-
 test: version
-	$(EMACSBATCH) -L ~/VC/markdown-mode/ \
-		--load tests/*tests.el \
-		--funcall ert-run-tests-batch-and-exit
+	$(EMACSBATCH) --load targets/melpa.el --load targets/test.el
+
+test-loc-md: version
+	$(EMACSBATCH) -L ~/VC/markdown-mode/ --load targets/test.el
 
 version:
 	@echo POLYMODE: $(VERSION)
