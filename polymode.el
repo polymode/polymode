@@ -48,7 +48,6 @@
 (require 'polymode-methods)
 (require 'polymode-obsolete)
 (require 'polymode-compat)
-(require 'polymode-debug)
 (require 'polymode-export)
 (require 'polymode-weave)
 (require 'poly-lock)

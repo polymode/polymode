@@ -105,18 +105,8 @@ Key bindings:
 
 (define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on)
 
-(defun pm-debug-highlight-current-span ()
-  (when polymode-mode
-    (unless (memq this-command '(pm-debug-info-on-current-span
-                                 pm-debug-highlight-last-font-lock-error-region))
-      (delete-overlay pm--highlight-overlay))
-    (condition-case err
-        (let ((span (pm-get-innermost-span)))
-          (when pm-debug-display-info-message
-            (message (pm--debug-info span)))
-          (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))
-      (error (message "%s" (error-message-string err))))))
-
+
+;;; INFO
 
 (defgeneric pm-debug-info (chunkmode))
 (defmethod pm-debug-info (chunkmode)
@@ -158,7 +148,10 @@ Key bindings:
     (let ((span (pm-get-innermost-span)))
       (message (pm--debug-info span))
       ;; (move-overlay pm--highlight-overlay (nth 1 span) (nth 2 span) (current-buffer))
-      (pm-debug-blink-region (nth 1 span) (nth 2 span)))))
+      (pm-debug-flick-region (nth 1 span) (nth 2 span)))))
+
+
+;;; TOGGLING
 
 (defvar pm-debug-display-info-message nil)
 (defun pm-debug-toogle-info-message ()
@@ -218,6 +211,9 @@ Key bindings:
           pm-allow-after-change-hook t
           pm-allow-post-command-hook t)))
 
+
+;;; FONT-LOCK
+
 (defun pm-debug-fontify-current-span ()
   (interactive)
   (let ((span (pm-get-innermost-span))
@@ -237,7 +233,6 @@ Key bindings:
         (poly-lock-allow-fontification t))
     (if reg
         (progn
-          ;; (pm-debug-blink-region (car reg) (cdr reg) 2)
           (poly-lock-fontify-now (car reg) (cdr reg)))
       (message "No last font-lock errors found"))))
 
@@ -259,40 +254,8 @@ Key bindings:
           (message "Region %s" reg))
       (message "No last font-lock errors found"))))
 
-(defvar pm-debug-relevant-functions-alist
-  '((polymode-initialization . (pm-initialize pm--mode-setup pm--common-setup
-                                              pm--get-chunkmode-buffer-create))
-    (poly-lock . (;;
-                  poly-lock-mode
-                  poly-lock-fontify-now
-                  poly-lock-function
-                  poly-lock-after-change
-                  poly-lock-refontify))
-    (jit-loc . (jit-lock-refontify jit-lock-mode jit-lock-fontify-now))
-    (font-lock . (;; font-lock-mode turn-on-font-lock-if-desired
-                  font-lock-after-change-function
-                  font-lock-default-fontify-buffer
-                  font-lock-default-fontify-region
-                  font-lock-default-unfontify-buffer
-                  font-lock-default-unfontify-region
-                  font-lock-extend-region-multiline
-                  font-lock-extend-region-wholelines
-                  font-lock-flush
-                  font-lock-fontify-anchored-keywords
-                  font-lock-fontify-block
-                  font-lock-fontify-buffer
-                  font-lock-fontify-keywords-region
-                  font-lock-fontify-keywords-region
-                  font-lock-fontify-region
-                  font-lock-fontify-syntactic-anchored-keywords
-                  font-lock-fontify-syntactic-keywords-region
-                  font-lock-fontify-syntactically-region
-                  font-lock-unfontify-region
-                  turn-on-font-lock
-                  font-lock-ensure))
-    (methods . (pm-select-buffer pm-get-buffer-create))
-    (select . (pm-get-innermost-span pm-map-over-spans))
-    (insert . (self-insert-command))))
+
+;;; TRACING
 
 (defun pm-debug-trace-background-1 (fn)
   (interactive (trace--read-args "Trace function in background: "))
@@ -305,25 +268,6 @@ Key bindings:
                                           (current-buffer) (point)
                                           (get-text-property (point) :pm-span-type)
                                           (float-time))))))
-
-(defun pm-debug-trace-relevant-functions (&optional group)
-  "GROUP is either a string or a list of functions to trace.
-If string, it must b an entry in
-`pm-debug-relevant-functions-alist'."
-  (interactive)
-  (require 'trace)
-  (if (and group (listp group))
-      (mapc #'pm-debug-trace-background-1 group)
-    (let* ((groups (append '("*ALL*") (mapcar #'car pm-debug-relevant-functions-alist)))
-           (group-name (or group (completing-read "Trace group: " groups
-                                                  nil t nil nil "*ALL*"))))
-      (if (equal group-name "*ALL*")
-          (mapc (lambda (group)
-                  (mapc #'pm-debug-trace-background-1
-                        (assoc group pm-debug-relevant-functions-alist)))
-                (cdr groups))
-        (mapc #'pm-debug-trace-background-1
-              (assoc (intern group-name) pm-debug-relevant-functions-alist))))))
 
 (defun pm-debug-trace-functions-by-regexp (regexp)
   "Trace all functions whose name matched REGEXP."
@@ -370,25 +314,26 @@ On prefix, fontify current span only."
   (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
     (find-file-noselect f)))
 
-;; (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
-;;   (ess-display-help-on-object "ls"))
+
+;;; RELEVANT VARIABLES
 
-(defvar pm-debug-relevant-variables '(fontification-functions
-                                      font-lock-function
-                                      font-lock-flush-function
-                                      font-lock-ensure-function
-                                      font-lock-fontify-region-function
-                                      font-lock-fontify-buffer-function
-                                      font-lock-unfontify-region-function
-                                      font-lock-unfontify-buffer-function
-                                      jit-lock-after-change-extend-region-functions
-                                      jit-lock-functions
-                                      syntax-propertize-function
-                                      syntax-propertize-extend-region-functions
-                                      post-command-hook
-                                      before-change-functions
-                                      after-change-functions
-                                      indent-line-function))
+(defvar pm-debug-relevant-variables
+  '(fontification-functions
+    font-lock-function
+    font-lock-flush-function
+    font-lock-ensure-function
+    font-lock-fontify-region-function
+    font-lock-fontify-buffer-function
+    font-lock-unfontify-region-function
+    font-lock-unfontify-buffer-function
+    jit-lock-after-change-extend-region-functions
+    jit-lock-functions
+    syntax-propertize-function
+    syntax-propertize-extend-region-functions
+    post-command-hook
+    before-change-functions
+    after-change-functions
+    indent-line-function))
 
 (defun pm-debug-print-relevant-variables ()
   (interactive)
@@ -405,19 +350,22 @@ On prefix, fontify current span only."
       (toggle-truncate-lines -1))
     (display-buffer buff)))
 
-(defun pm-debug-untrace-relevant-functions ()
-  (interactive)
-  (require 'trace)
-  (let* ((groups (append `("*ALL*") (mapcar #'car pm-debug-relevant-functions-alist)))
-         (group-name (completing-read "Trace group: " groups nil t
-                                      nil nil "*ALL*")))
-    (if (equal group-name "*ALL*")
-        (mapc (lambda (group)
-                (mapc #'untrace-function (assoc group pm-debug-relevant-functions-alist)))
-              (cdr groups))
-      (mapc #'untrace-function (assoc groups pm-debug-relevant-functions-alist)))))
+
+;;; HIGHLIGHT
 
-(defun pm-debug-blink-region (start end &optional delay)
+(defun pm-debug-highlight-current-span ()
+  (when polymode-mode
+    (unless (memq this-command '(pm-debug-info-on-current-span
+                                 pm-debug-highlight-last-font-lock-error-region))
+      (delete-overlay pm--highlight-overlay))
+    (condition-case err
+        (let ((span (pm-get-innermost-span)))
+          (when pm-debug-display-info-message
+            (message (pm--debug-info span)))
+          (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))
+      (error (message "%s" (error-message-string err))))))
+
+(defun pm-debug-flick-region (start end &optional delay)
   (move-overlay pm--highlight-overlay start end (current-buffer))
   (run-with-timer (or delay 0.4) nil (lambda () (delete-overlay pm--highlight-overlay))))
 
@@ -426,17 +374,9 @@ On prefix, fontify current span only."
   (pm-map-over-spans (lambda ()
                        (let ((start (nth 1 *span*))
                              (end (nth 2 *span*)))
-                         (pm-debug-blink-region start end)
+                         (pm-debug-flick-region start end)
                          (sit-for 1)))
                      (point-min) (point-max) nil nil t))
-
-;; (defun pm--highlight-span (&optional hd-matcher tl-matcher)
-;;   (interactive)
-;;   (let* ((hd-matcher (or hd-matcher (oref pm/chunkmode :head-matcher)))
-;;          (tl-matcher (or tl-matcher (oref pm/chunkmode :tail-matcher)))
-;;          (span (pm--span-at-point hd-matcher tl-matcher)))
-;;     (pm-debug-blink-region (nth 1 span) (nth 2 span))
-;;     (message (pm--debug-info span))))
 
 (defun pm-debug-run-over-check ()
   (interactive)
