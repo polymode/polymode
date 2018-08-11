@@ -221,6 +221,9 @@ Base modes usually do not compute spans."
                            (oref config -innermodes)))
          val)
     (dolist (im chnk-modes)
+      ;; Optimization opportunity: this searches till the end of buffer but the
+      ;; outermost pm-get-span caller has computed a few span already so we can
+      ;; pass limits or narrow to pre-computed span.
       (setq val (pm-get-span im pos))
       ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info im))
       (when (and val
@@ -555,8 +558,8 @@ near future.")
 
 (defun pm--display-file (ofile)
   (when ofile
-   ;; errors might occur (most notably with open-with package errors are intentional)
-   ;; We need to catch those if we want to display multiple files like with Rmarkdown
+    ;; errors might occur (most notably with open-with package errors are intentional)
+    ;; We need to catch those if we want to display multiple files like with Rmarkdown
     (condition-case err
         (let ((buff (get-file-buffer ofile)))
           ;; silently kill and re-open

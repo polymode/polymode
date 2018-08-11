@@ -40,38 +40,30 @@
   "Initialization of host buffers.
 Ran directly by the polymode modes."
   (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
-
     (let ((pm-initialization-in-progress t)
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
           ;; minor modes.
           (host-mode (or (oref chunkmode :mode)
                          (oset chunkmode :mode major-mode))))
-
       ;; host-mode hooks are run here, but polymode is not initialized
       (pm--mode-setup host-mode)
-
       ;; FIXME: inconsistency?
       ;; Not calling config's :minor-mode (polymode function). But polymode
       ;; function calls pm-initialize, so it's probably ok.
       (oset chunkmode -buffer (current-buffer))
       (oset config -hostmode chunkmode)
-
-      (setq pm/polymode config)
-      (setq pm/chunkmode chunkmode)
-      (setq pm/type 'host)
-
+      (setq pm/polymode config
+            pm/chunkmode chunkmode
+            pm/type 'host)
       (pm--common-setup)
-
       ;; Initialize innermodes
       (oset config -innermodes
             (mapcar (lambda (sub-name)
                       (clone (symbol-value sub-name)))
                     (oref config :innermodes)))
-
       ;; FIXME: must go into polymode-compat.el
       (add-hook 'flyspell-incorrect-hook
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
-
     (pm--run-init-hooks config 'polymode-init-host-hook)
     (pm--run-init-hooks chunkmode)))
 
@@ -99,7 +91,6 @@ Ran directly by the polymode modes."
 (defun pm--mode-setup (mode &optional buffer)
   ;; General major-mode install. Should work for both indirect and base buffers.
   ;; PM objects are not yet initialized (pm/polymode, pm/chunkmode, pm/type)
-
   (with-current-buffer (or buffer (current-buffer))
     ;; don't re-install if already there; polymodes can be used as minor modes.
     (unless (eq major-mode mode)
@@ -125,12 +116,9 @@ Ran directly by the polymode modes."
   "Common setup for all polymode buffers.
 Runs after major mode and core polymode structures have been
 initialized. Return the buffer."
-
   (with-current-buffer (or buffer (current-buffer))
-
     (when pm-verbose
       (message "common-setup for %s: [%s]" major-mode (current-buffer)))
-
     (object-add-to-list pm/polymode '-buffers (current-buffer))
 
     ;; INDENTATION
@@ -168,7 +156,6 @@ initialized. Return the buffer."
     ;; Font lock is initialized `after-change-major-mode-hook' by means of
     ;; `run-mode-hooks' and poly-lock won't get installed if polymode is
     ;; installed as minor mode or interactively.
-
     ;; Use font-lock-mode instead of poly-lock-mode because modes which don't
     ;; want font-lock can simply set `font-lock-mode' to nil.
     (font-lock-mode t)
@@ -197,7 +184,6 @@ Parents' hooks are run first."
     (if args
         (apply 'run-hook-with-args 'funs args)
       (run-hooks 'funs))))
-
 
 
 ;;; BUFFER CREATION
@@ -293,7 +279,6 @@ Create and initialize the buffer if does not exist yet.")
        (setq -tail-buffer buff))
       (_ (error "type must be one of 'body, 'head or 'tail")))))
 
-
 
 ;;; SPAN MANIPULATION
 
@@ -383,15 +368,12 @@ in this case."
 (defmacro pm-create-indented-block-matchers (name regex)
   "Defines 2 functions, each return a list of the start and end points of the
 HEAD and TAIL portions of an indented block of interest, via some regex.
-You can then use these functions in the defcustom pm-inner modes.
+You can then use these functions in the defcustom pm-inner modes. E.g.
 
-e.g.
-(pm-create-indented-block-matchers 'slim-coffee' \"^[^ ]*\\(.*:? *coffee: *\\)$\")
+ (pm-create-indented-block-matchers 'slim-coffee' \"^[^ ]*\\(.*:? *coffee: *\\)$\")
 
-creates the functions
-
-pm-slim-coffee-head-matcher
-pm-slim-coffee-tail-matcher
+would create the functions pm-slim-coffee-head-matcher and
+pm-slim-coffee-tail-matcher.
 
 In the example below,
 
@@ -427,7 +409,6 @@ sent to the new mode for syntax highlighting."
        (defun ,head-name (ahead)
          (when (re-search-forward ,regex nil t ahead)
            (cons (match-beginning 1) (match-end 1))))
-
        (defun ,tail-name (ahead)
          (save-excursion
            ;; (cons (point-max) (point-max)))))))
@@ -495,17 +476,8 @@ sent to the new mode for syntax highlighting."
                     (list nil (cdr post) (car posh1))))))))))))
 
 (defun pm--span-at-point-reg-reg (head-matcher tail-matcher)
-  ;; head-matcher and tail-matcher are conses of the form (REG . SUBEXPR-NUM).
-
-  ;; Guaranteed to produce non-0 length spans or nil if no span has been found.
-
-  ;; xxx1 relate to the first ascending search
-  ;; xxx2 relate to the second descending search
-
-  ;; VS[10-08-2018]: optimization opportunity: this searches till the end of
-  ;; buffer but the outermost pm-get-span caller has computed a few span already
-  ;; so we can pass limits or narrow to pre-computed span.
-
+  ;; - head-matcher and tail-matcher are conses of the form (REG . SUBEXPR-NUM).
+  ;; - Guaranteed to produce non-0 length spans or nil if no span has been found.
   (save-excursion
     (let* ((pos (point))
            (reg-head (car head-matcher))
@@ -516,7 +488,6 @@ sent to the new mode for syntax highlighting."
            (head1-beg (and (re-search-backward reg-head nil t)
                            (match-beginning sub-head)))
            (head1-end (and head1-beg (match-end sub-head))))
-
       (if head1-end
           (if (and at-max (eq head1-end pos))
               ;;           |
@@ -525,7 +496,6 @@ sent to the new mode for syntax highlighting."
             ;;            -----------------------
             ;; host)[head)[body)[tail)[host)[head)
             (pm--find-tail-from-head pos head1-end reg-head sub-head reg-tail sub-tail))
-
         ;; ----------
         ;; host)[head)[body)[tail)[host
         (let ((head2-beg (and (goto-char (point-min))
@@ -535,7 +505,6 @@ sent to the new mode for syntax highlighting."
                               ;; till (pos-at-eol)
                               (re-search-forward reg-head nil t)
                               (match-beginning sub-head))))
-
           (if head2-beg
               (if (< pos head2-beg)
                   ;; ----
@@ -556,7 +525,6 @@ sent to the new mode for syntax highlighting."
                          (re-search-forward reg-tail nil t)
                          (match-beginning sub-tail)))
          (tail1-end (and tail1-beg (match-end sub-tail))))
-
     (if tail1-end
         (if (< pos tail1-end)
             (if (< pos tail1-beg)
@@ -566,7 +534,6 @@ sent to the new mode for syntax highlighting."
               ;;                  -----
               ;; host)[head)[body)[tail)[host)[head)
               (list 'tail tail1-beg tail1-end))
-
           (if (and (= pos (point-max)) (eq tail1-end pos))
               ;;                       |
               ;; host)[head)[body)[tail)           ; can happen when sub-tail == 0 only
@@ -599,7 +566,6 @@ sent to the new mode for syntax highlighting."
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Basic span detector with head/tail.
-
 Either of HEAD-MATCHER and TAIL-MATCHER can be a regexp or a
 function. When a function the matcher must accept one argument
 that can take either values 1 (forwards search) or -1 (backward
@@ -609,11 +575,11 @@ respectively. See `pm--default-matcher' for an example.
 
 Return (type span-start span-end) where type is one of the
 follwoing symbols:
-
-nil   - pos is between point-min and head-matcher, or between tail-matcher and point-max
-body  - pos is between head-matcher and tail-matcher (exclusively)
-head  - head span
-tail  - tail span"
+  nil   - pos is between point-min and head-matcher, or between tail-matcher and point-max
+  body  - pos is between head-matcher and tail-matcher (exclusively)
+  head  - head span
+  tail  - tail span
+"
   ;; ! start of the span is part of the span !
   (save-restriction
     (widen)
