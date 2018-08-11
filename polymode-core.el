@@ -132,7 +132,6 @@ objects provides same functionality for narrower scope. See also
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")
 (declare-function pm-get-buffer-create "polymode-methods")
-(declare-function pm-select-buffer "polymode-methods")
 (declare-function pm-get-adjust-face "polymode-methods")
 (declare-function pm-get-span "polymode-methods")
 
@@ -329,18 +328,125 @@ defaults to point. Guarantied to return a non-empty span."
 (defun pm-innermost-range (&optional pos no-cache)
   (pm-span-to-range (pm-get-innermost-span pos no-cache)))
 
-(defvar pm--select-buffer-visibly nil)
-(defun pm-switch-to-buffer (&optional pos-or-span)
-  "Bring the appropriate polymode buffer to front.
-This is done visually for the user with `switch-to-buffer'. All
-necessary adjustment like overlay and undo history transport are
-performed."
-  (let ((span (if (or (null pos-or-span)
-                      (number-or-marker-p pos-or-span))
-                  (pm-innermost-span pos-or-span)
-                pos-or-span))
-        (pm--select-buffer-visibly t))
-    (pm-select-buffer (car (last span)) span)))
+
+
+;;; BUFFER SELECTION
+
+;; Transfer of the buffer-undo-list is managed internally by emacs
+(defvar pm-move-vars-from-base '(buffer-file-name)
+  "Variables transferred from base buffer on buffer switch.")
+
+(defvar pm-move-vars-from-old-buffer
+  '(buffer-undo-list
+    buffer-invisibility-spec
+    selective-display
+    overwrite-mode
+    truncate-lines
+    word-wrap
+    line-move-visual
+    truncate-partial-width-windows)
+  "Variables transferred from old buffer on buffer switch.")
+
+(defun pm-select-buffer (span &optional visibly)
+  "Select the buffer associated with SPAN.
+Install a new indirect buffer if it is not already installed.
+CHUNKMODE's class should define `pm-get-buffer-create' method."
+  (let* ((chunkmode (nth 3 span))
+         (type (car span))
+         (buff (pm-get-buffer-create chunkmode type)))
+    (pm--select-existing-buffer buff span visibly)))
+
+;; extracted for debugging purpose
+(defun pm--select-existing-buffer (buffer span visibly)
+  ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
+  ;; no action if BUFFER is already the current buffer
+  (when (and (not (eq buffer (current-buffer)))
+             (buffer-live-p buffer))
+    (with-current-buffer buffer
+      ;; (message (pm--debug-info span))
+      (pm--reset-ppss-last (nth 1 span)))
+
+    (let ((base (pm-base-buffer)))
+      (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
+      (pm--move-vars pm-move-vars-from-base base buffer))
+
+    (if visibly
+        ;; slow, visual selection
+        (pm--select-existent-buffer-visibly buffer)
+      ;; fast set-buffer
+      (set-buffer buffer))))
+
+(defun pm--select-existent-buffer-visibly (new-buffer)
+  (let ((old-buffer (current-buffer))
+        (point (point))
+        (window-start (window-start))
+        (visible (pos-visible-in-window-p))
+        (vlm visual-line-mode)
+        (ractive (region-active-p))
+        ;; text-scale-mode
+        (scale (and (boundp 'text-scale-mode) text-scale-mode))
+        (scale-amount (and (boundp 'text-scale-mode-amount) text-scale-mode-amount))
+        (hl-line (and (boundp 'hl-line-mode) hl-line-mode))
+        (mkt (mark t))
+        (bro buffer-read-only))
+
+    (when hl-line
+      (hl-line-mode -1))
+
+    (pm--move-overlays old-buffer new-buffer)
+
+    (switch-to-buffer new-buffer)
+    (bury-buffer-internal old-buffer)
+
+    (unless (eq bro buffer-read-only)
+      (read-only-mode (if bro 1 -1)))
+    (pm--adjust-visual-line-mode vlm)
+
+    (when (and (boundp 'text-scale-mode-amount)
+               (not (and (eq scale text-scale-mode)
+                         (= scale-amount text-scale-mode-amount))))
+      (if scale
+          (text-scale-set scale-amount)
+        (text-scale-set 0)))
+
+    ;; fixme: what is the right way to do this ... activate-mark-hook?
+    (if (not ractive)
+        (deactivate-mark)
+      (set-mark mkt)
+      (activate-mark))
+
+    ;; avoid display jumps
+    (goto-char point)
+    (when visible
+      (set-window-start (get-buffer-window buffer t) window-start))
+
+    (when hl-line
+      (hl-line-mode 1))
+
+    (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)
+    (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
+    (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
+
+(defun pm--move-overlays (from-buffer to-buffer)
+  (with-current-buffer from-buffer
+    (mapc (lambda (o)
+            (unless (eq 'linum-str (car (overlay-properties o)))
+              (move-overlay o (overlay-start o) (overlay-end o) to-buffer)))
+          (overlays-in 1 (1+ (buffer-size))))))
+
+(defun pm--move-vars (vars from-buffer &optional to-buffer)
+  (let ((to-buffer (or to-buffer (current-buffer))))
+    (unless (eq to-buffer from-buffer)
+      (with-current-buffer to-buffer
+        (dolist (var vars)
+          (and (boundp var)
+               (set var (buffer-local-value var from-buffer))))))))
+
+(defun pm--adjust-visual-line-mode (vlm)
+  (unless (eq visual-line-mode vlm)
+    (if (null vlm)
+        (visual-line-mode -1)
+      (visual-line-mode 1))))
 
 (defun pm-set-buffer (&optional pos-or-span)
   "Set buffer to polymode buffer appropriate for POS-OR-SPAN.
@@ -350,16 +456,21 @@ alternative."
   (let ((span (if (or (null pos-or-span)
                       (number-or-marker-p pos-or-span))
                   (pm-get-innermost-span pos-or-span)
-                pos-or-span))
-        (pm--select-buffer-visibly nil))
-    (pm-select-buffer (car (last span)) span)))
+                pos-or-span)))
+    (pm-select-buffer span)))
 
-(defun pm-goto-char (pos)
-  "Go to POS and switch to indirect buffer at POS."
-  (prog1 (goto-char pos)
-    (pm-switch-to-buffer pos)))
+(defun pm-switch-to-buffer (&optional pos-or-span)
+  "Bring the appropriate polymode buffer to front.
+This is done visually for the user with `switch-to-buffer'. All
+necessary adjustment like overlay and undo history transport are
+performed."
+  (let ((span (if (or (null pos-or-span)
+                      (number-or-marker-p pos-or-span))
+                  (pm-innermost-span pos-or-span)
+                pos-or-span)))
+    (pm-select-buffer span 'visibly)))
 
-(defun pm-map-over-spans (fun &optional beg end count backwardp visiblyp no-cache)
+(defun pm-map-over-spans (fun &optional beg end count backwardp visibly no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of no args. It is executed with point at the
 beginning of the span. Buffer is *not* narrowed to the span. If
@@ -382,8 +493,7 @@ bound variable *span* holds the current innermost span."
            (*span* (pm-get-innermost-span pos no-cache)))
       (while *span*
         (setq nr (1+ nr))
-        (let ((pm--select-buffer-visibly visiblyp))
-          (pm-select-buffer (nth 3 *span*) *span*))
+        (pm-select-buffer *span* visibly)
         ;; FUN might change buffer and invalidate our *span*. Should we care or
         ;; reserve pm-map-over-spans for "read-only" actions only? Does
         ;; after-change runs immediately or after this function ends?

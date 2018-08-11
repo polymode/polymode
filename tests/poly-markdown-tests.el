@@ -94,7 +94,9 @@
 
 (ert-deftest poly-markdown/spans-at-point-max ()
   (pm-test-run-on-file poly-markdown-mode "markdown.md"
-    (pm-goto-char (point-max))
+    (goto-char (point-max))
+    (pm-switch-to-buffer)
+
     (let ((span (pm-get-innermost-span (point-max))))
       (should (eq (car span) nil))
       (should (eq (nth 2 span) (point-max)))

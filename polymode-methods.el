@@ -297,136 +297,42 @@ Create and initialize the buffer if does not exist yet.")
        (setq -tail-buffer buff))
       (_ (error "type must be one of 'body, 'head or 'tail")))))
 
+
 
-;;; BUFFER SELECTION
+;;; SPAN MANIPULATION
 
-(defvar pm-move-vars-from-base '(buffer-file-name)
-  "Variables transferred from base buffer on buffer switch.")
+(defgeneric pm-get-span (chunkmode &optional pos)
+  "Ask the CHUNKMODE for the span at point.
+Return a list of three elements (TYPE BEG END OBJECT) where TYPE
+is a symbol representing the type of the span surrounding
+POS (head, tail, body). BEG and END are the coordinates of the
+span. OBJECT is a suitable object which is 'responsible' for this
+span. This is an object that could be dispatched upon with
+`pm-select-buffer'. Should return nil if there is no SUBMODE
+specific span around POS. Not to be used in programs directly;
+use `pm-get-innermost-span'.")
 
-(defvar pm-move-vars-from-old-buffer
-  '(buffer-undo-list
-    buffer-invisibility-spec
-    selective-display
-    overwrite-mode
-    truncate-lines
-    word-wrap
-    line-move-visual
-    truncate-partial-width-windows)
-  "Variables transferred from old buffer on buffer switch.")
+(defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
+  "Return a list of the form (TYPE POS-START POS-END SELF).
+TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
+in this case."
+  (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
+    (let ((span (pm--span-at-point head-matcher tail-matcher pos)))
+      (when span
+        (let ((type (car span)))
+          (if (or (and (eq type 'head) (eq head-mode 'host))
+                  (and (eq type 'tail) (or (eq tail-mode 'host)
+                                           (and (null tail-mode)
+                                                (eq head-mode 'host)))))
+              (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
+            (append span (list chunkmode))))))))
 
-;; Moving buffer-undo-list between indirect buffers is managed internally by
-;; emacs
-;; (defvar pm-move-vars-to-base '(buffer-undo-list)
-;;   "Variables transferred to base buffer on buffer switch.")
-
-(defgeneric pm-select-buffer (chunkmode span)
-  "Ask SUBMODE to select (make current) its indirect buffer
-corresponding to the type of the SPAN returned by
-`pm-get-span'.")
-
-(defmethod pm-select-buffer ((chunkmode pm-chunkmode) span)
-  "Select the buffer associated with CHUNKMODE.
-Install a new indirect buffer if it is not already installed. For
-this method to work correctly, SUBMODE's class should define
-`pm-get-buffer-create' method."
-  (let* ((type (car span))
-         (buff (pm-get-buffer-create chunkmode type)))
-    (pm--select-existing-buffer buff span)))
-
-;; extracted for debugging purpose
-(defun pm--select-existing-buffer (buffer span)
-  ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
-  ;; no action if BUFFER is already the current buffer
-  (when (and (not (eq buffer (current-buffer)))
-             (buffer-live-p buffer))
-    (with-current-buffer buffer
-      ;; (message (pm--debug-info span))
-      (pm--reset-ppss-last (nth 1 span)))
-
-    (let ((base (pm-base-buffer)))
-      (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
-      (pm--move-vars pm-move-vars-from-base base buffer)
-      ;; (pm--move-vars pm-move-vars-to-base (current-buffer) base)
-      )
-
-    (if pm--select-buffer-visibly
-        ;; slow, visual selection
-        (pm--select-existent-buffer-visibly buffer)
-      ;; fast set-buffer
-      (set-buffer buffer))))
-
-;; extracted for debugging purpose
-(defun pm--select-existent-buffer-visibly (new-buffer)
-  (let ((old-buffer (current-buffer))
-        (point (point))
-        (window-start (window-start))
-        (visible (pos-visible-in-window-p))
-        (vlm visual-line-mode)
-        (ractive (region-active-p))
-        ;; text-scale-mode
-        (scale (and (boundp 'text-scale-mode) text-scale-mode))
-        (scale-amount (and (boundp 'text-scale-mode-amount) text-scale-mode-amount))
-        (hl-line (and (boundp 'hl-line-mode) hl-line-mode))
-        (mkt (mark t))
-        (bro buffer-read-only))
-
-    (when hl-line
-      (hl-line-mode -1))
-
-    (pm--move-overlays old-buffer new-buffer)
-
-    (switch-to-buffer new-buffer)
-    (bury-buffer-internal old-buffer)
-
-    (unless (eq bro buffer-read-only)
-      (read-only-mode (if bro 1 -1)))
-    (pm--adjust-visual-line-mode vlm)
-
-    (when (and (boundp 'text-scale-mode-amount)
-               (not (and (eq scale text-scale-mode)
-                         (= scale-amount text-scale-mode-amount))))
-      (if scale
-          (text-scale-set scale-amount)
-        (text-scale-set 0)))
-
-    ;; fixme: what is the right way to do this ... activate-mark-hook?
-    (if (not ractive)
-        (deactivate-mark)
-      (set-mark mkt)
-      (activate-mark))
-
-    ;; avoid display jumps
-    (goto-char point)
-    (when visible
-      (set-window-start (get-buffer-window buffer t) window-start))
-
-    (when hl-line
-      (hl-line-mode 1))
-
-    (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)
-    (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
-    (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
-
-(defun pm--move-overlays (from-buffer to-buffer)
-  (with-current-buffer from-buffer
-    (mapc (lambda (o)
-            (unless (eq 'linum-str (car (overlay-properties o)))
-              (move-overlay o (overlay-start o) (overlay-end o) to-buffer)))
-          (overlays-in 1 (1+ (buffer-size))))))
-
-(defun pm--move-vars (vars from-buffer &optional to-buffer)
-  (let ((to-buffer (or to-buffer (current-buffer))))
-    (unless (eq to-buffer from-buffer)
-      (with-current-buffer to-buffer
-        (dolist (var vars)
-          (and (boundp var)
-               (set var (buffer-local-value var from-buffer))))))))
-
-(defun pm--adjust-visual-line-mode (vlm)
-  (unless (eq visual-line-mode vlm)
-    (if (null vlm)
-        (visual-line-mode -1)
-      (visual-line-mode 1))))
+(defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
+  (let ((span (call-next-method)))
+    (if (null (car span))
+        span
+      (setf (nth 3 span) (pm--get-auto-chunk span))
+      span)))
 
 (defun pm--get-auto-chunk (span)
   ;; fixme: cache somehow?
@@ -477,43 +383,6 @@ this method to work correctly, SUBMODE's class should define
                  innermode)))
           ;; else, use hostmode
           (oref pm/polymode -hostmode))))))
-
-
-
-;;; SPAN MANIPULATION
-
-(defgeneric pm-get-span (chunkmode &optional pos)
-  "Ask the CHUNKMODE for the span at point.
-Return a list of three elements (TYPE BEG END OBJECT) where TYPE
-is a symbol representing the type of the span surrounding
-POS (head, tail, body). BEG and END are the coordinates of the
-span. OBJECT is a suitable object which is 'responsible' for this
-span. This is an object that could be dispatched upon with
-`pm-select-buffer'. Should return nil if there is no SUBMODE
-specific span around POS. Not to be used in programs directly;
-use `pm-get-innermost-span'.")
-
-(defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
-  "Return a list of the form (TYPE POS-START POS-END SELF).
-TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
-in this case."
-  (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
-    (let ((span (pm--span-at-point head-matcher tail-matcher pos)))
-      (when span
-        (let ((type (car span)))
-          (if (or (and (eq type 'head) (eq head-mode 'host))
-                  (and (eq type 'tail) (or (eq tail-mode 'host)
-                                           (and (null tail-mode)
-                                                (eq head-mode 'host)))))
-              (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
-            (append span (list chunkmode))))))))
-
-(defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
-  (let ((span (call-next-method)))
-    (if (null (car span))
-        span
-      (setf (nth 3 span) (pm--get-auto-chunk span))
-      span)))
 
 (defmacro pm-create-indented-block-matchers (name regex)
   "Defines 2 functions, each return a list of the start and end points of the
