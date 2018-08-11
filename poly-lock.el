@@ -71,7 +71,7 @@
 ;;
 ;;; Code:
 
-
+(require 'jit-lock)
 (require 'polymode-core)
 (require 'polymode-compat)
 
@@ -281,23 +281,23 @@ the buffer narrowed to the relevant spans."
               (when poly-lock-verbose
                 (message "after-change-map-over %s" (pm-format-span *span*)))
               (pm-with-narrowed-to-span *span*
-                (let ((jit-lock-start (max beg sbeg))
-                      (jit-lock-end (min end send)))
-                  (when (or (> beg sbeg) (< end send))
-                    (condition-case err
-                        ;; set jit-lock-start and jit-lock-end locally
-                        (run-hook-with-args 'jit-lock-after-change-extend-region-functions
-                                            jit-lock-start jit-lock-end old-len)
-                      (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
-                                      jit-lock-start jit-lock-end old-len
-                                      (error-message-string err)))))
-                  (setq jit-lock-start (max jit-lock-start sbeg)
-                        jit-lock-end (min jit-lock-end send))
-                  (when poly-lock-verbose
-                    (message "after-change-extend-region-functions: %d-%d %s"
-                             jit-lock-start jit-lock-end
-                             (pm-format-span *span*)))
-                  (put-text-property jit-lock-start jit-lock-end 'fontified nil))))))
+                (setq jit-lock-start (max beg sbeg)
+                      jit-lock-end   (min end send))
+                (when (or (> beg sbeg) (< end send))
+                  (condition-case err
+                      ;; set jit-lock-start and jit-lock-end by side effect
+                      (run-hook-with-args 'jit-lock-after-change-extend-region-functions
+                                          jit-lock-start jit-lock-end old-len)
+                    (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
+                                    jit-lock-start jit-lock-end old-len
+                                    (error-message-string err)))))
+                (setq jit-lock-start (max jit-lock-start sbeg)
+                      jit-lock-end (min jit-lock-end send))
+                (when poly-lock-verbose
+                  (message "after-change-extend-region-functions: %d-%d %s"
+                           jit-lock-start jit-lock-end
+                           (pm-format-span *span*)))
+                (put-text-property jit-lock-start jit-lock-end 'fontified nil)))))
          beg end nil nil nil 'no-cache)))))
 
 (defun poly-lock--adjusted-background (prop)
