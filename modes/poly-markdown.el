@@ -89,5 +89,23 @@
   (remove-hook 'window-configuration-change-hook 'markdown-fontify-buffer-wiki-links t)
   (remove-hook 'after-change-functions 'markdown-check-change-for-wiki-link t))
 
+(with-eval-after-load "markdown-mode"
+;;; https://github.com/jrblevin/markdown-mode/pull/356
+  (defun markdown-match-propertized-text (property last)
+    "Match text with PROPERTY from point to LAST.
+Restore match data previously stored in PROPERTY."
+    (let ((saved (get-text-property (point) property))
+          pos)
+      (unless saved
+        (setq pos (next-single-property-change (point) property nil last))
+        (unless (= pos last)
+          (setq saved (get-text-property pos property))))
+      (when saved
+        (set-match-data saved)
+        ;; Step at least one character beyond point. Otherwise
+        ;; `font-lock-fontify-keywords-region' infloops.
+        (goto-char (min (1+ (max (match-end 0) (point)))
+                        (point-max)))
+        saved))))
 
 (provide 'poly-markdown)
