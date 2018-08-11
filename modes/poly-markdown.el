@@ -40,7 +40,7 @@
   :group 'hostmodes
   :type 'object)
 
-(defcustom  pm-inner/markdown
+(defcustom  pm-inner/markdown-fenced-code
   (pm-hbtchunkmode-auto "markdown"
                         :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                         :tail-matcher "^[ \t]*```[ \t]*$"
@@ -50,7 +50,7 @@
   :group 'innermodes
   :type 'object)
 
-(defcustom  pm-inner/markdown-inline
+(defcustom  pm-inner/markdown-inline-code
   (pm-hbtchunkmode-auto "markdown-inline"
                         :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                         :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
@@ -73,7 +73,9 @@
 (defcustom pm-poly/markdown
   (pm-polymode-multi "markdown"
                      :hostmode 'pm-host/markdown
-                     :innermodes '(pm-inner/markdown pm-inner/markdown-inline pm-inner/markdown-latex))
+                     :innermodes '(pm-inner/markdown-fenced-code
+                                   pm-inner/markdown-inline-code
+                                   pm-inner/markdown-latex))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)
