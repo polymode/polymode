@@ -1,4 +1,33 @@
-
+;;; poly-lock.el --- Font lock sub-system for polymode -*- lexical-binding: t -*-
+;;
+;; Copyright (C) 2013-2018, Vitalie Spinu
+;; Author: Vitalie Spinu
+;; URL: https://github.com/vspinu/polymode
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Commentary
+;;
+;;
 ;; FONT-LOCK COMPONENTS:
 ;;
 ;; All * functions are lazy in poly-lock and jit-lock because they just mark
@@ -11,7 +40,7 @@
 ;;  font-lock-fontify-region ->   font-lock-fontify-region-function ->   font-lock-default-fontify-region
 ;;  font-lock-unfontify-region -> font-lock-unfontify-region-function -> font-lock-default-unfontify-region
 ;;  font-lock-unfontify-buffer -> font-lock-unfontify-buffer-function -> font-lock-default-unfontify-buffer
-
+;;
 ;; Jit-lock components:
 ;; fontification-functions (called by display engine)
 ;;   --> jit-lock-function
@@ -19,14 +48,14 @@
 ;;       --> jit-lock--run-functions
 ;;         --> jit-lock-functions (font-lock-fontify-region bug-reference-fontify etc.)
 ;;
-
+;;
 ;; Poly-lock components:
 ;; fontification-functions
 ;;   --> poly-lock-function
 ;;    --> poly-lock-fontify-now
 ;;      --> jit-lock-fontify-now
 ;;      ...
-
+;;
 ;; `font-lock-mode' call graph:
 ;; -> font-lock-function <---- replaced by `poly-lock-mode'
 ;;   -> font-lock-default-function
@@ -39,6 +68,8 @@
 ;;             -> (jit-lock-register #'font-lock-fontify-region)
 ;;               -> (add-hook 'jit-lock-functions #'font-lock-fontify-region nil t)
 ;;               -> jit-lock-mode
+;;
+;;; Code:
 
 
 (require 'polymode-core)

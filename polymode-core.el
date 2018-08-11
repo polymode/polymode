@@ -1,7 +1,34 @@
-;;  -*- lexical-binding: t -*-
-;; COMMON INITIALIZATION, UTILITIES and INTERNALS which didn't fit anywhere else
+;;; polymode-core.el --- Core initialization and utilities for polymode -*- lexical-binding: t -*-
+;;
+;; Copyright (C) 2013-2018, Vitalie Spinu
+;; Author: Vitalie Spinu
+;; URL: https://github.com/vspinu/polymode
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (eval-when-compile (require 'cl-lib))
+
 (require 'gv)
 (require 'font-lock)
 (require 'color)
@@ -87,9 +114,10 @@ objects provides same functionality for narrower scope. See also
 (defvar-local pm/chunkmode nil)
 (defvar-local pm/type nil)
 (defvar-local polymode-mode nil
-  "This variable is t if current \"mode\" is a polymode.")
+  "Non-nil if current \"mode\" is a polymode.")
+(defvar pm--emacs>26 (version<= "26" emacs-version))
 
-;; silence the compiler for now
+;; silence the compiler
 (defvar pm--output-file nil)
 (defvar pm--input-buffer nil)
 (defvar pm--input-file nil)
@@ -108,34 +136,19 @@ objects provides same functionality for narrower scope. See also
 (declare-function pm-get-adjust-face "polymode-methods")
 (declare-function pm-get-span "polymode-methods")
 
-
-;;; SHIELDS
-
+;; shields
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
-(defvar pm-initialization-in-progress nil
-  ;; We need this during cascading call-next-method in pm-initialize.
-  ;; -innermodes are initialized after the hostmode setup has taken place. This
-  ;; means that pm-get-span and all the functionality that relies on it will
-  ;; fail to work correctly during the initialization in the call-next-method.
-  ;; This is particularly relevant to font-lock setup and user hooks.
-  "Non nil during polymode objects initialization.
-If this variable is non-nil, various chunk manipulation commands
-relying on `pm-get-span' might not function correctly.")
+;; We need this during cascaded call-next-method in pm-initialize. -innermodes
+;; are initialized after the hostmode setup has taken place. This means that
+;; pm-get-span and all the functionality that relies on it will fail to work
+;; correctly during the initialization in the call-next-method. This is
+;; particularly relevant to font-lock setup and user hooks.
+(defvar pm-initialization-in-progress nil)
 
-;; not used
-(defvar pm-last-error-time (current-time))
-(defun pm-last-error-far-off-p ()
-  "Return t if last error occurred \"long time ago\".
-If so, reset `pm-last-error-time' to current time."
-  (let ((cur-time (current-time)))
-    (when (time-less-p (time-add pm-last-error-time 0.005)
-                       cur-time)
-      (setq pm-last-error-time (current-time))
-      t)))
 
 
-;;; Messages
+;;; MESSAGES
 
 (defvar pm-verbose nil)
 (defvar pm-extra-span-info nil)
@@ -166,17 +179,16 @@ If so, reset `pm-last-error-time' to current time."
 
 
 
-;;; CORE
+;;; SPANS
 
 (defsubst pm-base-buffer ()
-  ;; fixme: redundant with :base-buffer
   "Return base buffer of current buffer, or the current buffer if it's direct."
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
 (defmethod pm-get-span (chunkmode &optional pos)
   "Return nil.
-Base mode usually do not compute the span."
+Base modes usually do not compute spans."
   (unless chunkmode
     (error "Dispatching `pm-get-span' on a nil object"))
   nil)
@@ -390,8 +402,6 @@ bound variable *span* holds the current innermost span."
                    (< nr count)
                    (pm-innermost-span (point) no-cache)))))))
 
-(defvar pm--emacs>26 (version<= "26" emacs-version))
-
 (defun pm--reset-ppss-last (span-start)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN-START.
 If SPAN-START is nil, use span at point."
@@ -426,7 +436,8 @@ If SPAN-START is nil, use span at point."
      ,@body))
 
 
-;;; UTILITIES
+;;; INTERNAL UTILITIES
+
 (defvar polymode-display-output-file t
   "When non-nil automatically display output file in emacs.
 This is temporary variable, it might be changed or removed in the
@@ -579,7 +590,7 @@ DEF from history."
           (kill-buffer b))))))
 
 
-;; Weaving and Exporting common utilities
+;; WEAVING and EXPORTING
 
 (defun pm--wrap-callback (processor slot ifile)
   ;; replace processor :sentinel or :callback temporally in order to export-spec as a
@@ -615,9 +626,7 @@ DEF from history."
        (file-exists-p file)
        (nth 5 (file-attributes file))))
 
-
 (defvar-local pm--process-buffer nil)
-
 (defun pm--run-shell-command (command sentinel buff-name message)
   "Run shell command interactively.
 Run command in a buffer (in comint-shell-mode) in order to be
