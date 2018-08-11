@@ -78,3 +78,42 @@ some ```extra words''' here
      (pm--span-at-point-reg-reg
       (cons "^[ \t]*```[{ \t]*\\w.*$" 0)
       (cons "^[ \t]*```[ \t]*$" 0)))))
+
+(ert-deftest matcher-reg-reg/inner-submatch ()
+  (pm-test-matcher
+   "--`first-- span --`--
+Some text:
+
+- This is a --`el-- (defvar bullet-point 'bullet-point')--`--.
+- This is a --`ada 'Sub bullet point'`.
+
+foo
+---   bar -------------
+
+ - This is --`ba-- ba -- ba
+ba
+ba ba--`---
+
+baz
+--`last-- span --`--"
+   '((1 . (nil 1 3))
+     (3 . (head 3 9))
+     (9 . (body 9 19))
+     (19 . (tail 19 20))
+     (20 . (nil 20 49))
+     (49 . (head 49 52))
+     (52 . (body 52 93))
+     (93 . (tail 93 94))
+     (94 . (nil 94 181))
+     (181 . (head 181 184))
+     (184 . (body 184 206))
+     (206 . (tail 206 207))
+     (207 . (nil 207 218))
+     (218 . (head 218 223))
+     (223 . (body 223 233))
+     (233 . (tail 233 234))
+     (234 . (nil 234 236)))
+   (lambda ()
+     (pm--span-at-point-reg-reg
+      (cons "--\\(`[[:alpha:]]+\\)--" 1)
+      (cons "--\\(`\\)--" 1)))))

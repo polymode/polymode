@@ -1,4 +1,4 @@
-;;; polymode-test.el --- Test utilities for polymode -*- lexical-binding: t -*-
+;;; polymode-test.el --- Testing utilities for polymode -*- lexical-binding: t -*-
 ;;
 ;; Copyright (C) 2018, Vitalie Spinu
 ;; Author: Vitalie Spinu
@@ -33,9 +33,7 @@
 (setq ert-batch-backtrace-right-margin 130)
 (setq pm-verbose (getenv "PM_VERBOSE"))
 (setq poly-lock-verbose (getenv "PM_VERBOSE"))
-
 (defvar pm-test-current-change-set nil)
-
 (defvar pm-test-input-dir
   (expand-file-name
    "tests/input"
@@ -62,7 +60,8 @@
               (ert-fail (list :pos (point) :span span :ref-span ref-span)))))
         (forward-char 1))
       (when dry-run
-        (message ")")))))
+        (message ")"))
+      nil)))
 
 (defmacro pm-test-run-on-string (mode string &rest body)
   "Run BODY in a temporary buffer containing STRING in MODE."
@@ -244,33 +243,5 @@ execution undo is called once. After each change-set
           (pm-test-chunks)
           (let ((inhibit-message (not pm-verbose)))
             (undo)))))))
-
-;; `(let ((poly-lock-allow-background-adjustment nil)
-;;        (file (expand-file-name ,file pm-test-input-dir))
-;;        (buf "*pm-test-buffer*"))
-;;    (when (get-buffer buf)
-;;      (kill-buffer buf))
-;;    (setq pm-extra-span-info nil)
-;;    (with-current-buffer (get-buffer-create buf)
-;;      (when pm-verbose
-;;        (message "\n===================  testing %s =======================" file))
-;;      (switch-to-buffer buf)
-;;      (insert-file-contents file)
-;;      (let ((inhibit-message t))
-;;        (funcall-interactively ',mode))
-
-;;      )
-;;    (setq pm-extra-span-info nil)
-;;    ;; if everything is fine kill the buffer
-;;    (kill-buffer buf)))
-
-
-;; (defun tt ()
-;;   (interactive)
-;;   (let ((oul (with-current-buffer (pm-base-buffer)
-;;                buffer-undo-list)))
-;;     (list (eq oul buffer-undo-list)
-;;           (cons (pm-base-buffer) (length oul))
-;;           (cons (current-buffer) (length buffer-undo-list)))))
 
 (provide 'polymode-test)
