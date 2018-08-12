@@ -1,14 +1,13 @@
 (require 'polymode-test)
 
-
-(defvar markdown-inline-head-fun-matcher (pm-fun-matcher "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1))
-(defvar markdown-inline-tail-fun-matcher (pm-fun-matcher "[^`]\\(`\\)[^`]" 1))
+(defvar markdown-inline-head-fun-matcher (pm-fun-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)))
+(defvar markdown-inline-tail-fun-matcher (pm-fun-matcher (cons "[^`]\\(`\\)[^`]" 1)))
 (defun markdown-inline-test-fun-matcher ()
-  (pm--span-at-point-fun-fun
+  (pm--span-at-point
    markdown-inline-head-fun-matcher
    markdown-inline-tail-fun-matcher))
 
-(ert-deftest matcher-fun-fun/markdown-inline ()
+(ert-deftest span-matcher/markdown-inline ()
   (pm-test-matcher
    "1. Lists
 --------
@@ -37,7 +36,7 @@ Unordered lists:
      (205 . (nil 205 241)))
    #'markdown-inline-test-fun-matcher))
 
-(ert-deftest matcher-fun-fun/markdown-inline-extremes ()
+(ert-deftest span-matcher/markdown-inline-extremes ()
   (pm-test-matcher
    " `el (defvar bullet-point 'bullet-point')`
 `ada 'Sub bullet point'` `aba 'Sub bullet point'`
@@ -63,7 +62,7 @@ Unordered lists:
      )
    #'markdown-inline-test-fun-matcher))
 
-(ert-deftest matcher-fun-fun/markdown-inline-incomplete ()
+(ert-deftest span-matcher/markdown-inline-incomplete ()
   (pm-test-matcher
    " some text `el "
    '((1 . (nil 1 12))
@@ -71,7 +70,7 @@ Unordered lists:
      (15 . (body 15 16)))
    #'markdown-inline-test-fun-matcher))
 
-(ert-deftest matcher-fun-fun/markdown-fenced-code ()
+(ert-deftest span-matcher/markdown-fenced-code ()
   (pm-test-matcher
    "
 # Fenced Code
@@ -113,11 +112,11 @@ some ```extra words''' here
      (187 . (tail 187 194))
      (194 . (nil 194 224)))
    (lambda ()
-     (pm--span-at-point-fun-fun
-      (pm-fun-matcher "^[ \t]*```[{ \t]*\\w.*$" 0)
-      (pm-fun-matcher "^[ \t]*```[ \t]*$" 0)))))
+     (pm--span-at-point
+      (pm-fun-matcher (cons "^[ \t]*```[{ \t]*\\w.*$" 0))
+      (pm-fun-matcher (cons "^[ \t]*```[ \t]*$" 0))))))
 
-(ert-deftest matcher-fun-fun/inner-submatch-extremes ()
+(ert-deftest span-matcher/inner-submatch-extremes ()
   (pm-test-matcher
    "--`first-- span --`--
 --`el-- (defvar x 1)--`----`ada-- 'Sub bullet point'--`--.
@@ -145,11 +144,11 @@ ba ba--`---baz---`last-- span --`--"
      (131 . (tail 131 132))
      (132 . (nil 132 134)))
    (lambda ()
-     (pm--span-at-point-fun-fun
-      (pm-fun-matcher "--\\(`[[:alpha:]]+\\)--" 1)
-      (pm-fun-matcher "--\\(`\\)--" 1)))))
+     (pm--span-at-point
+      (pm-fun-matcher (cons "--\\(`[[:alpha:]]+\\)--" 1))
+      (pm-fun-matcher (cons "--\\(`\\)--" 1))))))
 
-(ert-deftest matcher-fun-fun/inner-match-extremes ()
+(ert-deftest span-matcher/inner-match-extremes ()
   (pm-test-matcher
    "<<span0>> sfds <<span 1>><<span2>><<"
    '((1 . (head 1 3))
@@ -164,11 +163,11 @@ ba ba--`---baz---`last-- span --`--"
      (33 . (tail 33 35))
      (35 . (head 35 37)))
    (lambda ()
-     (pm--span-at-point-fun-fun
-      (pm-fun-matcher "<<"  0)
-      (pm-fun-matcher ">>"  0)))))
+     (pm--span-at-point
+      (pm-fun-matcher (cons "<<" 0))
+      (pm-fun-matcher (cons ">>" 0))))))
 
-(ert-deftest matcher-fun-fun/inner-submatch ()
+(ert-deftest span-matcher/inner-submatch ()
   (pm-test-matcher
    "--`first-- span --`--
 Some text:
@@ -203,10 +202,40 @@ baz
      (233 . (tail 233 234))
      (234 . (nil 234 236)))
    (lambda ()
-     (pm--span-at-point-fun-fun
-      (pm-fun-matcher "--\\(`[[:alpha:]]+\\)--" 1)
-      (pm-fun-matcher "--\\(`\\)--" 1)))))
+     (pm--span-at-point
+      (pm-fun-matcher (cons "--\\(`[[:alpha:]]+\\)--" 1))
+      (pm-fun-matcher (cons "--\\(`\\)--" 1))))))
+
+(defun tt ()
+  (interactive)
+  (message "%S" (markdown-inline-test-fun-matcher)))
+
+
+;;; regexp look up benchmarks before pm--span-at-point-reg-reg was removed
 
 ;; (defun tt ()
 ;;   (interactive)
-;;   (message "%S" (markdown-inline-test-fun-matcher)))
+;;   (message "%S" #'markdown-inline-test-reg-matcher))
+
+;; (setq tt-head-matcher (pm-fun-matcher markdown-inline-reg-head-matcher))
+;; (setq tt-tail-matcher (pm-fun-matcher markdown-inline-reg-tail-matcher))
+
+;; ;; Conclusion marginal benefits are not worth keeping a separate reg-reg version.
+;; ;; Measured with (benchmark-run 10 (tt-bench-reg)) on markdown.md
+;; (defun tt-bench-reg ()
+;;   (save-excursion
+;;     (goto-char (point-min))
+;;     (while (not (eobp))
+;;       ;; 12.84 sec (closure creation each iteration)
+;;       (pm--span-at-span-point
+;;        (pm-fun-matcher markdown-inline-reg-head-matcher)
+;;        (pm-fun-matcher markdown-inline-reg-tail-matcher))
+;;       ;; 12.70 sec (cached closures)
+;;       ;; (pm--span-at-span-point tt-head-matcher tt-tail-matcher)
+;;       ;; 12.46 sec / pure reg-reg matcher before removal /
+;;       ;; (markdown-inline-test-reg-matcher)
+;;       (forward-char 1))))
+
+;; (profiler-start 'cpu)
+;; (profiler-report)
+;; (profiler-stop)

@@ -331,6 +331,173 @@ defaults to point. Guarantied to return a non-empty span."
 (defun pm-innermost-range (&optional pos no-cache)
   (pm-span-to-range (pm-get-innermost-span pos no-cache)))
 
+(defun pm-fun-matcher (matcher)
+  "Make a function matcher given a MATCHER.
+MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
+:head-matcher slot."
+  (cond
+   ((stringp matcher)
+    (lambda (ahead)
+      (if (< ahead 0)
+          (if (re-search-backward matcher nil t)
+              (cons (match-beginning 0) (match-end 0)))
+        (if (re-search-forward matcher nil t)
+            (cons (match-beginning 0) (match-end 0))))))
+   ((functionp matcher)
+    matcher)
+   ((consp matcher)
+    (lambda (ahead)
+      (if (< ahead 0)
+          (if (re-search-backward (car matcher) nil t)
+              (cons (match-beginning (cdr matcher))
+                    (match-end (cdr matcher))))
+        (if (re-search-forward (car matcher) nil t)
+            (cons (match-beginning (cdr matcher))
+                  (match-end (cdr matcher)))))))
+   (t (error "head and tail matchers must be either regexp strings, cons cells or functions"))))
+
+(defun pm--span-at-point (head-matcher tail-matcher &optional pos)
+  "Span detector with head and tail matchers.
+HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
+\=`pm-inner-chunkmode' object. POS defaults to (point).
+
+Return a list of the form (TYPE SPAN-START SPAN-END) where TYPE
+is one of the following symbols:
+  nil   - pos is between point-min and head-matcher, or between tail-matcher and point-max
+  body  - pos is between head-matcher and tail-matcher (exclusively)
+  head  - head span
+  tail  - tail span
+"
+  (setq pos (or pos (point)))
+  (save-restriction
+    (widen)
+    (save-excursion
+      (goto-char pos)
+      (let* ((at-max (= pos (point-max)))
+             (head-matcher (pm-fun-matcher head-matcher))
+             (tail-matcher (pm-fun-matcher tail-matcher))
+             (head1 (funcall head-matcher -1)))
+        (if head1
+            (if (and at-max (= (cdr head1) pos))
+                ;;           |
+                ;; host)[head)           ; can occur with sub-head == 0 only
+                (list 'head (car head1) (cdr head1))
+              ;;            ------------------------
+              ;; host)[head)[body)[tail)[host)[head)[body)
+              (pm--find-tail-from-head pos head1 head-matcher tail-matcher))
+          ;; ----------
+          ;; host)[head)[body)[tail)[host
+          (goto-char (point-min))
+          (let ((head2 (funcall head-matcher 1)))
+            (if head2
+                (if (< pos (car head2))
+                    ;; ----
+                    ;; host)[head)[body)[tail)[host
+                    (list nil (point-min) (car head2))
+                  (if (< pos (cdr head2))
+                      ;;      -----
+                      ;; host)[head)[body)[tail)[host
+                      (list 'head (car head2) (cdr head2))
+                    ;;            -----------------
+                    ;; host)[head)[body)[tail)[host
+                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher)))
+              ;; no span found
+              nil)))))))
+
+(defun pm--find-tail-from-head (pos head head-matcher tail-matcher)
+  (goto-char (cdr head))
+  (let ((tail (funcall tail-matcher 1))
+        (at-max (= pos (point-max))))
+    (if tail
+        (if (< pos (car tail))
+            ;;            -----
+            ;; host)[head)[body)[tail)[host)[head)
+            (list 'body (cdr head) (car tail))
+          (if (or (< pos (cdr tail))
+                  (and at-max (= pos (cdr tail))))
+              ;;                  -----
+              ;; host)[head)[body)[tail)[host)[head)
+              (list 'tail (car tail) (cdr tail))
+            (goto-char (cdr tail))
+            ;;                        -----------
+            ;; host)[head)[body)[tail)[host)[head)
+            (let ((head2 (funcall head-matcher 1)))
+              (if head2
+                  (if (< pos (car head2))
+                      ;;                        -----
+                      ;; host)[head)[body)[tail)[host)[head)
+                      (list nil (cdr tail) (car head2))
+                    (if (or (< pos (cdr head2))
+                            (and at-max (= pos (cdr head2))))
+                        ;;                              -----
+                        ;; host)[head)[body)[tail)[host)[head)[body
+                        (list 'head (car head2) (cdr head2))
+                      ;;                                    ----
+                      ;; host)[head)[body)[tail)[host)[head)[body
+                      (pm--find-tail-from-head pos head2 head-matcher tail-matcher)))
+                ;;                        -----
+                ;; host)[head)[body)[tail)[host)
+                (list nil (cdr tail) (point-max))))))
+      ;;            -----
+      ;; host)[head)[body)
+      (list 'body (cdr head) (point-max)))))
+
+(defmacro pm-create-indented-block-matchers (name regex)
+  "Defines 2 functions, each return a list of the start and end points of the
+HEAD and TAIL portions of an indented block of interest, via some regex.
+You can then use these functions in the defcustom pm-inner modes. E.g.
+
+ (pm-create-indented-block-matchers 'slim-coffee' \"^[^ ]*\\(.*:? *coffee: *\\)$\")
+
+would create the functions pm-slim-coffee-head-matcher and
+pm-slim-coffee-tail-matcher.
+
+The head matcher will match against 'coffee:', returning the positions of the
+start and end of 'coffee:'
+The tail matcher will return a list (n, n) of the final characters is the block.
+g
+    |<----- Uses this indentation to define the left edge of the 'block'
+    |
+    |<--->|  This region is higlighted by the :head-mode in the block-matchers
+    |     |
+    |     |<----- the head matcher uses this column as the end of the head
+    |     |
+----:-----:-------------- example file -----------------------------------------
+1|  :     :
+2|  coffee:
+3|    myCoffeeCode()
+4|    moreCode ->
+5|      do things
+6|              :
+7|  This is no longer in the block
+8|              :
+----------------:---------------------------------------------------------------
+            --->|<----- this region of 0 width is highlighted by the :tail-mode
+                        the 'block' ends after this column on line 5
+
+All the stuff after the -end- of the head and before the start of the tail is
+sent to the new mode for syntax highlighting."
+  (let* ((head-name (intern (format "pm-%s-head-matcher" name)))
+         (tail-name (intern (format "pm-%s-tail-matcher" name))))
+    `(progn
+       (defun ,head-name (ahead)
+         (when (re-search-forward ,regex nil t ahead)
+           (cons (match-beginning 1) (match-end 1))))
+       (defun ,tail-name (ahead)
+         (save-excursion
+           ;; (cons (point-max) (point-max)))))))
+           (goto-char (car (,head-name 1)))
+           (let* ((block-col (current-indentation))
+                  (posn (catch 'break
+                          (while (not (eobp))
+                            (forward-line 1)
+                            (when (and (<= (current-indentation) block-col)
+                                       (not (progn
+                                              (beginning-of-line)
+                                              (looking-at "^[[:space:]]*$"))))
+                              (throw 'break (point-at-bol))))
+                          (throw 'break (point-max)))))
+             (cons posn posn)))))))
 
 
 ;;; BUFFER SELECTION
