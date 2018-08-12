@@ -57,7 +57,12 @@
                  (sbeg (nth 1 span))
                  (ref-span (alist-get sbeg span-alist)))
             (unless (equal span ref-span)
-              (ert-fail (list :pos (point) :span span :ref-span ref-span)))))
+              (ert-fail (list :pos (point) :span span :ref-span ref-span)))
+            (when (and prev-span
+                       (not (or (eq (nth 1 prev-span) sbeg)
+                                (eq (nth 2 prev-span) sbeg))))
+              (ert-fail (list :pos (point) :span span :prev-span prev-span)))
+            (setq prev-span span)))
         (forward-char 1))
       (when dry-run
         (message ")"))
