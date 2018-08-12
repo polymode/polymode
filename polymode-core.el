@@ -588,7 +588,7 @@ CHUNKMODE's class should define `pm-get-buffer-create' method."
     ;; avoid display jumps
     (goto-char point)
     (when visible
-      (set-window-start (get-buffer-window buffer t) window-start))
+      (set-window-start (get-buffer-window new-buffer t) window-start))
 
     (when hl-line
       (hl-line-mode 1))
