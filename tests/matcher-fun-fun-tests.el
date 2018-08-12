@@ -1,14 +1,14 @@
-
 (require 'polymode-test)
 
-(defvar markdown-inline-reg-head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1))
-(defvar markdown-inline-reg-tail-matcher (cons "[^`]\\(`\\)[^`]" 1))
-(defun markdown-inline-test-reg-matcher ()
-  (pm--span-at-point-reg-reg
-   markdown-inline-reg-head-matcher
-   markdown-inline-reg-tail-matcher))
 
-(ert-deftest matcher-reg-reg/markdown-inline ()
+(defvar markdown-inline-head-fun-matcher (pm-fun-matcher "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1))
+(defvar markdown-inline-tail-fun-matcher (pm-fun-matcher "[^`]\\(`\\)[^`]" 1))
+(defun markdown-inline-test-fun-matcher ()
+  (pm--span-at-point-fun-fun
+   markdown-inline-head-fun-matcher
+   markdown-inline-tail-fun-matcher))
+
+(ert-deftest matcher-fun-fun/markdown-inline ()
   (pm-test-matcher
    "1. Lists
 --------
@@ -35,7 +35,7 @@ Unordered lists:
      (148 . (body 148 204))
      (204 . (tail 204 205))
      (205 . (nil 205 241)))
-   #'markdown-inline-test-reg-matcher))
+   #'markdown-inline-test-fun-matcher))
 
 (ert-deftest matcher-fun-fun/markdown-inline-extremes ()
   (pm-test-matcher
@@ -61,7 +61,7 @@ Unordered lists:
      (157 . (tail 157 158))
      (158 . (nil 158 159))
      )
-   #'markdown-inline-test-reg-matcher))
+   #'markdown-inline-test-fun-matcher))
 
 (ert-deftest matcher-fun-fun/markdown-inline-incomplete ()
   (pm-test-matcher
@@ -69,9 +69,9 @@ Unordered lists:
    '((1 . (nil 1 12))
      (12 . (head 12 15))
      (15 . (body 15 16)))
-   #'markdown-inline-test-reg-matcher))
+   #'markdown-inline-test-fun-matcher))
 
-(ert-deftest matcher-reg-reg/markdown-fenced-code ()
+(ert-deftest matcher-fun-fun/markdown-fenced-code ()
   (pm-test-matcher
    "
 # Fenced Code
@@ -113,11 +113,11 @@ some ```extra words''' here
      (187 . (tail 187 194))
      (194 . (nil 194 224)))
    (lambda ()
-     (pm--span-at-point-reg-reg
-      (cons "^[ \t]*```[{ \t]*\\w.*$" 0)
-      (cons "^[ \t]*```[ \t]*$" 0)))))
+     (pm--span-at-point-fun-fun
+      (pm-fun-matcher "^[ \t]*```[{ \t]*\\w.*$" 0)
+      (pm-fun-matcher "^[ \t]*```[ \t]*$" 0)))))
 
-(ert-deftest matcher-reg-reg/inner-submatch-extremes ()
+(ert-deftest matcher-fun-fun/inner-submatch-extremes ()
   (pm-test-matcher
    "--`first-- span --`--
 --`el-- (defvar x 1)--`----`ada-- 'Sub bullet point'--`--.
@@ -145,11 +145,11 @@ ba ba--`---baz---`last-- span --`--"
      (131 . (tail 131 132))
      (132 . (nil 132 134)))
    (lambda ()
-     (pm--span-at-point-reg-reg
-      (cons "--\\(`[[:alpha:]]+\\)--" 1)
-      (cons "--\\(`\\)--" 1)))))
+     (pm--span-at-point-fun-fun
+      (pm-fun-matcher "--\\(`[[:alpha:]]+\\)--" 1)
+      (pm-fun-matcher "--\\(`\\)--" 1)))))
 
-(ert-deftest matcher-reg-reg/inner-match-extremes ()
+(ert-deftest matcher-fun-fun/inner-match-extremes ()
   (pm-test-matcher
    "<<span0>> sfds <<span 1>><<span2>><<"
    '((1 . (head 1 3))
@@ -163,9 +163,12 @@ ba ba--`---baz---`last-- span --`--"
      (28 . (body 28 33))
      (33 . (tail 33 35))
      (35 . (head 35 37)))
-   (lambda () (pm--span-at-point-reg-reg '("<<" . 0) '(">>" . 0)))))
+   (lambda ()
+     (pm--span-at-point-fun-fun
+      (pm-fun-matcher "<<"  0)
+      (pm-fun-matcher ">>"  0)))))
 
-(ert-deftest matcher-reg-reg/inner-submatch ()
+(ert-deftest matcher-fun-fun/inner-submatch ()
   (pm-test-matcher
    "--`first-- span --`--
 Some text:
@@ -200,28 +203,10 @@ baz
      (233 . (tail 233 234))
      (234 . (nil 234 236)))
    (lambda ()
-     (pm--span-at-point-reg-reg
-      (cons "--\\(`[[:alpha:]]+\\)--" 1)
-      (cons "--\\(`\\)--" 1)))))
+     (pm--span-at-point-fun-fun
+      (pm-fun-matcher "--\\(`[[:alpha:]]+\\)--" 1)
+      (pm-fun-matcher "--\\(`\\)--" 1)))))
 
-;; (defun tt-reg ()
+;; (defun tt ()
 ;;   (interactive)
-;;   (message "%S" #'markdown-inline-test-reg-matcher))
-
-;; (defun tt-bench-reg ()
-;;   (save-excursion
-;;     (goto-char (point-min))
-;;     (while (not (eobp))
-;;       (markdown-inline-test-reg-matcher)
-;;       (forward-char 1))))
-
-;; (defun tt-bench-fun ()
-;;   (save-excursion
-;;     (goto-char (point-min))
-;;     (while (not (eobp))
-;;       (markdown-inline-test-fun-matcher)
-;;       (forward-char 1))))
-
-;; (profiler-start 'cpu)
-;; (profiler-report)
-;; (profiler-stop)
+;;   (message "%S" (markdown-inline-test-fun-matcher)))
