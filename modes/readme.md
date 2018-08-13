@@ -112,23 +112,19 @@ Current polymode class hierarchy:
 
 ```
   +--eieio-instance-inheritor
-  |    +--pm-root
-  |         +--pm-polymode
-  |         |    +--pm-polymode-multi
-  |         |    |    +--pm-polymode-multi-auto
-  |         |    +--pm-polymode-one
-  |         |
-  |         +--pm-chunkmode
-  |         |    +--pm-hbtchunkmode
-  |         |    |    +--pm-hbtchunkmode-auto
-  |         |    +--pm-bchunkmode
-  |         |
-  |         +--pm-weaver
-  |         |    +--pm-shell-weaver
-  |         |    +--pm-callback-weaver
-  |         +--pm-exporter
-  |              +--pm-shell-exporter
-  |              +--pm-callback-exporter
+       +--pm-root
+            +--pm-polymode
+            |
+            +--pm-chunkmode
+            |    +--pm-inner-chunkmode
+            |        +--pm-inner-auto-chunkmode
+            |
+            +--pm-weaver
+            |    +--pm-shell-weaver
+            |    +--pm-callback-weaver
+            +--pm-exporter
+                 +--pm-shell-exporter
+                 +--pm-callback-exporter
 
 ```
 
@@ -156,17 +152,17 @@ The most important slot of root config class `pm-polymode` is:
 - `:hostmode` - name of the chunkmode object (typicaly of class `pm-bchunkmode`,
   see [Chunkmodes](#chunkmodes)).
 
-Currently there are three subclasses of `pm-polymode`:
+<!-- Currently there are three subclasses of `pm-polymode`: -->
 
-- `pm-polymode-one` - used for polymdoes with only one predefined innermode. It
-  extends `pm-polymode` with one slot - `:innermode` - which is a name of the
-  inner chunkmode (typically objects of class `pm-hbtchunkmode`).
-- `pm-polymode-multi` - used for polymodes with multiple predefined inner
-  modes. It extends `pm-polymode` with `:innermodes` list that contains names of
-  predefined `pm-hbtchunkmode` objects.
-- `pm-polymode-multi-auto` - used for polymodes with multiple dynamically
-  discoverable chunkmodes. It extends `pm-polymode-multi` with `:auto-innermode`
-  slot (typically an object of class `pm-hbtchunkmode-auto`).
+<!-- - `pm-polymode` - used for polymdoes with only one predefined innermode. It -->
+<!--   extends `pm-polymode` with one slot - `:innermode` - which is a name of the -->
+<!--   inner chunkmode (typically objects of class `pm-inner-chunkmode`). -->
+<!-- - `pm-polymode-multi` - used for polymodes with multiple predefined inner -->
+<!--   modes. It extends `pm-polymode` with `:innermodes` list that contains names of -->
+<!--   predefined `pm-inner-chunkmode` objects. -->
+<!-- - `pm-polymode` - used for polymodes with multiple dynamically -->
+<!--   discoverable chunkmodes. It extends `pm-polymode-multi` with `:auto-innermode` -->
+<!--   slot (typically an object of class `pm-inner-chunkmode-auto`). -->
 
 
 ### Chunkmodes
@@ -186,16 +182,16 @@ Currently, there are three sub classes of `pm-chunkmode`:
 
 2. `hbtchunkmode` - represents the mode of composite head-body-tail
    chunks. These objects are commonly used to represent the functionality of
-   the innermost chunks of the buffer. `pm-hbtchunkmode` extends
+   the innermost chunks of the buffer. `pm-inner-chunkmode` extends
    `pm-chunkmode` with additional slots, most importantly:
     * `head-mode` and `tail-mode`: names of emacs-modes for header/tail of the
       chunk
     * `head-matcher` and `tail-matcher`: regular expressions or functions to detect the
       header/tail
 
-3. `pm-hbtchunkmode-auto` - represents chunkmodes for which the mode type is not
+3. `pm-inner-chunkmode-auto` - represents chunkmodes for which the mode type is not
    predefined and must be computed at runtime. This class extends
-   `pm-hbtchunkmode` with `retriver-regexp`, `retriver-num` and
+   `pm-inner-chunkmode` with `retriver-regexp`, `retriver-num` and
    `retriver-function` which can be used to retrive the mode name from the
    header of the inner chunk.
 
@@ -227,7 +223,7 @@ Then define the noweb innermode:
 
 ```lisp
 (defcustom  pm-inner/noweb
-  (pm-hbtchunkmode "noweb"
+  (pm-inner-chunkmode "noweb"
                    :head-matcher  "<<\\(.*\\)>>="
                    :tail-matcher    "\\(@ +%def .*\\)$\\|\\(@[ \n]\\)")
   "Noweb typical chunk."
@@ -285,7 +281,8 @@ No examples yet. Web-mode would probably qualify.
 
 This is an example of markdown polymode (from [poly-markdown.el](poly-markdown.el)).
 
-```lisp
+```el
+
 ;; 1. Define hostmode object
 (defcustom pm-host/markdown
   (pm-bchunkmode "Markdown" :mode 'markdown-mode)
@@ -296,11 +293,11 @@ This is an example of markdown polymode (from [poly-markdown.el](poly-markdown.e
 
 ;; 2. Define innermode object
 (defcustom  pm-inner/markdown
-  (pm-hbtchunkmode-auto "markdown"
-                     :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
-                     :tail-matcher "^[ \t]*```[ \t]*$"
-                     :retriever-regexp "```[ \t]*{?\\(\\(\\w\\|\\s_\\)*\\)"
-                     :font-lock-narrow t)
+  (pm-inner-chunkmode-auto "markdown"
+                           :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
+                           :tail-matcher "^[ \t]*```[ \t]*$"
+                           :mode-matcher "```[ \t]*{?\\(\\(\\w\\|\\s_\\)*\\)"
+                           :font-lock-narrow t)
   "Markdown typical chunk."
   :group 'innermodes
   :type 'object)
@@ -318,6 +315,7 @@ This is an example of markdown polymode (from [poly-markdown.el](poly-markdown.e
 ;; 4. Define polymode function
 (define-polymode poly-markdown-mode pm-poly/markdown)
 ```
+
 ## Visually Debugging Polymodes
 
 After defining polymodes you can visually inspect if the polymode does what you

@@ -1,52 +1,40 @@
+
 (require 'polymode)
-
-(defcustom pm-host/coffee
-  (pm-bchunkmode "coffee" :mode 'coffee-mode)
-  "coffee host chunkmode"
-  :group 'hostmodes
-  :type 'object)
-
-(defcustom pm-host/javascript
-  (pm-bchunkmode "javascript" :mode 'js-mode)
-  "javascript host chunkmode"
-  :group 'hostmodes
-  :type 'object)
+;; (require 'ruby-mode)
 
 (defcustom pm-inner/erb
-  (pm-hbtchunkmode "erb"
-                   :mode 'ruby-mode
-                   :head-matcher  "\"?\<\% *[-=]?"
-                   :tail-matcher  "\%\>\"?")
-  "erb typical chunk."
+  (pm-inner-chunkmode "erb"
+                      :mode 'ruby-mode
+                      :head-matcher  "\"?\<\% *[-=]?"
+                      :tail-matcher  "\%\>\"?")
+  "Erb typical chunk."
   :group 'innermodes
   :type 'object)
 
-(defcustom pm-poly/coffee-erb
-  (pm-polymode-one "coffee-erb"
-                   :hostmode 'pm-host/coffee
-                   :innermode 'pm-inner/erb)
+(defcustom pm-poly/coffee+erb
+  (pm-polymode "coffee+erb"
+               :hostmode 'pm-host/coffee
+               :innermodes '(pm-inner/erb))
   "coffee-erb typical polymode."
   :group 'polymodes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-coffee+erb-mode "poly-erb")
-(define-polymode poly-coffee+erb-mode pm-poly/coffee-erb)
-(define-obsolete-function-alias 'poly-coffee-erb-mode 'poly-coffee+erb-mode)
+(define-polymode poly-coffee+erb-mode pm-poly/coffee+erb)
 
-(defcustom pm-poly/javascript-erb
-  (pm-polymode-one "javascript-erb"
-                   :hostmode 'pm-host/javascript
-                   :innermode 'pm-inner/erb)
-  "javascript-erb typical polymode."
+(defcustom pm-poly/js+erb
+  (pm-polymode-one "js+erb"
+                   :hostmode 'pm-host/js
+                   :innermodes '(pm-inner/erb))
+  "Javascript-erb typical polymode."
   :group 'polymodes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-javascript+erb-mode "poly-erb")
-(define-polymode poly-javascript+erb-mode pm-poly/javascript-erb)
-(define-obsolete-function-alias 'poly-javascript-erb-mode 'poly-javascript+erb-mode)
+(define-polymode poly-js+erb-mode pm-poly/js+erb)
 
-(defcustom pm-poly/html-erb
-  (pm-polymode-one "html-erb"
+(defcustom pm-poly/html+erb
+  (pm-polymode-one "html+erb"
                    :hostmode 'pm-host/html
                    :innermode 'pm-inner/erb)
   "html-erb typical polymode."
@@ -55,6 +43,5 @@
 
 ;;;###autoload  (autoload 'poly-html+erb-mode "poly-erb")
 (define-polymode poly-html+erb-mode pm-poly/html-erb)
-(define-obsolete-function-alias 'poly-html-erb-mode 'poly-html+erb-mode)
 
 (provide 'poly-erb)

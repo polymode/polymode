@@ -75,10 +75,10 @@
   :type 'object)
 
 (defcustom  pm-inner/rapport+YAML
-  (pm-hbtchunkmode "rapport+YAML"
-                   :mode 'yaml-mode
-                   :head-matcher "<!--head"
-                   :tail-matcher "head-->")
+  (pm-inner-chunkmode "rapport+YAML"
+                      :mode 'yaml-mode
+                      :head-matcher "<!--head"
+                      :tail-matcher "head-->")
   "YAML header in Rapport files"
   :group 'innermodes
   :type 'object)
@@ -96,10 +96,10 @@
   :type 'object)
 
 (defcustom  pm-inner/html+R
-  (pm-hbtchunkmode "html+R"
-                   :mode 'R-mode
-                   :head-matcher "<!--[ \t]*begin.rcode"
-                   :tail-matcher "end.rcode[ \t]*-->")
+  (pm-inner-chunkmode "html+R"
+                      :mode 'R-mode
+                      :head-matcher "<!--[ \t]*begin.rcode"
+                      :tail-matcher "end.rcode[ \t]*-->")
   "HTML KnitR innermode."
   :group 'innermodes
   :type 'object)
@@ -118,10 +118,10 @@
   :type 'object)
 
 (defcustom  pm-inner/brew+R
-  (pm-hbtchunkmode "brew+R"
-                   :mode 'R-mode
-                   :head-matcher "<%[=%]?"
-                   :tail-matcher "[#=%=-]?%>")
+  (pm-inner-chunkmode "brew+R"
+                      :mode 'R-mode
+                      :head-matcher "<%[=%]?"
+                      :tail-matcher "[#=%=-]?%>")
   "Brew R chunk."
   :group 'innermodes
   :type 'object)
@@ -153,12 +153,12 @@
   :type 'object)
 
 (defcustom  pm-inner/R+C++
-  (pm-hbtchunkmode "R+C++"
-                   :mode 'c++-mode
-                   :head-mode 'host
-                   :head-matcher 'pm--R+C++-head-matcher
-                   :tail-matcher 'pm--R+C++-tail-matcher
-                   :font-lock-narrow nil)
+  (pm-inner-chunkmode "R+C++"
+                      :mode 'c++-mode
+                      :head-mode 'host
+                      :head-matcher 'pm--R+C++-head-matcher
+                      :tail-matcher 'pm--R+C++-tail-matcher
+                      :font-lock-narrow nil)
   "HTML KnitR chunk."
   :group 'innermodes
   :type 'object)
@@ -187,10 +187,10 @@
   :type 'object)
 
 (defcustom  pm-inner/C++R
-  (pm-hbtchunkmode "C++R"
-                   :mode 'R-mode
-                   :head-matcher 'pm--C++R-head-matcher
-                   :tail-matcher 'pm--C++R-tail-matcher)
+  (pm-inner-chunkmode "C++R"
+                      :mode 'R-mode
+                      :head-matcher 'pm--C++R-head-matcher
+                      :tail-matcher 'pm--C++R-tail-matcher)
   "HTML KnitR chunk."
   :group 'polymodes
   :type 'object)
@@ -209,12 +209,12 @@
   :type 'object)
 
 (defcustom  pm-inner/ess-help+R
-  (pm-hbtchunkmode "ess-help+R"
-                   :mode 'R-mode
-                   :head-matcher "^Examples:"
-                   :tail-matcher "\\'"
-                   :indent-offset 5
-                   :switch-buffer-functions '(pm--ess-help+R-turn-off-read-only))
+  (pm-inner-chunkmode "ess-help+R"
+                      :mode 'R-mode
+                      :head-matcher "^Examples:"
+                      :tail-matcher "\\'"
+                      :indent-offset 5
+                      :switch-buffer-functions '(pm--ess-help+R-turn-off-read-only))
   "Ess help R chunk"
   :group 'innermodes
   :type 'object)
@@ -252,11 +252,11 @@
   :type 'object)
 
 (defcustom pm-inner/Rd
-  (pm-hbtchunkmode "R+C++"
-                   :mode 'R-mode
-                   :head-mode 'host
-                   :head-matcher 'pm--Rd-examples-head-matcher
-                   :tail-matcher 'pm--Rd-examples-tail-matcher)
+  (pm-inner-chunkmode "R+C++"
+                      :mode 'R-mode
+                      :head-mode 'host
+                      :head-matcher 'pm--Rd-examples-head-matcher
+                      :tail-matcher 'pm--Rd-examples-tail-matcher)
   "Rd examples chunk."
   :group 'innermodes
   :type 'object)

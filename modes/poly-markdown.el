@@ -33,49 +33,47 @@
 ;; (require 'markdown-mode)
 
 (defcustom pm-host/markdown
-  (pm-bchunkmode "Markdown"
-                 :mode 'markdown-mode
-                 :init-functions '(poly-markdown-remove-markdown-hooks))
+  (pm-host-chunkmode "Markdown"
+                     :mode 'markdown-mode
+                     :init-functions '(poly-markdown-remove-markdown-hooks))
   "Markdown host chunkmode"
   :group 'hostmodes
   :type 'object)
 
 (defcustom  pm-inner/markdown-fenced-code
-  (pm-hbtchunkmode-auto "markdown"
-                        :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
-                        :tail-matcher "^[ \t]*```[ \t]*$"
-                        :retriever-regexp "```[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)"
-                        :font-lock-narrow t)
+  (pm-inner-auto-chunkmode "markdown"
+                           :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
+                           :tail-matcher "^[ \t]*```[ \t]*$"
+                           :mode-matcher "```[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)")
   "Markdown typical chunk."
   :group 'innermodes
   :type 'object)
 
 (defcustom  pm-inner/markdown-inline-code
-  (pm-hbtchunkmode-auto "markdown-inline"
-                        :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
-                        :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
-                        :retriever-regexp (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
-                        :font-lock-narrow t)
+  (pm-inner-auto-chunkmode "markdown-inline"
+                           :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
+                           :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
+                           :mode-matcher (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1))
   "Markdown typical chunk."
   :group 'innermodes
   :type 'object)
 
 (defcustom  pm-inner/markdown-latex
-  (pm-hbtchunkmode "latex"
-                   :head-matcher (cons "^[ \t]*\\(\\$\\$\\)" 1)
-                   :tail-matcher (cons "\\(\\$\\$\\)[ \t]*$" 1)
-                   :mode 'latex-mode
-                   :font-lock-narrow t)
+  (pm-inner-chunkmode "latex"
+                      :head-matcher (cons "^[ \t]*\\(\\$\\$\\)" 1)
+                      :tail-matcher (cons "\\(\\$\\$\\)[ \t]*$" 1)
+                      :mode 'latex-mode
+                      :font-lock-narrow t)
   "Latex typical inner chunk."
   :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/markdown
-  (pm-polymode-multi "markdown"
-                     :hostmode 'pm-host/markdown
-                     :innermodes '(pm-inner/markdown-fenced-code
-                                   pm-inner/markdown-inline-code
-                                   pm-inner/markdown-latex))
+  (pm-polymode "markdown"
+               :hostmode 'pm-host/markdown
+               :innermodes '(pm-inner/markdown-fenced-code
+                             pm-inner/markdown-inline-code
+                             pm-inner/markdown-latex))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)

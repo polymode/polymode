@@ -33,29 +33,28 @@
 (require 'polymode)
 
 (defcustom pm-host/org
-  (pm-bchunkmode "Org mode"
-               :mode 'org-mode)
+  (pm-host-chunkmode "Org mode"
+                     :mode 'org-mode)
   "Org host innermode"
   :group 'hostmodes
   :type 'object)
 
 (defcustom  pm-inner/org
-  (pm-hbtchunkmode-auto "org"
-                     :head-matcher "^[ \t]*#\\+begin_src .*$"
-                     :tail-matcher "^[ \t]*#\\+end_src"
-                     :head-mode 'host
-                     :tail-mode 'host
-                     :retriever-regexp "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
-                     :indent-offset org-edit-src-content-indentation
-                     :font-lock-narrow t)
+  (pm-inner-auto-chunkmode "org"
+                           :head-matcher "^[ \t]*#\\+begin_src .*$"
+                           :tail-matcher "^[ \t]*#\\+end_src"
+                           :head-mode 'host
+                           :tail-mode 'host
+                           :head-matcher "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
+                           :indent-offset org-edit-src-content-indentation)
   "Org typical chunk."
   :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/org
-  (pm-polymode-multi-auto "org"
-                        :hostmode 'pm-host/org
-                        :auto-innermode 'pm-inner/org)
+  (pm-polymode "org"
+               :hostmode 'pm-host/org
+               :innermodes '(pm-inner/org))
   "Org typical configuration"
   :group 'polymodes
   :type 'object)

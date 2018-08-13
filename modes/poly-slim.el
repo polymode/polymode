@@ -10,7 +10,7 @@
 ;; (require 'markdown-mode)
 
 (defcustom pm-host/slim
-  (pm-bchunkmode "slim" :mode 'slim-mode)
+  (pm-host-chunkmode "slim" :mode 'slim-mode)
   "slim host chunkmode"
   :group 'hostmodes
   :type 'object)

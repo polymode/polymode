@@ -108,16 +108,16 @@ Key bindings:
 
 ;;; INFO
 
-(defgeneric pm-debug-info (chunkmode))
-(defmethod pm-debug-info (chunkmode)
+(cl-defgeneric pm-debug-info (chunkmode))
+(cl-defmethod pm-debug-info (chunkmode)
   (eieio-object-name chunkmode))
-(defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
+(cl-defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
   (format "%s head-matcher:\"%s\" tail-matcher:\"%s\""
-          (call-next-method)
+          (cl-call-next-method)
           (oref chunkmode :head-matcher)
           (oref chunkmode :tail-matcher)))
-(defmethod pm-debug-info ((chunkmode pm-inner-auto-chunkmode))
-  (call-next-method))
+(cl-defmethod pm-debug-info ((chunkmode pm-inner-auto-chunkmode))
+  (cl-call-next-method))
 
 (defun pm--debug-info (&optional span as-list)
   (let* ((span (or span (and polymode-mode (pm-get-innermost-span))))

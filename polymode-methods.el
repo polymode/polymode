@@ -33,10 +33,10 @@
 
 ;;; INITIALIZATION
 
-(defgeneric pm-initialize (object)
+(cl-defgeneric pm-initialize (object)
   "Initialize current buffer with OBJECT.")
 
-(defmethod pm-initialize ((config pm-polymode))
+(cl-defmethod pm-initialize ((config pm-polymode))
   "Initialization of host buffers.
 Ran directly by the polymode modes."
   (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
@@ -67,7 +67,7 @@ Ran directly by the polymode modes."
     (pm--run-init-hooks config 'polymode-init-host-hook)
     (pm--run-init-hooks chunkmode)))
 
-(defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
+(cl-defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
   "Initialization of chunk (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-chunkmode-mode chunkmode type)))
@@ -188,17 +188,17 @@ Parents' hooks are run first."
 
 ;;; BUFFER CREATION
 
-(defgeneric pm-get-buffer-create (chunkmode &optional type)
+(cl-defgeneric pm-get-buffer-create (chunkmode &optional type)
   "Get the indirect buffer associated with SUBMODE and SPAN-TYPE.
 Create and initialize the buffer if does not exist yet.")
 
-(defmethod pm-get-buffer-create ((chunkmode pm-chunkmode) &optional type)
+(cl-defmethod pm-get-buffer-create ((chunkmode pm-chunkmode) &optional type)
   (let ((buff (oref chunkmode -buffer)))
     (or (and (buffer-live-p buff) buff)
         (oset chunkmode -buffer
               (pm--get-chunkmode-buffer-create chunkmode type)))))
 
-(defmethod pm-get-buffer-create ((chunkmode pm-inner-chunkmode) &optional type)
+(cl-defmethod pm-get-buffer-create ((chunkmode pm-inner-chunkmode) &optional type)
   (let ((buff (cond ((eq 'body type) (oref chunkmode -buffer))
                     ((eq 'head type) (oref chunkmode -head-buffer))
                     ((eq 'tail type) (oref chunkmode -tail-buffer))
@@ -282,7 +282,7 @@ Create and initialize the buffer if does not exist yet.")
 
 ;;; SPAN MANIPULATION
 
-(defgeneric pm-get-span (chunkmode &optional pos)
+(cl-defgeneric pm-get-span (chunkmode &optional pos)
   "Ask the CHUNKMODE for the span at point.
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE
 is a symbol representing the type of the span surrounding
@@ -293,7 +293,7 @@ span. This is an object that could be dispatched upon with
 specific span around POS. Not to be used in programs directly;
 use `pm-get-innermost-span'.")
 
-(defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
+(cl-defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
 in this case."
@@ -308,8 +308,8 @@ in this case."
               (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
             (append span (list chunkmode))))))))
 
-(defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
-  (let ((span (call-next-method)))
+(cl-defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
+  (let ((span (cl-call-next-method)))
     (if (null (car span))
         span
       (setf (nth 3 span) (pm--get-auto-chunk span))
@@ -384,15 +384,15 @@ Value of `indent-line-function' in polymode buffers."
         (inhibit-read-only t))
     (pm-indent-line (car (last span)) span)))
 
-(defgeneric pm-indent-line (&optional chunkmode span)
+(cl-defgeneric pm-indent-line (&optional chunkmode span)
   "Indent current line.
 Protect and call original indentation function associated with
 the chunkmode.")
 
-(defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
+(cl-defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
   (pm--indent-line span))
 
-(defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) &optional span)
+(cl-defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) &optional span)
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
@@ -458,12 +458,12 @@ to indent."
 
 
 ;;; FACES
-(defgeneric pm-get-adjust-face (chunkmode &optional type))
+(cl-defgeneric pm-get-adjust-face (chunkmode &optional type))
 
-(defmethod pm-get-adjust-face ((chunkmode pm-chunkmode) &optional type)
+(cl-defmethod pm-get-adjust-face ((chunkmode pm-chunkmode) &optional type)
   (oref chunkmode :adjust-face))
 
-(defmethod pm-get-adjust-face ((chunkmode pm-inner-chunkmode) &optional type)
+(cl-defmethod pm-get-adjust-face ((chunkmode pm-inner-chunkmode) &optional type)
   (setq type (or type pm/type))
   (cond ((eq type 'head)
          (oref chunkmode :head-adjust-face))

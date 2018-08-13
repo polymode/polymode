@@ -443,19 +443,18 @@ is one of the following symbols:
       (list 'body (cdr head) (point-max)))))
 
 (defmacro pm-create-indented-block-matchers (name regex)
-  "Defines 2 functions, each return a list of the start and end points of the
-HEAD and TAIL portions of an indented block of interest, via some regex.
-You can then use these functions in the defcustom pm-inner modes. E.g.
+  "Define head and tail matcher (functions) for indented blocks
+You can then use these functions in the defcustom pm-inner modes.
+For example
 
- (pm-create-indented-block-matchers 'slim-coffee' \"^[^ ]*\\(.*:? *coffee: *\\)$\")
+ (pm-create-indented-block-matchers \"slim-coffee\" \"^[^ ]*\\(.*:? *coffee: *\\)$\")
 
-would create the functions pm-slim-coffee-head-matcher and
-pm-slim-coffee-tail-matcher.
+creates pm-slim-coffee-head-matcher and pm-slim-coffee-tail-matcher.
 
-The head matcher will match against 'coffee:', returning the positions of the
-start and end of 'coffee:'
-The tail matcher will return a list (n, n) of the final characters is the block.
-g
+The head matcher will match against 'coffee:', returning the
+positions of the start and end of 'coffee:'. The tail matcher
+will returns a list (N, N) of the final characters in the block.
+
     |<----- Uses this indentation to define the left edge of the 'block'
     |
     |<--->|  This region is higlighted by the :head-mode in the block-matchers
@@ -759,20 +758,13 @@ near future.")
         (pm--get-existent-mode (intern (downcase mname))
                                no-fallback))))
 
-;; (defvar-local pm--fallback-message-modes nil
-;;   "Set of symbols for which 'Cannot find function ...' message
-;;   has been already shown in this buffer.")
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return `poly-fallback-mode' and issue
 a warning."
   (cond ((fboundp mode) mode)
         (no-fallback nil)
-        (t
-         ;; (unless (member mode pm--fallback-message-modes)
-         ;;   (setq pm--fallback-message-modes (cons mode pm--fallback-message-modes))
-         ;;   (message "Cannot find function `%s'; using `poly-fallback-mode'. Need `polymode-mode-name-alias-alist'?" mode))
-         'poly-fallback-mode)))
+        (t 'poly-fallback-mode)))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."
