@@ -150,6 +150,7 @@ objects provides same functionality for narrower scope. See also
 ;;; MESSAGES
 
 (defvar pm-verbose nil)
+(defvar pm-syntax-verbose nil)
 (defvar pm-extra-span-info nil)
 
 (defun pm-format-span (&optional span prefixp)
@@ -527,13 +528,16 @@ CHUNKMODE's class should define `pm-get-buffer-create' method."
 
 ;; extracted for debugging purpose
 (defun pm--select-existing-buffer (buffer span visibly)
+  ;; emacs bug: ppss cache is invalidated incorrectly; so need to do this every
+  ;; single command
+  (with-current-buffer buffer
+    ;; (message (pm--debug-info span))
+    (pm--reset-ppss-last (nth 1 span)))
+
   ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
   ;; no action if BUFFER is already the current buffer
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
-    (with-current-buffer buffer
-      ;; (message (pm--debug-info span))
-      (pm--reset-ppss-last (nth 1 span)))
 
     (let ((base (pm-base-buffer)))
       (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)

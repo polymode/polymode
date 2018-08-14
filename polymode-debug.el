@@ -224,7 +224,7 @@ Key bindings:
 (defun pm-debug-fontify-current-buffer ()
   (interactive)
   (let ((poly-lock-allow-fontification t))
-    (poly-lock-refontify (point-min) (point-max))
+    (poly-lock-flush (point-min) (point-max))
     (poly-lock-fontify-now (point-min) (point-max))))
 
 (defun pm-debug-fontify-last-font-lock-error ()

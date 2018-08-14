@@ -245,6 +245,10 @@ This funciton is placed in local `post-command-hook'."
   (when (and pm-allow-post-command-hook
              polymode-mode
              pm/chunkmode)
+    (when pm-syntax-verbose
+      (dolist (b (oref pm/polymode -buffers))
+        (with-current-buffer b
+          (message "sp--done: %d [%s]" syntax-propertize--done (current-buffer)))))
     (condition-case err
         (pm-switch-to-buffer)
       (error (message "(pm-switch-to-buffer %s): %s"
@@ -275,32 +279,35 @@ This function is placed in `before-change-functions' hook."
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
   ;; syntax-propertize sets 'syntax-propertize--done to end in the original
-  ;; buffer just before calling syntax-propertize-function; we set it in all
-  ;; buffers.
+  ;; buffer just before calling syntax-propertize-function; we do it in all
+  ;; buffers
   (dolist (b (oref pm/polymode -buffers))
     (with-current-buffer b
-      (setq-local syntax-propertize--done end)))
-  (save-restriction
-    (widen)
-    (save-excursion
-      (when pm-verbose
-        (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
-      (pm-map-over-spans
-       (lambda ()
-         (pm-with-narrowed-to-span *span*
-           (when pm--syntax-propertize-function-original
-             (let ((pos0 (max (nth 1 *span*) start))
-                   (pos1 (min (nth 2 *span*) end)))
-               (condition-case err
-                   (funcall pm--syntax-propertize-function-original pos0 pos1)
-                 (error
-                  (message "ERROR: (%s %d %d) -> %s"
-                           (if (symbolp pm--syntax-propertize-function-original)
-                               pm--syntax-propertize-function-original
-                             (format "polymode-syntax-propertize:%s" major-mode))
-                           pos0 pos1
-                           (error-message-string err))))))))
-       start end))))
+      ;; setq this doesn't have effect because the var is let bound; set seems to work
+      (set 'syntax-propertize--done end)))
+  (when pm--syntax-propertize-function-original
+    (unless pm-initialization-in-progress
+      (save-restriction
+        (widen)
+        (save-excursion
+          (when (or pm-verbose pm-syntax-verbose)
+            (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+          (pm-map-over-spans
+           (lambda ()
+             (pm-with-narrowed-to-span *span*
+               (when pm--syntax-propertize-function-original
+                 (let ((pos0 (max (nth 1 *span*) start))
+                       (pos1 (min (nth 2 *span*) end)))
+                   (condition-case err
+                       (funcall pm--syntax-propertize-function-original pos0 pos1)
+                     (error
+                      (message "ERROR: (%s %d %d) -> %s"
+                               (if (symbolp pm--syntax-propertize-function-original)
+                                   pm--syntax-propertize-function-original
+                                 (format "polymode-syntax-propertize:%s" major-mode))
+                               pos0 pos1
+                               (error-message-string err))))))))
+           start end))))))
 
 (defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
   (if (and polymode-mode pm/polymode)
@@ -310,7 +317,7 @@ This function is placed in `before-change-functions' hook."
                  (eq end (cdr range)))
             ;; in the most common case when span == beg-end, simply return
             range
-          (when pm-verbose
+          (when (or pm-verbose pm-syntax-verbose)
             (message "(polymode-restrict-syntax-propertize-extension %s %s) %s"
                      beg end (pm-format-span span)))
           (let ((be (funcall orig-fun beg end)))

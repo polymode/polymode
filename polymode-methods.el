@@ -39,6 +39,8 @@
 (cl-defmethod pm-initialize ((config pm-polymode))
   "Initialization of host buffers.
 Ran by the polymode mode function."
+  ;; Not calling config's :minor-mode in hosts because this pm-initialize is
+  ;; called from minor-mode itself.
   (let ((hostmode (clone (symbol-value (oref config :hostmode)))))
     (let ((pm-initialization-in-progress t)
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
@@ -47,9 +49,6 @@ Ran by the polymode mode function."
                          (oset hostmode :mode major-mode))))
       ;; host-mode hooks are run here, but polymode is not initialized
       (pm--mode-setup host-mode)
-      ;; FIXME: inconsistency?
-      ;; Not calling config's :minor-mode (polymode function). But polymode
-      ;; function calls pm-initialize, so it's probably ok.
       (oset hostmode -buffer (current-buffer))
       (oset config -hostmode hostmode)
       (setq pm/polymode config
@@ -127,9 +126,10 @@ initialized. Return the buffer."
       (setq-local indent-line-function #'pm-indent-line-dispatcher))
 
     ;; SYNTAX
-    ;; ideally this should be called in some hook to avoid minor-modes messing it up
-    (when (and syntax-propertize-function
-               (not (eq syntax-propertize-function #'polymode-syntax-propertize)))
+    ;; Ideally this should be called in some hook to avoid minor-modes messing
+    ;; it up Setting even if syntax-propertize-function is nil to have more
+    ;; control over syntax-propertize--done.
+    (unless (eq syntax-propertize-function #'polymode-syntax-propertize)
       (setq-local pm--syntax-propertize-function-original syntax-propertize-function)
       (setq-local syntax-propertize-function #'polymode-syntax-propertize))
     ;; [OBSOLETE as of 25.1] We know that syntax starts at span start.

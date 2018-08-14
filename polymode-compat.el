@@ -158,51 +158,6 @@ list, apply advice to each element of it."
            (advice-add fun :around advice)))))
 
 
-;;; Syntax
-
-;; (defvar pm-last-sp-backtrace nil
-;;   "Last  backtrace from syntax-propertize.")
-
-;; (defun pm-execute-syntax-propertize-narrowed-to-span (orig-fun pos)
-;;   "Execute `syntax-propertize' narrowed to the current span.
-;; Don't throw errors, but give relevant messages instead."
-;;   ;; in emacs 25.1 internal--syntax-propertize is called from C. We
-;;   ;; cannot advice it, but we can check for its argument. Very hackish
-;;   ;; but I don't see another way besides re-defining that function.
-;;   (if (and polymode-mode pm/polymode)
-;;       (save-excursion
-;;         (pm-map-over-spans
-;;          (lambda ()
-;;            (when (< syntax-propertize--done pos)
-;;              (pm-with-narrowed-to-span *span*
-;;                (condition-case err
-;;                    (progn
-;;                      (message "calling %d" pos)
-;;                      (let ((syntax-propertize-extend-region-functions nil)
-;;                            (pos0 syntax-propertize--done)
-;;                            (pos1 (min pos (point-max))))
-;;                        (funcall orig-fun pos1)
-;;                        (unless (> syntax-propertize--done pos0)
-;;                          (setq syntax-propertize--done pos1)))
-;;                      (let ((new--done syntax-propertize--done))
-;;                        (message "setting %d %d" pos new--done)
-;;                        (dolist (buff (oref pm/polymode -buffers))
-;;                          (with-current-buffer buff
-;;                            (setq-local syntax-propertize--done new--done)))))
-;;                  (error
-;;                   (setq-local syntax-propertize--done pos)
-;;                   (message "(syntax-propertize %s) %s [`M-x pm-debug-mode RET` and inspect `pm-last-sp-backtrace']"
-;;                            pos (error-message-string err))
-;;                   (and pm-debug-mode
-;;                        ;; (pm-last-error-far-off-p)
-;;                        (setq pm-last-sp-backtrace (backtrace))))))))
-;;          syntax-propertize--done pos))
-;;     (funcall orig-fun pos)))
-
-;; (pm-around-advice 'syntax-propertize 'pm-execute-syntax-propertize-narrowed-to-span)
-
-
-
 ;;; Flyspel
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
   (or (get-text-property beg :pm-span-type)
