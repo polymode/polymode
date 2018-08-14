@@ -3,12 +3,6 @@
 
 ;; HOST MODES
 
-(defcustom pm-host/blank
-  (pm-host-chunkmode "FallBack" :mode nil)
-  "Blank. Used as a placeholder for currently installed mode."
-  :group 'hostmodes
-  :type 'object)
-
 (defcustom pm-host/coffee
   (pm-host-chunkmode "coffee" :mode 'coffee-mode)
   "Coffee host chunkmode."

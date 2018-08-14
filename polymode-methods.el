@@ -38,22 +38,22 @@
 
 (cl-defmethod pm-initialize ((config pm-polymode))
   "Initialization of host buffers.
-Ran directly by the polymode modes."
-  (let ((chunkmode (clone (symbol-value (oref config :hostmode)))))
+Ran by the polymode mode function."
+  (let ((hostmode (clone (symbol-value (oref config :hostmode)))))
     (let ((pm-initialization-in-progress t)
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
           ;; minor modes.
-          (host-mode (or (oref chunkmode :mode)
-                         (oset chunkmode :mode major-mode))))
+          (host-mode (or (oref hostmode :mode)
+                         (oset hostmode :mode major-mode))))
       ;; host-mode hooks are run here, but polymode is not initialized
       (pm--mode-setup host-mode)
       ;; FIXME: inconsistency?
       ;; Not calling config's :minor-mode (polymode function). But polymode
       ;; function calls pm-initialize, so it's probably ok.
-      (oset chunkmode -buffer (current-buffer))
-      (oset config -hostmode chunkmode)
+      (oset hostmode -buffer (current-buffer))
+      (oset config -hostmode hostmode)
       (setq pm/polymode config
-            pm/chunkmode chunkmode
+            pm/chunkmode hostmode
             pm/type 'host)
       (pm--common-setup)
       ;; Initialize innermodes
@@ -64,8 +64,7 @@ Ran directly by the polymode modes."
       ;; FIXME: must go into polymode-compat.el
       (add-hook 'flyspell-incorrect-hook
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
-    (pm--run-init-hooks config 'polymode-init-host-hook)
-    (pm--run-init-hooks chunkmode)))
+    (pm--run-init-hooks hostmode 'polymode-init-host-hook)))
 
 (cl-defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
   "Initialization of chunk (indirect) buffers."
@@ -163,27 +162,50 @@ initialized. Return the buffer."
 
     (current-buffer)))
 
+(defun pm--run-derived-mode-hooks (config)
+  ;; Minor modes run-hooks, major-modes run-mode-hooks.
+  ;; Polymodes is a minor mode but with major-mode flavor. We
+  ;; run all parent hooks in reversed order here.
+  (let ((this-mode (oref config :minor-mode)))
+    (mapc (lambda (mm)
+            (let (old-mm (symbol-value mm))
+              (unwind-protect
+                  (progn
+                    (set mm (symbol-value this-mode))
+                    (run-hooks (derived-mode-hook-name mm)))
+                (set mm old-mm))))
+          (pm--collect-parent-slots config :minor-mode))))
+
 (defun pm--run-init-hooks (object &optional emacs-hook)
   (unless pm-initialization-in-progress
+    (pm--run-hooks object :init-functions)
     (when emacs-hook
-      (run-hooks emacs-hook))
-    (pm--run-hooks object :init-functions)))
+      (run-hooks emacs-hook))))
+
+(defun pm--collect-parent-slots (object slot)
+  "Descend into parents of OBJECT and return a list of SLOT values.
+Returned list is in parent first order."
+  (let ((inst object)
+        (vals nil))
+    (while inst
+      (when (slot-boundp inst slot)
+        (push (eieio-oref inst slot) vals))
+      (setq inst (and (slot-boundp inst :parent-instance)
+                      (oref inst :parent-instance))))
+    vals))
 
 (defun pm--run-hooks (object slot &rest args)
   "Run hooks from SLOT of OBJECT and its parent instances.
 Parents' hooks are run first."
-  (let ((inst object)
-        funs)
-    ;; run hooks, parents first
-    (while inst
-      (setq funs (append (and (slot-boundp inst slot) ; don't cascade
-                              (eieio-oref inst slot))
-                         funs)
-            inst (and (slot-boundp inst :parent-instance)
-                      (oref inst :parent-instance))))
+  (let ((funs (delete-dups
+               (copy-sequence
+                (apply #'append
+                       (pm--collect-parent-slots object slot))))))
     (if args
-        (apply 'run-hook-with-args 'funs args)
-      (run-hooks 'funs))))
+        (mapc (lambda (hook)
+                (apply #'run-hook-with-args hook args))
+              funs)
+      (mapc #'run-hooks funs))))
 
 
 ;;; BUFFER CREATION

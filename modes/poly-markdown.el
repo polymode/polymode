@@ -35,7 +35,9 @@
 (defcustom pm-host/markdown
   (pm-host-chunkmode "Markdown"
                      :mode 'markdown-mode
-                     :init-functions '(poly-markdown-remove-markdown-hooks))
+                     :init-functions '(poly-markdown-remove-markdown-hooks)
+                     :font-lock-narrow t
+                     )
   "Markdown host chunkmode"
   :group 'hostmodes
   :type 'object)
@@ -44,7 +46,7 @@
   (pm-inner-auto-chunkmode "markdown"
                            :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                            :tail-matcher "^[ \t]*```[ \t]*$"
-                           :mode-matcher "```[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)")
+                           :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1))
   "Markdown typical chunk."
   :group 'innermodes
   :type 'object)

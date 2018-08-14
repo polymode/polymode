@@ -32,22 +32,22 @@
 (require 'polymode)
 
 (defcustom pm-poly/noweb
-  (pm-polymode-one "noweb"
-                   :hostmode 'pm-host/latex
-                   :innermode 'pm-inner/noweb
-                   :exporters '(pm-exporter/latexmk
-                                pm-exporter/pdflatex
-                                pm-exporter/lualatex
-                                pm-exporter/xelatex)
-                   :map '(("<" . poly-noweb-electric-<)))
+  (pm-polymode "noweb"
+               :hostmode 'pm-host/latex
+               :innermodes '(pm-inner/noweb)
+               :exporters '(pm-exporter/latexmk
+                            pm-exporter/pdflatex
+                            pm-exporter/lualatex
+                            pm-exporter/xelatex)
+               :keylist '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymodes
   :type 'object)
 
 (defcustom  pm-inner/noweb
-  (pm-hbtchunkmode "noweb"
-                   :head-matcher "^[ \t]*<<\\(.*\\)>>="
-                   :tail-matcher "^[ \t]*@ *\\(%def.*\\)?$")
+  (pm-inner-chunkmode "noweb"
+                      :head-matcher "^[ \t]*<<\\(.*\\)>>="
+                      :tail-matcher "^[ \t]*@ *\\(%def.*\\)?$")
   "Noweb typical chunk."
   :group 'innermodes
   :type 'object)

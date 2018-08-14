@@ -30,15 +30,7 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (require 'polymode)
-
 (require 'poly-noweb)
-
-(defcustom pm-poly/noweb+c
-  (clone pm-poly/noweb
-         :innermode 'pm-inner/noweb+c)
-  "Noweb polymode for c"
-  :group 'polymodes
-  :type 'object)
 
 (defcustom pm-inner/noweb+c
   (clone pm-inner/noweb
@@ -48,4 +40,6 @@
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-noweb+c-mode "poly-c")
-(define-polymode poly-noweb+c-mode pm-poly/noweb+c :lighter " PM-Cnw")
+(define-polymode poly-noweb+c-mode pm-poly/noweb
+  :lighter " PM-Cnw"
+  :innermodes '(pm-inner/noweb+c))

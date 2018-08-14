@@ -46,7 +46,6 @@
 (require 'polymode-core)
 (require 'polymode-classes)
 (require 'polymode-methods)
-(require 'polymode-obsolete)
 (require 'polymode-compat)
 (require 'polymode-export)
 (require 'polymode-weave)
@@ -61,7 +60,7 @@ Not effective after loading the polymode library."
   :group 'polymode
   :type '(choice string vector))
 
-(defvar polymode-mode-map
+(defvar polymode-minor-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map polymode-prefix-key
       (let ((map (make-sparse-keymap)))
@@ -104,8 +103,9 @@ Not effective after loading the polymode library."
                 '(menu-item "Insert new chunk" polymode-insert-new-chunk))
               map)))
     map)
-  "The default minor mode keymap that is active in all polymode
-  modes.")
+  "The minor mode keymap which is inherited by all polymodes.")
+
+(defalias 'polymode-mode-map 'polymode-minor-mode-map)
 
 
 ;;; COMMANDS
@@ -361,164 +361,256 @@ This function is placed in `before-change-functions' hook."
 
 
 ;;; DEFINE
+
+(defun pm--config-name (symbol &optional must-exist)
+  (let ((config-name
+         (if (and (boundp symbol)
+                  (symbol-value symbol)
+                  (object-of-class-p (symbol-value symbol) 'pm-polymode))
+             symbol
+           (let ((poly-name (replace-regexp-in-string "poly-\\|-mode\\|-minor-mode" ""
+                                                      (symbol-name symbol))))
+             (intern (concat "pm-poly/" poly-name))))))
+    (when must-exist
+      (unless (boundp config-name)
+        (error "No pm-polymode config object with name `%s'" config-name))
+      (unless (object-of-class-p (symbol-value config-name) 'pm-polymode)
+        (error "`%s' is not a `pm-polymode' config object" config-name)))
+    config-name))
+
 ;;;###autoload
-(defmacro define-polymode (mode config &optional keymap &rest body)
+(defmacro define-polymode (mode &optional parent doc keymap &rest body)
   "Define a new polymode MODE.
 This macro defines command MODE and an indicator variable MODE
 which becomes t when MODE is active and nil otherwise.
 
-MODE command is similar to standard emacs major modes and it can
-be used in `auto-mode-alist'. Standard hook MODE-hook is run at
-the end of the initialization of each polymode buffer (both
-indirect and base buffers). Additionally MODE-map is created
-based on the CONFIG's :map slot and the value of the :keymap
-argument; see below.
+MODE command can be used as both major and minor mode. Using
+polymodes as minor modes makes sense when :hostmode (see below)
+is not specified, in which case polymode installs only inner
+modes and doesn't touch current major mode.
 
-CONFIG is a name of a config object representing the mode.
+Standard hook MODE-hook is run at the end of the initialization
+of each polymode buffer (both indirect and base buffers).
 
-MODE command can also be use as a minor mode. Current major mode
-is not reinitialized if it coincides with the :mode slot of
-CONFIG object or if the :mode slot is nil.
+This macro also defines the MODE-map keymap from the :keymap and
+PARENT-map (see below) and pm-poly/[MODE-NAME] custom variable
+which holds a `pm-polymode' configuration object for this
+polymode.
 
-BODY contains code to be executed after the complete
-  initialization of the polymode (`pm-initialize') and before
-  running MODE-hook. Before the BODY code, you can write keyword
-  arguments, i.e. alternating keywords and values.  The following
-  special keywords are supported:
+PARENT is either the polymode configuration object or a polymode
+mode (there is 1-to-1 correspondence between config
+objects (`pm-polymode') and mode functions). The new polymode
+MODE inherits alll the behavior from PARENT except for the
+overwrites specified by the keywords (see below). The new MODE
+runs all the hooks from the PARENT-mode and inherits its MODE-map
+from PARENT-map.
 
-:lighter SPEC   Optional LIGHTER is displayed in the mode line when
-                the mode is on.  If omitted, it defaults to
-                the :lighter slot of CONFIG object.
+BODY is executed after the complete initialization of the
+polymode but before MODE-hook. It is executed once for each
+polymode buffer - host buffer on initialization and every inner
+buffer subsequently created.
 
-:keymap MAP Same as the KEYMAP argument.
+Before the BODY code keyword arguments (i.e. alternating keywords
+and values) are allowed. The following special keywords
+controlling the behavior of the new MODE are supported:
 
-                If nil, a new MODE-map keymap is created what
-                directly inherits from the keymap defined by
-                the :map slot of CONFIG object. In most cases it
-                is a simple map inheriting form
-                `polymode-mode-map'. If t or an alist (of
-                bindings suitable to be passed to
-                `easy-mmode-define-keymap') a keymap MODE-MAP is
-                build by mergin this alist with the :map
-                specification of the CONFIG object. If a symbol,
-                it should be a variable whose value is a
-                keymap. No MODE-MAP is automatically created in
-                the latter case and :map slot of the CONFIG
-                object is ignored.
+:lighter Optional LIGHTER is displayed in the mode line when the
+   mode is on. If omitted, it defaults to the :lighter slot of
+   CONFIG object.
 
-:after-hook     A single lisp form which is evaluated after the mode hooks
-                have been run.  It should not be quoted."
+:keymap If nil, a new MODE-map keymap is created what directly
+  inherits from the PARENT's keymap. The last keymap in the
+  inheritance chain is always `polymode-minor-mode-map'. If a
+  keymap it is used directly as it is. If a list of binding of
+  the form (KEY . BINDING) it is merged the bindings are added to
+  the newly create keymap.
+
+:after-hook A single lisp form which is evaluated after the mode
+  hooks have been run. It should not be quoted.
+
+Other keywords are added to the `pm-polymode' configuration
+object and should be valid slots in PARENT config object or the
+root config `pm-polymode' object if PARENT is nil. By far the
+most frequently used slots are:
+
+:hostmode Symbol pointing to a `pm-host-chunkmode' object
+  specifying the behavior of the hostmode. If missing or nil,
+  MODE will behave as a minor-mode in the sense that it will
+  reuse the currently installed major mode and will install only
+  the inner modes.
+
+:innermodes List of symbols pointing to `pm-inner-chunkmode'
+  objects which specify the behavior of inner modes (or submodes).
+"
   (declare
-   (debug (&define name name
+   (doc-string 3)
+   (debug (&define name
+                   [&optional [&not keywordp] name]
+                   [&optional stringp]
                    [&optional [&not keywordp] sexp]
                    [&rest [keywordp sexp]]
                    def-body)))
 
+  (if (keywordp parent)
+      (progn
+        (push keymap body)
+        (push doc body)
+        (push parent body)
+        (setq keymap nil
+              doc nil
+              parent nil))
+    (if (keywordp doc)
+        (progn
+          (push keymap body)
+          (push doc body)
+          (setq keymap nil
+                doc nil))
+      (when (keywordp keymap)
+        (push keymap body)
+        (setq keymap nil))))
 
-  (when (keywordp keymap)
-    (push keymap body)
-    (setq keymap nil))
+  (unless (symbolp parent)
+    (error "PARENT must be a name of a `pm-polymode' config or a polymode mode function"))
 
   (let* ((last-message (make-symbol "last-message"))
          (mode-name (symbol-name mode))
-         (pretty-name (concat
-                       (replace-regexp-in-string "poly-\\|-mode" "" mode-name)
-                       " polymode"))
-         (keymap-sym (intern (concat mode-name "-map")))
-         (hook (intern (concat mode-name "-hook")))
-         (extra-keywords nil)
-         (after-hook nil)
-         keyw lighter)
+         (config-name (pm--config-name mode))
+         (root-name (replace-regexp-in-string "poly-\\|-mode" "" mode-name))
+         (pretty-name (concat root-name " polymode"))
+         (parent-name (and parent (pm--config-name parent t)))
+         (parent-conf (and parent-name (symbol-value parent-name)))
+         (parent-map nil)
+         (keymap-name (intern (concat mode-name "-map")))
+         new-innermodes slots after-hook keyw lighter)
 
-    ;; Check keys.
+    ;; Check keys
     (while (keywordp (setq keyw (car body)))
       (setq body (cdr body))
       (pcase keyw
         (`:lighter (setq lighter (purecopy (pop body))))
         (`:keymap (setq keymap (pop body)))
         (`:after-hook (setq after-hook (pop body)))
-        (_ (push keyw extra-keywords) (push (pop body) extra-keywords))))
+        (`:add-innermodes (setq new-innermodes (pop body)))
+        (`:keylist (error ":keylist is not allowed in `define-polymode'."))
+        (_ (push (pop body) slots) (push keyw slots))))
+
+    (when new-innermodes
+      (if parent
+          (let ((new-list (delete-dups
+                           (append (oref parent-conf :innermodes)
+                                   (if (eq (car new-innermodes) 'quote)
+                                       (cadr new-innermodes)
+                                     new-innermodes)))))
+            (setq slots (plist-put slots :innermodes `(quote ,new-list))))
+        (error ":add-innermodes needs non-nil PARENT")))
+
+    (unless (keymapp keymap)
+      ;; keymap is either nil or list from parent keymap
+      (cond
+       ;; 1. if parent is config object, merge all list keymaps from parents
+       ((and parent
+             (eieio-object-p (symbol-value parent)))
+        (let ((keylist (copy-sequence keymap))
+              (pi parent-conf))
+          (while pi
+            (let ((map (and (slot-boundp pi :keylist)
+                            (oref pi :keylist))))
+              (when map
+                (if (and (symbolp map)
+                         (keymapp (symbol-value map)))
+                    ;; if one of the parent's :keylist is a keymap, use it as our
+                    ;; parent-map and stop further descent
+                    (setq parent-map map
+                          pi nil)
+                  ;; list, descend to next parent and append the key list to keylist
+                  (setq pi (and (slot-boundp pi :parent-instance)
+                                (oref pi :parent-instance))
+                        keylist (append map keylist))))))
+          (setq keymap (reverse keylist))
+          (setq parent-map (or parent-map 'polymode-minor-mode-map))))
+       ;; 2. If mode function, take the minor-mode from the parent config
+       (parent-conf
+        (setq parent-map
+              (derived-mode-map-name
+               (oref parent-conf :minor-mode))))
+       ;; 3. nil
+       (t (setq parent-map
+                'polymode-minor-mode-map))))
+
 
     `(progn
+       ;; Define the variable to enable or disable the mode.
+       (defvar-local ,mode nil ,(format "Non-nil if `%s' polymode is enabled." mode))
+
        :autoload-end
 
-       ;; Define the variable to enable or disable the mode.
-       (defvar ,mode nil ,(format "Non-nil if %s mode is enabled." pretty-name))
-       (make-variable-buffer-local ',mode)
+       ;; define the minor-mode's keymap
+       (defvar ,keymap-name
+         (easy-mmode-define-keymap ',keymap nil nil (list :inherit ,parent-map))
+         ,(format "Keymap for %s." mode-name))
 
-       (let* ((keymap ,keymap)
-              (config ',config)
-              (lighter (or ,lighter
-                           (oref (symbol-value config) :lighter)))
-              key-alist)
+       ,(unless (eq parent config-name)
+          `(progn
+             (defcustom ,config-name nil
+               ,(format "Configuration object for `%s' polymode." mode)
+               :group 'polymodes
+               :type 'object)
+             ;; setting in two steps as defcustom is not re-evaluated on repeated evals
+             (setq ,config-name
+                   ,(if parent-name
+                        `(clone ,parent-name
+                                :object-name ,(symbol-name config-name)
+                                ,@slots)
+                      `(pm-polymode ,(symbol-name config-name)
+                                    ,@slots))))
+          )
 
-         (unless (keymapp keymap)
-           ;; keymap is either nil or list. Iterate through parents' :map slot
-           ;; and gather keys.
-           (setq key-alist keymap)
-           (let* ((pi (symbol-value config))
-                  map mm-name)
-             (while pi
-               (setq map (and (slot-boundp pi :map)
-                              (oref pi :map)))
-               (if (and (symbolp map)
-                        (keymapp (symbol-value map)))
-                   ;; If one of the parent's :map is a keymap, use it as our
-                   ;; keymap and stop further descent.
-                   (setq keymap  (symbol-value map)
-                         pi nil)
-                 ;; Descend to next parent and append the key list to key-alist
-                 (setq pi (and (slot-boundp pi :parent-instance)
-                               (oref pi :parent-instance))
-                       key-alist (append key-alist map))))))
+       ;; The actual mode function:
+       (defun ,mode (&optional arg)
+         ,(format "%s\n\n\\{%s}"
+                  ;; fixme: add inheretance info here and warning if body is
+                  ;; non-nil (like in define-mirror-mode)
+                  (or doc (format "Polymode %s." root-name))
+                  keymap-name)
+         (interactive)
+         (let ((,last-message (current-message))
+               (state (cond
+                       ((numberp arg) (> arg 0))
+                       (arg t)
+                       ((not ,mode)))))
+           (setq ,mode state)
+           ;; The 'unless' is needed because inner modes during
+           ;; initialization call the same polymode minor-mode which
+           ;; triggers this `pm-initialize'.
+           (unless (buffer-base-buffer)
+             (when ,mode
+               (let ((obj (clone ,config-name)))
+                 (oset obj :minor-mode ',mode)
+                 (pm-initialize obj))
+               ;; when host mode is reset in pm-initialize we end up with now
+               ;; minor mode in hosts
+               (setq ,mode t)))
+           ;; body and hooks are executed in all buffers!
+           ,@body
+           (unless (buffer-base-buffer)
+             ;; Avoid overwriting a message shown by the body,
+             ;; but do overwrite previous messages.
+             (when (and (called-interactively-p 'any)
+                        (or (null (current-message))
+                            (not (equal ,last-message
+                                        (current-message)))))
+               (message ,(format "%s enabled" pretty-name))))
+           (force-mode-line-update)
+           (pm--run-derived-mode-hooks ,config-name)
+           ,@(when after-hook `(,after-hook)))
+         ;; Return the new state
+         ,mode)
 
-         (unless keymap
-           ;; If we couldn't figure out the original keymap:
-           (setq keymap polymode-mode-map))
-
-         ;; Define the minor-mode keymap:
-         (defvar ,keymap-sym
-           (easy-mmode-define-keymap key-alist nil nil `(:inherit ,keymap))
-           ,(format "Keymap for %s." pretty-name))
-
-         ;; The actual mode function:
-         (defun ,mode (&optional arg) ,(format "%s.\n\n\\{%s}" pretty-name keymap-sym)
-                (interactive)
-                (unless ,mode
-                  (let ((,last-message (current-message)))
-                    ;; The 'unless' is needed because inner modes during
-                    ;; initialization call the same polymode minor-mode which
-                    ;; triggered this `pm-initialize'.
-                    (unless pm/polymode
-                      (let ((config (clone ,config)))
-                        (oset config :minor-mode ',mode)
-                        (pm-initialize config)))
-                    (setq ,mode t)
-                    ,@body
-                    ;; Avoid overwriting a message shown by the body,
-                    ;; but do overwrite previous messages.
-                    (when (and (called-interactively-p 'any)
-                               (or (null (current-message))
-                                   (not (equal ,last-message
-                                               (current-message)))))
-                      (message ,(format "%s enabled" pretty-name)))
-                    ,@(when after-hook `(,after-hook))
-                    (force-mode-line-update)
-                    ;; Minor modes run-hooks, major-modes run-mode-hooks.
-                    ;; Polymodes is a minor mode. One cannot derive modes from
-                    ;; it but can use it as major-mode in . Within pm-initialize
-                    ;; potentially several modes might be initialized. Hence
-                    ;; delay-hooks seems like a bad idea. Each mode has to hack
-                    ;; it's own buffer locals somehow.
-                    (run-hooks ',hook)))
-                ;; Return the new setting.
-                ,mode)
-
-         (add-minor-mode ',mode lighter ,keymap-sym)))))
+       (add-minor-mode ',mode ,(or lighter " PM") ,keymap-name))))
 
 (define-minor-mode polymode-minor-mode
   "Polymode minor mode, used to make everything work."
-  nil " PM" polymode-mode-map)
+  nil " PM")
 
 (define-derived-mode poly-head-tail-mode prog-mode "HeadTail"
   "Default major mode for polymode head and tail spans.")
