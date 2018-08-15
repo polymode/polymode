@@ -276,15 +276,24 @@ This function is placed in `before-change-functions' hook."
       ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
       )))
 
-;; called from syntax-propertize and thus at the beginning of syntax-ppss
-(defun polymode-syntax-propertize (start end)
+;; fixme: this doesn't help with "din't move syntax-propertize--done" errors
+(defun polymode-set-syntax-propertize-end (beg end)
   ;; syntax-propertize sets 'syntax-propertize--done to end in the original
   ;; buffer just before calling syntax-propertize-function; we do it in all
-  ;; buffers
+  ;; buffers in syntax-propertize-extend-region-functions because they are
+  ;; called with syntax-propertize--done still unbound
   (dolist (b (oref pm/polymode -buffers))
     (with-current-buffer b
-      ;; setq this doesn't have effect because the var is let bound; set seems to work
+      ;; setq doesn't have effect because the var is let bound; set seems to work
       (set 'syntax-propertize--done end)))
+  (cons beg end))
+
+;; called from syntax-propertize and thus at the beginning of syntax-ppss
+(defun polymode-syntax-propertize (start end)
+  ;; (dolist (b (oref pm/polymode -buffers))
+  ;;   (with-current-buffer b
+  ;;     ;; setq doesn't have effect because the var is let bound; set seems to work
+  ;;     (set 'syntax-propertize--done end)))
   (when pm--syntax-propertize-function-original
     (unless pm-initialization-in-progress
       (save-restriction

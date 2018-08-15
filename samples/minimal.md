@@ -5,10 +5,11 @@ $\int$  $dfdf$
 If `poly-markdown.el` is loaded. This should work by default. Otherwise `M-x
 poly-markdown+r-mode RET` should do the job.
 
-$$ sfdfd
-dfd
-$$
 
+$$%
+
+
+$$
 
 ```r
 1 + 1
@@ -16,7 +17,6 @@ $$
 
 ```r
 ## [1] 2
-
 ```
 
 ```r
@@ -56,11 +56,12 @@ $$  $$
 Some text
 
 
-  ```python
-    if len($declaration) > 0 and $declaration::isTypedef:
-        $Symbols::types.add($IDENTIFIER.text)
-        print "define type "+$IDENTIFIER.text  # line 19
-  ```
+```python
+    "some text with $ddd$ dfd"
+    if len(\$declaration) > 0 and \$declaration::isTypedef:
+        \$Symbols::types.add(\$IDENTIFIER.text)
+        print "define type "+\$IDENTIFIER.text  # line 19
+```
   
   
 $$\begin{equation}

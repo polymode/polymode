@@ -139,8 +139,14 @@ initialized. Return the buffer."
     ;; effect of such extra-extension is slight performance hit. Not sure here,
     ;; but there might be situations when extending beyond current span does
     ;; make sense. Remains to be seen.
+    (remove-hook 'syntax-propertize-extend-region-functions
+                 'polymode-set-syntax-propertize-end
+                 t)
     (pm-around-advice syntax-propertize-extend-region-functions
                       #'polymode-restrict-syntax-propertize-extension)
+    (add-hook 'syntax-propertize-extend-region-functions
+              'polymode-set-syntax-propertize-end
+              t t)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-narrow (cons nil nil))
