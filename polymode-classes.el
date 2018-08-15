@@ -91,12 +91,13 @@
     :initarg :innermodes
     :type list
     :initform nil
+    :custom (repeat symbol)
     :documentation
     "List of names of the `pm-inner-chunkmode' objects associated with this polymode.")
    (exporters
     :initarg :exporters
     :initform '(pm-exporter/pandoc)
-    :type list
+    :custom (repeat symbol)
     :documentation
     "List of names of polymode exporters available for this polymode.")
    (exporter
@@ -108,6 +109,7 @@
     :initarg :weavers
     :initform '()
     :type list
+    :custom (repeat symbol)
     :documentation "List of names of polymode weavers available for this polymode.")
    (weaver
     :initarg :weaver
@@ -117,6 +119,7 @@
    (switch-buffer-functions
     :initarg :switch-buffer-functions
     :initform '()
+    :custom (repeat symbol)
     :type list
     :documentation "List of functions to run at polymode buffer switch. Each function is run with two arguments, OLD-BUFFER and NEW-BUFFER.")
 

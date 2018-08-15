@@ -60,13 +60,29 @@
   :group 'innermodes
   :type 'object)
 
-(defcustom  pm-inner/markdown-latex
-  (pm-inner-chunkmode "latex"
+(defcustom  pm-inner/markdown-displayed-math
+  (pm-inner-chunkmode "markdown-displayed-math"
                       :head-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1)
                       :tail-matcher (cons "\\(\\$\\$\\)$" 1)
+                      :head-mode 'host
+                      :tail-mode 'host
                       :mode 'latex-mode
                       :font-lock-narrow t)
-  "Latex $$ block.
+  "Displayed math $$..$$ block.
+Tail must be flowed by new line but head not (a space or comment
+character would do)."
+  :group 'innermodes
+  :type 'object)
+
+(defcustom  pm-inner/markdown-inline-math
+  (pm-inner-chunkmode "markdown-inline-math"
+                      :head-matcher (cons "[^$\\[:alnum:]]\\(\\$\\)[^ $\t[:digit:]]" 1)
+                      :tail-matcher (cons "[^ $\\\t]\\(\\$\\)[^$[:alnum:]]" 1)
+                      :head-mode 'host
+                      :tail-mode 'host
+                      :mode 'latex-mode
+                      :font-lock-narrow t)
+  "Displayed math $$..$$ block.
 Tail must be flowed by new line but head not (a space or comment
 character would do)."
   :group 'innermodes
@@ -77,7 +93,8 @@ character would do)."
                :hostmode 'pm-host/markdown
                :innermodes '(pm-inner/markdown-fenced-code
                              pm-inner/markdown-inline-code
-                             pm-inner/markdown-latex))
+                             pm-inner/markdown-displayed-math
+                             pm-inner/markdown-inline-math))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)
