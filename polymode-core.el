@@ -287,13 +287,13 @@ Base modes usually do not compute spans."
 (defun pm--cached-span (&optional pos)
   ;; fixme: add basic miss statistics
   (unless pm-initialization-in-progress
-    (let* ((pos (or pos (point)))
-           (pos (if (= pos (point-max))
+    (let* ((omin (point-min))
+           (omax (point-max))
+           (pos (or pos (point)))
+           (pos (if (= pos omax)
                     (max (point-min) (1- pos))
                   pos))
-           (span (get-text-property pos :pm-span))
-           (obeg (point-min))
-           (oend (point-max)))
+           (span (get-text-property pos :pm-span)))
       (when span
         (save-restriction
           (widen)
@@ -301,8 +301,11 @@ Base modes usually do not compute spans."
                  (end (max beg (1- (nth 2 span)))))
             (when (and (< end (point-max)) ; buffer size might have changed
                        (eq span (get-text-property beg :pm-span))
-                       (eq span (get-text-property end :pm-span)))
-              (pm--chop-span (copy-sequence span) obeg oend))))))))
+                       (eq span (get-text-property end :pm-span))
+                       (not (eq span (get-text-property (1+ end) :pm-span)))
+                       (or (= beg (point-min))
+                           (not (eq span (get-text-property (1- beg) :pm-span)))))
+              (pm--chop-span (copy-sequence span) omin omax))))))))
 
 (define-obsolete-function-alias 'pm-get-innermost-span 'pm-innermost-span "2018-08")
 (defun pm-innermost-span (&optional pos no-cache)
@@ -367,8 +370,7 @@ is one of the following symbols:
   nil   - pos is between point-min and head-matcher, or between tail-matcher and point-max
   body  - pos is between head-matcher and tail-matcher (exclusively)
   head  - head span
-  tail  - tail span
-"
+  tail  - tail span"
   (setq pos (or pos (point)))
   (save-restriction
     (widen)
