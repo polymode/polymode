@@ -62,11 +62,13 @@
 
 (defcustom  pm-inner/markdown-latex
   (pm-inner-chunkmode "latex"
-                      :head-matcher (cons "^[ \t]*\\(\\$\\$\\)" 1)
-                      :tail-matcher (cons "\\(\\$\\$\\)[ \t]*$" 1)
+                      :head-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1)
+                      :tail-matcher (cons "\\(\\$\\$\\)$" 1)
                       :mode 'latex-mode
                       :font-lock-narrow t)
-  "Latex typical inner chunk."
+  "Latex $$ block.
+Tail must be flowed by new line but head not (a space or comment
+character would do)."
   :group 'innermodes
   :type 'object)
 

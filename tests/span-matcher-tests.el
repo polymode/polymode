@@ -206,16 +206,35 @@ baz
       (pm-fun-matcher (cons "--\\(`[[:alpha:]]+\\)--" 1))
       (pm-fun-matcher (cons "--\\(`\\)--" 1))))))
 
-(defun tt ()
-  (interactive)
-  (message "%S" (markdown-inline-test-fun-matcher)))
 
-
-;;; regexp look up benchmarks before pm--span-at-point-reg-reg was removed
+(ert-deftest span-matcher/markdown-latex ()
+  (pm-test-matcher
+   "Some text
+$$%
+\\int_a^b f(x) dx
+$$
+Some text
+"
+   '((1 . (nil 1 11))
+     (11 . (head 11 13))
+     (13 . (body 13 32))
+     (32 . (tail 32 34))
+     (34 . (nil 34 45)))
+   (lambda ()
+     (pm--span-at-point
+      (pm-fun-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1))
+      (pm-fun-matcher (cons "\\(\\$\\$\\)$" 1))))))
 
 ;; (defun tt ()
 ;;   (interactive)
-;;   (message "%S" #'markdown-inline-test-reg-matcher))
+;;   (message "%S"
+;;            ;; (markdown-inline-test-fun-matcher)
+;;            (pm--span-at-point
+;;             (pm-fun-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1))
+;;             (pm-fun-matcher (cons "\\(\\$\\$\\)$" 1)))))
+
+
+;;; regexp look up benchmarks before pm--span-at-point-reg-reg was removed
 
 ;; (setq tt-head-matcher (pm-fun-matcher markdown-inline-reg-head-matcher))
 ;; (setq tt-tail-matcher (pm-fun-matcher markdown-inline-reg-tail-matcher))
