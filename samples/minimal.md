@@ -1,6 +1,14 @@
 
+
+$\int$  $dfdf$
+
 If `poly-markdown.el` is loaded. This should work by default. Otherwise `M-x
 poly-markdown+r-mode RET` should do the job.
+
+$$ sfdfd
+dfd
+$$
+
 
 ```r
 1 + 1
@@ -28,6 +36,24 @@ poly-markdown+r-mode RET` should do the job.
     
 }
 ```
+
+Some text
+
+$$ 
+\int{}
+$$
+
+
+$$  
+\int_a^b f(x) dx 
+$$
+
+
+$$  $$
+ 
+ $\int{a+b}$  $p +$ 
+
+Some text
 
 
   ```python

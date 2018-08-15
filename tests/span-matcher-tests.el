@@ -225,13 +225,18 @@ Some text
       (pm-fun-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1))
       (pm-fun-matcher (cons "\\(\\$\\$\\)$" 1))))))
 
-;; (defun tt ()
-;;   (interactive)
-;;   (message "%S"
-;;            ;; (markdown-inline-test-fun-matcher)
-;;            (pm--span-at-point
-;;             (pm-fun-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1))
-;;             (pm-fun-matcher (cons "\\(\\$\\$\\)$" 1)))))
+(defun tt ()
+  (interactive)
+  (message
+   "%S"
+   (pm--span-at-point
+    (pm-fun-matcher (cons "[^$]\\(\\$\\)[^ $\t[:digit:]]" 1))
+    (pm-fun-matcher (cons "[^ $\t]\\(\\$\\)[^$]" 1)))
+   ;; (markdown-inline-test-fun-matcher)
+   ;; (pm--span-at-point
+   ;;  (pm-fun-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1))
+   ;;  (pm-fun-matcher (cons "\\(\\$\\$\\)$" 1)))
+   ))
 
 
 ;;; regexp look up benchmarks before pm--span-at-point-reg-reg was removed

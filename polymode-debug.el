@@ -141,11 +141,11 @@ Key bindings:
                "(%s) min:%d pos:%d max:%d || (%s) type:%s span:%s-%s %s %s"
                out)))))
 
-(defun pm-debug-info-on-current-span ()
-  (interactive)
+(defun pm-debug-info-on-current-span (no-cach)
+  (interactive "P")
   (if (not polymode-mode)
       (message "not in a polymode buffer")
-    (let ((span (pm-get-innermost-span)))
+    (let ((span (pm-get-innermost-span nil no-cach)))
       (message (pm--debug-info span))
       ;; (move-overlay pm--highlight-overlay (nth 1 span) (nth 2 span) (current-buffer))
       (pm-debug-flick-region (nth 1 span) (nth 2 span)))))
