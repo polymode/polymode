@@ -3,6 +3,8 @@
 (require 'poly-markdown)
 (require 'polymode-test)
 
+;; fixme: add tests when after change spans wrongly temporally cover other spans
+
 (setq python-indent-offset 4
       python-indent-guess-indent-offset nil)
 

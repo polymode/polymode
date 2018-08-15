@@ -257,6 +257,48 @@ placed in `font-lock-flush-function''"
          (pm-flush-span-cache beg end)
          (put-text-property beg end 'fontified nil))))))
 
+(defun pm--after-change-extend-region (beg end)
+  "Our own extension function which runs first on BEG END change."
+  ;; old span can disappear, shrunk, extend etc
+  (save-restriction
+    (widen)
+    (let* ((old-beg (or (previous-single-property-change end :pm-span)
+                        (point-min)))
+           (old-end (or (next-single-property-change end :pm-span)
+                        (point-max)))
+           ;; need this here before pm-innermost-span call
+           (old-beg-obj (nth 3 (get-text-property old-beg :pm-span)))
+           ;; (old-end-obj (nth 3 (get-text-property old-end :pm-span)))
+           (beg-span (pm-innermost-span beg 'no-cache))
+           (end-span (if (= beg end)
+                         beg-span
+                       (pm-innermost-span end 'no-cache)))
+           (sbeg (nth 1 beg-span))
+           (send (nth 2 end-span)))
+      (if (< old-beg sbeg)
+          (let ((new-beg-span (pm-innermost-span old-beg)))
+            (if (eq old-beg-obj (nth 3 new-beg-span))
+                ;; new span appeared within an old span, don't refontify the old part (common case)
+                (setq jit-lock-start (min sbeg (nth 2 new-beg-span)))
+              ;; wrong span shrunk to its correct size (rare or never)
+              (setq jit-lock-start old-beg)))
+        ;; refontify the entire new span
+        (setq jit-lock-start sbeg))
+      ;; I think it's not possible to do better than this. When region is
+      ;; shrunk, previous region could be incorrectly fontify even if the mode
+      ;; is preserved due to wrong ppss
+      (setq jit-lock-end (max send old-end))
+      ;; (if (> old-end send)
+      ;;     (let ((new-end-span (pm-innermost-span (max (1- old-end) end))))
+      ;;       (if (eq old-end-obj (nth 3 new-end-span))
+      ;;           ;; new span appeared within an old span, don't refontify the old part (common case)
+      ;;           (setq jit-lock-end (max end (nth 1 new-end-span)))
+      ;;         ;; wrong span shrunk to its correct size
+      ;;         (setq jit-lock-end old-end)))
+      ;;   ;; refontify the entire new span
+      ;;   (setq jit-lock-end send))
+      )))
+
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
 Installed in `after-change-functions' and behaves similarly to
@@ -265,7 +307,9 @@ Installed in `after-change-functions' and behaves similarly to
 the buffer narrowed to the relevant spans."
   (save-excursion
     (save-match-data
-      ;; just in case
+      (pm--after-change-extend-region beg end)
+      (setq beg jit-lock-start
+            end jit-lock-end)
       (pm-flush-span-cache beg end)
       (when (and poly-lock-mode
                  pm-allow-after-change-hook
@@ -283,6 +327,7 @@ the buffer narrowed to the relevant spans."
               (pm-with-narrowed-to-span *span*
                 (setq jit-lock-start (max beg sbeg)
                       jit-lock-end   (min end send))
+                ;; if the whole span, don't bother with extension functions
                 (when (or (> beg sbeg) (< end send))
                   (condition-case err
                       ;; set jit-lock-start and jit-lock-end by side effect
@@ -298,6 +343,7 @@ the buffer narrowed to the relevant spans."
                            jit-lock-start jit-lock-end
                            (pm-format-span *span*)))
                 (put-text-property jit-lock-start jit-lock-end 'fontified nil)))))
+         ;; fixme: no-cache is no longer necessary, we flush the region
          beg end nil nil nil 'no-cache)))))
 
 (defun poly-lock--adjusted-background (prop)
