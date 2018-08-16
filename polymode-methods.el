@@ -405,32 +405,42 @@ in this case."
         (setq point (point))))
     (goto-char point)))
 
-(defun pm-indent-line-dispatcher ()
+(defun pm-indent-line-dispatcher (&optional span)
   "Dispatch methods indent methods on current span.
 Value of `indent-line-function' in polymode buffers."
-  (let ((span (pm-get-innermost-span))
+  (let ((span (or span (pm-get-innermost-span)))
         (inhibit-read-only t))
     (pm-indent-line (car (last span)) span)))
 
-(cl-defgeneric pm-indent-line (&optional chunkmode span)
+(cl-defgeneric pm-indent-line (chunkmode &optional span)
   "Indent current line.
 Protect and call original indentation function associated with
 the chunkmode.")
 
-(cl-defmethod pm-indent-line ((chunkmode pm-chunkmode) &optional span)
-  (pm--indent-line span))
+(cl-defmethod pm-indent-line ((chunkmode pm-chunkmode) span)
+  (let ((bol (point-at-bol))
+        (span (or span (pm-innermost-span))))
+    (if (or (< (nth 1 span) bol)
+            (= bol (point-min)))
+        (pm--indent-line span)
+      ;; dispatch to previous span
+      (let ((delta (- (point) (nth 1 span)))
+            (prev-span (pm-get-innermost-span (1- bol))))
+        (goto-char bol)
+        (pm-indent-line-dispatcher prev-span)
+        (goto-char (+ (point) delta))
+        (pm-switch-to-buffer)))))
 
-(cl-defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) &optional span)
+(cl-defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) span)
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
   (let ((pos (point))
-        (span (or span (pm-get-innermost-span)))
-        delta)
+        (delta nil))
     (unwind-protect
         (cond
 
-         ;; 1. in head or tail (we assume head or tail fit in one line for now)
+         ;; 1. in head or tail (we assume head or tail fits in one line for now)
          ((or (eq 'head (car span))
               (eq 'tail (car span)))
           (goto-char (nth 1 span))

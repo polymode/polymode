@@ -229,7 +229,7 @@ buffer.")
     :initarg :tail-matcher
     :initform nil
     :type (or string symbol cons)
-    :documentation "Like :head-matcher but for the chunk's tail.")
+    :documentation "Like :head-matcher but for the chunk's tail. It is always called with the point at the end of the matched head and with the positive argument.")
    (adjust-face
     :initform 2)
    (head-adjust-face
