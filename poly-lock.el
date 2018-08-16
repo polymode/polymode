@@ -207,7 +207,7 @@ Fontifies chunk-by chunk within the region BEG END."
              (with-buffer-prepared-for-poly-lock
               (let ((sbeg (nth 1 *span*))
                     (send (nth 2 *span*)))
-                ;; (message "%d-%d" sbeg send)
+                ;; skip empty spans
                 (when (> send sbeg)
                   (if  (not (and font-lock-mode font-lock-keywords))
                       ;; no font-lock
@@ -258,46 +258,45 @@ placed in `font-lock-flush-function''"
          (put-text-property beg end 'fontified nil))))))
 
 (defun pm--after-change-extend-region (beg end)
-  "Our own extension function which runs first on BEG END change."
+  "Our own extension function which runs first on BEG END change.
+Assumes widen buffer."
   ;; old span can disappear, shrunk, extend etc
-  (save-restriction
-    (widen)
-    (let* ((old-beg (or (previous-single-property-change end :pm-span)
-                        (point-min)))
-           (old-end (or (next-single-property-change end :pm-span)
-                        (point-max)))
-           ;; need this here before pm-innermost-span call
-           (old-beg-obj (nth 3 (get-text-property old-beg :pm-span)))
-           ;; (old-end-obj (nth 3 (get-text-property old-end :pm-span)))
-           (beg-span (pm-innermost-span beg 'no-cache))
-           (end-span (if (= beg end)
-                         beg-span
-                       (pm-innermost-span end 'no-cache)))
-           (sbeg (nth 1 beg-span))
-           (send (nth 2 end-span)))
-      (if (< old-beg sbeg)
-          (let ((new-beg-span (pm-innermost-span old-beg)))
-            (if (eq old-beg-obj (nth 3 new-beg-span))
-                ;; new span appeared within an old span, don't refontify the old part (common case)
-                (setq jit-lock-start (min sbeg (nth 2 new-beg-span)))
-              ;; wrong span shrunk to its correct size (rare or never)
-              (setq jit-lock-start old-beg)))
-        ;; refontify the entire new span
-        (setq jit-lock-start sbeg))
-      ;; I think it's not possible to do better than this. When region is
-      ;; shrunk, previous region could be incorrectly fontify even if the mode
-      ;; is preserved due to wrong ppss
-      (setq jit-lock-end (max send old-end))
-      ;; (if (> old-end send)
-      ;;     (let ((new-end-span (pm-innermost-span (max (1- old-end) end))))
-      ;;       (if (eq old-end-obj (nth 3 new-end-span))
-      ;;           ;; new span appeared within an old span, don't refontify the old part (common case)
-      ;;           (setq jit-lock-end (max end (nth 1 new-end-span)))
-      ;;         ;; wrong span shrunk to its correct size
-      ;;         (setq jit-lock-end old-end)))
-      ;;   ;; refontify the entire new span
-      ;;   (setq jit-lock-end send))
-      )))
+  (let* ((old-beg (or (previous-single-property-change end :pm-span)
+                      (point-min)))
+         (old-end (or (next-single-property-change end :pm-span)
+                      (point-max)))
+         ;; need this here before pm-innermost-span call
+         (old-beg-obj (nth 3 (get-text-property old-beg :pm-span)))
+         ;; (old-end-obj (nth 3 (get-text-property old-end :pm-span)))
+         (beg-span (pm-innermost-span beg 'no-cache))
+         (end-span (if (= beg end)
+                       beg-span
+                     (pm-innermost-span end 'no-cache)))
+         (sbeg (nth 1 beg-span))
+         (send (nth 2 end-span)))
+    (if (< old-beg sbeg)
+        (let ((new-beg-span (pm-innermost-span old-beg)))
+          (if (eq old-beg-obj (nth 3 new-beg-span))
+              ;; new span appeared within an old span, don't refontify the old part (common case)
+              (setq jit-lock-start (min sbeg (nth 2 new-beg-span)))
+            ;; wrong span shrunk to its correct size (rare or never)
+            (setq jit-lock-start old-beg)))
+      ;; refontify the entire new span
+      (setq jit-lock-start sbeg))
+    ;; I think it's not possible to do better than this. When region is
+    ;; shrunk, previous region could be incorrectly fontify even if the mode
+    ;; is preserved due to wrong ppss
+    (setq jit-lock-end (max send old-end))
+    ;; (if (> old-end send)
+    ;;     (let ((new-end-span (pm-innermost-span (max (1- old-end) end))))
+    ;;       (if (eq old-end-obj (nth 3 new-end-span))
+    ;;           ;; new span appeared within an old span, don't refontify the old part (common case)
+    ;;           (setq jit-lock-end (max end (nth 1 new-end-span)))
+    ;;         ;; wrong span shrunk to its correct size
+    ;;         (setq jit-lock-end old-end)))
+    ;;   ;; refontify the entire new span
+    ;;   (setq jit-lock-end send))
+    ))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
@@ -307,10 +306,12 @@ Installed in `after-change-functions' and behaves similarly to
 the buffer narrowed to the relevant spans."
   (save-excursion
     (save-match-data
-      (pm--after-change-extend-region beg end)
-      (setq beg jit-lock-start
-            end jit-lock-end)
-      (pm-flush-span-cache beg end)
+      (save-restriction
+        (widen)
+        (pm--after-change-extend-region beg end)
+        (setq beg jit-lock-start
+              end jit-lock-end)
+        (pm-flush-span-cache beg end))
       (when (and poly-lock-mode
                  pm-allow-after-change-hook
                  (not memory-full))
