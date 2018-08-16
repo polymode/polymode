@@ -235,9 +235,8 @@ Base modes usually do not compute spans."
             (setq span val
                   start (nth 1 val)
                   end (nth 2 val))
-          ;; nil car means outer chunkmode (usually host). And it can be an
-          ;; intersection of spans returned by 2 different neighbour inner
-          ;; chunkmodes. See rapport mode for an example
+          ;; nil car means host and it can be an intersection of spans returned
+          ;; by 2 different neighbour inner chunkmodes
           (setq start (max (nth 1 val)
                            (nth 1 span))
                 end (min (nth 2 val)
@@ -351,14 +350,28 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
     matcher)
    ((consp matcher)
     (lambda (ahead)
-      (if (< ahead 0)
-          (if (re-search-backward (car matcher) nil t)
-              (cons (match-beginning (cdr matcher))
-                    (match-end (cdr matcher))))
-        (if (re-search-forward (car matcher) nil t)
-            (cons (match-beginning (cdr matcher))
-                  (match-end (cdr matcher)))))))
+      (when (re-search-forward (car matcher) nil t ahead)
+        (cons (match-beginning (cdr matcher))
+              (match-end (cdr matcher))))))
    (t (error "head and tail matchers must be either regexp strings, cons cells or functions"))))
+
+(defun pm-same-indent-tail-matcher (_arg)
+  "Return the end position of block with the higher indent as the current line.
+Used as tail matcher for blocks identified by same indent. See
+`poly-slim-mode' for examples. ARG is ignored; always search
+forward."
+  (let ((block-col (current-indentation))
+        (end (point-at-eol))
+        (empty (point)))
+    (forward-line 1)
+    (while (and (not (eobp))
+                (or ;(looking-at "^[[:space:]]*$") ; empty lines
+                 (and (> (current-indentation) block-col)
+                      (setq end (point-at-eol)))))
+      (forward-line 1))
+    ;; end at bol for the sake of indentation
+    (setq end (min (point-max) (1+ end)))
+    (cons end end)))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Span detector with head and tail matchers.
@@ -444,62 +457,6 @@ is one of the following symbols:
       ;;            -----
       ;; host)[head)[body)
       (list 'body (cdr head) (point-max)))))
-
-(defmacro pm-create-indented-block-matchers (name regex)
-  "Define head and tail matcher (functions) for indented blocks
-You can then use these functions in the defcustom pm-inner modes.
-For example
-
- (pm-create-indented-block-matchers \"slim-coffee\" \"^[^ ]*\\(.*:? *coffee: *\\)$\")
-
-creates pm-slim-coffee-head-matcher and pm-slim-coffee-tail-matcher.
-
-The head matcher will match against 'coffee:', returning the
-positions of the start and end of 'coffee:'. The tail matcher
-will returns a list (N, N) of the final characters in the block.
-
-    |<----- Uses this indentation to define the left edge of the 'block'
-    |
-    |<--->|  This region is higlighted by the :head-mode in the block-matchers
-    |     |
-    |     |<----- the head matcher uses this column as the end of the head
-    |     |
-----:-----:-------------- example file -----------------------------------------
-1|  :     :
-2|  coffee:
-3|    myCoffeeCode()
-4|    moreCode ->
-5|      do things
-6|              :
-7|  This is no longer in the block
-8|              :
-----------------:---------------------------------------------------------------
-            --->|<----- this region of 0 width is highlighted by the :tail-mode
-                        the 'block' ends after this column on line 5
-
-All the stuff after the -end- of the head and before the start of the tail is
-sent to the new mode for syntax highlighting."
-  (let* ((head-name (intern (format "pm-%s-head-matcher" name)))
-         (tail-name (intern (format "pm-%s-tail-matcher" name))))
-    `(progn
-       (defun ,head-name (ahead)
-         (when (re-search-forward ,regex nil t ahead)
-           (cons (match-beginning 1) (match-end 1))))
-       (defun ,tail-name (ahead)
-         (save-excursion
-           ;; (cons (point-max) (point-max)))))))
-           (goto-char (car (,head-name 1)))
-           (let* ((block-col (current-indentation))
-                  (posn (catch 'break
-                          (while (not (eobp))
-                            (forward-line 1)
-                            (when (and (<= (current-indentation) block-col)
-                                       (not (progn
-                                              (beginning-of-line)
-                                              (looking-at "^[[:space:]]*$"))))
-                              (throw 'break (point-at-bol))))
-                          (throw 'break (point-max)))))
-             (cons posn posn)))))))
 
 
 ;;; BUFFER SELECTION
