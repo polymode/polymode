@@ -205,8 +205,10 @@ indentation."
   "Utility to navigate to LOC at point in other buffer.
 LOC is as in `pm-test-goto-loc'."
   (interactive)
-  (let* ((loc (or (sexp-at-point)
-                  (read--expression "Loc: "))))
+  (let ((loc (or (sexp-at-point)
+                 (read--expression "Loc: "))))
+    (when (symbolp loc)
+      (setq loc (string-to-number (word-at-point))))
     (other-window 1)
     (pm-test-goto-loc loc)))
 

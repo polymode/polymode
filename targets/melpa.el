@@ -1,7 +1,8 @@
 
 (require 'package)
 
-(setq package-deps '(markdown-mode)
+(setq package-deps '(markdown-mode
+                     coffee-mode markdown-mode slim-mode)
       package-user-dir (expand-file-name (format "ELPA/%s" emacs-version)))
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")))

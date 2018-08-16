@@ -43,7 +43,6 @@
     ((elisp-kill-defun ("(defun delete-dups" beg))
      (kill-sexp))))
 
-
 (ert-deftest poly-markdown/spans-at-borders ()
   (pm-test-run-on-file poly-markdown-mode "markdown.md"
     (pm-map-over-spans
@@ -56,18 +55,6 @@
          (should (eq send (cdr range1)))
          (unless (eq send (point-max))
            (should (eq send (car range2)))))))))
-
-(ert-deftest poly-markdown/spans-at-narrowed-borders ()
-  (pm-test-run-on-file poly-markdown-mode "markdown.md"
-    (pm-map-over-spans
-     (lambda ()
-       (pm-with-narrowed-to-span *span*
-         (let* ((range1 (pm-get-innermost-range (point-min)))
-                (range2 (pm-get-innermost-range (point-max))))
-           (should (eq (car range1) (point-min)))
-           (should (eq (cdr range1) (point-max)))
-           (should (eq (car range2) (point-min)))
-           (should (eq (cdr range2) (point-max)))))))))
 
 (ert-deftest poly-markdown/spans-at-narrowed-borders ()
   (pm-test-run-on-file poly-markdown-mode "markdown.md"
