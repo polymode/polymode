@@ -160,8 +160,8 @@ list, apply advice to each element of it."
 
 ;;; Flyspel
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
-  (or (get-text-property beg :pm-span-type)
-      (get-text-property end :pm-span-type)))
+  (or (car (get-text-property beg :pm-span))
+      (car (get-text-property end :pm-span))))
 
 
 ;;; C/C++/Java

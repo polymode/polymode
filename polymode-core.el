@@ -200,16 +200,11 @@ Base modes usually do not compute spans."
       ;; (message "caching: %s %s" (car span) (pm-span-to-range span))
       (let ((sbeg (nth 1 span))
             (send (nth 2 span)))
-        (add-text-properties sbeg send
-                             (list :pm-span span
-                                   :pm-span-type (car span)
-                                   :pm-span-beg sbeg
-                                   :pm-span-end send))))))
+        (put-text-property sbeg send :pm-span span)))))
 
 (defun pm-flush-span-cache (beg end &optional buffer)
-  (remove-list-of-text-properties
-   beg end '(:pm-span :pm-span-type :pm-span-beg :pm-span-end)
-   buffer))
+  (with-silent-modifications
+    (remove-list-of-text-properties beg end '(:pm-span) buffer)))
 
 (defun pm--intersect-spans (config &optional pos)
   "Intersect CHNK-MODES' spans at POS to get the innermost."

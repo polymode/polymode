@@ -266,7 +266,7 @@ Key bindings:
                                '(lambda ()
                                   (format " [buf:%s pos:%s type:%s (%f)]"
                                           (current-buffer) (point)
-                                          (get-text-property (point) :pm-span-type)
+                                          (car (get-text-property (point) :pm-span))
                                           (float-time))))))
 
 (defun pm-debug-trace-functions-by-regexp (regexp)
