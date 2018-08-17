@@ -68,7 +68,7 @@ than the input file."
 
 (defcustom polymode-mode-name-alias-alist
   '((elisp . emacs-lisp) (el . emacs-lisp)
-    (bash . shell-mode) (sh . shell-mode))
+    (bash . sh-mode))
   "An alist of inner mode overrides.
 When inner mode is automatically detected from the header of the
 inner chunk (such as in markdown mode), the detected symbol might
