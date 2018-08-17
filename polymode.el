@@ -149,17 +149,17 @@ Return, how many chucks actually jumped over."
          (beg (if back (point-min) (point)))
          (end (if back (point) (point-max)))
          (N (if back (- N) N))
-         this-type this-class)
+         this-type this-name)
     (condition-case nil
         (pm-map-over-spans
          (lambda ()
            (unless (memq (car *span*) '(head tail))
-             (when (and (equal this-class
+             (when (and (equal this-name
                                (eieio-object-name (car (last *span*))))
                         (eq this-type (car *span*)))
                (setq sofar (1+ sofar)))
-             (unless this-class
-               (setq this-class (eieio-object-name (car (last *span*)))
+             (unless this-name
+               (setq this-name (eieio-object-name (car (last *span*)))
                      this-type (car *span*)))
              (when (>= sofar N)
                (signal 'quit nil))))

@@ -6,6 +6,10 @@
 
 ;; HOST MODES
 
+(defconst pm-host/ANY
+  (pm-host-chunkmode "ANY" :mode nil)
+  "Placeholder, matches any host mode.")
+
 (defcustom pm-host/coffee
   (pm-host-chunkmode "coffee" :mode 'coffee-mode)
   "Coffee host chunkmode."

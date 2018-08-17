@@ -41,7 +41,10 @@
 Ran by the polymode mode function."
   ;; Not calling config's :minor-mode in hosts because this pm-initialize is
   ;; called from minor-mode itself.
-  (let ((hostmode (clone (symbol-value (oref config :hostmode)))))
+  (let* ((hostmode-name (oref config :hostmode))
+         (hostmode (if hostmode-name
+                       (clone (symbol-value hostmode-name))
+                     (clone pm-host/ANY))))
     (let ((pm-initialization-in-progress t)
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
           ;; minor modes.
@@ -93,6 +96,7 @@ Ran by the polymode mode function."
     ;; don't re-install if already there; polymodes can be used as minor modes.
     (unless (eq major-mode mode)
       (let ((polymode-mode t)           ;major-modes might check this
+            (base (buffer-base-buffer))
             ;; (font-lock-fontified t)
             ;; Modes often call font-lock functions directly. We prevent that.
             (font-lock-function 'ignore)
@@ -102,6 +106,9 @@ Ran by the polymode mode function."
             ;; because PM objects have not been setup yet.
             (pm-allow-after-change-hook nil)
             (poly-lock-allow-fontification nil))
+        ;; run-mode-hooks needs buffer-file-name
+        (when base
+          (pm--move-vars pm-move-vars-from-base base (current-buffer)))
         (condition-case-unless-debug err
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
@@ -230,8 +237,8 @@ Create and initialize the buffer if does not exist yet.")
   (let ((buff (cond ((eq 'body type) (oref chunkmode -buffer))
                     ((eq 'head type) (oref chunkmode -head-buffer))
                     ((eq 'tail type) (oref chunkmode -tail-buffer))
-                    (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s' of class '%s'"
-                              type (eieio-object-name chunkmode) (class-of chunkmode))))))
+                    (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s'"
+                              type (eieio-object-name chunkmode))))))
     (if (buffer-live-p buff)
         buff
       (pm--set-chunkmode-buffer chunkmode type
