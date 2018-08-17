@@ -31,6 +31,47 @@
 
 (require 'polymode)
 
+(defun poly-noweb-mode-matcher ()
+  "Match mode of the noweb chunk.
+There are several ways to specify noweb chunk mode (from highest
+to lowest priority):
+ 1. (lang-name) after the chunk head (nw2md spec, e.g. <<name>>= (bash))
+ 2. short mode name preceded by a period (e.g. <<name.bash>>=)
+ 3. extension of the file name is looked in `auto-mode-alist' (e.g. <<name.cpp>>=)
+ 4. local value of noweb-code-mode (for compatibility with noweb-mode)
+ 5. local value of `poly-inner-mode'
+ 6. `poly-fallback-mode'
+"
+  (let* ((eol (point-at-eol))
+         (str (or (save-excursion
+                    (when (and (re-search-forward ">>=" eol t)
+                               (re-search-forward "(\\(.*\\))" eol t))
+                      (match-string-no-properties 1)))
+                  (save-excursion
+                    (when (re-search-forward "\\.\\([[:alpha:]]+\\)" eol t)
+                      (let ((str (match-string 1)))
+                        (if (pm--get-mode-symbol-from-name str 'no-fallback)
+                            str
+                          (let ((dummy (concat "a." str)))
+                            (cl-loop for (k . v) in auto-mode-alist
+                                     if (string-match-p k dummy) return v)))))))))
+
+    (or
+     (and str (> (length str) 0) str)
+     (and (boundp 'noweb-code-mode)
+          noweb-code-mode)
+     poly-inner-mode
+     'poly-fallback-mode)))
+
+(defcustom  pm-inner/noweb
+  (pm-inner-auto-chunkmode "noweb"
+                           :head-matcher "^[ \t]*<<\\(.*\\)>>=.*$"
+                           :tail-matcher "^[ \t]*@.*$"
+                           :mode-matcher #'poly-noweb-mode-matcher)
+  "Noweb typical chunk."
+  :group 'innermodes
+  :type 'object)
+
 (defcustom pm-poly/noweb
   (pm-polymode "noweb"
                :hostmode 'pm-host/latex
@@ -42,14 +83,6 @@
                :keylist '(("<" . poly-noweb-electric-<)))
   "Noweb typical configuration"
   :group 'polymodes
-  :type 'object)
-
-(defcustom  pm-inner/noweb
-  (pm-inner-chunkmode "noweb"
-                      :head-matcher "^[ \t]*<<\\(.*\\)>>="
-                      :tail-matcher "^[ \t]*@ *\\(%def.*\\)?$")
-  "Noweb typical chunk."
-  :group 'innermodes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-noweb-mode "poly-noweb")

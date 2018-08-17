@@ -1,5 +1,8 @@
  ;;; CORE HOST AND POLYMODE OBJECTS
 
+(defvar-local poly-inner-mode nil
+  "Inner mode for chunks with unspecified modes.")
+
 
 ;; HOST MODES
 

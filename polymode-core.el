@@ -710,16 +710,19 @@ near future.")
 
 (defun pm--get-mode-symbol-from-name (str &optional no-fallback)
   "Guess and return mode function."
-  (let* ((str (pm--symbol-name
-               (or (cdr (assq (intern (pm--symbol-name str))
-                              polymode-mode-name-override-alist))
-                   str)))
-         (mname (if (string-match-p "-mode$" str)
-                    str
-                  (concat str "-mode"))))
-    (or (pm--get-existent-mode (intern mname) t)
-        (pm--get-existent-mode (intern (downcase mname))
-                               no-fallback))))
+  (if (and (symbolp str)
+           (fboundp str))
+      str
+    (let* ((str (pm--symbol-name
+                 (or (cdr (assq (intern (pm--symbol-name str))
+                                polymode-mode-name-override-alist))
+                     str)))
+           (mname (if (string-match-p "-mode$" str)
+                      str
+                    (concat str "-mode"))))
+      (or (pm--get-existent-mode (intern mname) t)
+          (pm--get-existent-mode (intern (downcase mname))
+                                 no-fallback)))))
 
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
