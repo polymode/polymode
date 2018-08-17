@@ -54,6 +54,8 @@
 (define-polymode poly-noweb+R-mode pm-poly/noweb
   :lighter " PM-Rnw"
   :innermodes '(pm-inner/noweb+R))
+
+;;;###autoload
 (defalias 'poly-noweb+r-mode 'poly-noweb+R-mode)
 
 
@@ -62,6 +64,7 @@
 ;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
 (define-polymode poly-markdown+R-mode poly-markdown-mode :lighter " PM-Rmd")
 
+;;;###autoload
 (defalias 'poly-markdown+r-mode 'poly-markdown+R-mode)
 
 
@@ -147,7 +150,7 @@
 (define-polymode poly-R+C++-mode pm-poly/R
   :innermodes '(pm-inner/R+C++))
 
- ;;;###autoload
+;;;###autoload
 (defalias 'poly-r+c++-mode 'poly-R+C++-mode)
 
 
@@ -176,6 +179,7 @@
 (define-polymode poly-C++R-mode pm-poly/C++
   :innermodes '(pm-inner/C++R))
 
+;;;###autoload
 (defalias 'poly-c++r-mode 'poly-C++R-mode)
 
 

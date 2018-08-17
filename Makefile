@@ -1,3 +1,4 @@
+MODULE = POLYMODE
 export EMACS ?= emacs
 EMACS_VERSION = $(shell ${EMACS} -Q --batch --eval "(princ emacs-version)")
 POLYMODE_VERSION = $(git describe --tags --abbrev=0 | sed 's/^v//')
@@ -45,6 +46,6 @@ test-loc-md: version
 	$(EMACSBATCH) -L ~/VC/markdown-mode/ --load targets/test.el
 
 version:
-	@echo POLYMODE: $(VERSION)
+	@echo "******************* TESTING $(MODULE) *************************"
 	@$(EMACS) --version
 
