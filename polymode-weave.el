@@ -162,23 +162,23 @@ that call a shell command"
 
 (declare-function pm-export "polymode-export")
 
-(defgeneric pm-weave (weaver from-to-id &optional ifile)
+(cl-defgeneric pm-weave (weaver from-to-id &optional ifile)
   "Weave current FILE with WEAVER.
 WEAVER is an object of class `pm-weaver'. EXPORT is a list of the
 form (FROM TO) suitable to be passed to `polymode-export'. If
 EXPORT is provided, corresponding exporter's (from to)
 specification will be called.")
 
-(defmethod pm-weave ((weaver pm-weaver) from-to-id &optional ifile)
+(cl-defmethod pm-weave ((weaver pm-weaver) from-to-id &optional ifile)
   (pm--weave-internal weaver from-to-id ifile))
 
-(defmethod pm-weave ((weaver pm-callback-weaver) fromto-id &optional ifile)
+(cl-defmethod pm-weave ((weaver pm-callback-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :callback ifile))
         ;; with transitory output, callback might not run
         (pm--export-spec (and pm--output-not-real pm--export-spec)))
     (pm--process-internal weaver fromto-id nil ifile cb)))
 
-(defmethod pm-weave ((weaver pm-shell-weaver) fromto-id &optional ifile)
+(cl-defmethod pm-weave ((weaver pm-shell-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :sentinel ifile))
         ;; with transitory output, callback might not run
         (pm--export-spec (and pm--output-not-real pm--export-spec)))

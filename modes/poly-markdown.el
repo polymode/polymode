@@ -54,8 +54,10 @@
                            :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                            :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
                            :mode-matcher (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
-                           :head-mode 'host
-                           :tail-mode 'host)
+                           ;; fixme: markdown breaks badly with this
+                           ;; :head-mode 'host
+                           ;; :tail-mode 'host
+                           )
   "Markdown inline code."
   :group 'innermodes
   :type 'object)

@@ -42,28 +42,26 @@
 
 (if (fboundp 'eieio-named)
     (progn
+      ;; bug #22840
+      (cl-defmethod clone ((obj eieio-named) &rest params)
+        "Clone OBJ, initializing `:parent' to OBJ.
+All slots are unbound, except those initialized with PARAMS."
+        (let* ((newname (and (stringp (car params)) (pop params)))
+               (nobj (apply #'cl-call-next-method obj params))
+               (nm (slot-value obj 'object-name)))
+          (eieio-oset nobj 'object-name
+                      ;;^^-- in emacs proper is obj (:fixme push to emacs)
+                      (or newname
+                          (save-match-data
+                            (if (and nm (string-match "-\\([0-9]+\\)" nm))
+                                (let ((num (1+ (string-to-number
+                                                (match-string 1 nm)))))
+                                  (concat (substring nm 0 (match-beginning 0))
+                                          "-" (int-to-string num)))
+                              (concat nm "-1")))))
+          nobj))
 
-      (when (fboundp 'defmethod)
-        ;; bug #22840
-        (defmethod clone ((obj eieio-named) &rest params)
-          "Clone OBJ, initializing `:parent' to OBJ.
-        All slots are unbound, except those initialized with
-        PARAMS."
-          (let* ((newname (and (stringp (car params)) (pop params)))
-                 (nobj (apply #'call-next-method obj params))
-                 (nm (slot-value obj 'object-name)))
-            (eieio-oset nobj 'object-name
-                        (or newname
-                            (save-match-data
-                              (if (and nm (string-match "-\\([0-9]+\\)" nm))
-                                  (let ((num (1+ (string-to-number
-                                                  (match-string 1 nm)))))
-                                    (concat (substring nm 0 (match-beginning 0))
-                                            "-" (int-to-string num)))
-                                (concat nm "-1")))))
-            nobj)))
-
-      (defclass pm-root (eieio-instance-inheritor eieio-named)
+      (defclass pm-root (eieio-named eieio-instance-inheritor)
         ((-props
           :initform '()
           :type list
@@ -85,6 +83,7 @@
     :initarg :hostmode
     :initform nil
     :type symbol
+    :custom symbol
     :documentation
     "Symbol pointing to a `pm-host-chunkmode' object.")
    (innermodes
@@ -104,6 +103,7 @@
     :initarg :exporter
     :initform nil
     :type symbol
+    :custom symbol
     :documentation "Current exporter name. If non-nil should be the name of the default exporter for this polymode. Can be set with `polymode-set-exporter' command.")
    (weavers
     :initarg :weavers
@@ -157,7 +157,7 @@ subclass of this class.")
 
 (defvar pm--polymode-slots
   (mapcar #'cl--slot-descriptor-name
-          (eieio-class-slots pm-polymode)))
+          (eieio-class-slots 'pm-polymode)))
 
 
 (defclass pm-chunkmode (pm-root)

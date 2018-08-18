@@ -193,17 +193,17 @@ that call a shell command"
 
 ;;; METHODS
 
-(defgeneric pm-export (exporter from to &optional ifile)
+(cl-defgeneric pm-export (exporter from to &optional ifile)
   "Process IFILE with EXPORTER.")
 
-(defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
+(cl-defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
   (pm--process-internal exporter from to ifile))
 
-(defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
+(cl-defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :callback ifile)))
     (pm--process-internal exporter from to ifile cb)))
 
-(defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
+(cl-defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
     (pm--process-internal exporter from to ifile cb (oref exporter :quote))))
 
@@ -367,53 +367,54 @@ for each polymode in CONFIGS."
 
 ;;; GLOBAL EXPORTERS
 (defcustom pm-exporter/pandoc
-  (pm-shell-exporter "pandoc"
-               :from
-               '(;; ("json" "\\.json\\'" "JSON native AST"  "pandoc %i -f json -t %t -o %o")
-                 ("markdown"    "\\.md\\'" "pandoc's markdown"  "pandoc %i -f markdown -t %t -o %o")
-                 ("markdown_strict" "\\.md\\'" "original markdown"  "pandoc %i -f markdown_strict -t %t -o %o")
-                 ("markdown_phpextra"   "\\.md\\'" "PHP markdown"   "pandoc %i -f markdown_phpextra -t %t -o %o")
-                 ("markdown_phpextra"   "\\.md\\'" "github markdown"    "pandoc %i -f markdown_phpextra -t %t -o %o")
-                 ("textile" "\\.textile\\'" "Textile"       "pandoc %i -f textile -t %t -o %o")
-                 ("rst"     "\\.rst\\'" "reStructuredText"  "pandoc %i -f rst -t %t -o %o")
-                 ("html"    "\\.x?html?\\'" "HTML"  "pandoc %i -f html -t %t -o %o")
-                 ("doocbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f doocbook -t %t -o %o")
-                 ("mediawiki"   "\\.wiki\\'" "MediaWiki"        "pandoc %i -f mediawiki -t %t -o %o")
-                 ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o")
-                 )
-               :to
-               '(;; ("json"     "json"  "JSON version of native AST" "json")
-                 ("plain"   "txt"  "plain text" "plain")
-                 ("markdown"    "md"  "pandoc's extended markdown" "markdown")
-                 ("markdown_strict"     "md"  "original markdown" "markdown_strict")
-                 ("markdown_phpextra"   "md"  "PHP extended markdown" "markdown_phpextra")
-                 ("markdown_github"     "md"  "github extended markdown" "markdown_github")
-                 ("rst"     "rst"  "reStructuredText" "rst")
-                 ("html"    "html"  "XHTML 1" "html")
-                 ("html5"   "html"  "HTML 5" "html5")
-                 ("latex"   "tex"  "LaTeX" "latex")
-                 ("beamer"      "tex"  "LaTeX beamer" "beamer")
-                 ("context"     "tex"  "ConTeXt" "context")
-                 ("man"     "man"  "groff man" "man")
-                 ("mediawiki"   "wiki"  "MediaWiki markup" "mediawiki")
-                 ("textile"     "textile"  "Textile" "textile")
-                 ("org"     "org"  "Emacs Org-Mode" "org")
-                 ("texinfo"     "info"  "GNU Texinfo" "texinfo")
-                 ("docbook"     "xml"  "DocBook XML" "docbook")
-                 ("opendocument"    "xml"  "OpenDocument XML" "opendocument")
-                 ("odt"     "odt"  "OpenOffice text document" "odt")
-                 ("docx"    "docx"  "Word docx" "docx")
-                 ("epub"    "epub"  "EPUB book" "epub")
-                 ("epub3"   "epub"  "EPUB v3" "epub3")
-                 ("fb2"     "fb"  "FictionBook2 e-book" "fb2")
-                 ("asciidoc"    "txt"  "AsciiDoc" "asciidoc")
-                 ("slidy"   "html"  "Slidy HTML slide show" "slidy")
-                 ("slideous"    "html"  "Slideous HTML slide show" "slideous")
-                 ("dzslides"    "html"  "HTML5 slide show" "dzslides")
-                 ("s5"      "html"  "S5 HTML slide show" "s5")
-                 ("rtf"     "rtf"  "rich text format" "rtf"))
-               :function 'pm-default-shell-export-function
-               :sentinel 'pm-default-export-sentinel)
+  (pm-shell-exporter
+   :object-name "pandoc"
+   :from
+   '(;; ("json" "\\.json\\'" "JSON native AST"  "pandoc %i -f json -t %t -o %o")
+     ("markdown"    "\\.md\\'" "pandoc's markdown"  "pandoc %i -f markdown -t %t -o %o")
+     ("markdown_strict" "\\.md\\'" "original markdown"  "pandoc %i -f markdown_strict -t %t -o %o")
+     ("markdown_phpextra"   "\\.md\\'" "PHP markdown"   "pandoc %i -f markdown_phpextra -t %t -o %o")
+     ("markdown_phpextra"   "\\.md\\'" "github markdown"    "pandoc %i -f markdown_phpextra -t %t -o %o")
+     ("textile" "\\.textile\\'" "Textile"       "pandoc %i -f textile -t %t -o %o")
+     ("rst"     "\\.rst\\'" "reStructuredText"  "pandoc %i -f rst -t %t -o %o")
+     ("html"    "\\.x?html?\\'" "HTML"  "pandoc %i -f html -t %t -o %o")
+     ("doocbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f doocbook -t %t -o %o")
+     ("mediawiki"   "\\.wiki\\'" "MediaWiki"        "pandoc %i -f mediawiki -t %t -o %o")
+     ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o")
+     )
+   :to
+   '(;; ("json"     "json"  "JSON version of native AST" "json")
+     ("plain"   "txt"  "plain text" "plain")
+     ("markdown"    "md"  "pandoc's extended markdown" "markdown")
+     ("markdown_strict"     "md"  "original markdown" "markdown_strict")
+     ("markdown_phpextra"   "md"  "PHP extended markdown" "markdown_phpextra")
+     ("markdown_github"     "md"  "github extended markdown" "markdown_github")
+     ("rst"     "rst"  "reStructuredText" "rst")
+     ("html"    "html"  "XHTML 1" "html")
+     ("html5"   "html"  "HTML 5" "html5")
+     ("latex"   "tex"  "LaTeX" "latex")
+     ("beamer"      "tex"  "LaTeX beamer" "beamer")
+     ("context"     "tex"  "ConTeXt" "context")
+     ("man"     "man"  "groff man" "man")
+     ("mediawiki"   "wiki"  "MediaWiki markup" "mediawiki")
+     ("textile"     "textile"  "Textile" "textile")
+     ("org"     "org"  "Emacs Org-Mode" "org")
+     ("texinfo"     "info"  "GNU Texinfo" "texinfo")
+     ("docbook"     "xml"  "DocBook XML" "docbook")
+     ("opendocument"    "xml"  "OpenDocument XML" "opendocument")
+     ("odt"     "odt"  "OpenOffice text document" "odt")
+     ("docx"    "docx"  "Word docx" "docx")
+     ("epub"    "epub"  "EPUB book" "epub")
+     ("epub3"   "epub"  "EPUB v3" "epub3")
+     ("fb2"     "fb"  "FictionBook2 e-book" "fb2")
+     ("asciidoc"    "txt"  "AsciiDoc" "asciidoc")
+     ("slidy"   "html"  "Slidy HTML slide show" "slidy")
+     ("slideous"    "html"  "Slideous HTML slide show" "slideous")
+     ("dzslides"    "html"  "HTML5 slide show" "dzslides")
+     ("s5"      "html"  "S5 HTML slide show" "s5")
+     ("rtf"     "rtf"  "rich text format" "rtf"))
+   :function 'pm-default-shell-export-function
+   :sentinel 'pm-default-export-sentinel)
   "Pandoc exporter"
   :group 'polymode-export
   :type 'object)

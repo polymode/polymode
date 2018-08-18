@@ -328,7 +328,7 @@ span. This is an object that could be dispatched upon with
 specific span around POS. Not to be used in programs directly;
 use `pm-get-innermost-span'.")
 
-(defmethod pm-get-span (chunkmode &optional pos)
+(cl-defmethod pm-get-span (chunkmode &optional pos)
   "Return nil.
 Base modes usually do not compute spans."
   (unless chunkmode

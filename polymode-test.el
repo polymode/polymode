@@ -27,12 +27,15 @@
 ;;
 ;;; Code:
 
+(setq eieio-backward-compatibility nil)
+
 (require 'ert)
 (require 'polymode)
 
 (setq ert-batch-backtrace-right-margin 130)
 (setq pm-verbose (getenv "PM_VERBOSE"))
 (setq poly-lock-verbose (getenv "PM_VERBOSE"))
+
 (defvar pm-test-current-change-set nil)
 (defvar pm-test-input-dir
   (expand-file-name

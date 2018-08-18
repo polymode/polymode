@@ -49,10 +49,8 @@
 (require 'polymode-compat)
 (require 'polymode-export)
 (require 'polymode-weave)
+(require 'polymode-base)
 (require 'poly-lock)
-(require 'poly-base)
-
-
 
 (defcustom polymode-prefix-key "\M-n"
   "Prefix key for the polymode mode keymap.
@@ -577,9 +575,8 @@ most frequently used slots are:
                         `(clone ,parent-name
                                 :object-name ,(symbol-name config-name)
                                 ,@slots)
-                      `(pm-polymode ,(symbol-name config-name)
-                                    ,@slots))))
-          )
+                      `(pm-polymode :object-name ,(symbol-name config-name)
+                                    ,@slots)))))
 
        ;; The actual mode function:
        (defun ,mode (&optional arg)
