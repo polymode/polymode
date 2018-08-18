@@ -27,6 +27,9 @@ clean:
 cleanall: clean
 	rm -rf $(MELPA_DIR)
 
+deploy:
+	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
+
 lint: checkdoc
 
 $(MELPA_DIR):

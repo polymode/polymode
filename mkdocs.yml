@@ -1,0 +1,16 @@
+site_name: Polymode
+repo_url: https://github.com/emacs-polymode/polymode
+site_favicon: favicon.ico
+copyright: "Copyright &copy; 2013-2018 Vitalie Spinu and contributors"
+pages:
+- Home: index.md
+- Installation: installation.md
+- Basic Usage: usage.md
+- Concepts: concepts.md
+- Defining Polymodes: defining-polymodes.md
+- For Developers: internals.md
+- Screenshots: screenshots.md
+- Licence: licence.md
+theme: readthedocs
+extra_css:
+  - css/extra.css
