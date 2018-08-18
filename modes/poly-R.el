@@ -43,7 +43,7 @@
 ;; NOWEB
 (require 'poly-noweb)
 
-(defcustom pm-inner/noweb+R
+(defcustom pm-inner/noweb-R
   (clone pm-inner/noweb
          :mode 'R-mode)
   "Noweb for R"
@@ -53,7 +53,7 @@
 ;;;###autoload (autoload 'poly-noweb+r-mode "poly-R")
 (define-polymode poly-noweb+R-mode pm-poly/noweb
   :lighter " PM-Rnw"
-  :innermodes '(pm-inner/noweb+R))
+  :innermodes '(pm-inner/noweb-R))
 
 ;;;###autoload
 (defalias 'poly-noweb+r-mode 'poly-noweb+R-mode)
@@ -69,8 +69,8 @@
 
 
 ;; RAPPORT
-(defcustom  pm-inner/rapport+YAML
-  (pm-inner-chunkmode "rapport+YAML"
+(defcustom  pm-inner/rapport-YAML
+  (pm-inner-chunkmode "rapport-YAML"
                       :mode 'yaml-mode
                       :head-matcher "<!--head"
                       :tail-matcher "head-->")
@@ -80,13 +80,13 @@
 
 ;;;###autoload (autoload 'poly-rapport-mode "poly-R")
 (define-polymode poly-rapport-mode poly-markdown+R-mode
-  :add-innermodes '(pm-inner/brew+R
-                    pm-inner/rapport+YAML))
+  :add-innermodes '(pm-inner/brew-R
+                    pm-inner/rapport-YAML))
 
 
 ;; HTML
-(defcustom  pm-inner/html+R
-  (pm-inner-chunkmode "html+R"
+(defcustom  pm-inner/html-R
+  (pm-inner-chunkmode "html-R"
                       :mode 'R-mode
                       :head-matcher "<!--[ \t]*begin.rcode"
                       :tail-matcher "end.rcode[ \t]*-->")
@@ -96,15 +96,15 @@
 
 ;;;###autoload (autoload 'poly-html+r-mode "poly-R")
 (define-polymode poly-html+R-mode pm-poly/html
-  :innermodes '(pm-inner/html+R))
+  :innermodes '(pm-inner/html-R))
 
 ;;;###autoload
 (defalias 'poly-html+r-mode 'poly-html+R-mode)
 
 
 ;;; R-brew
-(defcustom  pm-inner/brew+R
-  (pm-inner-chunkmode "brew+R"
+(defcustom  pm-inner/brew-R
+  (pm-inner-chunkmode "brew-R"
                       :mode 'R-mode
                       :head-matcher "<%[=%]?"
                       :tail-matcher "[#=%=-]?%>")
@@ -114,7 +114,7 @@
 
 ;;;###autoload (autoload 'poly-brew+r-mode "poly-R")
 (define-polymode poly-brew+R-mode pm-poly/brew
-  :innermodes '(pm-inner/brew+R))
+  :innermodes '(pm-inner/brew-R))
 
 ;;;###autoload
 (defalias 'poly-brew+r-mode 'poly-brew+R-mode)
@@ -135,8 +135,8 @@
                  (buffer-end 1))))
     (cons (max 1 (1- end)) end)))
 
-(defcustom  pm-inner/R+C++
-  (pm-inner-chunkmode "R+C++"
+(defcustom  pm-inner/R-C++
+  (pm-inner-chunkmode "R-C++"
                       :mode 'c++-mode
                       :head-mode 'host
                       :head-matcher 'pm--R+C++-head-matcher
@@ -148,7 +148,7 @@
 
 ;;;###autoload (autoload 'poly-R+C++-mode "poly-R")
 (define-polymode poly-R+C++-mode pm-poly/R
-  :innermodes '(pm-inner/R+C++))
+  :innermodes '(pm-inner/R-C++))
 
 ;;;###autoload
 (defalias 'poly-r+c++-mode 'poly-R+C++-mode)
@@ -184,8 +184,8 @@
 
 
 ;;; R help
-(defcustom  pm-inner/ess-help+R
-  (pm-inner-chunkmode "ess-help+R"
+(defcustom  pm-inner/ess-help-R
+  (pm-inner-chunkmode "ess-help-R"
                       :mode 'R-mode
                       :head-matcher "^Examples:"
                       :tail-matcher "\\'"
@@ -201,9 +201,9 @@
     (body (read-only-mode -1))
     (head (read-only-mode 1))))
 
-;;;###autoload (autoload 'poly-ess-help+r-mode "poly-R")
+;;;###autoload (autoload 'poly-ess-help+R-mode "poly-R")
 (define-polymode poly-ess-help+R-mode
-  :innermodes '(pm-inner/ess-help+R))
+  :innermodes '(pm-inner/ess-help-R))
 
 (add-hook 'ess-help-mode-hook '(lambda ()
                                  (when (string= ess-dialect "R")

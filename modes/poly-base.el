@@ -96,10 +96,14 @@
   :type 'object)
 
 (defcustom pm-poly/C++
-  (pm-polymode "C++"
-               :hostmode 'pm-host/C++
-               :innermodes nil)
+  (pm-polymode "C++" :hostmode 'pm-host/C++)
   "C++ typical configuration"
+  :group 'polymodes
+  :type 'object)
+
+(defcustom pm-poly/latex
+  (pm-polymode "latex" :hostmode 'pm-host/latex)
+  "LaTeX typical configuration."
   :group 'polymodes
   :type 'object)
 

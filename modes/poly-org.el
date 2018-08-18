@@ -3,7 +3,7 @@
 ;; Filename: poly-org.el
 ;; Author: Spinu Vitalie
 ;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
+;; Copyright (C) 2013-2018 Spinu Vitalie
 ;; Version: 1.0
 ;; URL: https://github.com/vitoshka/polymode
 ;; Keywords: emacs
@@ -28,6 +28,8 @@
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Code:
 
 (require 'org-src)
 (require 'polymode)

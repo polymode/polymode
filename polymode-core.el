@@ -186,13 +186,6 @@ objects provides same functionality for narrower scope. See also
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
-(defmethod pm-get-span (chunkmode &optional pos)
-  "Return nil.
-Base modes usually do not compute spans."
-  (unless chunkmode
-    (error "Dispatching `pm-get-span' on a nil object"))
-  nil)
-
 (defun pm-cache-span (span)
   ;; cache span
   (unless pm-initialization-in-progress

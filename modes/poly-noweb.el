@@ -64,24 +64,35 @@ to lowest priority):
      'poly-fallback-mode)))
 
 (defcustom  pm-inner/noweb
+  (pm-inner-chunkmode "noweb"
+                      :head-matcher "^[ \t]*<<\\(.*\\)>>="
+                      :tail-matcher "^[ \t]*@.*$")
+  "Noweb static chunk.
+To be used in derived polymodes when type of chunk is known in
+advance."
+  :group 'innermodes
+  :type 'object)
+
+(defcustom  pm-inner/noweb-auto
   (pm-inner-auto-chunkmode "noweb"
                            :head-matcher "^[ \t]*<<\\(.*\\)>>=.*$"
                            :tail-matcher "^[ \t]*@.*$"
                            :mode-matcher #'poly-noweb-mode-matcher)
-  "Noweb typical chunk."
+  "Noweb auto chunk.
+See `poly-noweb-mode-matcher' for how mode of the chunk is
+detected."
   :group 'innermodes
   :type 'object)
 
 (defcustom pm-poly/noweb
-  (pm-polymode "noweb"
-               :hostmode 'pm-host/latex
-               :innermodes '(pm-inner/noweb)
-               :exporters '(pm-exporter/latexmk
-                            pm-exporter/pdflatex
-                            pm-exporter/lualatex
-                            pm-exporter/xelatex)
-               :keylist '(("<" . poly-noweb-electric-<)))
-  "Noweb typical configuration"
+  (clone pm-poly/latex "noweb"
+         :innermodes '(pm-inner/noweb-auto)
+         :exporters '(pm-exporter/latexmk
+                      pm-exporter/pdflatex
+                      pm-exporter/lualatex
+                      pm-exporter/xelatex)
+         :keylist '(("<" . poly-noweb-electric-<)))
+  "Noweb polymode configuration."
   :group 'polymodes
   :type 'object)
 

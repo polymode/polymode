@@ -73,11 +73,11 @@
     (define-key map (kbd "M-n M-f s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f b")   #'pm-debug-fontify-current-buffer)
     (define-key map (kbd "M-n M-f e")   #'pm-debug-fontify-last-font-lock-error)
-    (define-key map (kbd "M-n M-f h")   #'pm-debug-highlight-last-font-lock-error-region)
+    ;; (define-key map (kbd "M-n M-f h")   #'pm-debug-highlight-last-font-lock-error-region)
     (define-key map (kbd "M-n M-f M-t")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-f M-s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f M-b")   #'pm-debug-fontify-current-buffer)
-    (define-key map (kbd "M-n M-f M-e")   #'pm-debug-fontify-last-font-lock-error)
+    ;; (define-key map (kbd "M-n M-f M-e")   #'pm-debug-fontify-last-font-lock-error)
     (define-key map (kbd "M-n M-f M-h")   #'pm-debug-highlight-last-font-lock-error-region)
     map))
 
