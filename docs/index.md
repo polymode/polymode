@@ -3,12 +3,15 @@
 <!-- </p> -->
 
 <p align="center">
-  <img src="img/large-icon.png" style="background-color: transparent; border:0;" alt="Polymode Logo"/>
+  <img src="img/large-icon.png" 
+  width = "25%"
+  style="background-color: transparent; border:0;" 
+  alt="Polymode Logo"/>
 </p>
 
 Polymode is a framework for multiple major modes (MMM) inside a single Emacs
-buffer. It is lightweight, object oriented and highly extensible. Creating new
-polymodes normally takes a few lines of code. 
+buffer. It is fast and has a simple but flexible object oriented design.
+Creating new polymodes normally takes a few lines of code. 
 
 - [Installation](installation.md)
 - [Basic Usage](usage.md)

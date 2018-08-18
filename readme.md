@@ -7,14 +7,14 @@
 </p>
 
 <p align="center">
-  <img src="docs/img/large-icon.png" style="background-color: transparent; border:0;" alt="Polymode Logo"/>
+  <img src="docs/img/large-icon.png" width="25%" alt="Polymode Logo"/>
 </p>
 
 Polymode is a framework for multiple major modes (MMM) inside a single Emacs
-buffer. It is lightweight, object oriented and highly extensible. Creating new
-polymodes normally takes a few lines of code. Full documentation at
-https://polymode.github.io/.
+buffer. It is fast and has a simple but flexible object oriented design.
+Creating new polymodes normally takes a few lines of code. 
 
+Check the full documentation at https://polymode.github.io/.
 
 <p align="center">
     <img src="docs/img/Rmd.png" width="500px"/>
