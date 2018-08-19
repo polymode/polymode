@@ -1,0 +1,32 @@
+#!/bin/bash
+
+OUTDIR=$1
+MODULE=$(basename $OUTDIR)
+
+POLYMODE_VERSION=$(grep Version polymode.el | sed 's/.*Version: *\(.*\) */\1/')
+
+echo "-- Copying template to $OUTDIR"
+cp  -Tfr template/ $OUTDIR
+
+echo "-- Replacing __MODULE__ with $MODULE"
+for f in "$OUTDIR"/* ;
+do
+    if [ ! -d "$f" ]; then
+	  sed -i "s/__MODULE__/$MODULE/g" $f;
+  fi
+done
+
+for f in "$OUTDIR"/targets/* ;
+do
+    if [ ! -d "$f" ]; then
+	  sed -i "s/__MODULE__/$MODULE/g" $f;
+  fi
+done
+
+echo "-- Creating $OUTDIR/$MODULE.el"
+sed -i "s/__POLYMODE_VERSION__/$POLYMODE_VERSION/g" $OUTDIR/poly-xyz.el
+mv -i $OUTDIR/poly-xyz.el $OUTDIR/$MODULE.el
+mv -i $OUTDIR/README-xyz.md $OUTDIR/README.md
+rm -f $OUTDIR/*xyz*
+
+echo "-- Done!"
