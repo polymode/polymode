@@ -297,10 +297,10 @@ This function is placed in `before-change-functions' hook."
 
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
-  ;; (dolist (b (oref pm/polymode -buffers))
-  ;;   (with-current-buffer b
-  ;;     ;; setq doesn't have effect because the var is let bound; set seems to work
-  ;;     (set 'syntax-propertize--done end)))
+  (dolist (b (oref pm/polymode -buffers))
+    (with-current-buffer b
+      ;; `setq' doesn't have an effect because the var is let bound; `set' works
+      (set 'syntax-propertize--done end)))
   (unless pm-initialization-in-progress
     (save-restriction
       (widen)
@@ -393,7 +393,6 @@ Used in advises."
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
 ;; (advice-remove #'kill-buffer #'pm-with-current-base-buffer)
 ;; (advice-remove #'find-alternate-file #'pm-with-current-base-buffer)
-
 
 
 ;;; DEFINE

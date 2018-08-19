@@ -42,7 +42,7 @@
   :group 'hostmodes
   :type 'object)
 
-(defcustom  pm-inner/markdown-fenced-code
+(defcustom pm-inner/markdown-fenced-code
   (pm-inner-auto-chunkmode "markdown-fenced-code"
                            :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                            :tail-matcher "^[ \t]*```[ \t]*$"
@@ -53,7 +53,7 @@
   :group 'innermodes
   :type 'object)
 
-(defcustom  pm-inner/markdown-inline-code
+(defcustom pm-inner/markdown-inline-code
   (pm-inner-auto-chunkmode "markdown-inline-code"
                            :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                            :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
@@ -64,7 +64,7 @@
   :group 'innermodes
   :type 'object)
 
-(defcustom  pm-inner/markdown-displayed-math
+(defcustom pm-inner/markdown-displayed-math
   (pm-inner-chunkmode "markdown-displayed-math"
                       :head-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1)
                       :tail-matcher (cons "\\(\\$\\$\\)$" 1)
@@ -77,7 +77,7 @@ character would do)."
   :group 'innermodes
   :type 'object)
 
-(defcustom  pm-inner/markdown-inline-math
+(defcustom pm-inner/markdown-inline-math
   (pm-inner-chunkmode "markdown-inline-math"
                       :head-matcher (cons " \\(\\$\\)[^ $\t[:digit:]]" 1)
                       :tail-matcher (cons "[^ $\\\t]\\(\\$\\) " 1)

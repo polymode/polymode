@@ -121,7 +121,10 @@
        (current-buffer))))
 
 (defun pm-test-chunk ()
-  (unless (eq major-mode 'poly-head-tail-mode)
+  ;; head/tail is usually highlighted incorrectly by host modes when only head
+  ;; is in the buffer, so we just skip those head-tails which have
+  ;; :head/tail-mode 'host
+  (when (eq (car *span*) (pm-true-span-type *span*))
     (let* ((poly-lock-allow-background-adjustment nil)
            (sbeg (nth 1 *span*))
            (send (nth 2 *span*))
@@ -137,7 +140,14 @@
         (let* ((pos (1- (+ opos sbeg)))
                (face (get-text-property pos 'face))
                (oface (get-text-property opos 'face obuf)))
-          (unless (equal face oface)
+          (unless (or
+                   ;; in markdown fence regexp matches end of line; it's likely
+                   ;; to be a common mismatch between host mode and polymode,
+                   ;; thus don't check first pos if it's a new line
+                   (and (= opos 1)
+                        (with-current-buffer obuf
+                          (eq (char-after 1) ?\n)))
+                   (equal face oface))
             (let ((data
                    (append
                     (when pm-test-current-change-set

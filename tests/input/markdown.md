@@ -37,7 +37,7 @@ Unordered lists:
       END
 ```
 
-Ordered lists:
+Ordered lists
 
 1. This is an ordered list
 2. With a second element.
@@ -51,7 +51,7 @@ begin
    Put_Line ("Hello, world!");
 end Hello;
 ```
-List items with bold and italic:
+List items with bold and italic
 
 > * This is a list item *in italics*, just a test.
 > * *List item in italics.*
