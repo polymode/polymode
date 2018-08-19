@@ -146,17 +146,6 @@ That is, bind `pm-allow-post-command-hook' and
           (apply orig-fun args)))
     (apply orig-fun args)))
 
-(defun pm-around-advice (fun advice)
-  "Apply around ADVICE to FUN.
-If `advice-add` is available apply advice to FUN. If FUN is a
-list, apply advice to each element of it."
-  (when (and fun (fboundp 'advice-add))
-    (cond ((listp fun)
-           (dolist (el fun) (pm-around-advice el advice)))
-          ((and (symbolp fun)
-                (not (advice-member-p advice fun)))
-           (advice-add fun :around advice)))))
-
 
 ;;; Flyspel
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)

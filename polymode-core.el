@@ -646,23 +646,6 @@ bound variable *span* holds the current innermost span."
                    (< nr count)
                    (pm-innermost-span (point) no-cache)))))))
 
-(defun pm--reset-ppss-last (span)
-  "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
-  (let* ((sbeg (nth 1 span))
-         (new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
-    ;; (when pm-syntax-verbose
-    ;;   (message "reasserting PPSS %s" (pm-format-span span)))
-    (if pm--emacs>26
-        ;; in emacs 26 there are two caches syntax-ppss-wide and
-        ;; syntax-ppss-narrow. The latter is reset automatically each time a
-        ;; different narrowing is in place so we don't deal with it for now.
-        (let ((cache (cdr syntax-ppss-wide)))
-          (while (and cache (>= (caar cache) sbeg))
-            (setq cache (cdr cache)))
-          (setq cache (cons new-ppss cache))
-          (setq syntax-ppss-wide (cons new-ppss cache)))
-      (setq syntax-ppss-last new-ppss))))
-
 (defun pm-narrow-to-span (&optional span)
   "Narrow to current chunk."
   (interactive)
@@ -680,6 +663,203 @@ bound variable *span* holds the current innermost span."
   `(save-restriction
      (pm-narrow-to-span ,span)
      ,@body))
+
+
+
+;;; HOOKS
+;; In addition to these hooks there is `poly-lock-after-change' in poly-lock.el
+
+(defun polymode-post-command-select-buffer ()
+  "Select the appropriate (indirect) buffer corresponding to point's context.
+This funciton is placed in local `post-command-hook'."
+  (when (and pm-allow-post-command-hook
+             polymode-mode
+             pm/chunkmode)
+    (when pm-syntax-verbose
+      (dolist (b (oref pm/polymode -buffers))
+        (with-current-buffer b
+          (message "sp--done: %d [%s]" syntax-propertize--done (current-buffer)))))
+    (condition-case err
+        (pm-switch-to-buffer)
+      (error (message "(pm-switch-to-buffer %s): %s"
+                      (point) (error-message-string err))))))
+
+(defun polymode-before-change-setup (beg end)
+  "Run `syntax-ppss-flush-cache' from BEG to END in all polymode buffers.
+This function is placed in `before-change-functions' hook."
+  ;; Modification hooks are run only in current buffer and not in other (base or
+  ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
+  ;; care explicitly. We run some safety hooks checks here as well.
+  (dolist (buff (oref pm/polymode -buffers))
+    (with-current-buffer buff
+      ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
+      (when (memq 'syntax-ppss-flush-cache before-change-functions)
+        (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
+      (syntax-ppss-flush-cache beg end)
+      ;; Check if something has changed our hooks. (Am I theoretically paranoid or
+      ;; this is indeed needed?) `fontification-functions' (and others?) should be
+      ;; checked as well I guess.
+      ;; (when (memq 'font-lock-after-change-function after-change-functions)
+      ;;   (remove-hook 'after-change-functions 'font-lock-after-change-function t))
+      ;; (when (memq 'jit-lock-after-change after-change-functions)
+      ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
+      )))
+
+(defvar-local pm--killed-once nil)
+(defun polymode-after-kill-fixes ()
+  "Various fixes for polymode indirect buffers."
+  (when pm/polymode
+    (let ((base (pm-base-buffer)))
+      (when (buffer-live-p base)
+        (set-buffer-modified-p nil)
+        (unless (buffer-local-value 'pm--killed-once base)
+          (with-current-buffer base
+            (setq pm--killed-once t)
+            ;; Prevent various tools like `find-file' to re-find this file. We
+            ;; use buffer-list instead of `-buffers' slot here because on some
+            ;; occasions (e.g. switch from polymode to other mode and then back
+            ;; , or when user creates an indirect buffer manually) cause loose
+            ;; indirect buffers.
+            (dolist (b (buffer-list))
+              (when (and (buffer-live-p b)
+                         (eq (buffer-base-buffer b) base))
+                (with-current-buffer b
+                  (setq buffer-file-name nil)
+	              (setq buffer-file-number nil)
+	              (setq buffer-file-truename nil))))))))))
+
+(defun polymode-with-current-base-buffer (orig-fun &rest args)
+  "Switch to base buffer and apply ORIG-FUN to ARGS.
+Used in advises."
+  (if (and polymode-mode pm/polymode (buffer-base-buffer))
+      (let ((cur-buf (current-buffer))
+            (base (buffer-base-buffer)))
+        (with-current-buffer base
+          (if (eq (car-safe args) cur-buf)
+              (apply orig-fun base (cdr args))
+            (apply orig-fun args))))
+    (apply orig-fun args)))
+
+(defun pm-around-advice (fun advice)
+  "Apply around ADVICE to FUN.
+If `advice-add` is available apply advice to FUN. If FUN is a
+list, apply advice to each element of it."
+  (when (and fun (fboundp 'advice-add))
+    (cond ((listp fun)
+           (dolist (el fun) (pm-around-advice el advice)))
+          ((and (symbolp fun)
+                (not (advice-member-p advice fun)))
+           (advice-add fun :around advice)))))
+
+(pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
+(pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
+;; (advice-remove #'kill-buffer #'pm-with-current-base-buffer)
+;; (advice-remove #'find-alternate-file #'pm-with-current-base-buffer)
+
+
+;;; SYNTAX
+
+;; fixme: this doesn't help with "din't move syntax-propertize--done" errors
+(defun polymode-set-syntax-propertize-end (beg end)
+  ;; syntax-propertize sets 'syntax-propertize--done to end in the original
+  ;; buffer just before calling syntax-propertize-function; we do it in all
+  ;; buffers in syntax-propertize-extend-region-functions because they are
+  ;; called with syntax-propertize--done still unbound
+  (dolist (b (oref pm/polymode -buffers))
+    (with-current-buffer b
+      ;; setq doesn't have effect because the var is let bound; set seems to work
+      (set 'syntax-propertize--done end)))
+  (cons beg end))
+
+(defun pm--call-syntax-propertize-original (start end)
+  (condition-case err
+      (funcall pm--syntax-propertize-function-original start end)
+    (error
+     (message "ERROR: (%s %d %d) -> %s"
+              (if (symbolp pm--syntax-propertize-function-original)
+                  pm--syntax-propertize-function-original
+                (format "polymode-syntax-propertize:%s" major-mode))
+              start end
+              ;; (backtrace)
+              (error-message-string err)))))
+
+;; called from syntax-propertize and thus at the beginning of syntax-ppss
+(defun polymode-syntax-propertize (start end)
+  ;; either this or polymode-set-syntax-propertize-end
+  (dolist (b (oref pm/polymode -buffers))
+    (with-current-buffer b
+      ;; `setq' doesn't have an effect because the var is let bound; `set' works
+      (set 'syntax-propertize--done end)))
+
+  (unless pm-initialization-in-progress
+    (save-restriction
+      (widen)
+      (save-excursion
+        (when (or pm-verbose pm-syntax-verbose)
+          (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+        (let ((protect-host (with-current-buffer (pm-base-buffer)
+                              (oref pm/chunkmode :protect-syntax))))
+          ;; 1. host if no protection
+          (unless protect-host
+            (with-current-buffer (pm-base-buffer)
+              (when pm--syntax-propertize-function-original
+                (when (or pm-verbose pm-syntax-verbose)
+                  (message "(polymode-syntax-propertize %d %d) /unprotected host/ [%s]"
+                           start end (current-buffer)))
+                (pm--call-syntax-propertize-original start end))))
+          ;; 2. all others
+          (pm-map-over-spans
+           (lambda ()
+             (when (and pm--syntax-propertize-function-original
+                        (or (pm-true-span-type *span*)
+                            protect-host))
+               (let ((pos0 (max (nth 1 *span*) start))
+                     (pos1 (min (nth 2 *span*) end)))
+                 (if (oref (nth 3 *span*) :protect-syntax)
+                     (pm-with-narrowed-to-span *span*
+                       (pm--call-syntax-propertize-original pos0 pos1))
+                   (pm--call-syntax-propertize-original pos0 pos1)))))
+           start end))))))
+
+(defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
+  ;; (funcall orig-fun beg end)
+  (if (and polymode-mode pm/polymode)
+      (let ((span (pm-get-innermost-span beg)))
+        (if (oref (nth 3 span) :protect-syntax)
+            (let ((range (pm-span-to-range span)))
+              (if (and (eq beg (car range))
+                       (eq end (cdr range)))
+                  ;; in the most common case when span == beg-end, simply return
+                  range
+                (when (or pm-verbose pm-syntax-verbose)
+                  (message "(polymode-restrict-syntax-propertize-extension %s %s) %s"
+                           beg end (pm-format-span span)))
+                (let ((be (funcall orig-fun beg end)))
+                  (and be
+                       (cons (max (car be) (car range))
+                             (min (cdr be) (cdr range)))))))
+          (when (or pm-verbose pm-syntax-verbose)
+            (message "(syntax-propertize-extend-region %s %s) /unprotected/ %s"
+                     beg end (pm-format-span span)))
+          (funcall orig-fun beg end)))
+    (funcall orig-fun beg end)))
+
+(defun pm--reset-ppss-last (span)
+  "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
+  (let* ((sbeg (nth 1 span))
+         (new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
+    ;; (when pm-syntax-verbose
+    ;;   (message "reasserting PPSS %s" (pm-format-span span)))
+    (if pm--emacs>26
+        ;; in emacs 26 there are two caches syntax-ppss-wide and
+        ;; syntax-ppss-narrow. The latter is reset automatically each time a
+        ;; different narrowing is in place so we don't deal with it for now.
+        (let ((cache (cdr syntax-ppss-wide)))
+          (while (and cache (>= (caar cache) sbeg))
+            (setq cache (cdr cache)))
+          (setq cache (cons new-ppss cache))
+          (setq syntax-ppss-wide (cons new-ppss cache)))
+      (setq syntax-ppss-last new-ppss))))
 
 
 ;;; INTERNAL UTILITIES
