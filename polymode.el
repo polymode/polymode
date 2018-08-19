@@ -1,11 +1,10 @@
-;;; polymode.el --- Versatile multiple modes with extensive literate programming support
+;;; polymode.el --- Extensible framework for multiple major modes -*- lexical-binding: t -*-
 ;;
-;; Filename: polymode.el
-;; Author: Spinu Vitalie
-;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
-;; Version: 1.0
-;; Package-Requires: ((emacs "24"))
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2013-2018, Vitalie Spinu
+;; Version: 0.1
+;; Package-Requires: ((emacs "25"))
 ;; URL: https://github.com/vitoshka/polymode
 ;; Keywords: emacs
 ;;
@@ -32,12 +31,7 @@
 ;;
 ;;; Commentary:
 ;;
-;;  Extensible, fast, objected-oriented multimode specifically designed for
-;;  literate programming. Extensible support for weaving, tangling and export.
-;;
-;;   Usage: https://github.com/vspinu/polymode
-;;
-;;   Design new polymodes: https://github.com/vspinu/polymode/tree/master/modes
+;;   Documentation at https://polymode.github.io
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -109,8 +103,8 @@ Not effective after loading the polymode library."
 ;;; COMMANDS
 (defvar *span*)
 (defun polymode-next-chunk (&optional N)
-  "Go COUNT chunks forwards.
-Return, how many chucks actually jumped over."
+  "Go N chunks forwards.
+Return the number of actually moved over chunks."
   (interactive "p")
   (let* ((sofar 0)
          (back (< N 0))
@@ -133,14 +127,14 @@ Return, how many chucks actually jumped over."
 ;;fixme: problme with long chunks .. point is recentered
 ;;todo: merge into next-chunk
 (defun polymode-previous-chunk (&optional N)
-  "Go COUNT chunks backwards .
-Return, how many chucks actually jumped over."
+  "Go N chunks backwards .
+Return the number of chunks jumped over."
   (interactive "p")
   (polymode-next-chunk (- N)))
 
 (defun polymode-next-chunk-same-type (&optional N)
-  "Go to next COUNT chunk.
-Return, how many chucks actually jumped over."
+  "Go to next N chunk.
+Return the number of chunks of the same type moved over."
   (interactive "p")
   (let* ((sofar 0)
          (back (< N 0))
@@ -168,8 +162,8 @@ Return, how many chucks actually jumped over."
     sofar))
 
 (defun polymode-previous-chunk-same-type (&optional N)
-  "Go to previus COUNT chunk.
-Return, how many chucks actually jumped over."
+  "Go to previous N chunk.
+Return the number of chunks of the same type moved over."
   (interactive "p")
   (polymode-next-chunk-same-type (- N)))
 
@@ -179,7 +173,7 @@ Return, how many chucks actually jumped over."
       (delete-region (nth 1 span) (nth 2 span)))))
 
 (defun polymode-kill-chunk ()
-  "Kill current chunk"
+  "Kill current chunk."
   (interactive)
   (pcase (pm-get-innermost-span)
     (`(,(or `nil `host) ,beg ,end ,_) (delete-region beg end))
@@ -196,7 +190,7 @@ Return, how many chucks actually jumped over."
     (`(head ,_ ,end ,_)
      (goto-char end)
      (polymode-kill-chunk))
-    (_ (error "canoot find chunk to kill"))))
+    (_ (error "Canoot find chunk to kill"))))
 
 (defun polymode-toggle-chunk-narrowing ()
   "Toggle narrowing of the current chunk."
@@ -216,14 +210,17 @@ Return, how many chucks actually jumped over."
 
 
 (defun polymode-mark-or-extend-chunk ()
+  "Not implemented yet."
   (interactive)
   (error "Not implemented yet"))
 
 (defun polymode-insert-new-chunk ()
+  "Not implemented yet."
   (interactive)
   (error "Not implemented yet"))
 
 (defun polymode-show-process-buffer ()
+  "Show the process buffer used by weaving and exporting programs."
   (interactive)
   (let ((buf (cl-loop for b being the buffers
                       if (buffer-local-value 'pm--process-buffer b)
@@ -357,7 +354,8 @@ This function is placed in `before-change-functions' hook."
 	              (setq buffer-file-truename nil))))))))))
 
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
-  "Switch to base buffer and kill all indirect buffers before calling ORIG-FUN."
+  "Switch to base buffer and apply ORIG-FUN to ARGS.
+Used in advises."
   (if (and polymode-mode pm/polymode (buffer-base-buffer))
       (let ((cur-buf (current-buffer))
             (base (buffer-base-buffer)))
@@ -393,7 +391,7 @@ This function is placed in `before-change-functions' hook."
     config-name))
 
 ;;;###autoload
-(defmacro define-polymode (mode &optional parent doc keymap &rest body)
+(defmacro define-polymode (mode &optional parent doc &rest body)
   "Define a new polymode MODE.
 This macro defines command MODE and an indicator variable MODE
 which becomes t when MODE is active and nil otherwise.
@@ -406,10 +404,10 @@ modes and doesn't touch current major mode.
 Standard hook MODE-hook is run at the end of the initialization
 of each polymode buffer (both indirect and base buffers).
 
-This macro also defines the MODE-map keymap from the :keymap and
-PARENT-map (see below) and pm-poly/[MODE-NAME] custom variable
-which holds a `pm-polymode' configuration object for this
-polymode.
+This macro also defines the MODE-map keymap from the :keymap
+argument and PARENT-map (see below) and pm-poly/[MODE-NAME]
+custom variable which holds a `pm-polymode' configuration object
+for this polymode.
 
 PARENT is either the polymode configuration object or a polymode
 mode (there is 1-to-1 correspondence between config
@@ -418,6 +416,9 @@ MODE inherits alll the behavior from PARENT except for the
 overwrites specified by the keywords (see below). The new MODE
 runs all the hooks from the PARENT-mode and inherits its MODE-map
 from PARENT-map.
+
+DOC is an optional documentation string. If present PARENT must
+be provided, but can be nil.
 
 BODY is executed after the complete initialization of the
 polymode but before MODE-hook. It is executed once for each
@@ -439,8 +440,8 @@ controlling the behavior of the new MODE are supported:
   the form (KEY . BINDING) it is merged the bindings are added to
   the newly create keymap.
 
-:after-hook A single lisp form which is evaluated after the mode
-  hooks have been run. It should not be quoted.
+:after-hook A single form which is evaluated after the mode hooks
+  have been run. It should not be quoted.
 
 Other keywords are added to the `pm-polymode' configuration
 object and should be valid slots in PARENT config object or the
@@ -454,34 +455,25 @@ most frequently used slots are:
   the inner modes.
 
 :innermodes List of symbols pointing to `pm-inner-chunkmode'
-  objects which specify the behavior of inner modes (or submodes).
-"
+  objects which specify the behavior of inner modes (or submodes)."
   (declare
    (doc-string 3)
    (debug (&define name
                    [&optional [&not keywordp] name]
                    [&optional stringp]
-                   [&optional [&not keywordp] sexp]
                    [&rest [keywordp sexp]]
                    def-body)))
 
   (if (keywordp parent)
       (progn
-        (push keymap body)
         (push doc body)
         (push parent body)
-        (setq keymap nil
-              doc nil
+        (setq doc nil
               parent nil))
-    (if (keywordp doc)
-        (progn
-          (push keymap body)
-          (push doc body)
-          (setq keymap nil
-                doc nil))
-      (when (keywordp keymap)
-        (push keymap body)
-        (setq keymap nil))))
+    (when (keywordp doc)
+      (progn
+        (push doc body)
+        (setq doc nil))))
 
   (unless (symbolp parent)
     (error "PARENT must be a name of a `pm-polymode' config or a polymode mode function"))
@@ -495,7 +487,7 @@ most frequently used slots are:
          (parent-conf (and parent-name (symbol-value parent-name)))
          (parent-map nil)
          (keymap-name (intern (concat mode-name "-map")))
-         new-innermodes slots after-hook keyw lighter)
+         keymap new-innermodes slots after-hook keyw lighter)
 
     ;; Check keys
     (while (keywordp (setq keyw (car body)))
@@ -505,7 +497,7 @@ most frequently used slots are:
         (`:keymap (setq keymap (pop body)))
         (`:after-hook (setq after-hook (pop body)))
         (`:add-innermodes (setq new-innermodes (pop body)))
-        (`:keylist (error ":keylist is not allowed in `define-polymode'."))
+        (`:keylist (error ":keylist is not allowed in `define-polymode'"))
         (_ (push (pop body) slots) (push keyw slots))))
 
     (when new-innermodes

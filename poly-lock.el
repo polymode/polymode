@@ -69,6 +69,10 @@
 ;;               -> (add-hook 'jit-lock-functions #'font-lock-fontify-region nil t)
 ;;               -> jit-lock-mode
 ;;
+
+;;; Commentary:
+;;
+
 ;;; Code:
 
 (require 'jit-lock)

@@ -1,9 +1,8 @@
 MODULE = POLYMODE
 export EMACS ?= emacs
 EMACS_VERSION = $(shell ${EMACS} -Q --batch --eval "(princ emacs-version)")
-POLYMODE_VERSION = $(git describe --tags --abbrev=0 | sed 's/^v//')
-MELPA_DIR := MELPA/$(EMACS_VERSION)
-EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(MELPA_DIR)
+ELPA_DIR := ELPA/$(EMACS_VERSION)
+EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(ELPA_DIR)
 EMACSBATCH = $(EMACSRUN) --batch
 
 ELS = $(wildcard *.el)
@@ -25,17 +24,17 @@ clean:
 	rm -f $(OBJECTS)
 
 cleanall: clean
-	rm -rf $(MELPA_DIR)
+	rm -rf $(ELPA_DIR)
 
 deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
 
 lint: checkdoc
 
-$(MELPA_DIR):
+melpa: version
 	$(EMACSBATCH) --load targets/melpa.el
 
-melpa: version $(MELPA_DIR)
+elpa: melpa
 
 start: version
 	$(EMACSRUN) -L ~/VC/markdown-mode/ \
@@ -52,3 +51,8 @@ version:
 	@echo "******************* TESTING $(MODULE) *************************"
 	@$(EMACS) --version
 
+template../%:
+	@echo $@
+	$(eval OUTDIR := $(subst template, , $@))
+	$(eval ABSDIR := $(abspath $(OUTDIR)))
+	./targets/template.sh $(ABSDIR)

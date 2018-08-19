@@ -1,9 +1,21 @@
 
 (require 'package)
 
-(setq package-deps '(markdown-mode
-                     coffee-mode markdown-mode slim-mode)
-      package-user-dir (expand-file-name (format "ELPA/%s" emacs-version)))
+(setq deps (let ((file (expand-file-name "targets/deps")))
+             (when (file-exists-p file)
+               (with-temp-buffer
+                 (insert-file-contents file)
+	             (read (buffer-string))))))
+
+(setq deps-requires (with-temp-buffer
+                      (insert-file-contents "polymode.el")
+                      (goto-char (point-min))
+                      (when (re-search-forward "Package-Requires:" nil t)
+                        (car (read-from-string (buffer-substring (point) (point-at-eol)))))))
+
+(setq
+ package-deps (delq 'emacs (delete-dups (append deps (mapcar #'car deps-requires))))
+ package-user-dir (expand-file-name (format "ELPA/%s" emacs-version)))
 
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")))
 ;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
