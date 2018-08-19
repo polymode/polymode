@@ -94,17 +94,17 @@ Preserves the `buffer-modified-p' state of the current buffer."
        (with-silent-modifications
          ,@body))))
 
-(defun poly-lock-no-jit-lock-in-polymode-buffers (orig-fun arg)
-  "Don't activate `jit-lock-mode' when in `polymode' buffers.
-We are reusing some of the jit-lock functionality but don't want
-to activate jit-lock."
+(defun poly-lock-no-jit-lock-in-polymode-buffers (fun arg)
+  "Don't activate FUN in `polymode' buffers.
+When not in polymode buffers apply FUN to ARG."
   (unless (or polymode-mode pm/polymode)
-    (funcall orig-fun arg)))
+    (funcall fun arg)))
 (pm-around-advice 'jit-lock-mode #'poly-lock-no-jit-lock-in-polymode-buffers)
 
 (defun poly-lock-mode (arg)
   "This is the value of `font-lock-function' in all polymode buffers.
-Mode activated when `font-lock' is toggled."
+Mode activated when ARG is positive; happens when font-lock is
+switched on."
   (unless polymode-mode
     (error "Calling `poly-lock-mode' in a non-polymode buffer (%s)" (current-buffer)))
 
@@ -202,42 +202,47 @@ Fontifies chunk-by chunk within the region BEG END."
            ;; fontify something else in other buffer. There are also font-lock
            ;; guards in pm--mode-setup.
            (poly-lock-fontification-in-progress t)
-           (fontification-functions nil))
+           (fontification-functions nil)
+           (protect-host (with-current-buffer (pm-base-buffer)
+                           (oref pm/chunkmode :protect-font-lock))))
       (save-restriction
         (widen)
         (save-excursion
+          ;; fontify the whole region in host first. It's ok for modes like
+          ;; markdown, org and slim which understand inner modes in a limited way.
+          (unless protect-host
+            (with-current-buffer (pm-base-buffer)
+              (when poly-lock-verbose
+                (message "(jit-lock-fontify-now %d %d) /unprotected/ %s" beg end (current-buffer)))
+              (jit-lock-fontify-now beg end)))
           (pm-map-over-spans
            (lambda ()
-             (with-buffer-prepared-for-poly-lock
-              (let ((sbeg (nth 1 *span*))
-                    (send (nth 2 *span*)))
-                ;; skip empty spans
-                (when (> send sbeg)
-                  (if  (not (and font-lock-mode font-lock-keywords))
-                      ;; no font-lock
-                      (put-text-property sbeg send 'fontified t)
-                    (let ((new-beg (max sbeg beg))
-                          (new-end (min send end)))
-                      (when poly-lock-verbose
-                        (message "(jit-lock-fontify-now %d %d) %s" new-beg new-end (pm-format-span *span*)))
-                      (condition-case-unless-debug err
-                          ;; (if (oref pm/chunkmode :font-lock-narrow)
-                          ;;     (pm-with-narrowed-to-span *span*
-                          ;;       (font-lock-unfontify-region new-beg new-end)
-                          ;;       (font-lock-fontify-region new-beg new-end verbose))
-                          ;;   (font-lock-unfontify-region new-beg new-end)
-                          ;;   (font-lock-fontify-region new-beg new-end verbose))
-                          (if (oref pm/chunkmode :font-lock-narrow)
-                              (pm-with-narrowed-to-span *span*
-                                (jit-lock-fontify-now new-beg new-end))
-                            (jit-lock-fontify-now new-beg new-end))
-                        (error
-                         (message "(poly-lock-fontify-now %s %s [span %d %d %s]) -> (%s %s %s): %s"
-                                  beg end sbeg send (current-buffer)
-                                  font-lock-fontify-region-function new-beg new-end
-                                  (error-message-string err))))
-                      ;; even if failed set to t
-                      (put-text-property new-beg new-end 'fontified t))
+             (when (or (pm-true-span-type *span*)
+                       protect-host)
+               (with-buffer-prepared-for-poly-lock
+                (let ((sbeg (nth 1 *span*))
+                      (send (nth 2 *span*)))
+                  ;; skip empty spans
+                  (when (> send sbeg)
+                    (if  (not font-lock-mode)
+                        (put-text-property sbeg send 'fontified t)
+                      (let ((new-beg (max sbeg beg))
+                            (new-end (min send end)))
+                        (when poly-lock-verbose
+                          (message "(jit-lock-fontify-now %d %d) %s" new-beg new-end (pm-format-span *span*)))
+                        (put-text-property new-beg new-end 'fontified nil)
+                        (condition-case-unless-debug err
+                            (if (oref pm/chunkmode :protect-font-lock)
+                                (pm-with-narrowed-to-span *span*
+                                  (jit-lock-fontify-now new-beg new-end))
+                              (jit-lock-fontify-now new-beg new-end))
+                          (error
+                           (message "(poly-lock-fontify-now %s %s [span %d %d %s]) -> (%s %s %s): %s"
+                                    beg end sbeg send (current-buffer)
+                                    font-lock-fontify-region-function new-beg new-end
+                                    (error-message-string err))))
+                        ;; even if failed set to t
+                        (put-text-property new-beg new-end 'fontified t)))
                     (when poly-lock-allow-background-adjustment
                       (poly-lock-adjust-chunk-face sbeg send
                                                    (pm-get-adjust-face pm/chunkmode))))))))
@@ -307,7 +312,8 @@ Assumes widen buffer."
 Installed in `after-change-functions' and behaves similarly to
 `jit-lock-after-change' in what it calls
 `jit-lock-after-change-extend-region-functions' in turn but with
-the buffer narrowed to the relevant spans."
+the buffer narrowed to the relevant spans. BEG, END and OLD-LEN
+are as in `after-change-functions'."
   (save-excursion
     (save-match-data
       (save-restriction
@@ -359,7 +365,8 @@ the buffer narrowed to the relevant spans."
                         prop)))
 
 (defun poly-lock-adjust-chunk-face (beg end face)
-  ;; propertize 'face of the region by adding chunk specific configuration
+  "Alter 'face propert between BEG and END by adding background.
+FACE is as defined in :adjust-face slot of `pm-chunkmode'."
   (interactive "r")
   (when face
     (with-current-buffer (current-buffer)
@@ -377,3 +384,7 @@ the buffer narrowed to the relevant spans."
 
 
 (provide 'poly-lock)
+
+(provide 'poly-lock)
+
+;;; poly-lock.el ends here

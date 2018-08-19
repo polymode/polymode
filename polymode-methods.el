@@ -56,7 +56,7 @@ Ran by the polymode mode function."
       (oset config -hostmode hostmode)
       (setq pm/polymode config
             pm/chunkmode hostmode
-            pm/type 'host)
+            pm/type nil)
       (pm--common-setup)
       ;; Initialize innermodes
       (oset config -innermodes
@@ -75,12 +75,15 @@ Ran by the polymode mode function."
   (let ((pm-initialization-in-progress t)
         (new-name  (generate-new-buffer-name
                     (format "%s[%s]" (buffer-name (pm-base-buffer))
-                            (replace-regexp-in-string "-mode" "" (symbol-name mode))))))
+                            (replace-regexp-in-string "poly-\\|-mode" ""
+                                                      (symbol-name mode))))))
     (rename-buffer new-name)
     (pm--mode-setup (pm--get-existent-mode mode))
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
+    ;; fixme: This breaks if different chunkmodes use same-mode buffer. Even for
+    ;; head/tail the value of pm/type will be wrong for tail
     (setq pm/chunkmode chunkmode
-          pm/type type)
+          pm/type (pm-true-span-type chunkmode type))
     ;; Call polymode mode for the sake of the keymap. Same minor mode which runs
     ;; in the host buffer but without all the heavy initialization.
     (funcall (oref pm/polymode :minor-mode))
@@ -128,7 +131,7 @@ initialized. Return the buffer."
 
     ;; INDENTATION
     (when (and indent-line-function     ; not that it should ever be nil...
-               (oref pm/chunkmode :protect-indent-line))
+               (oref pm/chunkmode :protect-indent))
       (setq-local pm--indent-line-function-original indent-line-function)
       (setq-local indent-line-function #'pm-indent-line-dispatcher))
 
@@ -141,19 +144,24 @@ initialized. Return the buffer."
       (setq-local syntax-propertize-function #'polymode-syntax-propertize))
     ;; [OBSOLETE as of 25.1] We know that syntax starts at span start.
     (pm-around-advice syntax-begin-function 'pm-override-output-position)
+
+    ;; VS[19-08-2018]: doesn't work and doesn't fix the problem
     ;; Make sure that none of the `syntax-propertize-extend-region-functions'
     ;; extends the region beyond current span. In practice the only negative
     ;; effect of such extra-extension is slight performance hit. Not sure here,
     ;; but there might be situations when extending beyond current span does
-    ;; make sense. Remains to be seen.
-    (remove-hook 'syntax-propertize-extend-region-functions
-                 'polymode-set-syntax-propertize-end
-                 t)
+    ;; make sense. Remains to be seen. Make sure it's the last hook.
+    ;; (remove-hook 'syntax-propertize-extend-region-functions
+    ;;              'polymode-set-syntax-propertize-end
+    ;;              t)
+    ;; (add-hook 'syntax-propertize-extend-region-functions
+    ;;           'polymode-set-syntax-propertize-end
+    ;;           t t)
+
+    ;; advising all functions even those with :protect-syntax nil in order to
+    ;; get the debug message
     (pm-around-advice syntax-propertize-extend-region-functions
                       #'polymode-restrict-syntax-propertize-extension)
-    (add-hook 'syntax-propertize-extend-region-functions
-              'polymode-set-syntax-propertize-end
-              t t)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-narrow (cons nil nil))
@@ -227,6 +235,7 @@ Parents' hooks are run first."
   "Get the indirect buffer associated with SUBMODE and SPAN-TYPE.
 Create and initialize the buffer if does not exist yet.")
 
+;; hostmode only gets this ATM
 (cl-defmethod pm-get-buffer-create ((chunkmode pm-chunkmode) &optional type)
   (let ((buff (oref chunkmode -buffer)))
     (or (and (buffer-live-p buff) buff)
@@ -261,33 +270,55 @@ Create and initialize the buffer if does not exist yet.")
            (pm-initialize chunkmode type mode))
          new-buffer)))))
 
-(defun pm--get-chunkmode-mode (obj type)
-  (with-slots (mode head-mode tail-mode) obj
-    (cond ((or (eq type 'body)
-               (and (eq type 'head)
-                    (eq head-mode 'body))
-               (and (eq type 'tail)
-                    (or (eq tail-mode 'body)
-                        (and (or (null tail-mode)
-                                 (eq tail-mode 'head))
-                             (eq head-mode 'body)))))
-           (oref obj :mode))
-          ((or (and (eq type 'head)
-                    (eq head-mode 'host))
-               (and (eq type 'tail)
-                    (or (eq tail-mode 'host)
-                        (and (or (null tail-mode)
-                                 (eq tail-mode 'head))
-                             (eq head-mode 'host)))))
-           (oref (oref pm/polymode -hostmode) :mode))
-          ((eq type 'head)
-           (oref obj :head-mode))
-          ((eq type 'tail)
-           (if (or (null tail-mode)
-                   (eq tail-mode 'head))
-               (oref obj :head-mode)
-             (oref obj :tail-mode)))
-          (t (error "type must be one of 'head 'tail 'body")))))
+(defun pm-true-span-type (chunkmode &optional type)
+  "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
+`pm-innermost-span' returns a raw type (head, body or tail) but
+the actual type installed depends on the values of :host-mode ant
+:tail-mode of the CHUNKMODE object. Always return nil if TYPE is
+nil or 'host. CHUNKMODE could also be a span, in which case TYPE
+is ignored."
+  (when (listp chunkmode)
+    ;; a span
+    (setq type (car chunkmode)
+          chunkmode (nth 3 chunkmode)))
+  (unless (or (null type) (eq type 'host))
+    (with-slots (mode head-mode tail-mode) chunkmode
+      (cond ((or (eq type 'body)
+                 (and (eq type 'head)
+                      (eq head-mode 'body))
+                 (and (eq type 'tail)
+                      (or (eq tail-mode 'body)
+                          (and (or (null tail-mode)
+                                   (eq tail-mode 'head))
+                               (eq head-mode 'body)))))
+             'body)
+            ((or (and (eq type 'head)
+                      (eq head-mode 'host))
+                 (and (eq type 'tail)
+                      (or (eq tail-mode 'host)
+                          (and (or (null tail-mode)
+                                   (eq tail-mode 'head))
+                               (eq head-mode 'host)))))
+             nil)
+            ((eq type 'head)
+             'head)
+            ((eq type 'tail)
+             (if (or (null tail-mode)
+                     (eq tail-mode 'head))
+                 'head
+               'tail))
+            (t (error "type must be one of nil, 'host, 'head, 'tail or 'body"))))))
+
+;; return nil if type is nil or 'host
+(defun pm--get-chunkmode-mode (chunkmode type)
+  (let ((ttype (pm-true-span-type chunkmode type)))
+    (cond
+     ((eq ttype 'body)
+      (oref chunkmode :mode))
+     ((eq ttype 'head)
+      (oref chunkmode :head-mode))
+     ((eq ttype 'tail)
+      (oref chunkmode :tail-mode)))))
 
 (defun pm--set-chunkmode-buffer (obj type buff)
   "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
@@ -342,13 +373,14 @@ in this case."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
     (let ((span (pm--span-at-point head-matcher tail-matcher pos)))
       (when span
-        (let ((type (car span)))
-          (if (or (and (eq type 'head) (eq head-mode 'host))
-                  (and (eq type 'tail) (or (eq tail-mode 'host)
-                                           (and (null tail-mode)
-                                                (eq head-mode 'host)))))
-              (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
-            (append span (list chunkmode))))))))
+        ;; (let ((type (car span)))
+        ;;   (if (or (and (eq type 'head) (eq head-mode 'host))
+        ;;           (and (eq type 'tail) (or (eq tail-mode 'host)
+        ;;                                    (and (null tail-mode)
+        ;;                                         (eq head-mode 'host)))))
+        ;;       (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
+        ;;     (append span (list chunkmode))))
+        (append span (list chunkmode))))))
 
 (cl-defmethod pm-get-span ((chunkmode pm-inner-auto-chunkmode) &optional pos)
   (let ((span (cl-call-next-method)))
@@ -357,28 +389,19 @@ in this case."
       (setf (nth 3 span) (pm--get-auto-chunk span))
       span)))
 
+;; fixme: cache somehow?
 (defun pm--get-auto-chunk (span)
-  ;; fixme: cache somehow?
-  (let ((type (car span))
-        (proto (nth 3 span)))
+  (let* ((proto (nth 3 span))
+         (type (car span)))
     (save-excursion
       (goto-char (nth 1 span))
       (unless (eq type 'head)
-        (let ((matcher (oref proto :head-matcher)))
-          (cond ((functionp matcher)
-                 (goto-char (car (funcall matcher -1))))
-                ((consp matcher)
-                 (when (> (cdr matcher) 0)
-                   (goto-char (nth 2 span)))
-                 (and (re-search-backward (car matcher) nil 'noerr)
-                      (goto-char (match-beginning (cdr matcher)))))
-                ((stringp matcher)
-                 (re-search-backward matcher nil 'noerr))
-                (t (error "invalid head matcher: %s" matcher)))))
-      (let* ((str (let* ((matcher (oref proto :mode-matcher))
-                         (matcher (if (stringp matcher)
-                                      (cons matcher 0)
-                                    matcher)))
+        (goto-char (nth 2 span)) ; fixme: add multiline matchers to micro-optimize this
+        (let ((matcher (pm-fun-matcher (oref proto :head-matcher))))
+          (goto-char (car (funcall matcher -1)))))
+      (let* ((str (let ((matcher (oref proto :mode-matcher)))
+                    (when (stringp matcher)
+                      (setq matcher (cons matcher 0)))
                     (cond  ((consp matcher)
                             (re-search-forward (car matcher) (point-at-eol) t)
                             (match-string-no-properties (cdr matcher)))
@@ -391,8 +414,8 @@ in this case."
             ;; head/tail/body indirect buffers are shared across chunkmodes.
             ;; This currently works ok. A more general approach would be to
             ;; track head/tails/body with associated chunks. Then for example R
-            ;; hbt-chunk and elisp hbt-chunk will not share head/tail buffers.
-            ;; There could be even two R hbt-chunks providing different
+            ;; chunkmode and elisp chunkmodes would not share head/tail buffers.
+            ;; There could be even two R modechunks providing different
             ;; functionality and thus not even sharing body buffer.
             (let ((name (concat (object-name-string proto) ":" (symbol-name mode))))
               (or

@@ -141,7 +141,7 @@
                       :head-mode 'host
                       :head-matcher 'pm--R+C++-head-matcher
                       :tail-matcher 'pm--R+C++-tail-matcher
-                      :font-lock-narrow nil)
+                      :protect-font-lock nil)
   "HTML KnitR chunk."
   :group 'innermodes
   :type 'object)

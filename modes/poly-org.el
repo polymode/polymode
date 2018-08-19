@@ -37,7 +37,7 @@
 (defcustom pm-host/org
   (pm-host-chunkmode "Org mode"
                      :mode 'org-mode)
-  "Org host innermode"
+  "Org host chunkmode."
   :group 'hostmodes
   :type 'object)
 
@@ -57,7 +57,7 @@
   (pm-polymode "org"
                :hostmode 'pm-host/org
                :innermodes '(pm-inner/org))
-  "Org typical configuration"
+  "Org typical polymode configuration."
   :group 'polymodes
   :type 'object)
 

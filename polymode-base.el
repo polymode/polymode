@@ -90,7 +90,7 @@
 (defcustom pm-host/C++
   (pm-host-chunkmode :object-name "C++"
                      :mode 'c++-mode
-                     :font-lock-narrow nil)
+                     :protect-font-lock nil)
   "C++ host chunkmode"
   :group 'hostmodes
   :type 'object)

@@ -167,21 +167,26 @@ subclass of this class.")
     :initarg :mode
     :type symbol
     :initform nil)
-   (protect-indent-line
-    :initarg :protect-indent-line
-    :type boolean
-    :initform t
-    :documentation "Whether to modify local `indent-line-function' by narrowing to current span first")
    (indent-offset
     :initarg :indent-offset
     :type integer
     :initform 0
-    :documentation "Offset to add when indenting chunk's line. Takes effect only when :protect-indent-line is non-nil.")
-   (font-lock-narrow
-    :initarg :font-lock-narrow
+    :documentation "Offset to add when indenting chunk's line. Takes effect only when :protect-indent is non-nil.")
+   (protect-indent
+    :initarg :protect-indent
+    :type boolean
+    :initform t
+    :documentation "Whether to modify local `indent-line-function' by narrowing to current span first.")
+   (protect-font-lock
+    :initarg :protect-font-lock
     :type boolean
     :initform t
     :documentation "Whether to narrow to span during font lock.")
+   (protect-syntax
+    :initarg :protect-syntax
+    :type boolean
+    :initform t
+    :documentation "Whether to modify local `syntax-propertize-function' by narrowing to span first.")
    (adjust-face
     :initarg :adjust-face
     :type (or number face list)
@@ -236,7 +241,7 @@ buffer.")
     :initform 2)
    (head-adjust-face
     :initarg :head-adjust-face
-    :initform font-lock-type-face
+    :initform 'bold
     :type (or null number face list)
     :documentation "Can be a number, a list of properties or a face.")
    (tail-adjust-face

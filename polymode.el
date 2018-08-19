@@ -250,7 +250,7 @@ This funciton is placed in local `post-command-hook'."
                       (point) (error-message-string err))))))
 
 (defun polymode-before-change-setup (beg end)
-  "Run `syntax-ppss-flush-cache' in all polymode buffers.
+  "Run `syntax-ppss-flush-cache' from BEG to END in all polymode buffers.
 This function is placed in `before-change-functions' hook."
   ;; Modification hooks are run only in current buffer and not in other (base or
   ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
@@ -272,16 +272,28 @@ This function is placed in `before-change-functions' hook."
       )))
 
 ;; fixme: this doesn't help with "din't move syntax-propertize--done" errors
-(defun polymode-set-syntax-propertize-end (beg end)
-  ;; syntax-propertize sets 'syntax-propertize--done to end in the original
-  ;; buffer just before calling syntax-propertize-function; we do it in all
-  ;; buffers in syntax-propertize-extend-region-functions because they are
-  ;; called with syntax-propertize--done still unbound
-  (dolist (b (oref pm/polymode -buffers))
-    (with-current-buffer b
-      ;; setq doesn't have effect because the var is let bound; set seems to work
-      (set 'syntax-propertize--done end)))
-  (cons beg end))
+;; (defun polymode-set-syntax-propertize-end (beg end)
+;;   ;; syntax-propertize sets 'syntax-propertize--done to end in the original
+;;   ;; buffer just before calling syntax-propertize-function; we do it in all
+;;   ;; buffers in syntax-propertize-extend-region-functions because they are
+;;   ;; called with syntax-propertize--done still unbound
+;;   (dolist (b (oref pm/polymode -buffers))
+;;     (with-current-buffer b
+;;       ;; setq doesn't have effect because the var is let bound; set seems to work
+;;       (set 'syntax-propertize--done end)))
+;;   (cons beg end))
+
+(defun pm--call-syntax-propertize-original (start end)
+  (condition-case err
+      (funcall pm--syntax-propertize-function-original start end)
+    (error
+     (message "ERROR: (%s %d %d) -> %s"
+              (if (symbolp pm--syntax-propertize-function-original)
+                  pm--syntax-propertize-function-original
+                (format "polymode-syntax-propertize:%s" major-mode))
+              start end
+              ;; (backtrace)
+              (error-message-string err)))))
 
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
@@ -289,45 +301,57 @@ This function is placed in `before-change-functions' hook."
   ;;   (with-current-buffer b
   ;;     ;; setq doesn't have effect because the var is let bound; set seems to work
   ;;     (set 'syntax-propertize--done end)))
-  (when pm--syntax-propertize-function-original
-    (unless pm-initialization-in-progress
-      (save-restriction
-        (widen)
-        (save-excursion
-          (when (or pm-verbose pm-syntax-verbose)
-            (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+  (unless pm-initialization-in-progress
+    (save-restriction
+      (widen)
+      (save-excursion
+        (when (or pm-verbose pm-syntax-verbose)
+          (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+        (let ((protect-host (with-current-buffer (pm-base-buffer)
+                              (oref pm/chunkmode :protect-syntax))))
+          ;; 1. host if no protection
+          (unless protect-host
+            (with-current-buffer (pm-base-buffer)
+              (when pm--syntax-propertize-function-original
+                (when (or pm-verbose pm-syntax-verbose)
+                  (message "(polymode-syntax-propertize %d %d) /unprotected host/ [%s]"
+                           start end (current-buffer)))
+                (pm--call-syntax-propertize-original start end))))
+          ;; 2. all others
           (pm-map-over-spans
            (lambda ()
-             (pm-with-narrowed-to-span *span*
-               (when pm--syntax-propertize-function-original
-                 (let ((pos0 (max (nth 1 *span*) start))
-                       (pos1 (min (nth 2 *span*) end)))
-                   (condition-case err
-                       (funcall pm--syntax-propertize-function-original pos0 pos1)
-                     (error
-                      (message "ERROR: (%s %d %d) -> %s"
-                               (if (symbolp pm--syntax-propertize-function-original)
-                                   pm--syntax-propertize-function-original
-                                 (format "polymode-syntax-propertize:%s" major-mode))
-                               pos0 pos1
-                               (error-message-string err))))))))
+             (when (and pm--syntax-propertize-function-original
+                        (or (pm-true-span-type *span*)
+                            protect-host))
+               (let ((pos0 (max (nth 1 *span*) start))
+                     (pos1 (min (nth 2 *span*) end)))
+                 (if (oref (nth 3 *span*) :protect-syntax)
+                     (pm-with-narrowed-to-span *span*
+                       (pm--call-syntax-propertize-original pos0 pos1))
+                   (pm--call-syntax-propertize-original pos0 pos1)))))
            start end))))))
 
 (defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
+  ;; (funcall orig-fun beg end)
   (if (and polymode-mode pm/polymode)
-      (let* ((span (pm-get-innermost-span beg))
-             (range (pm-span-to-range span)))
-        (if (and (eq beg (car range))
-                 (eq end (cdr range)))
-            ;; in the most common case when span == beg-end, simply return
-            range
+      (let ((span (pm-get-innermost-span beg)))
+        (if (oref (nth 3 span) :protect-syntax)
+            (let ((range (pm-span-to-range span)))
+              (if (and (eq beg (car range))
+                       (eq end (cdr range)))
+                  ;; in the most common case when span == beg-end, simply return
+                  range
+                (when (or pm-verbose pm-syntax-verbose)
+                  (message "(polymode-restrict-syntax-propertize-extension %s %s) %s"
+                           beg end (pm-format-span span)))
+                (let ((be (funcall orig-fun beg end)))
+                  (and be
+                       (cons (max (car be) (car range))
+                             (min (cdr be) (cdr range)))))))
           (when (or pm-verbose pm-syntax-verbose)
-            (message "(polymode-restrict-syntax-propertize-extension %s %s) %s"
+            (message "(syntax-propertize-extend-region %s %s) /unprotected/ %s"
                      beg end (pm-format-span span)))
-          (let ((be (funcall orig-fun beg end)))
-            (and be
-                 (cons (max (car be) (car range))
-                       (min (cdr be) (cdr range)))))))
+          (funcall orig-fun beg end)))
     (funcall orig-fun beg end)))
 
 (defvar-local pm--killed-once nil)

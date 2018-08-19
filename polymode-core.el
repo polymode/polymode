@@ -305,14 +305,14 @@ defaults to point. Guarantied to return a non-empty span."
             (list :pos pos
                   :point-min (point-min)
                   :point-max (point-max))))
-  (let (;; `re-search-forward' and other search functions trigger full
-        ;; `internal--syntax-propertize' on the whole buffer on every
-        ;; single buffer modification. This is a small price to pay for a
-        ;; much improved efficiency in modes which heavily rely on
-        ;; `syntax-propertize' like `markdown-mode'.
-        (parse-sexp-lookup-properties nil))
-    (or (unless no-cache
-          (pm--cached-span pos))
+  (or (unless no-cache
+        (pm--cached-span pos))
+      (let (;; `re-search-forward' and other search functions trigger full
+            ;; `internal--syntax-propertize' on the whole buffer on every
+            ;; single buffer modification. This is a small price to pay for a
+            ;; much improved efficiency in modes which heavily rely on
+            ;; `syntax-propertize' like `markdown-mode'.
+            (parse-sexp-lookup-properties nil))
         (pm--innermost-span pm/polymode pos))))
 
 (defun pm-span-to-range (span)
@@ -361,14 +361,26 @@ forward."
     (setq end (min (point-max) (1+ end)))
     (cons end end)))
 
+;; Attempt to check for in-comments; doesn't work because we end up calling
+;; syntax-propertize recursively.
+;; (defun pm--funcall-matcher (matcher arg)
+;;   "Call MATCHER with ARG till a match outside comment has been found."
+;;   (let ((beg.end (funcall matcher arg)))
+;;     (while (and beg.end
+;;                 (> (car beg.end) (point-min))
+;;                 (nth 4 (syntax-ppss (1- (car beg.end))))
+;;                 (setq beg.end (funcall matcher arg))))
+;;     beg.end))
+
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos)
   "Span detector with head and tail matchers.
 HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
-\=`pm-inner-chunkmode' object. POS defaults to (point).
+`pm-inner-chunkmode' object. POS defaults to (point).
 
 Return a list of the form (TYPE SPAN-START SPAN-END) where TYPE
 is one of the following symbols:
-  nil   - pos is between point-min and head-matcher, or between tail-matcher and point-max
+  nil   - pos is between ‘point-min’ and head-matcher, or between
+          tail-matcher and ‘point-max’
   body  - pos is between head-matcher and tail-matcher (exclusively)
   head  - head span
   tail  - tail span"
@@ -469,8 +481,10 @@ is one of the following symbols:
 Install a new indirect buffer if it is not already installed.
 CHUNKMODE's class should define `pm-get-buffer-create' method."
   (let* ((chunkmode (nth 3 span))
-         (type (car span))
-         (buff (pm-get-buffer-create chunkmode type)))
+         (type (pm-true-span-type span))
+         (buff (if type
+                   (pm-get-buffer-create chunkmode type)
+                 (pm-get-buffer-create (oref pm/polymode -hostmode)))))
     (pm--select-existing-buffer buff span visibly)))
 
 ;; extracted for debugging purpose
@@ -479,7 +493,7 @@ CHUNKMODE's class should define `pm-get-buffer-create' method."
   ;; single command
   (with-current-buffer buffer
     ;; (message (pm--debug-info span))
-    (pm--reset-ppss-last (nth 1 span)))
+    (pm--reset-ppss-last span))
 
   ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
   ;; no action if BUFFER is already the current buffer
@@ -610,7 +624,7 @@ bound variable *span* holds the current innermost span."
       (setq count most-positive-fixnum))
     (let* ((nr 0)
            (pos (if backwardp end beg))
-           (*span* (pm-get-innermost-span pos no-cache)))
+           (*span* (pm-innermost-span pos no-cache)))
       (while *span*
         (setq nr (1+ nr))
         (pm-select-buffer *span* visibly)
@@ -632,16 +646,18 @@ bound variable *span* holds the current innermost span."
                    (< nr count)
                    (pm-innermost-span (point) no-cache)))))))
 
-(defun pm--reset-ppss-last (span-start)
-  "Reset `syntax-ppss-last' cache if it was recorded before SPAN-START.
-If SPAN-START is nil, use span at point."
-  (let ((new-ppss (list span-start 0 nil span-start nil nil nil 0 nil nil nil nil)))
+(defun pm--reset-ppss-last (span)
+  "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
+  (let* ((sbeg (nth 1 span))
+         (new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
+    ;; (when pm-syntax-verbose
+    ;;   (message "reasserting PPSS %s" (pm-format-span span)))
     (if pm--emacs>26
         ;; in emacs 26 there are two caches syntax-ppss-wide and
         ;; syntax-ppss-narrow. The latter is reset automatically each time a
         ;; different narrowing is in place so we don't deal with it for now.
         (let ((cache (cdr syntax-ppss-wide)))
-          (while (and cache (>= (caar cache) span-start))
+          (while (and cache (>= (caar cache) sbeg))
             (setq cache (cdr cache)))
           (setq cache (cons new-ppss cache))
           (setq syntax-ppss-wide (cons new-ppss cache)))
@@ -656,7 +672,7 @@ If SPAN-START is nil, use span at point."
       (let ((sbeg (nth 1 span))
             (send (nth 2 span)))
         (unless pm--emacs>26
-          (pm--reset-ppss-last sbeg))
+          (pm--reset-ppss-last span))
         (narrow-to-region sbeg send)))))
 
 (defmacro pm-with-narrowed-to-span (span &rest body)

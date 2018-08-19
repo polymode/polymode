@@ -35,7 +35,9 @@
 (defcustom pm-host/markdown
   (pm-host-chunkmode "Markdown"
                      :mode 'markdown-mode
-                     :init-functions '(poly-markdown-remove-markdown-hooks))
+                     :init-functions '(poly-markdown-remove-markdown-hooks)
+                     :protect-syntax nil
+                     :protect-font-lock nil)
   "Markdown host chunkmode"
   :group 'hostmodes
   :type 'object)
@@ -44,7 +46,9 @@
   (pm-inner-auto-chunkmode "markdown-fenced-code"
                            :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                            :tail-matcher "^[ \t]*```[ \t]*$"
-                           :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1))
+                           :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1)
+                           :head-mode 'host
+                           :tail-mode 'host)
   "Markdown fenced code block."
   :group 'innermodes
   :type 'object)
@@ -54,10 +58,8 @@
                            :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                            :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
                            :mode-matcher (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
-                           ;; fixme: markdown breaks badly with this
-                           ;; :head-mode 'host
-                           ;; :tail-mode 'host
-                           )
+                           :head-mode 'host
+                           :tail-mode 'host)
   "Markdown inline code."
   :group 'innermodes
   :type 'object)
@@ -81,8 +83,7 @@ character would do)."
                       :tail-matcher (cons "[^ $\\\t]\\(\\$\\) " 1)
                       :head-mode 'host
                       :tail-mode 'host
-                      :mode 'latex-mode
-                      :font-lock-narrow t)
+                      :mode 'latex-mode)
   "Displayed math $$..$$ block.
 Tail must be flowed by new line but head not (a space or comment
 character would do)."

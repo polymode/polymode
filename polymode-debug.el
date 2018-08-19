@@ -101,7 +101,8 @@ Key bindings:
 (defun pm-debug-minor-mode-on ()
   ;; activating everywhere (in case font-lock infloops in a polymode buffer )
   ;; this doesn't activate in fundamental mode
-  (pm-debug-minor-mode t))
+  (unless (eq major-mode 'minibuffer-inactive-mode)
+    (pm-debug-minor-mode t)))
 
 (define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on)
 
@@ -330,6 +331,8 @@ On prefix, fontify current span only."
     jit-lock-functions
     syntax-propertize-function
     syntax-propertize-extend-region-functions
+    pm--syntax-propertize-function-original
+    pm--indent-line-function-original
     post-command-hook
     before-change-functions
     after-change-functions
