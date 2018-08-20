@@ -79,10 +79,7 @@ Return new name (symbol). FUN is an unquoted name of a function."
                       (error-message-string err)
                       ;; (or (and (symbolp fun) "")
                       ;;     (replace-regexp-in-string "\n" "" (format "[%s]" fun)))
-                      "[M-x pm-debug-mode RET for more info]"
-                      )
-             (when pm-debug-mode
-               (backtrace))
+                      "[M-x pm-debug-mode RET for more info]")
              nil))))
 
 (defun pm-override-output-position (orig-fun &rest args)
@@ -91,7 +88,7 @@ Return new name (symbol). FUN is an unquoted name of a function."
  ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
-                       (pm-get-innermost-range)))
+                       (pm-innermost-range)))
             (pos (pm-apply-protected orig-fun args)))
         (and pos
              (min (max pos (car range))
@@ -106,7 +103,7 @@ This will break badly if (point) is not inside expected range.
 ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
-                       (pm-get-innermost-range)))
+                       (pm-innermost-range)))
             (be (pm-apply-protected orig-fun args)))
         (let ((out (and be
                         (cons (and (car be)
@@ -126,7 +123,7 @@ Run ORIG-FUN with buffer narrowed to span. *span* in
 `pm-map-over-spans` has precedence over span at point. ARGS are
 passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
-      (let ((*span* (or *span* (pm-get-innermost-span))))
+      (let ((*span* (or *span* (pm-innermost-span))))
         (pm-with-narrowed-to-span *span*
           (apply #'pm-override-output-cons orig-fun args)))
     (apply orig-fun args)))
@@ -140,7 +137,7 @@ passed to ORIG-FUN."
                       (point)
                     end))
              (range (or (pm-span-to-range *span*)
-                        (pm-get-innermost-range pos)))
+                        (pm-innermost-range pos)))
              (new-beg (max beg (car range)))
              (new-end (min end (cdr range))))
         (pm-apply-protected orig-fun (append (list new-beg new-end) args)))
@@ -188,7 +185,7 @@ ARGS are passed to ORIG-FUN."
 
 
 ;;; Flyspel
-(defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
+(defun pm--flyspel-dont-highlight-in-chunkmodes (beg end _poss)
   (or (car (get-text-property beg :pm-span))
       (car (get-text-property end :pm-span))))
 
@@ -203,6 +200,7 @@ ARGS are passed to ORIG-FUN."
 
 
 ;;; Python
+(declare-function pm--first-line-indent "polymode-methods")
 (defun pm--python-dont-indent-to-0 (fun)
   "Fix indent FUN not to cycle to 0 indentation."
   (if (and polymode-mode pm/type)
@@ -215,6 +213,8 @@ ARGS are passed to ORIG-FUN."
 
 
 ;;; Core Font Lock
+(defvar font-lock-beg)
+(defvar font-lock-end)
 (defun pm-check-for-real-change-in-extend-multiline (fun)
   "Protect FUN from inf-looping at ‘point-max’.
 FUN is `font-lock-extend-region-multiline'. Propagate only real
@@ -251,6 +251,7 @@ changes."
 
 ;;; EVIL
 
+(declare-function evil-change-state "evil-core")
 (defun polymode-switch-buffer-keep-evil-state-maybe (old-buffer new-buffer)
   (when (and (boundp 'evil-state)
              evil-state)
@@ -263,9 +264,5 @@ changes."
 (eval-after-load 'evil-core
   '(add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
 
-
 (provide 'polymode-compat)
-
-(provide 'polymode-compat)
-
 ;;; polymode-compat.el ends here

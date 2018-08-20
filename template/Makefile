@@ -15,9 +15,11 @@ OBJECTS = $(ELS:.el=.elc)
 all: compile checkdoc test
 
 build: version clean
+	@echo "******************* BUILDING $(MODULE) *************************"
 	$(EMACSBATCH) --funcall batch-byte-compile *.el
 
 checkdoc: version
+	@echo "******************* CHECKDOC $(MODULE) *************************"
 	$(EMACSBATCH) --load targets/checkdoc.el
 
 lint: checkdoc
@@ -39,9 +41,9 @@ start: version
 		--file tests/poly-markdown-tests.el 
 
 test: version
+	@echo "******************* Testing $(MODULE) ***************************"
 	$(EMACSBATCH) --load targets/melpa.el --load targets/test.el
 
 version:
-	@echo "******************* Testing $(MODULE) *************************"
-	@$(EMACS) --version
+	@echo "EMACS VERSION: $(EMACS_VERSION)"
 

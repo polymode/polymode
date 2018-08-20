@@ -30,7 +30,8 @@
 ;;; Code:
 
 (require 'eieio)
-(require 'polymode-core)
+(require 'eieio-base)
+;; (require 'eieio-custom)
 
 (setq eieio-backward-compatibility nil)
 
@@ -88,7 +89,7 @@ All slots are unbound, except those initialized with PARAMS."
     :type symbol
     :custom symbol
     :documentation
-    "Symbol pointing to a `pm-host-chunkmode' object.")
+    "Symbol pointing to a `pm-host-chunkmode' object. When nil, any host-mode will be matched (suitable for poly minor modes. ")
    (innermodes
     :initarg :innermodes
     :type list
@@ -161,7 +162,6 @@ subclass of this class.")
 (defvar pm--polymode-slots
   (mapcar #'cl--slot-descriptor-name
           (eieio-class-slots 'pm-polymode)))
-
 
 (defclass pm-chunkmode (pm-root)
   ((mode

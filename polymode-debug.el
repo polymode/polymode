@@ -31,6 +31,8 @@
 
 ;;; Code:
 
+(require 'polymode-core)
+(require 'poly-lock)
 
 
 ;;; MINOR MODE
@@ -62,17 +64,12 @@
     (define-key map (kbd "M-n M-t c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t a")   #'pm-debug-toggle-all)
     (define-key map (kbd "M-n M-t v")   #'pm-debug-toggle-verbose)
-    (define-key map (kbd "M-n M-t t")   #'pm-debug-trace-relevant-functions)
-    (define-key map (kbd "M-n M-t u")   #'pm-debug-untrace-relevant-functions)
     (define-key map (kbd "M-n M-t M-i")   #'pm-debug-toogle-info-message)
     (define-key map (kbd "M-n M-t M-f")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-t M-p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t M-c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t M-a")   #'pm-debug-toggle-all)
     (define-key map (kbd "M-n M-t M-v")   #'pm-debug-toggle-verbose)
-    (define-key map (kbd "M-n M-t M-t")   #'pm-debug-trace-relevant-functions)
-    (define-key map (kbd "M-n M-t M-u")   #'pm-debug-untrace-relevant-functions)
-
     (define-key map (kbd "M-n M-f t")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-f s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f b")   #'pm-debug-fontify-current-buffer)
@@ -89,7 +86,6 @@ Key bindings:
   nil
   " PMDBG"
   :group 'polymode
-  (interactive)
   (if pm-debug-minor-mode
       (progn
         ;; this is global hook. No need to complicate with local hooks
@@ -115,13 +111,15 @@ Key bindings:
 (cl-defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
   (format "%s head-matcher:\"%s\" tail-matcher:\"%s\""
           (cl-call-next-method)
-          (oref chunkmode :head-matcher)
-          (oref chunkmode :tail-matcher)))
-(cl-defmethod pm-debug-info ((chunkmode pm-inner-auto-chunkmode))
+          (eieio-oref chunkmode 'head-matcher)
+          (eieio-oref chunkmode 'tail-matcher)))
+(cl-defmethod pm-debug-info ((_chunkmode pm-inner-auto-chunkmode))
   (cl-call-next-method))
 
+(defvar syntax-ppss-wide)
+(defvar syntax-ppss-last)
 (defun pm--debug-info (&optional span as-list)
-  (let* ((span (or span (and polymode-mode (pm-get-innermost-span))))
+  (let* ((span (or span (and polymode-mode (pm-innermost-span))))
          (message-log-max nil)
          (beg (nth 1 span))
          (end (nth 2 span))
@@ -148,7 +146,7 @@ With NO-CACHE prefix, don't use cached values of the span."
   (interactive "P")
   (if (not polymode-mode)
       (message "not in a polymode buffer")
-    (let ((span (pm-get-innermost-span nil no-cache)))
+    (let ((span (pm-innermost-span nil no-cache)))
       (message (pm--debug-info span))
       ;; (move-overlay pm--highlight-overlay (nth 1 span) (nth 2 span) (current-buffer))
       (pm-debug-flick-region (nth 1 span) (nth 2 span)))))
@@ -162,6 +160,7 @@ With NO-CACHE prefix, don't use cached values of the span."
   (interactive)
   (setq pm-debug-display-info-message (not pm-debug-display-info-message)))
 
+(defvar poly-lock-allow-fontification)
 (defun pm-debug-toggle-fontification ()
   "Enable or disable fontification in polymode buffers."
   (interactive)
@@ -226,7 +225,7 @@ With NO-CACHE prefix, don't use cached values of the span."
 (defun pm-debug-fontify-current-span ()
   "Fontify current span."
   (interactive)
-  (let ((span (pm-get-innermost-span))
+  (let ((span (pm-innermost-span))
         (poly-lock-allow-fontification t))
     (poly-lock-flush (nth 1 span) (nth 2 span))
     (poly-lock-fontify-now (nth 1 span) (nth 2 span))))
@@ -242,8 +241,7 @@ With NO-CACHE prefix, don't use cached values of the span."
 ;;; TRACING
 
 (defun pm-debug-trace-background-1 (fn)
-  "Trace in background function FN."
-  (interactive (trace--read-args "Trace function in background: "))
+  "Trace FN in background."
   (unless (symbolp fn)
     (error "Can trace symbols only"))
   (unless (get fn 'cl--class)
@@ -263,6 +261,7 @@ With NO-CACHE prefix, don't use cached values of the span."
            when (string-match regexp (symbol-name sym))
            do (pm-debug-trace-background-1 sym)))
 
+(declare-function untrace-all "trace")
 (defmacro pm-debug-eval-with-trace (regexp &rest body)
   "Trace all functions matched with REGEXP during the execution of BODY."
   (declare (indent 1) (debug (sexp body)))
@@ -284,7 +283,7 @@ With NO-CACHE prefix, don't use cached values of the span."
 On SPAN-ONLY prefix, fontify current span only."
   (interactive "P")
   (let ((reg (if span-only
-                 (let ((span (pm-get-innermost-span)))
+                 (let ((span (pm-innermost-span)))
                    (cons (nth 1 span) (nth 2 span)))
                (cons (point-min) (point-max)))))
     (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
@@ -296,7 +295,7 @@ On SPAN-ONLY prefix, fontify current span only."
   "Trace fontification functions during the fontification of FILE."
   (interactive "f")
   (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
-    (find-file-noselect f)))
+    (find-file-noselect file)))
 
 
 ;;; RELEVANT VARIABLES
@@ -346,7 +345,7 @@ On SPAN-ONLY prefix, fontify current span only."
                                  pm-debug-highlight-last-font-lock-error-region))
       (delete-overlay pm--highlight-overlay))
     (condition-case err
-        (let ((span (pm-get-innermost-span)))
+        (let ((span (pm-innermost-span)))
           (when pm-debug-display-info-message
             (message (pm--debug-info span)))
           (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))

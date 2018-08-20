@@ -209,7 +209,7 @@ that call a shell command. SENTINEL is the process sentinel."
 
 (cl-defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
-    (pm--process-internal exporter from to ifile cb (oref exporter :quote))))
+    (pm--process-internal exporter from to ifile cb (eieio-oref exporter 'quote))))
 
 
 ;; UI
@@ -248,7 +248,7 @@ complete specification."
                                             (funcall (cdr el) 'doc))))
                                (cons name (car el))))
             (from-name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
-    (let* ((exporter (symbol-value (or (oref pm/polymode :exporter)
+    (let* ((exporter (symbol-value (or (eieio-oref pm/polymode 'exporter)
                                        (polymode-set-exporter))))
            (fname (file-name-nondirectory buffer-file-name))
            (gprompt nil)
@@ -273,14 +273,14 @@ complete specification."
                      (cdar matched))))
 
                ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
-               (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
+               (let ((weaver (symbol-value (or (eieio-oref pm/polymode 'weaver)
                                                (progn
                                                  (setq gprompt "Choose `from' spec: ")
                                                  (polymode-set-weaver))))))
                  (when weaver
                    ;; fixme: weaver was not yet ported to selectors
                    ;; fixme: currently only first match is returned
-                   (let ((pair (cl-loop for w in (oref weaver :from-to)
+                   (let ((pair (cl-loop for w in (eieio-oref weaver 'from-to)
                                         ;; weaver input extension matches the filename
                                         if (string-match-p (nth 1 w) fname)
                                         return (cl-loop for el in (pm--selectors exporter :from)
@@ -292,9 +292,7 @@ complete specification."
                        pair))))
 
                ;; 4. nothing matched; ask
-               (let* ((prompt (or gprompt
-                                  (format "No `from' specs matched. Choose one: "
-                                          (file-name-nondirectory fname) (eieio-object-name-string exporter))))
+               (let* ((prompt (or gprompt "No `from' specs matched. Choose one: "))
                       (sel (pm--completing-read prompt from-opts nil t nil 'pm--export:from-hist)))
                  (cdr sel))))
 
@@ -306,7 +304,7 @@ complete specification."
 
              ;; C. string
              ((stringp from)
-              (if (assoc from (oref exporter :from))
+              (if (assoc from (eieio-oref exporter 'from))
                   from
                 (error "Cannot find `from' spec '%s' in %s exporter"
                        from (eieio-object-name exporter))))
@@ -328,7 +326,7 @@ complete specification."
 
              ;; B. string
              ((stringp to)
-              (if (assoc to (oref exporter :to))
+              (if (assoc to (eieio-oref exporter 'to))
                   to
                 (error "Cannot find output spec '%s' in %s exporter"
                        to (eieio-object-name exporter))))
@@ -342,7 +340,7 @@ complete specification."
           ;; run through weaver
           (let ((pm--export-spec (cons (cdr from-id) to-id))
                 (pm--output-not-real t))
-            (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from-id)))
+            (pm-weave (symbol-value (eieio-oref pm/polymode 'weaver)) (car from-id)))
         (pm-export exporter from-id to-id)))))
 
 (defun polymode-set-exporter ()

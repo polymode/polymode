@@ -69,15 +69,12 @@
 ;;               -> (add-hook 'jit-lock-functions #'font-lock-fontify-region nil t)
 ;;               -> jit-lock-mode
 ;;
-
 ;;; Commentary:
 ;;
-
 ;;; Code:
 
 (require 'jit-lock)
 (require 'polymode-core)
-(require 'polymode-compat)
 
 (defvar poly-lock-verbose nil)
 (defvar poly-lock-allow-fontification t)
@@ -191,8 +188,6 @@ Fontifies chunk-by chunk within the region BEG END."
               pm-initialization-in-progress)
     (let* ((font-lock-dont-widen t)
            (font-lock-extend-region-functions nil)
-           (pmarker (point-marker))
-           (dbuffer (current-buffer))
            ;; Fontification in one buffer can trigger fontification in another
            ;; buffer. Particularly, this happens when new indirect buffers are
            ;; created and `normal-mode' triggers font-lock in those buffers. We
@@ -204,7 +199,7 @@ Fontifies chunk-by chunk within the region BEG END."
            (poly-lock-fontification-in-progress t)
            (fontification-functions nil)
            (protect-host (with-current-buffer (pm-base-buffer)
-                           (oref pm/chunkmode :protect-font-lock))))
+                           (eieio-oref pm/chunkmode 'protect-font-lock))))
       (save-restriction
         (widen)
         (save-excursion
@@ -232,7 +227,7 @@ Fontifies chunk-by chunk within the region BEG END."
                           (message "(jit-lock-fontify-now %d %d) %s" new-beg new-end (pm-format-span *span*)))
                         (put-text-property new-beg new-end 'fontified nil)
                         (condition-case-unless-debug err
-                            (if (oref pm/chunkmode :protect-font-lock)
+                            (if (eieio-oref pm/chunkmode 'protect-font-lock)
                                 (pm-with-narrowed-to-span *span*
                                   (jit-lock-fontify-now new-beg new-end))
                               (jit-lock-fontify-now new-beg new-end))
@@ -244,8 +239,7 @@ Fontifies chunk-by chunk within the region BEG END."
                         ;; even if failed set to t
                         (put-text-property new-beg new-end 'fontified t)))
                     (when poly-lock-allow-background-adjustment
-                      (poly-lock-adjust-chunk-face sbeg send
-                                                   (pm-get-adjust-face pm/chunkmode))))))))
+                      (poly-lock-adjust-span-face *span*)))))))
            beg end))))
     (current-buffer)))
 
@@ -266,6 +260,8 @@ placed in `font-lock-flush-function''"
          (pm-flush-span-cache beg end)
          (put-text-property beg end 'fontified nil))))))
 
+(defvar jit-lock-start)
+(defvar jit-lock-end)
 (defun pm--after-change-extend-region (beg end)
   "Our own extension function which runs first on BEG END change.
 Assumes widen buffer."
@@ -364,27 +360,20 @@ are as in `after-change-functions'."
                           (- prop) ;; darken
                         prop)))
 
-(defun poly-lock-adjust-chunk-face (beg end face)
-  "Alter 'face propert between BEG and END by adding background.
-FACE is as defined in :adjust-face slot of `pm-chunkmode'."
+(declare-function pm-get-adjust-face "polymode-methods")
+(defun poly-lock-adjust-span-face (span)
+  "Adjust 'face property of SPAN..
+How adjustment is made is defined in :adjust-face slot of the
+SPAN's chunkmode."
   (interactive "r")
-  (when face
-    (with-current-buffer (current-buffer)
-      (let ((face (or (and (numberp face)
-                           (list (cons 'background-color
-                                       (poly-lock--adjusted-background face))))
-                      face))
-            (pchange nil))
-        ;; (while (not (eq pchange end))
-        ;;   (setq pchange (next-single-property-change beg 'face nil end))
-        ;;   (put-text-property beg pchange 'face
-        ;;                      `(,face ,@(get-text-property beg 'face)))
-        ;;   (setq beg pchange))
-        (font-lock-prepend-text-property beg end 'face face)))))
-
+  (let ((face (pm-get-adjust-face (nth 3 span) (car span))))
+    (when face
+      (with-current-buffer (current-buffer)
+        (let ((face (or (and (numberp face)
+                             (list (cons 'background-color
+                                         (poly-lock--adjusted-background face))))
+                        face)))
+          (font-lock-prepend-text-property (nth 1 span) (nth 2 span) 'face face))))))
 
 (provide 'poly-lock)
-
-(provide 'poly-lock)
-
 ;;; poly-lock.el ends here

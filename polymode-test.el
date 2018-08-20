@@ -136,8 +136,7 @@
            (stext (buffer-substring-no-properties sbeg send))
            ;; other buffer
            (obuf (pm-test-run-on-string smode stext))
-           (opos 1)
-           (oend (with-current-buffer obuf (point-max))))
+           (opos 1))
       (when pm-verbose
         (message "---- testing %s ----" (pm-format-span *span* t)))
       (while opos
@@ -219,14 +218,14 @@ indentation."
     ;; pm-set-buffer would do for programs but not for interactive debugging
     (pm-switch-to-buffer (point))))
 
-(defun pm-test-goto-loc-other-window (&optional loc)
-  "Utility to navigate to LOC at point in other buffer.
+(defun pm-test-goto-loc-other-window ()
+  "Utility to navigate to loc at point in other buffer.
 LOC is as in `pm-test-goto-loc'."
   (interactive)
   (let ((loc (or (sexp-at-point)
                  (read--expression "Loc: "))))
     (when (symbolp loc)
-      (setq loc (string-to-number (word-at-point))))
+      (setq loc (string-to-number (thing-at-point 'word))))
     (other-window 1)
     (pm-test-goto-loc loc)))
 
@@ -270,7 +269,4 @@ execution undo is called once. After each change-set
             (undo)))))))
 
 (provide 'polymode-test)
-
-(provide 'polymode-test)
-
 ;;; polymode-test.el ends here

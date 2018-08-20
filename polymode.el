@@ -168,16 +168,16 @@ Return the number of chunks of the same type moved over."
   (polymode-next-chunk-same-type (- N)))
 
 (defun pm--kill-span (types)
-  (let ((span (pm-get-innermost-span)))
+  (let ((span (pm-innermost-span)))
     (when (memq (car span) types)
       (delete-region (nth 1 span) (nth 2 span)))))
 
 (defun polymode-kill-chunk ()
   "Kill current chunk."
   (interactive)
-  (pcase (pm-get-innermost-span)
+  (pcase (pm-innermost-span)
     (`(,(or `nil `host) ,beg ,end ,_) (delete-region beg end))
-    (`(body ,beg ,end ,_)
+    (`(body ,beg ,_ ,_)
      (goto-char beg)
      (pm--kill-span '(body))
      (pm--kill-span '(head tail))
@@ -197,11 +197,11 @@ Return the number of chunks of the same type moved over."
   (interactive)
   (if (buffer-narrowed-p)
       (progn (widen) (recenter))
-    (pcase (pm-get-innermost-span)
+    (pcase (pm-innermost-span)
       (`(head ,_ ,end ,_)
        (goto-char end)
        (pm-narrow-to-span))
-      (`(tail ,beg ,end ,_)
+      (`(tail ,beg ,_ ,_)
        (if (eq beg (point-min))
            (error "Invalid chunk")
          (goto-char (1- beg))
@@ -362,7 +362,7 @@ most frequently used slots are:
     (when new-innermodes
       (if parent
           (let ((new-list (delete-dups
-                           (append (oref parent-conf :innermodes)
+                           (append (eieio-oref parent-conf 'innermodes)
                                    (if (eq (car new-innermodes) 'quote)
                                        (cadr new-innermodes)
                                      new-innermodes)))))
@@ -379,7 +379,7 @@ most frequently used slots are:
               (pi parent-conf))
           (while pi
             (let ((map (and (slot-boundp pi :keylist)
-                            (oref pi :keylist))))
+                            (eieio-oref pi 'keylist))))
               (when map
                 (if (and (symbolp map)
                          (keymapp (symbol-value map)))
@@ -389,7 +389,7 @@ most frequently used slots are:
                           pi nil)
                   ;; list, descend to next parent and append the key list to keylist
                   (setq pi (and (slot-boundp pi :parent-instance)
-                                (oref pi :parent-instance))
+                                (eieio-oref pi 'parent-instance))
                         keylist (append map keylist))))))
           (setq keymap (reverse keylist))
           (setq parent-map (or parent-map 'polymode-minor-mode-map))))
@@ -397,7 +397,7 @@ most frequently used slots are:
        (parent-conf
         (setq parent-map
               (derived-mode-map-name
-               (oref parent-conf :minor-mode))))
+               (eieio-oref parent-conf 'minor-mode))))
        ;; 3. nil
        (t (setq parent-map
                 'polymode-minor-mode-map))))

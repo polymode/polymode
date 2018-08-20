@@ -8,10 +8,6 @@
 (setq python-indent-offset 4
       python-indent-guess-indent-offset nil)
 
-(message "markdown-mode: %s in %s"
-         markdown-mode-version
-         (cdr (find-function-library #'markdown-mode)))
-
 (defun poly-markdown-tests-set-protected (protect)
   (let ((mode (if protect 'poly-head-tail-mode 'host)))
     (oset pm-host/markdown :protect-syntax protect)
@@ -27,8 +23,8 @@
      (lambda ()
        (let* ((sbeg (nth 1 *span*))
               (send (nth 2 *span*))
-              (range1 (pm-get-innermost-range sbeg))
-              (range2 (pm-get-innermost-range send)))
+              (range1 (pm-innermost-range sbeg))
+              (range2 (pm-innermost-range send)))
          (should (eq sbeg (car range1)))
          (should (eq send (cdr range1)))
          (unless (eq send (point-max))
@@ -39,8 +35,8 @@
     (pm-map-over-spans
      (lambda ()
        (pm-with-narrowed-to-span *span*
-         (let* ((range1 (pm-get-innermost-range (point-min)))
-                (range2 (pm-get-innermost-range (point-max))))
+         (let* ((range1 (pm-innermost-range (point-min)))
+                (range2 (pm-innermost-range (point-max))))
            (should (eq (car range1) (point-min)))
            (should (eq (cdr range1) (point-max)))
            (should (eq (car range2) (point-min)))
@@ -64,27 +60,27 @@
     (goto-char (point-max))
     (pm-switch-to-buffer)
 
-    (let ((span (pm-get-innermost-span (point-max))))
+    (let ((span (pm-innermost-span (point-max))))
       (should (eq (car span) nil))
       (should (eq (nth 2 span) (point-max)))
       (delete-region (nth 1 span) (nth 2 span)))
 
-    (let ((span (pm-get-innermost-span (point-max))))
+    (let ((span (pm-innermost-span (point-max))))
       (should (eq (car span) 'tail))
       (should (eq (nth 2 span) (point-max)))
       (delete-region (nth 1 span) (nth 2 span)))
 
-    (let ((span (pm-get-innermost-span (point-max))))
+    (let ((span (pm-innermost-span (point-max))))
       (should (eq (car span) 'body))
       (should (eq (nth 2 span) (point-max)))
       (delete-region (nth 1 span) (nth 2 span)))
 
-    (let ((span (pm-get-innermost-span (point-max))))
+    (let ((span (pm-innermost-span (point-max))))
       (should (eq (car span) 'head))
       (should (eq (nth 2 span) (point-max)))
       (delete-region (nth 1 span) (nth 2 span)))
 
-    (let ((span (pm-get-innermost-span (point-max))))
+    (let ((span (pm-innermost-span (point-max))))
       (should (eq (car span) nil))
       (should (eq (nth 2 span) (point-max)))
       (delete-region (nth 1 span) (nth 2 span)))))

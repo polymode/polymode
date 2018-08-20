@@ -25,10 +25,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-
 ;;; Commentary:
 ;;
-
 ;;; Code:
 
 (eval-when-compile (require 'cl-lib))
@@ -36,10 +34,58 @@
 (require 'gv)
 (require 'font-lock)
 (require 'color)
-(require 'eieio)
-(require 'eieio-base)
-(require 'eieio-custom)
+(require 'polymode-classes)
 (require 'format-spec)
+(eval-when-compile
+  (require 'derived))
+
+
+;;; ESSENTIAL DECLARATIONS
+
+(defvar *span* nil)
+(defvar-local pm/polymode nil)
+(defvar-local pm/chunkmode nil)
+(defvar-local pm/type nil)
+(defvar-local polymode-mode nil
+  "Non-nil if current \"mode\" is a polymode.")
+(defvar pm--emacs>26 (version<= "26" emacs-version))
+
+;; overwrites
+(defvar-local pm--indent-line-function-original nil)
+(defvar-local pm--syntax-propertize-function-original nil)
+
+;; silence the compiler
+(defvar pm--output-file nil)
+(defvar pm--input-buffer nil)
+(defvar pm--input-file nil)
+(defvar pm--export-spec nil)
+(defvar pm--input-not-real nil)
+(defvar pm--output-not-real nil)
+
+;; methods api from polymode-methods.el
+(declare-function pm-initialize "polymode-methods")
+(declare-function pm-get-buffer-create "polymode-methods")
+(declare-function pm-get-adjust-face "polymode-methods")
+(declare-function pm-get-span "polymode-methods")
+
+;; eieio silence "unknown slot"
+;; http://emacs.1067599.n8.nabble.com/Fixing-quot-Unknown-slot-quot-warnings-td419119.html
+(eval-when-compile
+  (defclass dummy ()
+    ((function) (from-to))))
+
+;; shields
+(defvar pm-allow-after-change-hook t)
+(defvar pm-allow-post-command-hook t)
+;; We need this during cascaded call-next-method in pm-initialize. -innermodes
+;; are initialized after the hostmode setup has taken place. This means that
+;; pm-get-span and all the functionality that relies on it will fail to work
+;; correctly during the initialization in the call-next-method. This is
+;; particularly relevant to font-lock setup and user hooks.
+(defvar pm-initialization-in-progress nil)
+
+
+;; CUSTOM
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"
@@ -70,6 +116,7 @@ than the input file."
   :group 'polymode
   :type 'boolean)
 
+(define-obsolete-variable-alias 'polymode-mode-name-override-alist 'polymode-mode-name-alias-alist "2018-08")
 (defcustom polymode-mode-name-alias-alist
   '((elisp . emacs-lisp) (el . emacs-lisp)
     (bash . sh-mode))
@@ -84,8 +131,6 @@ symbols into desired modes. For example
 will cause installation of `ess-julia-mode' in markdown ```julia chunks."
   :group 'polymode
   :type 'alist)
-
-(define-obsolete-variable-alias 'polymode-mode-name-override-alist 'polymode-mode-name-alias-alist "2018-08")
 
 (defvar polymode-switch-buffer-hook nil
   "Hook run on switching to a different buffer.
@@ -112,45 +157,6 @@ objects provides same functionality for narrower scope. See also
 `polymode-init-host-hook'.")
 
 
-;;; ESSENTIAL DECLARATIONS
-
-(defvar-local pm/polymode nil)
-(defvar-local pm/chunkmode nil)
-(defvar-local pm/type nil)
-(defvar-local polymode-mode nil
-  "Non-nil if current \"mode\" is a polymode.")
-(defvar pm--emacs>26 (version<= "26" emacs-version))
-
-;; silence the compiler
-(defvar pm--output-file nil)
-(defvar pm--input-buffer nil)
-(defvar pm--input-file nil)
-(defvar pm--export-spec nil)
-(defvar pm--input-not-real nil)
-(defvar pm--output-not-real nil)
-(defvar pm/type)
-(defvar pm/polymode)
-(defvar pm/chunkmode)
-(defvar *span*)
-
-;; methods api from polymode-methods.el
-(declare-function pm-initialize "polymode-methods")
-(declare-function pm-get-buffer-create "polymode-methods")
-(declare-function pm-get-adjust-face "polymode-methods")
-(declare-function pm-get-span "polymode-methods")
-
-;; shields
-(defvar pm-allow-after-change-hook t)
-(defvar pm-allow-post-command-hook t)
-;; We need this during cascaded call-next-method in pm-initialize. -innermodes
-;; are initialized after the hostmode setup has taken place. This means that
-;; pm-get-span and all the functionality that relies on it will fail to work
-;; correctly during the initialization in the call-next-method. This is
-;; particularly relevant to font-lock setup and user hooks.
-(defvar pm-initialization-in-progress nil)
-
-
-
 ;;; MESSAGES
 
 (defvar pm-verbose nil)
@@ -159,8 +165,8 @@ objects provides same functionality for narrower scope. See also
 
 (defun pm-format-span (&optional span prefixp)
   (let* ((span (cond
-                ((number-or-marker-p span) (pm-get-innermost-span span))
-                ((null span) (pm-get-innermost-span))
+                ((number-or-marker-p span) (pm-innermost-range span))
+                ((null span) (pm-innermost-range))
                 (span)))
          (message-log-max nil)
          (beg (nth 1 span))
@@ -175,12 +181,6 @@ objects provides same functionality for narrower scope. See also
     (if prefixp
         (format "%s[%s %d-%d %s]" extra type beg end oname)
       (format "[%s %d-%d %s]%s" type beg end oname extra))))
-
-(defun pm-message (str span &rest fmts)
-  (when pm-verbose
-    (let ((msg (apply #'format str fmts)))
-      (message (format-spec msg `(?N . ,(pm-format-span)))))))
-
 
 
 ;;; SPANS
@@ -323,7 +323,7 @@ defaults to point. Guarantied to return a non-empty span."
 
 (define-obsolete-function-alias 'pm-get-innermost-range 'pm-innermost-range "2018-08")
 (defun pm-innermost-range (&optional pos no-cache)
-  (pm-span-to-range (pm-get-innermost-span pos no-cache)))
+  (pm-span-to-range (pm-innermost-span pos no-cache)))
 
 (defun pm-fun-matcher (matcher)
   "Make a function matcher given a MATCHER.
@@ -352,17 +352,65 @@ Used as tail matcher for blocks identified by same indent. See
 function `poly-slim-mode' for examples. ARG is ignored; always search
 forward."
   (let ((block-col (current-indentation))
-        (end (point-at-eol))
-        (empty (point)))
+        (end (point-at-eol)))
     (forward-line 1)
     (while (and (not (eobp))
-                (or ;(looking-at "^[[:space:]]*$") ; empty lines
-                 (and (> (current-indentation) block-col)
-                      (setq end (point-at-eol)))))
+                (> (current-indentation) block-col)
+                (setq end (point-at-eol)))
       (forward-line 1))
     ;; end at bol for the sake of indentation
     (setq end (min (point-max) (1+ end)))
     (cons end end)))
+
+(defun pm-true-span-type (chunkmode &optional type)
+  "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
+`pm-innermost-span' returns a raw type (head, body or tail) but
+the actual type installed depends on the values of :host-mode ant
+:tail-mode of the CHUNKMODE object. Always return nil if TYPE is
+nil or 'host. CHUNKMODE could also be a span, in which case TYPE
+is ignored."
+  (when (listp chunkmode)
+    ;; a span
+    (setq type (car chunkmode)
+          chunkmode (nth 3 chunkmode)))
+  (unless (or (null type) (eq type 'host))
+    (with-slots (mode head-mode tail-mode) chunkmode
+      (cond ((or (eq type 'body)
+                 (and (eq type 'head)
+                      (eq head-mode 'body))
+                 (and (eq type 'tail)
+                      (or (eq tail-mode 'body)
+                          (and (or (null tail-mode)
+                                   (eq tail-mode 'head))
+                               (eq head-mode 'body)))))
+             'body)
+            ((or (and (eq type 'head)
+                      (eq head-mode 'host))
+                 (and (eq type 'tail)
+                      (or (eq tail-mode 'host)
+                          (and (or (null tail-mode)
+                                   (eq tail-mode 'head))
+                               (eq head-mode 'host)))))
+             nil)
+            ((eq type 'head)
+             'head)
+            ((eq type 'tail)
+             (if (or (null tail-mode)
+                     (eq tail-mode 'head))
+                 'head
+               'tail))
+            (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
+
+;; return nil if type is nil or 'host
+(defun pm--get-chunkmode-mode (chunkmode type)
+  (let ((ttype (pm-true-span-type chunkmode type)))
+    (cond
+     ((eq ttype 'body)
+      (eieio-oref chunkmode 'mode))
+     ((eq ttype 'head)
+      (eieio-oref chunkmode 'head-mode))
+     ((eq ttype 'tail)
+      (eieio-oref chunkmode 'tail-mode)))))
 
 ;; Attempt to check for in-comments; doesn't work because we end up calling
 ;; syntax-propertize recursively.
@@ -462,6 +510,54 @@ is one of the following symbols:
       (list 'body (cdr head) (point-max)))))
 
 
+;;; OBJECT HOOKS
+
+(defun pm--run-derived-mode-hooks (config)
+  ;; Minor modes run-hooks, major-modes run-mode-hooks.
+  ;; Polymodes is a minor mode but with major-mode flavor. We
+  ;; run all parent hooks in reversed order here.
+  (let ((this-mode (eieio-oref config 'minor-mode)))
+    (mapc (lambda (mm)
+            (let ((old-mm (symbol-value mm)))
+              (unwind-protect
+                  (progn
+                    (set mm (symbol-value this-mode))
+                    (run-hooks (derived-mode-hook-name mm)))
+                (set mm old-mm))))
+          (pm--collect-parent-slots config :minor-mode))))
+
+(defun pm--run-init-hooks (object &optional emacs-hook)
+  (unless pm-initialization-in-progress
+    (pm--run-hooks object :init-functions)
+    (when emacs-hook
+      (run-hooks emacs-hook))))
+
+(defun pm--collect-parent-slots (object slot)
+  "Descend into parents of OBJECT and return a list of SLOT values.
+Returned list is in parent first order."
+  (let ((inst object)
+        (vals nil))
+    (while inst
+      (when (slot-boundp inst slot)
+        (push (eieio-oref inst slot) vals))
+      (setq inst (and (slot-boundp inst :parent-instance)
+                      (eieio-oref inst 'parent-instance))))
+    vals))
+
+(defun pm--run-hooks (object slot &rest args)
+  "Run hooks from SLOT of OBJECT and its parent instances.
+Parents' hooks are run first."
+  (let ((funs (delete-dups
+               (copy-sequence
+                (apply #'append
+                       (pm--collect-parent-slots object slot))))))
+    (if args
+        (mapc (lambda (hook)
+                (apply #'run-hook-with-args hook args))
+              funs)
+      (mapc #'run-hooks funs))))
+
+
 ;;; BUFFER SELECTION
 
 ;; Transfer of the buffer-undo-list is managed internally by emacs
@@ -515,6 +611,8 @@ switch."
       ;; fast set-buffer
       (set-buffer buffer))))
 
+(defvar text-scale-mode)
+(defvar text-scale-mode-amount)
 (defun pm--select-existent-buffer-visibly (new-buffer)
   (let ((old-buffer (current-buffer))
         (point (point))
@@ -594,7 +692,7 @@ overlay transport) are done. See `pm-switch-to-buffer' for a more
 comprehensive alternative."
   (let ((span (if (or (null pos-or-span)
                       (number-or-marker-p pos-or-span))
-                  (pm-get-innermost-span pos-or-span)
+                  (pm-innermost-span pos-or-span)
                 pos-or-span)))
     (pm-select-buffer span)))
 
@@ -656,7 +754,7 @@ bound variable *span* holds the current innermost span."
   (interactive)
   (unless (= (point-min) (point-max))
     (let ((span (or span
-                    (pm-get-innermost-span))))
+                    (pm-innermost-span))))
       (let ((sbeg (nth 1 span))
             (send (nth 2 span)))
         (unless pm--emacs>26
@@ -803,7 +901,7 @@ list, apply advice to each element of it."
         (when (or pm-verbose pm-syntax-verbose)
           (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
         (let ((protect-host (with-current-buffer (pm-base-buffer)
-                              (oref pm/chunkmode :protect-syntax))))
+                              (eieio-oref pm/chunkmode 'protect-syntax))))
           ;; 1. host if no protection
           (unless protect-host
             (with-current-buffer (pm-base-buffer)
@@ -820,7 +918,7 @@ list, apply advice to each element of it."
                             protect-host))
                (let ((pos0 (max (nth 1 *span*) start))
                      (pos1 (min (nth 2 *span*) end)))
-                 (if (oref (nth 3 *span*) :protect-syntax)
+                 (if (eieio-oref (nth 3 *span*) 'protect-syntax)
                      (pm-with-narrowed-to-span *span*
                        (pm--call-syntax-propertize-original pos0 pos1))
                    (pm--call-syntax-propertize-original pos0 pos1)))))
@@ -829,8 +927,8 @@ list, apply advice to each element of it."
 (defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
   ;; (funcall orig-fun beg end)
   (if (and polymode-mode pm/polymode)
-      (let ((span (pm-get-innermost-span beg)))
-        (if (oref (nth 3 span) :protect-syntax)
+      (let ((span (pm-innermost-span beg)))
+        (if (eieio-oref (nth 3 span) 'protect-syntax)
             (let ((range (pm-span-to-range span)))
               (if (and (eq beg (car range))
                        (eq end (cdr range)))
@@ -849,6 +947,8 @@ list, apply advice to each element of it."
           (funcall orig-fun beg end)))
     (funcall orig-fun beg end)))
 
+(defvar syntax-ppss-wide)
+(defvar syntax-ppss-last)
 (defun pm--reset-ppss-last (span)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
   (let* ((sbeg (nth 1 span))
@@ -897,17 +997,17 @@ near future.")
       (symbol-name str-or-symbol)
     str-or-symbol))
 
-(defun pm--get-mode-symbol-from-name (mode-name &optional no-fallback)
-  "Guess and return mode function from MODE-NAME.
+(defun pm--get-mode-symbol-from-name (name &optional no-fallback)
+  "Guess and return mode function from mode NAME.
 If NO-FALLBACK is non-nil, return nil if no mode has been found,
 otherwise return `poly-fallback-mode'."
-  (if (and (symbolp mode-name)
-           (fboundp mode-name))
-      mode-name
+  (if (and (symbolp name)
+           (fboundp name))
+      name
     (let* ((str (pm--symbol-name
-                 (or (cdr (assq (intern (pm--symbol-name mode-name))
+                 (or (cdr (assq (intern (pm--symbol-name name))
                                 polymode-mode-name-override-alist))
-                     mode-name)))
+                     name)))
            (mname (if (string-match-p "-mode$" str)
                       str
                     (concat str "-mode"))))
@@ -932,7 +1032,7 @@ a warning. If NO-FALLBACK is non-nil, return nil otherwise return
                               (eieio-oref object slot))
                          VALS)
             object (and (slot-boundp object :parent-instance)
-                        (oref object :parent-instance))))
+                        (eieio-oref object 'parent-instance))))
     VALS))
 
 (defun pm--abrev-names (list abrev-regexp)
@@ -981,25 +1081,25 @@ Elements of LIST can be either strings or symbols."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-(defun pm--synchronize-points (&rest ignore)
+(defun pm--synchronize-points (&rest _ignore)
   "Synchronize points in all buffers.
 IGNORE is there to allow this function in advises."
   (when polymode-mode
     (let ((pos (point))
           (cbuff (current-buffer)))
-      (dolist (buff (oref pm/polymode -buffers))
+      (dolist (buff (eieio-oref pm/polymode '-buffers))
         (when (and (not (eq buff cbuff))
                    (buffer-live-p buff))
           (with-current-buffer buff
             (goto-char pos)))))))
 
-;; Wrapper for `completing-read'.
-;; Take care when collection is an alist of (name . meta-info). If
-;; so, asks for names, but returns meta-info for that name. Enforce
-;; require-match = t. Also takes care of adding the most relevant
-;; DEF from history.
 (defun pm--completing-read (prompt collection &optional predicate require-match
                                    initial-input hist def inherit-input-method)
+  ;; Wrapper for `completing-read'.
+  ;; Take care when collection is an alist of (name . meta-info). If
+  ;; so, asks for names, but returns meta-info for that name. Enforce
+  ;; require-match = t. Also takes care of adding the most relevant
+  ;; DEF from history.
   (if (and (listp collection)
            (listp (car collection)))
       (let* ((candidates (mapcar #'car collection))
@@ -1009,7 +1109,7 @@ IGNORE is there to allow this function in advises."
              (def (or def (car thist))))
         (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
                collection))
-    (completing-read prompt candidates predicate require-match initial-input hist def inherit-input-method)))
+    (completing-read prompt collection predicate require-match initial-input hist def inherit-input-method)))
 
 ;; unused
 (defun pm-kill-indirect-buffers ()
@@ -1022,14 +1122,21 @@ IGNORE is there to allow this function in advises."
           (kill-buffer b))))))
 
 
-;; WEAVING and EXPORTING
+;;; WEAVING and EXPORTING
+;; fixme: move all these into separate polymode-process.el?
+(defvar polymode-exporter-output-file-format)
+(defvar polymode-weaver-output-file-format)
+(declare-function pm-export "polymode-export")
+(declare-function pm-weave "polymode-weave")
+(declare-function comint-exec "comint")
+(declare-function comint-mode "comint")
 
-(defun pm--wrap-callback (processor slot ifile)
+(defun pm--wrap-callback (processor slot _ifile)
   ;; replace processor :sentinel or :callback temporally in order to export-spec as a
   ;; followup step or display the result
   (let ((sentinel1 (eieio-oref processor slot))
         (cur-dir default-directory)
-        (exporter (symbol-value (oref pm/polymode :exporter)))
+        (exporter (symbol-value (eieio-oref pm/polymode 'exporter)))
         (obuffer (current-buffer)))
     (if pm--export-spec
         (let ((espec pm--export-spec))
@@ -1066,8 +1173,6 @@ IGNORE is there to allow this function in advises."
   (require 'comint)
   (let* ((buffer (get-buffer-create buff-name))
          (process nil)
-         (command-buff (current-buffer))
-         (ofile pm--output-file)
          ;; weave/export buffers are re-usable; need to transfer some vars
          (dd default-directory)
          ;; (command (shell-quote-argument command))
@@ -1093,7 +1198,7 @@ IGNORE is there to allow this function in advises."
       nil)))
 
 (defun pm--make-shell-command-sentinel (action)
-  (lambda (process name)
+  (lambda (process _name)
     "Sentinel built with `pm--make-shell-command-sentinel'."
     (let ((buff (process-buffer process))
           (status (process-exit-status process)))
@@ -1134,7 +1239,7 @@ IGNORE is there to allow this function in advises."
 (defun pm--make-selector (specs elements)
   (cond ((listp elements)
          (let ((spec-alist (cl-mapcar #'cons specs elements)))
-           (lambda (selsym &rest ignore)
+           (lambda (selsym &rest _ignore)
              (cdr (assoc selsym spec-alist)))))
         ((functionp elements) elements)
         (t (error "Elements argument must be either a list or a function"))))
@@ -1213,7 +1318,7 @@ IGNORE is there to allow this function in advises."
                           (find-file-noselect ifile))))
            (output-format (if is-exporter
                               polymode-exporter-output-file-format
-                            polymode-weave-output-file-format)))
+                            polymode-weaver-output-file-format)))
       (with-current-buffer ibuffer
         (save-buffer)
         (let ((comm.ofile (pm--output-command.file output-format sfrom sto quote)))
@@ -1229,7 +1334,8 @@ IGNORE is there to allow this function in advises."
                            (pm--file-mod-time pm--output-file)))
                  (imt (and omt (pm--file-mod-time pm--input-file)))
                  (ofile (or (and imt (time-less-p imt omt) pm--output-file)
-                            (let ((fun (oref processor :function))
+                            (let ((fun (with-no-warnings
+                                         (eieio-oref processor 'function)))
                                   (args (delq nil (list callback from to))))
                               (apply fun (car comm.ofile) args)))))
             ;; ofile is non-nil in two cases:
@@ -1243,13 +1349,10 @@ IGNORE is there to allow this function in advises."
                         (pm--export-spec nil))
                     (when (listp ofile)
                       (setq ofile (car ofile)))
-                    (pm-export (symbol-value (oref pm/polymode :exporter))
+                    (pm-export (symbol-value (eieio-oref pm/polymode 'exporter))
                                (car espec) (cdr espec)
                                ofile))
                 (pm--display-file ofile)))))))))
 
 (provide 'polymode-core)
-
-(provide 'polymode-core)
-
 ;;; polymode-core.el ends here

@@ -10,21 +10,26 @@ OBJECTS = $(ELS:.el=.elc)
 
 # export PM_VERBOSE
 
-.PHONY: build test version
+.PHONY: build test version clean cleansilent cleanall
 
 all: build checkdoc test
 
-build: version clean
-	$(EMACSBATCH) --funcall batch-byte-compile *.el
+build: version cleansilent
+	@echo "******************* BUILDING $(MODULE) *************************"
+	@$(EMACSBATCH) --funcall batch-byte-compile *.el
 
 checkdoc: version
-	$(EMACSBATCH) --load targets/checkdoc.el
+	@echo "******************* CHECKDOC $(MODULE) *************************"
+	@$(EMACSBATCH) --load targets/checkdoc.el
 
 clean:
 	rm -f $(OBJECTS)
 
-cleanall: clean
+cleanall: cleansilent
 	rm -rf $(ELPA_DIR)
+
+cleansilent:
+	@rm -f $(OBJECTS)
 
 deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
@@ -42,14 +47,11 @@ start: version
 		--file tests/poly-markdown-tests.el 
 
 test: version
-	$(EMACSBATCH) --load targets/melpa.el --load targets/test.el
-
-test-loc-md: version
-	$(EMACSBATCH) -L ~/VC/markdown-mode/ --load targets/test.el
+	@echo "******************* TESTING $(MODULE) **************************"
+	@$(EMACSBATCH) --load targets/melpa.el --load targets/test.el
 
 version:
-	@echo "******************* TESTING $(MODULE) *************************"
-	@$(EMACS) --version
+	@echo "EMACS VERSION: $(EMACS_VERSION)"
 
 template../%:
 	@echo $@

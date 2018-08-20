@@ -35,11 +35,6 @@
 
 ;; HOST MODES
 
-(defconst pm-host/ANY
-  (pm-host-chunkmode :object-name "ANY"
-                     :mode nil)
-  "Placeholder, matches any host mode.")
-
 (defcustom pm-host/coffee
   (pm-host-chunkmode :object-name "coffee"
                      :mode 'coffee-mode)

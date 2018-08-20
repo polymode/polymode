@@ -36,7 +36,8 @@
   "Polymode Weavers"
   :group 'polymode)
 
-(defcustom polymode-weave-output-file-format "%s[woven]"
+(define-obsolete-variable-alias 'polymode-weave-output-file-format 'polymode-weaver-output-file-format "2018-08")
+(defcustom polymode-weaver-output-file-format "%s[woven]"
   "Format of the weaved files.
 %s is substituted with the current file name sans extension."
   :group 'polymode-weave
@@ -173,7 +174,7 @@ EXPORT is provided, corresponding exporter's (from to)
 specification will be called.")
 
 (cl-defmethod pm-weave ((weaver pm-weaver) from-to-id &optional ifile)
-  (pm--weave-internal weaver from-to-id ifile))
+  (pm--process-internal weaver from-to-id nil ifile))
 
 (cl-defmethod pm-weave ((weaver pm-callback-weaver) fromto-id &optional ifile)
   (let ((cb (pm--wrap-callback weaver :callback ifile))
@@ -185,14 +186,14 @@ specification will be called.")
   (let ((cb (pm--wrap-callback weaver :sentinel ifile))
         ;; with transitory output, callback might not run
         (pm--export-spec (and pm--output-not-real pm--export-spec)))
-    (pm--process-internal weaver fromto-id nil ifile cb (oref weaver :quote))))
+    (pm--process-internal weaver fromto-id nil ifile cb (eieio-oref weaver 'quote))))
 
 
 ;; UI
 
-(defvar pm--weaver-hist nil)
-(defvar pm--weave:fromto-hist nil)
-(defvar pm--weave:fromto-last nil)
+(defvar-local pm--weaver-hist nil)
+(defvar-local pm--weave:fromto-hist nil)
+(defvar-local pm--weave:fromto-last nil)
 
 (defun polymode-weave (&optional from-to)
   "Weave current file.
@@ -213,9 +214,8 @@ for the specification. See also `pm-weaveer' for the complete
 specification."
   (interactive "P")
   (cl-flet ((name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
-    (let* ((weaver (symbol-value (or (oref pm/polymode :weaver)
+    (let* ((weaver (symbol-value (or (eieio-oref pm/polymode 'weaver)
                                      (polymode-set-weaver))))
-           (fname (file-name-nondirectory buffer-file-name))
            (case-fold-search t)
 
            (opts (mapcar #'name.id (pm--selectors weaver :from-to)))
@@ -237,8 +237,7 @@ specification."
                      (cdar matched))))
 
                ;; 3. nothing matched, ask
-               (let* ((prompt (format "No `from-to' specs matched. Choose one: "
-                                      (file-name-extension fname) (eieio-object-name weaver)))
+               (let* ((prompt "No `from-to' specs matched. Choose one: ")
                       (sel (pm--completing-read prompt opts nil t nil 'pm--weave:fromto-hist)))
                  (cdr sel))))
 
@@ -249,7 +248,7 @@ specification."
                      (car opts))))
              ;; C. string
              ((stringp from-to)
-              (if (assoc from-to (oref weaver :from-to))
+              (if (assoc from-to (eieio-oref weaver 'from-to))
                   from-to
                 (error "Cannot find `from-to' spec '%s' in %s weaver"
                        from-to (eieio-object-name weaver))))
@@ -276,8 +275,7 @@ each polymode in CONFIGS."
                    "pm-weaver/"))
          (sel (pm--completing-read "Choose weaver: " weavers nil t nil 'pm--weaver-hist))
          (out (intern (cdr sel))))
-    (setq-local pm--weaver:from-last nil)
-    (setq-local pm--weaver:to-last nil)
+    (setq-local pm--weave:fromto-last nil)
     (oset pm/polymode :weaver out)
     out))
 
