@@ -10,9 +10,9 @@ OBJECTS = $(ELS:.el=.elc)
 
 # export PM_VERBOSE
 
-.PHONY: test version compile
+.PHONY: build test version
 
-all: compile checkdoc test
+all: build checkdoc test
 
 build: version clean
 	$(EMACSBATCH) --funcall batch-byte-compile *.el

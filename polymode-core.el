@@ -25,6 +25,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+
+;;; Commentary:
+;;
+
 ;;; Code:
 
 (eval-when-compile (require 'cl-lib))
@@ -200,7 +204,6 @@ objects provides same functionality for narrower scope. See also
     (remove-list-of-text-properties beg end '(:pm-span) buffer)))
 
 (defun pm--intersect-spans (config &optional pos)
-  "Intersect CHNK-MODES' spans at POS to get the innermost."
   ;; fixme: host should be last, to take advantage of the chunkmodes computation?
   (let* ((start (point-min))
          (end (point-max))
@@ -341,12 +344,12 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
       (when (re-search-forward (car matcher) nil t ahead)
         (cons (match-beginning (cdr matcher))
               (match-end (cdr matcher))))))
-   (t (error "head and tail matchers must be either regexp strings, cons cells or functions"))))
+   (t (error "Head and tail matchers must be either regexp strings, cons cells or functions"))))
 
 (defun pm-same-indent-tail-matcher (_arg)
   "Return the end position of block with the higher indent as the current line.
 Used as tail matcher for blocks identified by same indent. See
-`poly-slim-mode' for examples. ARG is ignored; always search
+function `poly-slim-mode' for examples. ARG is ignored; always search
 forward."
   (let ((block-col (current-indentation))
         (end (point-at-eol))
@@ -479,7 +482,9 @@ is one of the following symbols:
 (defun pm-select-buffer (span &optional visibly)
   "Select the buffer associated with SPAN.
 Install a new indirect buffer if it is not already installed.
-CHUNKMODE's class should define `pm-get-buffer-create' method."
+Chunkmode's class should define `pm-get-buffer-create' method. If
+VISIBLY is non-nil perform extra adjustment for \"visual\" buffer
+switch."
   (let* ((chunkmode (nth 3 span))
          (type (pm-true-span-type span))
          (buff (if type
@@ -584,9 +589,9 @@ CHUNKMODE's class should define `pm-get-buffer-create' method."
 
 (defun pm-set-buffer (&optional pos-or-span)
   "Set buffer to polymode buffer appropriate for POS-OR-SPAN.
-This is done with `set-buffer' and no visual adjustments are
-done. See `pm-switch-to-buffer' for a more comprehensive
-alternative."
+This is done with `set-buffer' and no visual adjustments (like
+overlay transport) are done. See `pm-switch-to-buffer' for a more
+comprehensive alternative."
   (let ((span (if (or (null pos-or-span)
                       (number-or-marker-p pos-or-span))
                   (pm-get-innermost-span pos-or-span)
@@ -595,9 +600,9 @@ alternative."
 
 (defun pm-switch-to-buffer (&optional pos-or-span)
   "Bring the appropriate polymode buffer to front.
-This is done visually for the user with `switch-to-buffer'. All
-necessary adjustment like overlay and undo history transport are
-performed."
+POS-OR-SPAN can be either a position in a buffer or a span. All
+expensive adjustment for a visible switch (like overlay
+transport) are performed."
   (let ((span (if (or (null pos-or-span)
                       (number-or-marker-p pos-or-span))
                   (pm-innermost-span pos-or-span)
@@ -647,7 +652,7 @@ bound variable *span* holds the current innermost span."
                    (pm-innermost-span (point) no-cache)))))))
 
 (defun pm-narrow-to-span (&optional span)
-  "Narrow to current chunk."
+  "Narrow to current SPAN."
   (interactive)
   (unless (= (point-min) (point-max))
     (let ((span (or span
@@ -865,7 +870,7 @@ list, apply advice to each element of it."
 ;;; INTERNAL UTILITIES
 
 (defvar polymode-display-output-file t
-  "When non-nil automatically display output file in emacs.
+  "When non-nil automatically display output file in Emacs.
 This is temporary variable, it might be changed or removed in the
 near future.")
 
@@ -892,15 +897,17 @@ near future.")
       (symbol-name str-or-symbol)
     str-or-symbol))
 
-(defun pm--get-mode-symbol-from-name (str &optional no-fallback)
-  "Guess and return mode function."
-  (if (and (symbolp str)
-           (fboundp str))
-      str
+(defun pm--get-mode-symbol-from-name (mode-name &optional no-fallback)
+  "Guess and return mode function from MODE-NAME.
+If NO-FALLBACK is non-nil, return nil if no mode has been found,
+otherwise return `poly-fallback-mode'."
+  (if (and (symbolp mode-name)
+           (fboundp mode-name))
+      mode-name
     (let* ((str (pm--symbol-name
-                 (or (cdr (assq (intern (pm--symbol-name str))
+                 (or (cdr (assq (intern (pm--symbol-name mode-name))
                                 polymode-mode-name-override-alist))
-                     str)))
+                     mode-name)))
            (mname (if (string-match-p "-mode$" str)
                       str
                     (concat str "-mode"))))
@@ -911,7 +918,8 @@ near future.")
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
 If so, return it, otherwise return `poly-fallback-mode' and issue
-a warning."
+a warning. If NO-FALLBACK is non-nil, return nil otherwise return
+`poly-fallback-mode'."
   (cond ((fboundp mode) mode)
         (no-fallback nil)
         (t 'poly-fallback-mode)))
@@ -928,7 +936,8 @@ a warning."
     VALS))
 
 (defun pm--abrev-names (list abrev-regexp)
-  "Abbreviate names in LIST by replacing abrev-regexp with empty string."
+  "Abbreviate names in LIST by erasing ABREV-REGEXP matches.
+Elements of LIST can be either strings or symbols."
   (mapcar (lambda (nm)
             (let ((str-nm (if (symbolp nm)
                               (symbol-name nm)
@@ -984,12 +993,13 @@ IGNORE is there to allow this function in advises."
           (with-current-buffer buff
             (goto-char pos)))))))
 
-(defun pm--completing-read (prompt collection &optional predicate require-match initial-input hist def inherit-input-method)
-  "Wrapper for `completing-read'.
-Takes care when collection is an alist of (name . meta-info). If
-so, asks for names, but returns meta-info for that name. Enforce
-require-match = t. Also takes care of adding the most relevant
-DEF from history."
+;; Wrapper for `completing-read'.
+;; Take care when collection is an alist of (name . meta-info). If
+;; so, asks for names, but returns meta-info for that name. Enforce
+;; require-match = t. Also takes care of adding the most relevant
+;; DEF from history.
+(defun pm--completing-read (prompt collection &optional predicate require-match
+                                   initial-input hist def inherit-input-method)
   (if (and (listp collection)
            (listp (car collection)))
       (let* ((candidates (mapcar #'car collection))
@@ -1049,11 +1059,10 @@ DEF from history."
        (nth 5 (file-attributes file))))
 
 (defvar-local pm--process-buffer nil)
+;; Simplified version of TeX-run-TeX. Run shell COMMAND interactively in BUFFER.
+;; Run COMMAND in a buffer (in comint-shell-mode) in order to be able to accept
+;; user interaction.
 (defun pm--run-shell-command (command sentinel buff-name message)
-  "Run shell command interactively.
-Run command in a buffer (in comint-shell-mode) in order to be
-able to accept user interaction."
-  ;; simplified version of TeX-run-TeX
   (require 'comint)
   (let* ((buffer (get-buffer-create buff-name))
          (process nil)
@@ -1128,7 +1137,7 @@ able to accept user interaction."
            (lambda (selsym &rest ignore)
              (cdr (assoc selsym spec-alist)))))
         ((functionp elements) elements)
-        (t (error "elements argument must be either a list or a function"))))
+        (t (error "Elements argument must be either a list or a function"))))
 
 (defun pm--selector (processor type id)
   (let ((spec (or (assoc id (eieio-oref processor type))
@@ -1140,7 +1149,7 @@ able to accept user interaction."
                 ((eq type :to) '(ext doc t-spec))
                 ;; weaver slot
                 ((eq type :from-to) '(regexp ext doc command))
-                (t (error "invalid type '%s'" type)))))
+                (t (error "Invalid type '%s'" type)))))
     (pm--make-selector names (cdr spec))))
 
 (defun pm--selector-match (selector &optional file)
@@ -1240,3 +1249,7 @@ able to accept user interaction."
                 (pm--display-file ofile)))))))))
 
 (provide 'polymode-core)
+
+(provide 'polymode-core)
+
+;;; polymode-core.el ends here

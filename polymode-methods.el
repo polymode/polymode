@@ -25,6 +25,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+
+;;; Commentary:
+;;
+
 ;;; Code:
 
 (require 'polymode-core)
@@ -121,7 +125,7 @@ Ran by the polymode mode function."
 (defvar-local pm--indent-line-function-original nil)
 (defvar-local pm--syntax-propertize-function-original nil)
 (defun pm--common-setup (&optional buffer)
-  "Common setup for all polymode buffers.
+  "Run common setup in BUFFER.
 Runs after major mode and core polymode structures have been
 initialized. Return the buffer."
   (with-current-buffer (or buffer (current-buffer))
@@ -307,7 +311,7 @@ is ignored."
                      (eq tail-mode 'head))
                  'head
                'tail))
-            (t (error "type must be one of nil, 'host, 'head, 'tail or 'body"))))))
+            (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
 
 ;; return nil if type is nil or 'host
 (defun pm--get-chunkmode-mode (chunkmode type)
@@ -343,7 +347,7 @@ is ignored."
              -head-buffer buff))
       (`(tail ,_ ,_)
        (setq -tail-buffer buff))
-      (_ (error "type must be one of 'body, 'head or 'tail")))))
+      (_ (error "Type must be one of 'body, 'head or 'tail")))))
 
 
 ;;; SPAN MANIPULATION
@@ -443,7 +447,7 @@ in this case."
     (goto-char point)))
 
 (defun pm-indent-line-dispatcher (&optional span)
-  "Dispatch methods indent methods on current span.
+  "Dispatch `pm-indent-line' methods on current SPAN.
 Value of `indent-line-function' in polymode buffers."
   (let ((span (or span (pm-get-innermost-span)))
         (inhibit-read-only t))
@@ -549,3 +553,7 @@ to indent."
         (t (oref pm/chunkmode :adjust-face))))
 
 (provide 'polymode-methods)
+
+(provide 'polymode-methods)
+
+;;; polymode-methods.el ends here

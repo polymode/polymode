@@ -25,8 +25,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;; Commentary:
+;;
 ;;; Code:
-
 
 (require 'eieio)
 (require 'polymode-core)
@@ -276,7 +277,7 @@ physically present in the buffer.")
 body span. The body mode is determined dynamically by retrieving
 the name with the :mode-matcher.")
 
-;; fixme: should be let or return to the prev value no t
 (setq eieio-backward-compatibility t)
 
 (provide 'polymode-classes)
+;;; polymode-classes.el ends here

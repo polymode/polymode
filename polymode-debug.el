@@ -25,6 +25,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+
+;;; Commentary:
+;;
+
 ;;; Code:
 
 
@@ -35,7 +39,7 @@
   (let ((overlay (make-overlay (point) (point))))
     (overlay-put overlay 'face  '(:underline (:color "tomato" :style wave)))
     overlay)
-  "Overlay used in `pm-debug-mode'.")
+  "Overlay used in function `pm-debug-mode'.")
 
 (defvar pm--highlight-overlay
   (let ((overlay (make-overlay (point) (point))))
@@ -72,13 +76,9 @@
     (define-key map (kbd "M-n M-f t")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-f s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f b")   #'pm-debug-fontify-current-buffer)
-    (define-key map (kbd "M-n M-f e")   #'pm-debug-fontify-last-font-lock-error)
-    ;; (define-key map (kbd "M-n M-f h")   #'pm-debug-highlight-last-font-lock-error-region)
     (define-key map (kbd "M-n M-f M-t")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-f M-s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f M-b")   #'pm-debug-fontify-current-buffer)
-    ;; (define-key map (kbd "M-n M-f M-e")   #'pm-debug-fontify-last-font-lock-error)
-    (define-key map (kbd "M-n M-f M-h")   #'pm-debug-highlight-last-font-lock-error-region)
     map))
 
 (define-minor-mode pm-debug-minor-mode
@@ -142,11 +142,13 @@ Key bindings:
                "(%s) min:%d pos:%d max:%d || (%s) type:%s span:%s-%s %s %s"
                out)))))
 
-(defun pm-debug-info-on-current-span (no-cach)
+(defun pm-debug-info-on-current-span (no-cache)
+  "Show info on current span.
+With NO-CACHE prefix, don't use cached values of the span."
   (interactive "P")
   (if (not polymode-mode)
       (message "not in a polymode buffer")
-    (let ((span (pm-get-innermost-span nil no-cach)))
+    (let ((span (pm-get-innermost-span nil no-cache)))
       (message (pm--debug-info span))
       ;; (move-overlay pm--highlight-overlay (nth 1 span) (nth 2 span) (current-buffer))
       (pm-debug-flick-region (nth 1 span) (nth 2 span)))))
@@ -156,10 +158,12 @@ Key bindings:
 
 (defvar pm-debug-display-info-message nil)
 (defun pm-debug-toogle-info-message ()
+  "Toggle permanent info display."
   (interactive)
   (setq pm-debug-display-info-message (not pm-debug-display-info-message)))
 
 (defun pm-debug-toggle-fontification ()
+  "Enable or disable fontification in polymode buffers."
   (interactive)
   (if poly-lock-allow-fontification
       (progn
@@ -171,6 +175,7 @@ Key bindings:
           font-lock-mode t)))
 
 (defun pm-debug-toggle-verbose ()
+  "Activate verbose tracing for polymode core functions."
   (interactive)
   (if (or poly-lock-verbose pm-verbose)
       (progn
@@ -182,6 +187,7 @@ Key bindings:
           pm-verbose t)))
 
 (defun pm-debug-toggle-after-change ()
+  "Allow or disallow polymode actions in `after-change-functions'."
   (interactive)
   (if pm-allow-after-change-hook
       (progn
@@ -191,6 +197,7 @@ Key bindings:
     (setq pm-allow-after-change-hook t)))
 
 (defun pm-debug-toggle-post-command ()
+  "Allow or disallow polymode actions in `post-command-hook'."
   (interactive)
   (if pm-allow-post-command-hook
       (progn
@@ -200,6 +207,7 @@ Key bindings:
     (setq pm-allow-post-command-hook t)))
 
 (defun pm-debug-toggle-all ()
+  "Toggle all polymode guards back and forth."
   (interactive)
   (if poly-lock-allow-fontification
       (progn
@@ -216,6 +224,7 @@ Key bindings:
 ;;; FONT-LOCK
 
 (defun pm-debug-fontify-current-span ()
+  "Fontify current span."
   (interactive)
   (let ((span (pm-get-innermost-span))
         (poly-lock-allow-fontification t))
@@ -223,45 +232,20 @@ Key bindings:
     (poly-lock-fontify-now (nth 1 span) (nth 2 span))))
 
 (defun pm-debug-fontify-current-buffer ()
+  "Fontify current buffer."
   (interactive)
   (let ((poly-lock-allow-fontification t))
     (poly-lock-flush (point-min) (point-max))
     (poly-lock-fontify-now (point-min) (point-max))))
 
-(defun pm-debug-fontify-last-font-lock-error ()
-  (interactive)
-  (let ((reg (pm--debug-get-last-fl-error))
-        (poly-lock-allow-fontification t))
-    (if reg
-        (progn
-          (poly-lock-fontify-now (car reg) (cdr reg)))
-      (message "No last font-lock errors found"))))
-
-(defun pm--debug-get-last-fl-error ()
-  (with-current-buffer (messages-buffer)
-    (goto-char (point-max))
-    (when (re-search-backward "(poly-lock-fontify-now \\([0-9]+\\) \\([0-9]+\\))" nil t)
-      (cons (string-to-number (match-string 1))
-            (string-to-number (match-string 2))))))
-
-(defun pm-debug-highlight-last-font-lock-error-region ()
-  (interactive)
-  (let ((reg (pm--debug-get-last-fl-error)))
-    (if reg
-        (progn
-          (goto-char (car reg))
-          (recenter)
-          (move-overlay pm--highlight-overlay (car reg) (cdr reg) (current-buffer))
-          (message "Region %s" reg))
-      (message "No last font-lock errors found"))))
-
 
 ;;; TRACING
 
 (defun pm-debug-trace-background-1 (fn)
+  "Trace in background function FN."
   (interactive (trace--read-args "Trace function in background: "))
   (unless (symbolp fn)
-    (error "can trace symbols only"))
+    (error "Can trace symbols only"))
   (unless (get fn 'cl--class)
     (trace-function-background fn nil
                                '(lambda ()
@@ -296,8 +280,8 @@ Key bindings:
        (untrace-all))))
 
 (defun pm-debug-fontify-with-trace (span-only)
-  "Trace all fontification functions during the fontification of the current buffer.
-On prefix, fontify current span only."
+  "Trace fontification functions during the fontification of the current buffer.
+On SPAN-ONLY prefix, fontify current span only."
   (interactive "P")
   (let ((reg (if span-only
                  (let ((span (pm-get-innermost-span)))
@@ -309,8 +293,7 @@ On prefix, fontify current span only."
       (font-lock-ensure (car reg) (cdr reg)))))
 
 (defun pm-debug-visit-file-with-trace (file)
-  "Trace all fontification functions during the fontification of the current buffer.
-On prefix, fontify current span only."
+  "Trace fontification functions during the fontification of FILE."
   (interactive "f")
   (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
     (find-file-noselect f)))
@@ -339,6 +322,7 @@ On prefix, fontify current span only."
     indent-line-function))
 
 (defun pm-debug-print-relevant-variables ()
+  "Print values of relevant hooks and other variables."
   (interactive)
   (let ((buff (get-buffer-create "*polymode-vars*"))
         (vars (mapcar (lambda (v) (cons v (buffer-local-value v (current-buffer))))
@@ -373,6 +357,7 @@ On prefix, fontify current span only."
   (run-with-timer (or delay 0.4) nil (lambda () (delete-overlay pm--highlight-overlay))))
 
 (defun pm-debug-map-over-spans-and-highlight ()
+  "Map over all spans in the buffer and highlight briefly."
   (interactive)
   (pm-map-over-spans (lambda ()
                        (let ((start (nth 1 *span*))
@@ -381,27 +366,32 @@ On prefix, fontify current span only."
                          (sit-for 1)))
                      (point-min) (point-max) nil nil t))
 
-(defun pm-debug-run-over-check ()
+(defun pm-debug-run-over-check (no-cache)
+  "Map over all spans and report the time taken.
+Switch to buffer is performed on every position in the buffer.
+On prefix NO-CACHE don't use cached spans."
   (interactive)
   (goto-char (point-min))
   (let ((start (current-time))
-        (count 1))
+        (count 1)
+        (pm-initialization-in-progress no-cache))
     (pm-switch-to-buffer)
     (while (< (point) (point-max))
       (setq count (1+ count))
       (forward-char)
       (pm-switch-to-buffer))
     (let ((elapsed  (float-time (time-subtract (current-time) start))))
-      (message "elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
+      (message "Elapsed: %s  per-char: %s" elapsed (/ elapsed count)))))
 
 (defun pm-dbg (msg &rest args)
   (let ((cbuf (current-buffer))
         (cpos (point)))
-   (with-current-buffer (get-buffer-create "*pm-dbg*")
-     (save-excursion
-       (goto-char (point-max))
-       (insert "\n")
-       (insert (apply 'format (concat "%f [%s at %d]: " msg)
-                      (float-time) cbuf cpos args))))))
+    (with-current-buffer (get-buffer-create "*pm-dbg*")
+      (save-excursion
+        (goto-char (point-max))
+        (insert "\n")
+        (insert (apply 'format (concat "%f [%s at %d]: " msg)
+                       (float-time) cbuf cpos args))))))
 
 (provide 'polymode-debug)
+;;; polymode-debug.el ends here

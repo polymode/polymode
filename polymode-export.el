@@ -25,6 +25,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+
+;;; Commentary:
+;;
+
 ;;; Code:
 
 (require 'polymode-core)
@@ -154,7 +158,7 @@
   ((callback
     :initarg :callback
     :initform (lambda (&optional rest)
-                (error "No callback defined for this exporter."))
+                (error "No callback defined for this exporter"))
     :type (or symbol function)
     :documentation
     "Callback function to be called by :function. There is no
@@ -182,10 +186,10 @@
   "Class to represent exporters that call external processes.")
 
 (defun pm-default-shell-export-function (command sentinel from to)
-  "Run exporting command interactively.
+  "Run exporting COMMAND interactively to convert FROM to TO.
 Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
-that call a shell command"
+that call a shell command. SENTINEL is the process sentinel."
   (pm--run-shell-command command sentinel "*polymode export*"
                          (concat "Exporting " from "-->" to " with command:\n\n     "
                                  command "\n\n")))
@@ -234,9 +238,9 @@ exporters input extension. When such combination is possible,
 settle on weaving first and exporting the weaved output. When
 none of the above worked, ask the user for `from' and `to' specs.
 
-When called interactively with C-u argument, ask for FROM and TO
-interactively. See class `pm-exporter' for the complete
-specification."
+When called with prefix argument, ask for FROM and TO
+interactively. See constructor function ‘pm-exporter’ for the
+complete specification."
   (interactive "P")
   (cl-flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
                                     (name (if ext
@@ -356,13 +360,13 @@ specification."
     (oset pm/polymode :exporter out)
     out))
 
-(defmacro polymode-register-exporter (exporter defaultp &rest configs)
+(defmacro polymode-register-exporter (exporter default &rest configs)
   "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
-When DEFAULT? is non-nil, also make EXPORTER the default exporter
+When DEFAULT is non-nil, also make EXPORTER the default exporter
 for each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) :exporters ',exporter)
-     (when ,defaultp (oset (symbol-value pm) :exporter ',exporter))))
+     (when ,default (oset (symbol-value pm) :exporter ',exporter))))
 
 
 ;;; GLOBAL EXPORTERS
@@ -415,8 +419,9 @@ for each polymode in CONFIGS."
      ("rtf"     "rtf"  "rich text format" "rtf"))
    :function 'pm-default-shell-export-function
    :sentinel 'pm-default-export-sentinel)
-  "Pandoc exporter"
+  "Pandoc exporter."
   :group 'polymode-export
   :type 'object)
 
 (provide 'polymode-export)
+;;; polymode-export.el ends here

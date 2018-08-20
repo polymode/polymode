@@ -94,13 +94,13 @@
   (pm-test-poly-lock poly-markdown-mode "markdown.md"
     ((insert-1 ("^## Intro" beg))
      (insert " ")
-     (pm-test-chunks)
+     (pm-test-spans)
      (delete-backward-char 1))
     ((delete-2 "^2. Blockquotes")
      (backward-kill-word 1))
     ((insert-new-line-3 ("^3. Two Inline" end))
      (insert "\n")
-     (pm-test-chunks)
+     (pm-test-spans)
      (delete-backward-char 1))))
 
 (ert-deftest poly-markdown/headings-protected ()
@@ -108,13 +108,13 @@
   (pm-test-poly-lock poly-markdown-mode "markdown.md"
     ((insert-1 ("^## Intro" beg))
      (insert " ")
-     (pm-test-chunks)
+     (pm-test-spans)
      (delete-backward-char 1))
     ((delete-2 "^2. Blockquotes")
      (backward-kill-word 1))
     ((insert-new-line-3 ("^3. Two Inline" end))
      (insert "\n")
-     (pm-test-chunks)
+     (pm-test-spans)
      (delete-backward-char 1))))
 
 (ert-deftest poly-markdown/fenced-code ()

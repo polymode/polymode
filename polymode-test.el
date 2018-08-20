@@ -25,6 +25,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+
+;;; Commentary:
+;;
+
 ;;; Code:
 
 (setq eieio-backward-compatibility nil)
@@ -120,7 +124,7 @@
        ,@body
        (current-buffer))))
 
-(defun pm-test-chunk ()
+(defun pm-test-span ()
   ;; head/tail is usually highlighted incorrectly by host modes when only head
   ;; is in the buffer, so we just skip those head-tails which have
   ;; :head/tail-mode 'host
@@ -166,15 +170,16 @@
               (ert-fail data)))
           (setq opos (next-single-property-change opos 'face obuf)))))))
 
-(defun pm-test-chunks ()
+(defun pm-test-spans ()
+  "Execute `pm-test-span' for every span in the buffer."
   (save-excursion
-    (pm-map-over-spans #'pm-test-chunk)))
+    (pm-map-over-spans #'pm-test-span)))
 
 (defun pm-test-goto-loc (loc)
   "Go to LOC and switch to polymode indirect buffer.
 LOC can be either
   - a number giving position in the buffer
-  - regexp to search for from point-min
+  - regexp to search for from ‘point-min’
   - a cons of the form (ROW . COL)
 In the last case ROW can be either a number or a regexp to search
 for and COL either a column number or symbols beg or end
@@ -245,14 +250,14 @@ Needed because redisplay is not triggered in batch mode."
 CHANGE-SETS is a collection of forms of the form (NAME-LOC &rest
 BODY). NAME-LOC is a list of the form (NAME LOCK) where NAME is a
 symbol, LOC is the location as in `pm-test-goto-loc'. Before and
-after execution of the BODY undo-boundary is set and after the
+after execution of the BODY ‘undo-boundary’ is set and after the
 execution undo is called once. After each change-set
-`pm-test-chunks' on the whole file is run."
+`pm-test-span' on the whole file is run."
   (declare (indent 2)
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
-      (pm-test-chunks)
+      (pm-test-spans)
       (dolist (cset ',change-sets)
         (let ((pm-test-current-change-set (caar cset)))
           (setq pm-extra-span-info (caar cset))
@@ -260,8 +265,12 @@ execution undo is called once. After each change-set
           (pm-test-goto-loc (nth 1 (car cset)))
           (eval (cons 'progn (cdr cset)))
           (undo-boundary)
-          (pm-test-chunks)
+          (pm-test-spans)
           (let ((inhibit-message (not pm-verbose)))
             (undo)))))))
 
 (provide 'polymode-test)
+
+(provide 'polymode-test)
+
+;;; polymode-test.el ends here

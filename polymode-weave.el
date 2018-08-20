@@ -25,6 +25,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;; Commentary:
+;;
 ;;; Code:
 
 (require 'polymode-core)
@@ -121,7 +123,7 @@
   ((callback
     :initarg :callback
     :initform (lambda (&optional rest)
-                (error "No callback defined for this weaver."))
+                (error "No callback defined for this weaver"))
     :type (or symbol function)
     :documentation
     "Callback function to be called by :function. There is no
@@ -148,11 +150,12 @@
     with `shell-quote-argument'."))
   "Class for weavers that call external processes.")
 
-(defun pm-default-shell-weave-function (command sentinel from-to-id &rest args)
-  "Run weaving command interactively.
+(defun pm-default-shell-weave-function (command sentinel from-to-id &rest _args)
+  "Run weaving COMMAND interactively with SENTINEL.
 Run command in a buffer (in comint-shell-mode) so that it accepts
-user interaction. This is a default function in all weavers
-that call a shell command"
+user interaction. This is a default function in all weavers that
+call a shell command. FROM-TO-ID is the idea of the weaver. ARGS
+are ignored."
   (pm--run-shell-command command sentinel "*polymode weave*"
                          (concat "weaving " from-to-id " with command:\n\n     "
                                  command "\n\n")))
@@ -255,21 +258,22 @@ specification."
       (setq-local pm--weave:fromto-last ft-id)
       (pm-weave weaver ft-id))))
 
-(defmacro polymode-register-weaver (weaver defaultp &rest configs)
+(defmacro polymode-register-weaver (weaver default &rest configs)
   "Add WEAVER to :weavers slot of all config objects in CONFIGS.
-When DEFAULT? is non-nil, also make weaver the default WEAVER for
+When DEFAULT is non-nil, also make weaver the default WEAVER for
 each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) :weavers ',weaver)
-     (when ,defaultp (oset (symbol-value pm) :weaver ',weaver))))
+     (when ,default (oset (symbol-value pm) :weaver ',weaver))))
 
 (defun polymode-set-weaver ()
+  "Set the current weaver for this polymode."
   (interactive)
   (unless pm/polymode
     (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((weavers (pm--abrev-names
-                     (delete-dups (pm--oref-with-parents pm/polymode :weavers))
-                     "pm-weaver/"))
+                   (delete-dups (pm--oref-with-parents pm/polymode :weavers))
+                   "pm-weaver/"))
          (sel (pm--completing-read "Choose weaver: " weavers nil t nil 'pm--weaver-hist))
          (out (intern (cdr sel))))
     (setq-local pm--weaver:from-last nil)
@@ -278,3 +282,4 @@ each polymode in CONFIGS."
     out))
 
 (provide 'polymode-weave)
+;;; polymode-weave.el ends here

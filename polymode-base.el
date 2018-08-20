@@ -25,6 +25,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;;; Commentary:
+;;
 ;;; Code:
 
 (defvar-local poly-inner-mode nil
@@ -55,7 +57,7 @@
 (defcustom pm-host/fundamental
   (pm-host-chunkmode :object-name "fundamental"
                      :mode 'fundamental-mode)
-  "Fundamental host mode"
+  "Fundamental host mode."
   :group 'hostmodes
   :type 'object)
 
@@ -69,21 +71,21 @@
 (defcustom pm-host/latex
   (pm-host-chunkmode :object-name "latex"
                      :mode 'latex-mode)
-  "Latex host chunkmode"
+  "Latex host chunkmode."
   :group 'hostmodes
   :type 'object)
 
 (defcustom pm-host/html
   (pm-host-chunkmode :object-name "html"
                      :mode 'html-mode)
-  "HTML host chunkmode"
+  "HTML host chunkmode."
   :group 'hostmodes
   :type 'object)
 
 (defcustom pm-host/R
   (pm-host-chunkmode :object-name "R"
                      :mode 'R-mode)
-  "R host chunkmode"
+  "R host chunkmode."
   :group 'hostmodes
   :type 'object)
 
@@ -91,21 +93,21 @@
   (pm-host-chunkmode :object-name "C++"
                      :mode 'c++-mode
                      :protect-font-lock nil)
-  "C++ host chunkmode"
+  "C++ host chunkmode."
   :group 'hostmodes
   :type 'object)
 
 (defcustom pm-host/text
   (pm-host-chunkmode :object-name "text"
                      :mode 'text-mode)
-  "Text host chunkmode"
+  "Text host chunkmode."
   :group 'hostmodes
   :type 'object)
 
 (defcustom pm-host/yaml
   (pm-host-chunkmode :object-name "YAML"
                      :mode 'yaml-mode)
-  "YAML chunkmode"
+  "YAML chunkmode."
   :group 'hostmodes
   :type 'object)
 
@@ -120,7 +122,7 @@
   (pm-polymode :object-name "brew"
                :hostmode 'pm-host/text
                :innermodes nil)
-  "Typical Brew configuration"
+  "Typical Brew configuration."
   :group 'polymodes
   :type 'object)
 
@@ -128,14 +130,14 @@
   (pm-polymode :object-name "html"
                :hostmode 'pm-host/html
                :innermodes nil)
-  "HTML typical configuration"
+  "HTML typical configuration."
   :group 'polymodes
   :type 'object)
 
 (defcustom pm-poly/C++
   (pm-polymode :object-name "C++"
                :hostmode 'pm-host/C++)
-  "C++ typical configuration"
+  "C++ typical configuration."
   :group 'polymodes
   :type 'object)
 
@@ -147,3 +149,4 @@
   :type 'object)
 
 (provide 'polymode-base)
+;;; polymode-base.el ends here
