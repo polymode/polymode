@@ -47,6 +47,12 @@
    (file-name-directory
     (or load-file-name buffer-file-name))))
 
+(defvar pm-samples-dir
+  (expand-file-name
+   "samples"
+   (file-name-directory
+    (or load-file-name buffer-file-name))))
+
 (defun pm-test-matcher (string span-alist matcher &optional dry-run)
   (with-temp-buffer
     (insert string)
@@ -91,38 +97,44 @@
        ,@body
        (current-buffer))))
 
-(defmacro pm-test-run-on-file (mode file &rest body)
+(defmacro pm-test-run-on-file (mode file-name &rest body)
   "Run BODY in a temporary buffer with the content of FILE in MODE."
   (declare (indent 2) (debug (sexp sexp body)))
-  `(let ((poly-lock-allow-background-adjustment nil)
-         (file (expand-file-name ,file pm-test-input-dir))
-         (pm-extra-span-info nil)
-         (buf "*pm-test-file-buffer*"))
-     (when (get-buffer buf)
-       (kill-buffer buf))
-     (with-current-buffer (get-buffer-create buf)
-       (when pm-verbose
-         (message "\n===================  testing %s =======================" file))
-       (switch-to-buffer buf)
-       (insert-file-contents file)
-       (let ((inhibit-message t))
-         (funcall-interactively ',mode))
-       (goto-char (point-min))
-       (font-lock-ensure)
-       (goto-char (point-min))
-       (save-excursion
-         (pm-map-over-spans
-          (lambda ()
-            (setq font-lock-mode t)
-            ;; font-lock is not activated in batch mode
-            (poly-lock-mode t)
-            ;; redisplay is not triggered in batch and often it doesn't trigger
-            ;; fontification in X either (waf?)
-            (add-hook 'after-change-functions #'pm-test-invoke-fontification t t))
-          (point-min) (point-max)))
-       (font-lock-ensure)
-       ,@body
-       (current-buffer))))
+  (let ((pre-form (when (eq (car body) :pre-form)
+                    (prog1 (cadr body)
+                      (setq body (cddr body))))))
+    `(let ((poly-lock-allow-background-adjustment nil)
+           (file (expand-file-name ,file-name pm-test-input-dir))
+           (pm-extra-span-info nil)
+           (buf "*pm-test-file-buffer*"))
+       (unless (file-exists-p file)
+         (setq file (expand-file-name ,file-name pm-samples-dir)))
+       (when (get-buffer buf)
+         (kill-buffer buf))
+       (with-current-buffer (get-buffer-create buf)
+         (when pm-verbose
+           (message "\n===================  testing %s =======================" file))
+         (switch-to-buffer buf)
+         (insert-file-contents file)
+         (let ((inhibit-message t))
+           (funcall-interactively ',mode))
+         (goto-char (point-min))
+         ,pre-form
+         (font-lock-ensure)
+         (goto-char (point-min))
+         (save-excursion
+           (pm-map-over-spans
+            (lambda ()
+              (setq font-lock-mode t)
+              ;; font-lock is not activated in batch mode
+              (poly-lock-mode t)
+              ;; redisplay is not triggered in batch and often it doesn't trigger
+              ;; fontification in X either (waf?)
+              (add-hook 'after-change-functions #'pm-test-invoke-fontification t t))
+            (point-min) (point-max)))
+         (font-lock-ensure)
+         ,@body
+         (current-buffer)))))
 
 (defun pm-test-span ()
   ;; head/tail is usually highlighted incorrectly by host modes when only head
