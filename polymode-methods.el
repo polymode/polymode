@@ -93,6 +93,7 @@ Ran by the polymode mode function."
     (pm--common-setup)
     (pm--run-init-hooks chunkmode 'polymode-init-inner-hook)))
 
+(defvar poly-lock-allow-fontification)
 (defun pm--mode-setup (mode &optional buffer)
   ;; General major-mode install. Should work for both indirect and base buffers.
   ;; PM objects are not yet initialized (pm/polymode, pm/chunkmode, pm/type)
@@ -324,11 +325,11 @@ in this case."
             ;; chunkmode and elisp chunkmodes would not share head/tail buffers.
             ;; There could be even two R modechunks providing different
             ;; functionality and thus not even sharing body buffer.
-            (let ((name (concat (eieio-object-name-string proto) ":" (symbol-name mode))))
+            (let ((name (concat (pm-object-name proto) ":" (symbol-name mode))))
               (or
                ;; a. loop through installed inner modes
                (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
-                        when (equal name (eieio-object-name-string obj))
+                        when (equal name (pm-object-name obj))
                         return obj)
                ;; b. create new
                (let ((innermode (clone proto name :mode mode)))

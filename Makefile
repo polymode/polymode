@@ -6,6 +6,7 @@ EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(ELPA_DIR)
 EMACSBATCH = $(EMACSRUN) --batch
 
 ELS = $(wildcard *.el)
+LINTELS = $(filter-out polymode-autoloads.el polymode-compat.el polymode-configuration.el, $(ELS))
 OBJECTS = $(ELS:.el=.elc)
 
 # export PM_VERBOSE
@@ -20,7 +21,7 @@ build: version cleansilent
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
-	@$(EMACSBATCH) --load targets/checkdoc.el
+	@$(EMACSBATCH) --load targets/checkdoc.el $(LINTELS)
 
 clean:
 	rm -f $(OBJECTS)
@@ -34,10 +35,12 @@ cleansilent:
 deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
 
-lint: checkdoc
+lint: version
+	@$(EMACSBATCH) --load targets/melpa.el --load elisp-lint.el \
+		--funcall elisp-lint-files-batch --no-package-format --no-fill-column $(LINTELS)
 
 melpa: version
-	$(EMACSBATCH) --load targets/melpa.el
+	@$(EMACSBATCH) --load targets/melpa.el
 
 elpa: melpa
 

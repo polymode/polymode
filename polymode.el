@@ -6,7 +6,7 @@
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "25"))
 ;; URL: https://github.com/vitoshka/polymode
-;; Keywords: emacs
+;; Keywords: languages, multi-modes, processes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -45,6 +45,8 @@
 (require 'polymode-weave)
 (require 'polymode-base)
 (require 'poly-lock)
+(eval-when-compile
+  (require 'derived))
 
 (defcustom polymode-prefix-key "\M-n"
   "Prefix key for the polymode mode keymap.

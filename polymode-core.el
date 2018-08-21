@@ -74,6 +74,11 @@
   (defclass dummy ()
     ((function) (from-to))))
 
+(defun pm-object-name (obj)
+  ;; gives warnings on e25,26 but fine in e27
+  (with-no-warnings
+    (eieio-object-name-string obj)))
+
 ;; shields
 (defvar pm-allow-after-change-hook t)
 (defvar pm-allow-post-command-hook t)
@@ -828,8 +833,8 @@ This function is placed in `before-change-functions' hook."
                          (eq (buffer-base-buffer b) base))
                 (with-current-buffer b
                   (setq buffer-file-name nil)
-	              (setq buffer-file-number nil)
-	              (setq buffer-file-truename nil))))))))))
+                  (setq buffer-file-number nil)
+                  (setq buffer-file-truename nil))))))))))
 
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.

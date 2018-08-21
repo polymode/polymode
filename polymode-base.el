@@ -29,6 +29,8 @@
 ;;
 ;;; Code:
 
+(require 'polymode-classes)
+
 (defvar-local poly-inner-mode nil
   "Inner mode for chunks with unspecified modes.")
 
