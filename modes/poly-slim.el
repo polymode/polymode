@@ -39,4 +39,6 @@ indentation (like python)."
   :hostmode 'pm-host/slim
   :innermodes '(pm-inner/slim-code-block))
 
+(add-to-list 'auto-mode-alist '("\\.slim$" . poly-slim-mode))
+
 (provide 'poly-slim)

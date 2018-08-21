@@ -100,6 +100,7 @@ detected."
 
 ;;;###autoload (autoload 'poly-noweb-mode "poly-noweb")
 (define-polymode poly-noweb-mode pm-poly/noweb)
+(add-to-list 'auto-mode-alist '("\\.nw$" . poly-noweb-mode))
 
 (defun poly-noweb-electric-< (arg)
   "Auto insert noweb chunk if at bol followed by white space.

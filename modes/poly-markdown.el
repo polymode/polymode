@@ -103,6 +103,7 @@ character would do)."
 
 ;;;###autoload  (autoload 'poly-markdown-mode "poly-markdown")
 (define-polymode poly-markdown-mode pm-poly/markdown)
+(add-to-list 'auto-mode-alist '("\\.md$" . poly-markdown-mode))
 
 ;;; FIXES:
 (defun poly-markdown-remove-markdown-hooks ()
