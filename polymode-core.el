@@ -372,8 +372,9 @@ forward."
 `pm-innermost-span' returns a raw type (head, body or tail) but
 the actual type installed depends on the values of :host-mode ant
 :tail-mode of the CHUNKMODE object. Always return nil if TYPE is
-nil or 'host. CHUNKMODE could also be a span, in which case TYPE
-is ignored."
+nil (aka a host span). CHUNKMODE could also be a span, in which
+case TYPE is ignored."
+  ;; fixme: this works on inner modes only. Fix naming.
   (when (listp chunkmode)
     ;; a span
     (setq type (car chunkmode)

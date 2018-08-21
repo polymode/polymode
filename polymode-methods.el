@@ -295,11 +295,10 @@ in this case."
   (let ((span (cl-call-next-method)))
     (if (null (car span))
         span
-      (setf (nth 3 span) (pm--get-auto-chunk span))
-      span)))
+      (pm--get-auto-span span))))
 
 ;; fixme: cache somehow?
-(defun pm--get-auto-chunk (span)
+(defun pm--get-auto-span (span)
   (let* ((proto (nth 3 span))
          (type (car span)))
     (save-excursion
@@ -326,18 +325,20 @@ in this case."
             ;; chunkmode and elisp chunkmodes would not share head/tail buffers.
             ;; There could be even two R modechunks providing different
             ;; functionality and thus not even sharing body buffer.
-            (let ((name (concat (pm-object-name proto) ":" (symbol-name mode))))
-              (or
-               ;; a. loop through installed inner modes
-               (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
-                        when (equal name (pm-object-name obj))
-                        return obj)
-               ;; b. create new
-               (let ((innermode (clone proto name :mode mode)))
-                 (object-add-to-list pm/polymode '-auto-innermodes innermode)
-                 innermode)))
-          ;; else, use hostmode
-          (eieio-oref pm/polymode '-hostmode))))))
+            (let* ((name (concat (pm-object-name proto) ":" (symbol-name mode)))
+                   (outchunk (or
+                              ;; a. loop through installed inner modes
+                              (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
+                                       when (equal name (pm-object-name obj))
+                                       return obj)
+                              ;; b. create new
+                              (let ((innermode (clone proto name :mode mode)))
+                                (object-add-to-list pm/polymode '-auto-innermodes innermode)
+                                innermode))))
+              (setf (nth 3 span) outchunk)
+              span)
+          ;; else, return itself
+          span)))))
 
 
 ;;; INDENT
