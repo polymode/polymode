@@ -11,3 +11,4 @@ tmp*
 ELPA
 MELPA
 site/
+*autoloads.el

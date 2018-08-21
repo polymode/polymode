@@ -28,7 +28,7 @@ clean:
 	rm -f $(OBJECTS)
 
 cleanall: clean
-	rm -rf $(ELPA_DIR)
+	rm -rf $(ELPA_DIR) *autoloads.el
 
 melpa: version
 	$(EMACSBATCH) --load targets/melpa.el

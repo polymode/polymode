@@ -24,7 +24,7 @@ checkdoc: version
 	@$(EMACSBATCH) --load targets/checkdoc.el $(LINTELS)
 
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJECTS) polymode-autoloads.el
 
 cleanall: cleansilent
 	rm -rf $(ELPA_DIR)
