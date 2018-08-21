@@ -6,4 +6,7 @@
 </p>
 
 
-Polymodes for __FIXME__.
+This package provides `__MODULE__-mode` - a [polymode]() for __FIXME__.
+
+
+[polymode]: https://polymode.github.io/

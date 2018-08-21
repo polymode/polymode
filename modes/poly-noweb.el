@@ -1,11 +1,11 @@
-;;; poly-noweb.el
+;;; poly-noweb.el --- Polymode for noweb -*- lexical-binding: t -*-
 ;;
-;; Filename: poly-noweb.el
-;; Author: Spinu Vitalie
-;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
-;; Version: 1.0
-;; URL: https://github.com/vitoshka/polymode
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2018 Vitalie Spinu
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "0.1"))
+;; URL: https://github.com/polymode/poly-noweb
 ;; Keywords: emacs
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,6 +28,12 @@
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (require 'polymode)
 
@@ -168,3 +174,4 @@ closing \"@\" and a newline if necessary."
   :type 'object)
 
 (provide 'poly-noweb)
+;;; poly-noweb.el ends here
