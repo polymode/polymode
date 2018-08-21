@@ -57,9 +57,10 @@ to lowest priority):
                                      if (string-match-p k dummy) return v)))))))))
 
     (or
-     (and str (> (length str) 0) str)
+     (and (stringp str) (> (length str) 0) str)
+     (and (symbolp str) str)
      (and (boundp 'noweb-code-mode)
-          noweb-code-mode)
+           noweb-code-mode)
      poly-inner-mode
      'poly-fallback-mode)))
 
@@ -77,7 +78,8 @@ advance."
   (pm-inner-auto-chunkmode "noweb"
                            :head-matcher "^[ \t]*<<\\(.*\\)>>=.*$"
                            :tail-matcher "^[ \t]*@.*$"
-                           :mode-matcher #'poly-noweb-mode-matcher)
+                           :mode-matcher #'poly-noweb-mode-matcher
+                           :allow-nested t)
   "Noweb auto chunk.
 See `poly-noweb-mode-matcher' for how mode of the chunk is
 detected."

@@ -279,7 +279,8 @@ Base modes usually do not compute spans."
 TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
 in this case."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
-    (let ((span (pm--span-at-point head-matcher tail-matcher pos)))
+    (let ((span (pm--span-at-point head-matcher tail-matcher pos
+                                   (eieio-oref chunkmode :allow-nested))))
       (when span
         ;; (let ((type (car span)))
         ;;   (if (or (and (eq type 'head) (eq head-mode 'host))

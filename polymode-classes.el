@@ -218,7 +218,12 @@ over all the other space not claimed by other chunkmodes in the
 buffer.")
 
 (defclass pm-inner-chunkmode (pm-chunkmode)
-  ((head-mode
+  ((allow-nested
+    :initarg :allow-nested
+    :type boolean
+    :initform nil
+    :documentation "Non-nil if the chunk of this type allows nested chunks of the same type.")
+   (head-mode
     :initarg :head-mode
     :type symbol
     :initform 'poly-head-tail-mode

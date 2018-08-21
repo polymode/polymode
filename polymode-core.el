@@ -428,10 +428,11 @@ is ignored."
 ;;                 (setq beg.end (funcall matcher arg))))
 ;;     beg.end))
 
-(defun pm--span-at-point (head-matcher tail-matcher &optional pos)
+(defun pm--span-at-point (head-matcher tail-matcher &optional pos allow-nested)
   "Span detector with head and tail matchers.
 HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
-`pm-inner-chunkmode' object. POS defaults to (point).
+`pm-inner-chunkmode' object. POS defaults to (point). When
+ALLOW-NESTED is non-nil nested chunks of this type are allowed.
 
 Return a list of the form (TYPE SPAN-START SPAN-END) where TYPE
 is one of the following symbols:
@@ -456,7 +457,7 @@ is one of the following symbols:
                 (list 'head (car head1) (cdr head1))
               ;;            ------------------------
               ;; host)[head)[body)[tail)[host)[head)[body)
-              (pm--find-tail-from-head pos head1 head-matcher tail-matcher))
+              (pm--find-tail-from-head pos head1 head-matcher tail-matcher allow-nested))
           ;; ----------
           ;; host)[head)[body)[tail)[host
           (goto-char (point-min))
@@ -472,14 +473,25 @@ is one of the following symbols:
                       (list 'head (car head2) (cdr head2))
                     ;;            -----------------
                     ;; host)[head)[body)[tail)[host
-                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher)))
+                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher allow-nested)))
               ;; no span found
               nil)))))))
 
-(defun pm--find-tail-from-head (pos head head-matcher tail-matcher)
+;; fixme: find a simpler way with recursion where head-matcher and tail-matcher could be reversed
+(defun pm--find-tail-from-head (pos head head-matcher tail-matcher allow-nested)
   (goto-char (cdr head))
   (let ((tail (funcall tail-matcher 1))
-        (at-max (= pos (point-max))))
+        (at-max (= pos (point-max)))
+        (type 'tail))
+    (when allow-nested
+      (save-excursion
+        ;; search for next head and pick the earliest
+        (goto-char (cdr head))
+        (let ((match (funcall head-matcher 1)))
+          (when (or (null tail)
+                    (and match (< (car match) (car tail))))
+            (setq tail match
+                  type 'head)))))
     (if tail
         (if (< pos (car tail))
             ;;            -----
@@ -489,24 +501,34 @@ is one of the following symbols:
                   (and at-max (= pos (cdr tail))))
               ;;                  -----
               ;; host)[head)[body)[tail)[host)[head)
-              (list 'tail (car tail) (cdr tail))
+              (list type (car tail) (cdr tail))
             (goto-char (cdr tail))
             ;;                        -----------
             ;; host)[head)[body)[tail)[host)[head)
-            (let ((head2 (funcall head-matcher 1)))
-              (if head2
-                  (if (< pos (car head2))
+            (let ((match (funcall head-matcher 1))
+                  (type 'head))
+              (when allow-nested
+                (save-excursion
+                  ;; search for next head and pick the earliest
+                  (goto-char (cdr tail))
+                  (let ((match2 (funcall tail-matcher 1)))
+                    (when (or (null match)
+                              (and match2 (< (car match2) (car match))))
+                      (setq match match2
+                            type 'tail)))))
+              (if match
+                  (if (< pos (car match))
                       ;;                        -----
                       ;; host)[head)[body)[tail)[host)[head)
-                      (list nil (cdr tail) (car head2))
-                    (if (or (< pos (cdr head2))
-                            (and at-max (= pos (cdr head2))))
+                      (list nil (cdr tail) (car match))
+                    (if (or (< pos (cdr match))
+                            (and at-max (= pos (cdr match))))
                         ;;                              -----
                         ;; host)[head)[body)[tail)[host)[head)[body
-                        (list 'head (car head2) (cdr head2))
+                        (list type (car match) (cdr match))
                       ;;                                    ----
                       ;; host)[head)[body)[tail)[host)[head)[body
-                      (pm--find-tail-from-head pos head2 head-matcher tail-matcher)))
+                      (pm--find-tail-from-head pos match head-matcher tail-matcher allow-nested)))
                 ;;                        -----
                 ;; host)[head)[body)[tail)[host)
                 (list nil (cdr tail) (point-max))))))

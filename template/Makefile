@@ -7,6 +7,7 @@ EMACSBATCH = $(EMACSRUN) --batch
 
 ELS = $(wildcard *.el)
 OBJECTS = $(ELS:.el=.elc)
+LINTELS = $(filter-out __MODULE__-autoloads.el, $(ELS))
 
 # export PM_VERBOSE
 
@@ -22,7 +23,9 @@ checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
 	$(EMACSBATCH) --load targets/checkdoc.el
 
-lint: checkdoc
+lint: version
+	@$(EMACSBATCH) --load targets/melpa.el --load elisp-lint.el \
+		--funcall elisp-lint-files-batch --no-package-format --no-fill-column $(LINTELS)
 
 clean:
 	rm -f $(OBJECTS)
