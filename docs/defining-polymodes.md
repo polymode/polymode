@@ -1,6 +1,6 @@
 
-Defining polymodes always starts by defining one host and at least one inner
-chunkmode.
+Defining polymodes always starts by defining one host chunkmode and at least one
+inner chunkmode.
 
 ## Hosts Modes
 
@@ -9,26 +9,26 @@ Here is an example of markdown host mode:
 ```el
 
 (defcustom pm-host/markdown
-  (pm-host-chunkmode "markdown"
+  (pm-host-chunkmode :object-name "markdown"
                      :mode 'markdown-mode)
   "Markdown host chunkmode"
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 ```
 
-Here we call `pm-host-chunkmode`, the constructor of host chunkmodes, with the
-`:mode` parameter which should be the name of a valid emacs major mode function.
-In this case `markdown-mode`.
+Here we call the constructor of host chunkmode objects `pm-host-chunkmode` with
+the `:mode` parameter which should be a name (symbol) of a valid emacs major
+mode function. In this case `markdown-mode`.
 
-_Note: First argument in constructors is the name of the object. This name is
-used in various contexts for object identification_.
+_`:object-name` is used in various contexts for object identification and
+informative messages._
 
 ## Inner Modes
 
 Polymode defines two built-in types of inner chunkmodes, simple
 `pm-inner-chunkmode` which allows for one pre-specified mode and
-`pm-inner-auto-chunkmode` which detects the type of the chunk dynamically. 
+`pm-inner-auto-chunkmode` which detects the type of the body span dynamically.
 
 This is an example of two markdown auto innermodes, one for fenced code and the
 other for inner code:
@@ -36,37 +36,38 @@ other for inner code:
 ```el
 
 (defcustom  pm-inner/markdown-fenced-code
-  (pm-inner-auto-chunkmode "markdown-fenced-code"
+  (pm-inner-auto-chunkmode :object-name "markdown-fenced-code"
                            :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                            :tail-matcher "^[ \t]*```[ \t]*$"
                            :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1))
   "Markdown fenced code block."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom  pm-inner/markdown-inline-code
-  (pm-inner-auto-chunkmode "markdown-inline-code"
+  (pm-inner-auto-chunkmode :object-name "markdown-inline-code"
                            :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                            :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
                            :mode-matcher (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
                            :head-mode 'host
                            :tail-mode 'host)
   "Markdown inline code."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 ```
 
-Here `:head-matcher` and `:tail-matcher` are regular expressions defining the
-head and the tail of the chunks. The `:mode-matcher` tells polymode how to
-retrieve the major mode from the head of the chunk. Each of the three marchers
-can be a regexp a cons of the form (REGEXP . SUBMATCH) or a function which
-should return the name of the mode.
+Here `:head-matcher` and `:tail-matcher` are regular expressions used to search
+for heads and tails of inner code chunks. The `:mode-matcher` tells polymode how
+to retrieve the major mode from the head of the chunk. Each of the three
+marchers can be a regexp a cons of the form (REGEXP . SUBMATCH) or a function
+which should return the name of the mode.
 
 `:head-mode` and `:tail-mode` specify the major mode which should be used for
-head and tail respectively. If it's a special symbol `'host` host mode is used
-instead, if `'body` the chunks body mode. It defaults to `poly-head-tail-mode`
-which is at the moment a very basic prog mode with no special powers.
+head and tail respectively. Special symbol `'host` means that the host mode is
+used for head or tail; if `'body` the chunk's body mode. Head and tail modes
+default to `poly-head-tail-mode` which is a very basic prog mode with no special
+powers.
 
 ## Polymodes
 
@@ -92,30 +93,32 @@ further details.
 
 On a technical level polymode functions are more similar to minor-modes. In fact
 every `poly-NAME-mode` chunkmode buffer (base or indirect) will have
-`poly-NAME-mode` minor mode activated, thus acting like a UI "glue" between
-different chunks.
+`poly-NAME-mode` minor mode activated in order to provide the user with a "glue"
+between different chunks. If you want your commands to be available in all
+chunks bind them n `poly-NAME-mode-map` or directly in `poly-mode-map` which is
+the root map of all polymode maps.
 
-When defining `poly-NAME-mode` 3 objects are created in the background:
+A call to `define-polymode` creates 3 objects in the background:
 
   - `poly-NAME-mode` function which when can be used as major or minor mode
   - `poly-NAME-mode-map` keymap which inherits from `PARENT`'s polymode keymap
-    or `polymode-mode-map` if no `PARENT`.
-  - `pm-poly/NAME` configuration object derived (cloned) from the `PARENT`'s
-    configuration object if `PARENT` is non-nil.
+    or `polymode-mode-map` if no `PARENT` has been provided
+  - `pm-poly/NAME` configuration object derived (cloned) from `pm-polymode`
+    object or the `PARENT`'s configuration object if `PARENT` has been provided
     
 `poly-NAME-mode` will also run `poly-NAME-mode-hook` (and all parents' hooks) in
 every chunkmode buffer after the initialization of the chunkmode has been
 completed.
 
-
-`PARENT` argument can also be a configuration object. When creation of polymodes
-for parent objects has little or no sense. For example `pm-poly/latex` is as
-parent of `pm-poly/noweb` but having a dedicated `poly-latex-mode` polymode has
-little sense.
+`PARENT` argument can also be a configuration object. Sometimes creating of
+polymodes for parent objects has little or no sense. For example `pm-poly/latex`
+is as parent of `pm-poly/noweb` but having a dedicated `poly-latex-mode`
+polymode has no sense.
 
 ```el
 (defcustom pm-poly/latex
-  (pm-polymode "latex" :hostmode 'pm-host/latex)
+  (pm-polymode :object-name "latex"
+               :hostmode 'pm-host/latex)
   "LaTeX typical configuration."
   :group 'polymodes
   :type 'object)
@@ -126,10 +129,10 @@ little sense.
 
 ```
 
-When name of `PARENT` matches the name of the polymode, `define-polymode` uses
-`PARENT` directly as the configuration object (i.e. no clone or `defcustom` is
-performed). Therefore, the above definition of `poly-noweb-mode` is essentially
-equivalent to the following:
+_Note: In a special case when name of `PARENT` matches the name of the polymode,
+`PARENT` is used directly as the configuration object (i.e. no clone or
+`defcustom` is performed; it doesn't make sense). Therefore, the above
+definition of `poly-noweb-mode` is essentially equivalent to the following:_
 
 ```el
 (defcustom pm-poly/noweb

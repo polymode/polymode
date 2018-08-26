@@ -1,13 +1,26 @@
 
-### API
+## Guidelines for Major Mode Developers
+
+In order for major modes to work well with polimodes, major mode code should
+abide the following:
+
+  - Don't assume that the buffer is wide (aka no narrowing in place). If you
+    retrieve text-properties or access a point in a buffer, make sure it's
+    inside the accessible region of the buffer. Pay special attention to what
+    happens at `point-max`.
+  - Don't use `parse-partial-sexp`; use `syntax-ppss` instead.
+  - If your mode uses or defines some notion of a span, follow Emacs convention
+    for text properties and consider spans as [left closed and right open)
+    interval.
+
+## API
 
 All API classes and methods are named with `pm-` prefix.
 
 Buffer local objects:
 
-   - `pm/type`
-   - `pm/chunkmode`
    - `pm/polymode`
+   - `pm/chunkmode` [!! don't rely on this one. Likely to change !!]
 
 Generics:
 
