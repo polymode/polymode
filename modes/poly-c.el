@@ -36,7 +36,7 @@
   (clone pm-inner/noweb
          :mode 'c-mode)
   "Noweb innermode for C"
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-noweb+c-mode "poly-c")

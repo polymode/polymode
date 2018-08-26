@@ -16,7 +16,7 @@
   (pm-host-chunkmode :object-name "slim"
                      :mode 'slim-mode)
   "slim host chunkmode"
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 ;; https://github.com/slim-template/slim/blob/master/README.md#embedded-engines-markdown-
@@ -31,7 +31,7 @@
   "Slim code block.
 Slim code blocks are defined by the same level of
 indentation (like python)."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-slim-mode "poly-slim")

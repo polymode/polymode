@@ -38,7 +38,7 @@
   (pm-host-chunkmode "Org mode"
                      :mode 'org-mode)
   "Org host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom  pm-inner/org
@@ -50,7 +50,7 @@
                            :head-matcher "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
                            :indent-offset org-edit-src-content-indentation)
   "Org typical chunk."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-poly/org

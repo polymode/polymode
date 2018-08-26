@@ -47,10 +47,10 @@
   (clone pm-inner/noweb
          :mode 'R-mode)
   "Noweb for R"
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
-;;;###autoload (autoload 'poly-noweb+r-mode "poly-R")
+;;;###autoload (autoload 'poly-noweb+R-mode "poly-R")
 (define-polymode poly-noweb+R-mode pm-poly/noweb
   :lighter " PM-Rnw"
   :innermodes '(pm-inner/noweb-R))
@@ -61,7 +61,7 @@
 
 ;; MARKDOWN
 (require 'poly-markdown)
-;;;###autoload (autoload 'poly-markdown+r-mode "poly-R")
+;;;###autoload (autoload 'poly-markdown+R-mode "poly-R")
 (define-polymode poly-markdown+R-mode poly-markdown-mode :lighter " PM-Rmd")
 
 ;;;###autoload
@@ -75,7 +75,7 @@
                       :head-matcher "<!--head"
                       :tail-matcher "head-->")
   "YAML header in Rapport files"
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-rapport-mode "poly-R")
@@ -91,10 +91,10 @@
                       :head-matcher "<!--[ \t]*begin.rcode"
                       :tail-matcher "end.rcode[ \t]*-->")
   "HTML KnitR innermode."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
-;;;###autoload (autoload 'poly-html+r-mode "poly-R")
+;;;###autoload (autoload 'poly-html+R-mode "poly-R")
 (define-polymode poly-html+R-mode pm-poly/html
   :innermodes '(pm-inner/html-R))
 
@@ -109,10 +109,10 @@
                       :head-matcher "<%[=%]?"
                       :tail-matcher "[#=%=-]?%>")
   "Brew R chunk."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
-;;;###autoload (autoload 'poly-brew+r-mode "poly-R")
+;;;###autoload (autoload 'poly-brew+R-mode "poly-R")
 (define-polymode poly-brew+R-mode pm-poly/brew
   :innermodes '(pm-inner/brew-R))
 
@@ -143,7 +143,7 @@
                       :tail-matcher 'pm--R+C++-tail-matcher
                       :protect-font-lock nil)
   "HTML KnitR chunk."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-R+C++-mode "poly-R")
@@ -175,7 +175,7 @@
   :group 'polymodes
   :type 'object)
 
-;;;###autoload (autoload 'poly-c++r-mode "poly-R")
+;;;###autoload (autoload 'poly-C++R-mode "poly-R")
 (define-polymode poly-C++R-mode pm-poly/C++
   :innermodes '(pm-inner/C++R))
 
@@ -192,7 +192,7 @@
                       :indent-offset 5
                       :switch-buffer-functions '(pm--ess-help+R-turn-off-read-only))
   "Ess help R chunk"
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defun pm--ess-help+R-turn-off-read-only (&rest ignore)
@@ -228,7 +228,7 @@
                       :head-matcher 'pm--Rd-examples-head-matcher
                       :tail-matcher 'pm--Rd-examples-tail-matcher)
   "Rd examples chunk."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 ;;;###autoload (autoload 'poly-Rd-mode "poly-R")
@@ -240,7 +240,7 @@
 
 ;; Rmarkdown
 (defcustom pm-exporter/Rmarkdown
-  (pm-shell-exporter "Rmarkdown"
+  (pm-shell-exporter :object-name "Rmarkdown"
                      :from
                      '(("Rmarkdown"  "\\.[rR]?md\\|rapport\\'" "R Markdown"
                         "Rscript -e \"rmarkdown::render('%i', output_format = '%t', output_file = '%o')\""))
@@ -314,7 +314,7 @@ block. Thus, output file names don't comply with
 
 ;; KnitR
 (defcustom pm-weaver/knitR
-  (pm-shell-weaver "knitr"
+  (pm-shell-weaver :object-name "knitr"
                    :from-to
                    '(("latex" "\\.\\(tex\\|[rR]nw\\)\\'" "tex" "LaTeX" "Rscript -e \"knitr::knit('%i', output='%o')\"")
                      ("html" "\\.x?html?\\'" "html" "HTML" "Rscript -e \"knitr::knit('%i', output='%o')\"")
@@ -367,7 +367,7 @@ block. Thus, output file names don't comply with
 
 ;; Sweave
 (defcustom pm-weaver/Sweave
-  (pm-shell-weaver "sweave"
+  (pm-shell-weaver :object-name "sweave"
                    :from-to
                    '(("latex" "\\.\\(tex\\|r?s?nw\\)\\'"
                       "tex" "LaTeX" "R CMD Sweave %i --options=\"output='%o'\"")))

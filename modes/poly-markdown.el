@@ -39,7 +39,7 @@
                      :protect-syntax nil
                      :protect-font-lock nil)
   "Markdown host chunkmode"
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-inner/markdown-fenced-code
@@ -50,7 +50,7 @@
                            :head-mode 'host
                            :tail-mode 'host)
   "Markdown fenced code block."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-inner/markdown-inline-code
@@ -61,7 +61,7 @@
                            :head-mode 'host
                            :tail-mode 'host)
   "Markdown inline code."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-inner/markdown-displayed-math
@@ -74,7 +74,7 @@
   "Displayed math $$..$$ block.
 Tail must be flowed by new line but head not (a space or comment
 character would do)."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-inner/markdown-inline-math
@@ -87,7 +87,7 @@ character would do)."
   "Displayed math $$..$$ block.
 Tail must be flowed by new line but head not (a space or comment
 character would do)."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-poly/markdown

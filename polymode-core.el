@@ -1,4 +1,4 @@
-;;; polymode-core.el --- Core initialization and utilities for polymode -*- lexical-binding: t -*-
+;; polymode-core.el --- Core initialization and utilities for polymode -*- lexical-binding: t -*-
 ;;
 ;; Copyright (C) 2013-2018, Vitalie Spinu
 ;; Author: Vitalie Spinu
@@ -97,15 +97,15 @@
   :link '(emacs-commentary-link "polymode")
   :group 'tools)
 
-(defgroup polymodes nil
+(defgroup poly-modes nil
   "Polymode Configuration Objects"
   :group 'polymode)
 
-(defgroup hostmodes nil
+(defgroup poly-host-modes nil
   "Polymode Host Chunkmode Objects"
   :group 'polymode)
 
-(defgroup innermodes nil
+(defgroup poly-inner-modes nil
   "Polymode Chunkmode Objects"
   :group 'polymode)
 

@@ -43,49 +43,49 @@
   (pm-host-chunkmode :object-name "coffee"
                      :mode 'coffee-mode)
   "Coffee host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/fallback
   (pm-host-chunkmode :object-name "FallBack"
                      :mode 'poly-fallback-mode)
   "Polymode fall back host mode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/fundamental
   (pm-host-chunkmode :object-name "fundamental"
                      :mode 'fundamental-mode)
   "Fundamental host mode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/js
   (pm-host-chunkmode :object-name "js"
                      :mode 'js-mode)
   "Javascript host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/latex
   (pm-host-chunkmode :object-name "latex"
                      :mode 'latex-mode)
   "Latex host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/html
   (pm-host-chunkmode :object-name "html"
                      :mode 'html-mode)
   "HTML host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/R
   (pm-host-chunkmode :object-name "R"
                      :mode 'R-mode)
   "R host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/C++
@@ -93,21 +93,21 @@
                      :mode 'c++-mode
                      :protect-font-lock nil)
   "C++ host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/text
   (pm-host-chunkmode :object-name "text"
                      :mode 'text-mode)
   "Text host chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/yaml
   (pm-host-chunkmode :object-name "YAML"
                      :mode 'yaml-mode)
   "YAML chunkmode."
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
 
