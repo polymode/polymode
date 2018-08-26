@@ -98,7 +98,7 @@ MODE is a quoted symbol."
        (current-buffer))))
 
 (defmacro pm-test-run-on-file (mode file-name &rest body)
-  "Run BODY in a temporary buffer with the content of FILE in MODE."
+  "Run BODY in a buffer with the content of FILE-NAME in MODE."
   (declare (indent 2) (debug (sexp sexp body)))
   (let ((pre-form (when (eq (car body) :pre-form)
                     (prog1 (cadr body)

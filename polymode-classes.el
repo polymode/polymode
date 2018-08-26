@@ -31,9 +31,14 @@
 
 (require 'eieio)
 (require 'eieio-base)
-;; (require 'eieio-custom)
+(require 'eieio-custom)
+
+;; FIXME: fix emacs eieo-named bug #22840 where they wrongly set name of the
+;; parent object in clone method
 
 (setq eieio-backward-compatibility nil)
+
+(defvar pm--object-counter 0)
 
 (defun pm--filter-slots (slots)
   (delq nil (mapcar (lambda (slot)
@@ -44,43 +49,24 @@
                         (intern (concat ":" (symbol-name slot)))))
                     slots)))
 
-(if (fboundp 'eieio-named)
-    (progn
-      ;; bug #22840
-      (cl-defmethod clone ((obj eieio-named) &rest params)
-        "Clone OBJ, initializing `:parent' to OBJ.
-All slots are unbound, except those initialized with PARAMS."
-        (let* ((newname (and (stringp (car params)) (pop params)))
-               (nobj (apply #'cl-call-next-method obj params))
-               (nm (slot-value obj 'object-name)))
-          (eieio-oset nobj 'object-name
-                      ;;^^-- in emacs proper is obj (:fixme push to emacs)
-                      (or newname
-                          (save-match-data
-                            (if (and nm (string-match "-\\([0-9]+\\)" nm))
-                                (let ((num (1+ (string-to-number
-                                                (match-string 1 nm)))))
-                                  (concat (substring nm 0 (match-beginning 0))
-                                          "-" (int-to-string num)))
-                              (concat nm "-1")))))
-          nobj))
+(defclass pm-root (eieio-instance-inheritor)
+  ((object-name
+    :initarg :object-name
+    :initform "UNNAMED"
+    :type string
+    :documentation "Name of the object used to for display and info.")
+   (-id
+    :initform 0
+    :type number
+    :documentation "[Internal] Numeric id to track objects. Every object has an id.")
+   (-props
+    :initform '()
+    :type list
+    :documentation "[Internal] Plist used to store various extra metadata such as user history. Use `pm--prop-get' and `pm--prop-put' to place key value pairs into this list."))
+  "Root polymode class.")
 
-      (defclass pm-root (eieio-named eieio-instance-inheritor)
-        ((-props
-          :initform '()
-          :type list
-          :documentation "Internal. Used to store various user
-    history values. Use `pm--prop-get' and `pm--prop-put' to
-    place key value pairs into this list."))
-        "Root polymode class."))
-
-  (defclass pm-root (eieio-instance-inheritor)
-    ((-props
-      :initform '()
-      :type list
-      :documentation "[Internal] Plist used to store various extra metadata such as user history. Use `pm--prop-get' and `pm--prop-put' to place key value pairs into this list."))
-
-    "Root polymode class."))
+(cl-defmethod eieio-object-name-string ((obj pm-root))
+  (eieio-oref obj 'object-name))
 
 (defclass pm-polymode (pm-root)
   ((hostmode

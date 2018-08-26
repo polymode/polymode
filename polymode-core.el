@@ -249,7 +249,7 @@ objects provides same functionality for narrower scope. See also
                (not (eieio-oref (nth 3 span) 'can-nest)))
           (setq span val
                 start (nth 1 val)
-                end (nth 2 val)f)))))
+                end (nth 2 val))))))
 
     (unless (and (<= start end) (<= pos end) (>= pos start))
       (error "Bad polymode selection: span:%s pos:%s"

@@ -280,7 +280,7 @@ TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
 in this case."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
     (let ((span (pm--span-at-point head-matcher tail-matcher pos
-                                   (eieio-oref chunkmode :can-overlap))))
+                                   (eieio-oref chunkmode 'can-overlap))))
       (when span
         ;; (let ((type (car span)))
         ;;   (if (or (and (eq type 'head) (eq head-mode 'host))
@@ -332,7 +332,7 @@ in this case."
                                        when (equal name (pm-object-name obj))
                                        return obj)
                               ;; b. create new
-                              (let ((innermode (clone proto name :mode mode)))
+                              (let ((innermode (clone proto :object-name name :mode mode)))
                                 (object-add-to-list pm/polymode '-auto-innermodes innermode)
                                 innermode))))
               (setf (nth 3 span) outchunk)
