@@ -79,8 +79,8 @@ character would do)."
 
 (defcustom pm-inner/markdown-inline-math
   (pm-inner-chunkmode "markdown-inline-math"
-                      :head-matcher (cons " \\(\\$\\)[^ $\t[:digit:]]" 1)
-                      :tail-matcher (cons "[^ $\\\t]\\(\\$\\) " 1)
+                      :head-matcher (cons "[ \t\n]\\(\\$\\)[^ $\t[:digit:]]" 1)
+                      :tail-matcher (cons "[^ $\\\t]\\(\\$\\)[^$[:alnum:]]" 1)
                       :head-mode 'host
                       :tail-mode 'host
                       :mode 'latex-mode)

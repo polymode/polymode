@@ -214,31 +214,42 @@ objects provides same functionality for narrower scope. See also
          (end (point-max))
          (pos (or pos (point)))
          (span (list nil start end nil))
-         (chnk-modes (cons (oref config -hostmode)
-                           (oref config -innermodes)))
+         (chunk-modes (cons (oref config -hostmode)
+                            (oref config -innermodes)))
          val)
-    (dolist (im chnk-modes)
+    (dolist (im chunk-modes)
       ;; Optimization opportunity: this searches till the end of buffer but the
       ;; outermost pm-get-span caller has computed a few span already so we can
       ;; pass limits or narrow to pre-computed span.
       (setq val (pm-get-span im pos))
       ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info im))
-      (when (and val
-                 (or (> (nth 1 val) start)
-                     (< (nth 2 val) end)))
-        (if (or (car val)
-                (null span))
-            (setq span val
-                  start (nth 1 val)
-                  end (nth 2 val))
-          ;; nil car means host and it can be an intersection of spans returned
-          ;; by 2 different neighbour inner chunkmodes
+      (when val
+        (cond
+         ;; 1. ;; nil car means host and it can be an intersection of spans returned
+         ;; by 2 different neighbour inner chunkmodes
+         ((null (car val))
           (setq start (max (nth 1 val)
                            (nth 1 span))
                 end (min (nth 2 val)
                          (nth 2 span)))
           (setcar (cdr span) start)
-          (setcar (cddr span) end))))
+          (setcar (cddr span) end))
+         ;; 2. Inner span
+         ((or (> (nth 1 val) start)
+              (< (nth 2 val) end))
+          (when (or (null (car span))
+                    (eieio-oref (nth 3 val) 'can-nest))
+            (setq span val
+                  start (nth 1 val)
+                  end (nth 2 val))))
+         ;; 3. Outer span; overwrite previous span if nesting is not allowed.
+         ;; This case can probably result in unexpected outcome when there are 3
+         ;; levels of nesting with inter-changeable :can-nest property.
+         ((and (car span)
+               (not (eieio-oref (nth 3 span) 'can-nest)))
+          (setq span val
+                start (nth 1 val)
+                end (nth 2 val)f)))))
 
     (unless (and (<= start end) (<= pos end) (>= pos start))
       (error "Bad polymode selection: span:%s pos:%s"
@@ -429,11 +440,11 @@ case TYPE is ignored."
 ;;                 (setq beg.end (funcall matcher arg))))
 ;;     beg.end))
 
-(defun pm--span-at-point (head-matcher tail-matcher &optional pos allow-nested)
+(defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap)
   "Span detector with head and tail matchers.
 HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
 `pm-inner-chunkmode' object. POS defaults to (point). When
-ALLOW-NESTED is non-nil nested chunks of this type are allowed.
+CAN-OVERLAP is non-nil nested chunks of this type are allowed.
 
 Return a list of the form (TYPE SPAN-START SPAN-END) where TYPE
 is one of the following symbols:
@@ -458,7 +469,7 @@ is one of the following symbols:
                 (list 'head (car head1) (cdr head1))
               ;;            ------------------------
               ;; host)[head)[body)[tail)[host)[head)[body)
-              (pm--find-tail-from-head pos head1 head-matcher tail-matcher allow-nested))
+              (pm--find-tail-from-head pos head1 head-matcher tail-matcher can-overlap))
           ;; ----------
           ;; host)[head)[body)[tail)[host
           (goto-char (point-min))
@@ -474,17 +485,17 @@ is one of the following symbols:
                       (list 'head (car head2) (cdr head2))
                     ;;            -----------------
                     ;; host)[head)[body)[tail)[host
-                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher allow-nested)))
+                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher can-overlap)))
               ;; no span found
               nil)))))))
 
 ;; fixme: find a simpler way with recursion where head-matcher and tail-matcher could be reversed
-(defun pm--find-tail-from-head (pos head head-matcher tail-matcher allow-nested)
+(defun pm--find-tail-from-head (pos head head-matcher tail-matcher can-overlap)
   (goto-char (cdr head))
   (let ((tail (funcall tail-matcher 1))
         (at-max (= pos (point-max)))
         (type 'tail))
-    (when allow-nested
+    (when can-overlap
       (save-excursion
         ;; search for next head and pick the earliest
         (goto-char (cdr head))
@@ -508,7 +519,7 @@ is one of the following symbols:
             ;; host)[head)[body)[tail)[host)[head)
             (let ((match (funcall head-matcher 1))
                   (type 'head))
-              (when allow-nested
+              (when can-overlap
                 (save-excursion
                   ;; search for next head and pick the earliest
                   (goto-char (cdr tail))
@@ -529,7 +540,7 @@ is one of the following symbols:
                         (list type (car match) (cdr match))
                       ;;                                    ----
                       ;; host)[head)[body)[tail)[host)[head)[body
-                      (pm--find-tail-from-head pos match head-matcher tail-matcher allow-nested)))
+                      (pm--find-tail-from-head pos match head-matcher tail-matcher can-overlap)))
                 ;;                        -----
                 ;; host)[head)[body)[tail)[host)
                 (list nil (cdr tail) (point-max))))))

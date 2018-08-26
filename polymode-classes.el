@@ -218,11 +218,16 @@ over all the other space not claimed by other chunkmodes in the
 buffer.")
 
 (defclass pm-inner-chunkmode (pm-chunkmode)
-  ((allow-nested
-    :initarg :allow-nested
+  ((can-nest
+    :initarg :can-nest
     :type boolean
     :initform nil
-    :documentation "Non-nil if the chunk of this type allows nested chunks of the same type.")
+    :documentation "Non-nil if this chunk can nest within other inner modes. All chunks can nest within the host-mode.")
+   (can-overlap
+    :initarg :can-overlap
+    :type boolean
+    :initform nil
+    :documentation "Non-nil if chunks of this type can overlap with other chunks of the same type. See noweb for an example.")
    (head-mode
     :initarg :head-mode
     :type symbol

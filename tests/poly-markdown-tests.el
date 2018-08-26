@@ -150,3 +150,36 @@
      (kill-sexp))
     ((elisp-kill-defun ("(defun delete-dups" beg))
      (kill-sexp))))
+
+(ert-deftest poly-markdown/inline-math ()
+  (pm-test-run-on-string 'poly-markdown-mode
+    "Some text with $\\text{inner math}$, formulas $E=mc^2$
+$E=mc^2$, and more formulas $E=mc^2$;
+```pascal
+Some none-sense (formula $E=mc^2$)
+```"
+    (switch-to-buffer (current-buffer))
+    (goto-char 17)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'latex-mode))
+    (goto-char 35)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'markdown-mode))
+    (goto-char 47)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'latex-mode))
+    (goto-char 54)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'markdown-mode))
+    (goto-char 56)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'latex-mode))
+    (goto-char 84)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'latex-mode))
+    (goto-char 91)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'markdown-mode))
+    (goto-char 127)
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'pascal-mode))))

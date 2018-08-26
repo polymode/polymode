@@ -82,9 +82,9 @@
       nil)))
 
 (defmacro pm-test-run-on-string (mode string &rest body)
-  "Run BODY in a temporary buffer containing STRING in MODE."
-  (declare (indent 2)
-           (debug (form form body)))
+  "Run BODY in a temporary buffer containing STRING in MODE.
+MODE is a quoted symbol."
+  (declare (indent 1) (debug (form form body)))
   `(let ((buf "*pm-test-string-buffer*"))
      (when (get-buffer buf)
        (kill-buffer buf))

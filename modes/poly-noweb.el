@@ -85,7 +85,7 @@ advance."
                            :head-matcher "^[ \t]*<<\\(.*\\)>>=.*$"
                            :tail-matcher "^[ \t]*@.*$"
                            :mode-matcher #'poly-noweb-mode-matcher
-                           :allow-nested t)
+                           :can-overlap t)
   "Noweb auto chunk.
 See `poly-noweb-mode-matcher' for how mode of the chunk is
 detected."
