@@ -11,6 +11,15 @@ pages:
 - For Developers: internals.md
 - Screenshots: screenshots.md
 - Licence: licence.md
-theme: readthedocs
+theme:
+    name: readthedocs
+    highlightjs: true
+    hljs_languages:
+        - lisp
+# theme: windmill
+# theme: readthedocs
+# theme: material
+# theme: cinder
+# theme: nature
 extra_css:
   - css/extra.css

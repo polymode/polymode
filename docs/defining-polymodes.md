@@ -6,6 +6,7 @@ inner chunkmode.
 
 Here is an example of markdown host mode:
 
+
 ```el
 
 (defcustom pm-host/markdown
@@ -19,19 +20,18 @@ Here is an example of markdown host mode:
 
 Here we call the constructor of host chunkmode objects `pm-host-chunkmode` with
 the `:mode` parameter which should be a name (symbol) of a valid emacs major
-mode function. In this case `markdown-mode`.
+mode function. In this case `markdown-mode`. 
 
-_`:object-name` is used in various contexts for object identification and
-informative messages._
+The`:object-name` slot is used in various contexts for object identification and
+information messages.
 
 ## Inner Modes
 
-Polymode defines two built-in types of inner chunkmodes, simple
-`pm-inner-chunkmode` which allows for one pre-specified mode and
-`pm-inner-auto-chunkmode` which detects the type of the body span dynamically.
+Polymode defines two built-in types of inner chunkmodes - `pm-inner-chunkmode`
+which allows for one pre-specified mode and `pm-inner-auto-chunkmode` which
+detects the type of the body span dynamically.
 
-This is an example of two markdown auto innermodes, one for fenced code and the
-other for inner code:
+This is an example of two markdown auto innermodes:
 
 ```el
 
@@ -91,12 +91,12 @@ the `pm-host-chunkmode` object and `:innermodes` which is a list of names of
 `pm-inner-chunkmode` objects. See the documentation of `define-polymode` for
 further details.
 
-On a technical level polymode functions are more similar to minor-modes. In fact
-every `poly-NAME-mode` chunkmode buffer (base or indirect) will have
-`poly-NAME-mode` minor mode activated in order to provide the user with a "glue"
-between different chunks. If you want your commands to be available in all
-chunks bind them n `poly-NAME-mode-map` or directly in `poly-mode-map` which is
-the root map of all polymode maps.
+At the implementation level polymode functions are more similar to minor-modes
+than major modes. In fact every `poly-NAME-mode` chunkmode buffer (base or
+indirect) will have `poly-NAME-mode` minor mode activated in order to provide
+the "glue" interface between different chunks. If you want some commands to be
+available in all chunks bind them in `poly-NAME-mode-map` or directly in
+`poly-mode-map` which is the root map of all polymode maps.
 
 A call to `define-polymode` creates 3 objects in the background:
 
@@ -109,6 +109,8 @@ A call to `define-polymode` creates 3 objects in the background:
 `poly-NAME-mode` will also run `poly-NAME-mode-hook` (and all parents' hooks) in
 every chunkmode buffer after the initialization of the chunkmode has been
 completed.
+
+### Config Objects as Parents 
 
 `PARENT` argument can also be a configuration object. Sometimes creating of
 polymodes for parent objects has little or no sense. For example `pm-poly/latex`
@@ -129,10 +131,11 @@ polymode has no sense.
 
 ```
 
-_Note: In a special case when name of `PARENT` matches the name of the polymode,
-`PARENT` is used directly as the configuration object (i.e. no clone or
-`defcustom` is performed; it doesn't make sense). Therefore, the above
-definition of `poly-noweb-mode` is essentially equivalent to the following:_
+In a special case when name of `PARENT` matches the name of the polymode,
+`PARENT` is used directly as the configuration object (no clone or `defcustom`
+is performed; it wouldn't make sense). Therefore, the above definition of
+`poly-noweb-mode` is equivalent to the following definition with an explicit
+`pm-poly/noweb` config:
 
 ```el
 (defcustom pm-poly/noweb

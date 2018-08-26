@@ -1,17 +1,17 @@
 
-## Guidelines for Major Mode Developers
+## Major Modes Guidelines
 
-In order for major modes to work well with polimodes, major mode code should
-abide the following:
+In order for major modes to work well with polimodes major modes should abide
+the following rules:
 
-  - Don't assume that the buffer is wide (aka no narrowing in place). If you
-    retrieve text-properties or access a point in a buffer, make sure it's
-    inside the accessible region of the buffer. Pay special attention to what
-    happens at `point-max`.
-  - Don't use `parse-partial-sexp`; use `syntax-ppss` instead.
-  - If your mode uses or defines some notion of a span, follow Emacs convention
-    for text properties and consider spans as [left closed and right open)
-    interval.
+  - Don't assume that there is no narrowing in place. If you retrieve
+    text-properties or access a point in a buffer, make sure it's inside the
+    accessible region of the buffer. Pay special attention to what happens at
+    `point-max`.
+  - Use `syntax-ppss` instead of `parse-partial-sexp`.
+  - If your mode uses or defines some notion of a span or chunk, follow Emacs
+    convention for text properties and consider spans as [left closed and right
+    open) intervals.
 
 ## API
 

@@ -50,7 +50,7 @@ For further configuration options with `use-package` see the official
 [use-package repository](https://github.com/jwiegley/use-package) or <kbd>C-h v
 use-package [RET]</kbd>.
 
-### Manually
+## Manually
 
 
 ```sh

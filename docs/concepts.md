@@ -33,11 +33,11 @@ credit for this idea.
 ## Configuration
 
 Host and inner chunks are configured through _objects_ derived from
-`pm-chunkmode` class and are generally referred as "chunkmodes". These objects
-have named of the form `pm-host/NAME` and `pm-inner/NAME` and are grouped in
-`hostmodes` and `innermodes` customization groups respectively. During the
-initialization chunkmodes are cloned and stored in buffer local variable
-`pm/chunkmode.`
+`pm-chunkmode` class and are generically referred to as "chunkmodes". These
+objects have named of the form `pm-host/NAME` and `pm-inner/NAME` and are
+grouped into `poly-host-modes` and `poly-inner-modes` customization groups
+respectively. During the initialization chunkmodes are cloned and stored in
+buffer local variable `pm/chunkmode.`
 
 Polymodes are configured through _objects_ of class `pm-polymode` which are
 named with `pm-poly/NAME` scheme where `NAME` is the root name of the polymode
@@ -62,16 +62,16 @@ cloned in order to dynamically create a hierarchy of customizable objects. There
 are a bunch of such objects already defined, you can check those in `polymodes`,
 `hostmodes` and `innermodes` customization groups.
 
-Current polymode class hierarchy:
+Polymode class hierarchy:
 
 ```
   +--eieio-instance-inheritor
        +--pm-root
+            +--pm-polymode
             +--pm-chunkmode
             |    +--pm-inner-chunkmode
             |    |    +--pm-inner-auto-chunkmode
             |    +--pm-host-chunkmode
-            +--pm-polymode
             +--pm-weaver
             |    +--pm-shell-weaver
             |    +--pm-callback-weaver
@@ -86,6 +86,6 @@ whose docstring contains a complete description of the class.
 ## Naming Conventions
 
 User facing functionality is named with `polymode-` prefix. Polymodes are named
-with `poly-ROOT-NAME-mode` convention. Classes, methods and development API have
-`pm-` prefix. The three fundamental buffer-local objects available in all
-polymode buffers are `pm/polymode`, `pm/chunkmode` and `pm/type`.
+with `poly-NAME-mode` convention. Host, inner and polymode configuration objects
+start with `pm-host/`, `pm-inner/` and `pm-poly/` prefixes
+respectively. Classes, methods and development API have `pm-` prefix.
