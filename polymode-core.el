@@ -397,25 +397,22 @@ case TYPE is ignored."
                       (eq head-mode 'body))
                  (and (eq type 'tail)
                       (or (eq tail-mode 'body)
-                          (and (or (null tail-mode)
-                                   (eq tail-mode 'head))
+                          (and (null tail-mode)
                                (eq head-mode 'body)))))
              'body)
             ((or (and (eq type 'head)
                       (eq head-mode 'host))
                  (and (eq type 'tail)
                       (or (eq tail-mode 'host)
-                          (and (or (null tail-mode)
-                                   (eq tail-mode 'head))
+                          (and (null tail-mode)
                                (eq head-mode 'host)))))
              nil)
             ((eq type 'head)
              'head)
             ((eq type 'tail)
-             (if (or (null tail-mode)
-                     (eq tail-mode 'head))
-                 'head
-               'tail))
+             (if tail-mode
+                 'tail
+               'head))
             (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
 
 ;; return nil if type is nil or 'host

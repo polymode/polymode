@@ -282,13 +282,6 @@ in this case."
     (let ((span (pm--span-at-point head-matcher tail-matcher pos
                                    (eieio-oref chunkmode 'can-overlap))))
       (when span
-        ;; (let ((type (car span)))
-        ;;   (if (or (and (eq type 'head) (eq head-mode 'host))
-        ;;           (and (eq type 'tail) (or (eq tail-mode 'host)
-        ;;                                    (and (null tail-mode)
-        ;;                                         (eq head-mode 'host)))))
-        ;;       (list nil (nth 1 span) (nth 2 span) (oref pm/polymode -hostmode))
-        ;;     (append span (list chunkmode))))
         (append span (list chunkmode))))))
 
 (cl-defmethod pm-get-span ((_chunkmode pm-inner-auto-chunkmode) &optional _pos)
@@ -386,7 +379,6 @@ to indent."
         (delta nil))
     (unwind-protect
         (cond
-
          ;; 1. in head or tail (we assume head or tail fits in one line for now)
          ((or (eq 'head (car span))
               (eq 'tail (car span)))
@@ -443,19 +435,17 @@ to indent."
 
 
 ;;; FACES
-(cl-defgeneric pm-get-adjust-face (chunkmode &optional type))
+(cl-defgeneric pm-get-adjust-face (chunkmode type))
 
-(cl-defmethod pm-get-adjust-face ((chunkmode pm-chunkmode) &optional _type)
+(cl-defmethod pm-get-adjust-face ((chunkmode pm-chunkmode) _type)
   (eieio-oref chunkmode 'adjust-face))
 
-(cl-defmethod pm-get-adjust-face ((chunkmode pm-inner-chunkmode) &optional type)
-  (setq type (or type pm/type))
+(cl-defmethod pm-get-adjust-face ((chunkmode pm-inner-chunkmode) type)
   (cond ((eq type 'head)
          (eieio-oref chunkmode 'head-adjust-face))
         ((eq type 'tail)
-         (if (eq 'head (eieio-oref pm/chunkmode 'tail-adjust-face))
-             (eieio-oref pm/chunkmode 'head-adjust-face)
-           (eieio-oref pm/chunkmode 'tail-adjust-face)))
+         (or (eieio-oref pm/chunkmode 'tail-adjust-face)
+             (eieio-oref pm/chunkmode 'head-adjust-face)))
         (t (eieio-oref pm/chunkmode 'adjust-face))))
 
 (provide 'polymode-methods)
