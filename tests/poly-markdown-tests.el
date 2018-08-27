@@ -186,10 +186,14 @@ Some none-sense (formula $E=mc^2$)
 
 (ert-deftest poly-markdown/displayed-math ()
   (pm-test-run-on-string 'poly-markdown-mode
-    "Some text with $$\\text{displayed math}$$, formulas $$E=mc^2$$
-$$E=mc^2$$, and $343 more $$$ formulas $$$ and $343 $$ E=mc^2 $$;
+    "Some text with
+$$\\text{displayed math}$$, formulas
+$$E=mc^2$$
+$$E=mc^2$$, and $343 more $$$ formulas $$$ and $3
+ $$ E=mc^2 $$;
 ```pascal
-Some none-sense (formula $$E=mc^2$$ )
+Some none-sense (formula
+$$E=mc^2$$ )
 ```"
     (switch-to-buffer (current-buffer))
     (goto-char 18)

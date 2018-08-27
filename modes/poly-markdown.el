@@ -66,7 +66,7 @@
 
 (defcustom pm-inner/markdown-displayed-math
   (pm-inner-chunkmode "markdown-displayed-math"
-                      :head-matcher (cons "[ \t\n]\\(\\$\\$\\)[^$]" 1)
+                      :head-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1)
                       :tail-matcher (cons "[^$]\\(\\$\\$\\)[^$[:alnum:]]" 1)
                       :head-mode 'host
                       :tail-mode 'host
