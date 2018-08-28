@@ -56,7 +56,7 @@ to lowest priority):
                   (save-excursion
                     (when (re-search-forward "\\.\\([[:alpha:]]+\\)" eol t)
                       (let ((str (match-string 1)))
-                        (if (pm--get-mode-symbol-from-name str 'no-fallback)
+                        (if (pm--get-mode-symbol-from-name str)
                             str
                           (let ((dummy (concat "a." str)))
                             (cl-loop for (k . v) in auto-mode-alist

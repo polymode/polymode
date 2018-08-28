@@ -1033,10 +1033,8 @@ near future.")
       (symbol-name str-or-symbol)
     str-or-symbol))
 
-(defun pm--get-mode-symbol-from-name (name &optional no-fallback)
-  "Guess and return mode function from mode NAME.
-If NO-FALLBACK is non-nil, return nil if no mode has been found,
-otherwise return `poly-fallback-mode'."
+(defun pm--get-mode-symbol-from-name (name)
+  "Guess and return mode function from NAME or nil if not found."
   (if (and (symbolp name)
            (fboundp name))
       name
@@ -1048,8 +1046,7 @@ otherwise return `poly-fallback-mode'."
                       str
                     (concat str "-mode"))))
       (or (pm--get-existent-mode (intern mname) t)
-          (pm--get-existent-mode (intern (downcase mname))
-                                 no-fallback)))))
+          (pm--get-existent-mode (intern (downcase mname)) t)))))
 
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.

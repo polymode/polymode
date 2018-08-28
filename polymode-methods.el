@@ -308,29 +308,23 @@ in this case."
                             (match-string-no-properties (cdr matcher)))
                            ((functionp matcher)
                             (funcall matcher)))))
-             (mode (and str (pm--get-mode-symbol-from-name str 'no-fallback))))
-        (if mode
-            ;; Inferred body MODE serves as ID; this not need be the case in the
-            ;; future and a generic id getter might replace it. Currently
-            ;; head/tail/body indirect buffers are shared across chunkmodes.
-            ;; This currently works ok. A more general approach would be to
-            ;; track head/tails/body with associated chunks. Then for example R
-            ;; chunkmode and elisp chunkmodes would not share head/tail buffers.
-            ;; There could be even two R modechunks providing different
-            ;; functionality and thus not even sharing body buffer.
-            (let* ((name (concat (pm-object-name proto) ":" (symbol-name mode)))
-                   (outchunk (or
-                              ;; a. loop through installed inner modes
-                              (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
-                                       when (equal name (pm-object-name obj))
-                                       return obj)
-                              ;; b. create new
-                              (let ((innermode (clone proto :object-name name :mode mode)))
-                                (object-add-to-list pm/polymode '-auto-innermodes innermode)
-                                innermode))))
-              (setf (nth 3 span) outchunk)
-              span)
-          ;; else, return itself
+             (mode (or (pm--get-mode-symbol-from-name str)
+                       (eieio-oref proto 'mode)
+                       'poly-fallback-mode)))
+        ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
+        ;; Head/tail/body indirect buffers are shared across chunkmodes and span
+        ;; types.
+        (let* ((name (concat (pm-object-name proto) ":" (symbol-name mode)))
+               (outchunk (or
+                          ;; a. loop through installed inner modes
+                          (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
+                                   when (equal name (pm-object-name obj))
+                                   return obj)
+                          ;; b. create new
+                          (let ((innermode (clone proto :object-name name :mode mode)))
+                            (object-add-to-list pm/polymode '-auto-innermodes innermode)
+                            innermode))))
+          (setf (nth 3 span) outchunk)
           span)))))
 
 

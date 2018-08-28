@@ -74,6 +74,14 @@ into this list."))
 (cl-defmethod eieio-object-name-string ((obj pm-root))
   (eieio-oref obj 'object-name))
 
+(cl-defmethod clone ((obj pm-root) &rest params)
+  (let ((old-name (eieio-oref obj 'object-name))
+        (new-obj (apply #'cl-call-next-method obj params)))
+    (when (equal old-name (eieio-oref new-obj 'object-name))
+      (let ((new-name (concat old-name ":")))
+        (eieio-oset new-obj 'object-name new-name)))
+    new-obj))
+
 (defclass pm-polymode (pm-root)
   ((hostmode
     :initarg :hostmode
