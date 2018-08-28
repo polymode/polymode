@@ -1,5 +1,5 @@
 
-*Note: Polymode supports Emacs version is 25.1 or higher*
+*!! Polymode required Emacs version 25.1 or higher!!*
 
 ## Via package.el
 
@@ -62,7 +62,7 @@ git clone https://github.com/emacs-polymode/poly-markdown
 
 In `.emacs` add "polymode" directory and "polymode/modes" to the load path:
 
-```lisp
+```el
 (setq load-path
       (append '("path/to/vc/dir/polymode/"  "path/to/vc/dir/poly-markdown/")
               load-path))
@@ -70,7 +70,7 @@ In `.emacs` add "polymode" directory and "polymode/modes" to the load path:
 
 Require any polymode bundles that you are interested in. For example:
 
-```lisp
+```el
 (require 'poly-markdown)
 ```
 
@@ -80,7 +80,7 @@ Polymodes are functions and can be used just like ordinary emacs modes.
 Particularly, activate them in files by either registering a file extension in
 `auto-mode-alist`
 ```el
-(add-to-list 'auto-mode-alist '("\\.mymd" . poly-markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md" . poly-markdown-mode))
 ```
 
 or by setting local major mode variable in the header of the file:

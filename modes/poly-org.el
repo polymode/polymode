@@ -35,14 +35,14 @@
 (require 'polymode)
 
 (defcustom pm-host/org
-  (pm-host-chunkmode "Org mode"
+  (pm-host-chunkmode :object-name "Org mode"
                      :mode 'org-mode)
   "Org host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom  pm-inner/org
-  (pm-inner-auto-chunkmode "org"
+  (pm-inner-auto-chunkmode :object-name "org"
                            :head-matcher "^[ \t]*#\\+begin_src .*$"
                            :tail-matcher "^[ \t]*#\\+end_src"
                            :head-mode 'host
@@ -54,7 +54,7 @@
   :type 'object)
 
 (defcustom pm-poly/org
-  (pm-polymode "org"
+  (pm-polymode :object-name "org"
                :hostmode 'pm-host/org
                :innermodes '(pm-inner/org))
   "Org typical polymode configuration."

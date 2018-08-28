@@ -32,7 +32,7 @@
 (require 'polymode)
 
 (defcustom pm-poly/R
-  (pm-polymode "R"
+  (pm-polymode :object-name "R"
                :hostmode 'pm-host/R
                :innermodes '(pm-inner/fundamental))
   "R root polymode intended to be inherited from."
@@ -70,7 +70,7 @@
 
 ;; RAPPORT
 (defcustom  pm-inner/rapport-YAML
-  (pm-inner-chunkmode "rapport-YAML"
+  (pm-inner-chunkmode :object-name "rapport-YAML"
                       :mode 'yaml-mode
                       :head-matcher "<!--head"
                       :tail-matcher "head-->")
@@ -86,7 +86,7 @@
 
 ;; HTML
 (defcustom  pm-inner/html-R
-  (pm-inner-chunkmode "html-R"
+  (pm-inner-chunkmode :object-name "html-R"
                       :mode 'R-mode
                       :head-matcher "<!--[ \t]*begin.rcode"
                       :tail-matcher "end.rcode[ \t]*-->")
@@ -104,7 +104,7 @@
 
 ;;; R-brew
 (defcustom  pm-inner/brew-R
-  (pm-inner-chunkmode "brew-R"
+  (pm-inner-chunkmode :object-name "brew-R"
                       :mode 'R-mode
                       :head-matcher "<%[=%]?"
                       :tail-matcher "[#=%=-]?%>")
@@ -136,7 +136,7 @@
     (cons (max 1 (1- end)) end)))
 
 (defcustom  pm-inner/R-C++
-  (pm-inner-chunkmode "R-C++"
+  (pm-inner-chunkmode :object-name "R-C++"
                       :mode 'c++-mode
                       :head-mode 'host
                       :head-matcher 'pm--R+C++-head-matcher
@@ -167,7 +167,7 @@
     (cons (match-beginning 0) (match-end 0))))
 
 (defcustom  pm-inner/C++R
-  (pm-inner-chunkmode "C++R"
+  (pm-inner-chunkmode :object-name "C++R"
                       :mode 'R-mode
                       :head-matcher 'pm--C++R-head-matcher
                       :tail-matcher 'pm--C++R-tail-matcher)
@@ -185,7 +185,7 @@
 
 ;;; R help
 (defcustom  pm-inner/ess-help-R
-  (pm-inner-chunkmode "ess-help-R"
+  (pm-inner-chunkmode :object-name "ess-help-R"
                       :mode 'R-mode
                       :head-matcher "^Examples:"
                       :tail-matcher "\\'"
@@ -222,7 +222,7 @@
     (cons (max 1 (- end 1)) end)))
 
 (defcustom pm-inner/Rd
-  (pm-inner-chunkmode "R+C++"
+  (pm-inner-chunkmode :object-name "R+C++"
                       :mode 'R-mode
                       :head-mode 'host
                       :head-matcher 'pm--Rd-examples-head-matcher

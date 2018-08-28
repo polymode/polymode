@@ -3,7 +3,7 @@
 ;; (require 'ruby-mode)
 
 (defcustom pm-inner/erb
-  (pm-inner-chunkmode "erb"
+  (pm-inner-chunkmode :object-name "erb"
                       :mode 'ruby-mode
                       :head-matcher  "\"?\<\% *[-=]?"
                       :tail-matcher  "\%\>\"?")
