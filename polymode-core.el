@@ -622,9 +622,7 @@ switch."
          (buff (if type
                    (pm-get-buffer-create chunkmode type)
                  (pm-get-buffer-create (oref pm/polymode -hostmode)))))
-    ;; just in case
-    (when (buffer-live-p buff)
-      (pm--select-existing-buffer buff span visibly))))
+    (pm--select-existing-buffer buff span visibly)))
 
 ;; extracted for debugging purpose
 (defun pm--select-existing-buffer (buffer span visibly)
@@ -846,42 +844,38 @@ This function is placed in `before-change-functions' hook."
       ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
       )))
 
-(defvar-local pm--killed-once nil)
+(defvar-local pm--killed nil)
 (defun polymode-after-kill-fixes ()
   "Various fixes for polymode indirect buffers."
   (when pm/polymode
-    ;; redisplay can trigger fontification, but other guards are "just in case"
-    (let ((poly-lock-allow-fontification nil)
-          (pm-allow-after-change-hook nil)
-          (pm-allow-post-command-hook nil)
-          (base (pm-base-buffer)))
-      (when (buffer-live-p base)
-        (set-buffer-modified-p nil)
-        (unless (buffer-local-value 'pm--killed-once base)
-          (with-current-buffer base
-            (setq pm--killed-once t)
-            ;; Prevent various tools like `find-file' to re-find this file. We
-            ;; use buffer-list instead of `-buffers' slot here because on some
-            ;; occasions (e.g. switch from polymode to other mode and then back
-            ;; , or when user creates an indirect buffer manually) cause loose
-            ;; indirect buffers.
-            (dolist (b (buffer-list))
-              (when (and (buffer-live-p b)
-                         (eq (buffer-base-buffer b) base))
-                (with-current-buffer b
-                  (setq buffer-file-name nil)
-                  (setq buffer-file-number nil)
-                  (setq buffer-file-truename nil))))))))))
+    (let ((base (pm-base-buffer)))
+      (set-buffer-modified-p nil)
+      ;; Prevent various tools like `find-file' to re-find this file. We use
+      ;; buffer-list instead of `-buffers' slot here because on some occasions
+      ;; there are other indirect buffers (e.g. switch from polymode to other
+      ;; mode and then back , or when user creates an indirect buffer manually).
+      (dolist (b (buffer-list))
+        (when (and (buffer-live-p b)
+                   (eq (buffer-base-buffer b) base))
+          (with-current-buffer b
+            (setq pm--killed t)
+            (setq buffer-file-name nil)
+            (setq buffer-file-number nil)
+            (setq buffer-file-truename nil)))))))
 
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.
 Used in advises."
   (if (and polymode-mode pm/polymode
+           (not pm--killed)
            (buffer-live-p (buffer-base-buffer)))
-      (let ((cur-buf (current-buffer))
-            (base (buffer-base-buffer)))
+      (let ((poly-lock-allow-fontification nil)
+            (cur-buf (current-buffer))
+            (base (buffer-base-buffer))
+            (first-arg (car-safe args)))
         (with-current-buffer base
-          (if (eq (car-safe args) cur-buf)
+          (if (or (eq first-arg cur-buf)
+                  (equal first-arg (buffer-name cur-buf)))
               (apply orig-fun base (cdr args))
             (apply orig-fun args))))
     (apply orig-fun args)))
@@ -1150,16 +1144,6 @@ IGNORE is there to allow this function in advises."
         (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
                collection))
     (completing-read prompt collection predicate require-match initial-input hist def inherit-input-method)))
-
-;; unused
-(defun pm-kill-indirect-buffers ()
-  (let ((buf (pm-base-buffer)))
-    (dolist (b (buffer-list))
-      (when (and (buffer-live-p b)
-                 (eq (buffer-base-buffer b) buf))
-        (let ((kill-buffer-query-functions nil)
-              (kill-buffer-hook nil))
-          (kill-buffer b))))))
 
 
 ;;; WEAVING and EXPORTING

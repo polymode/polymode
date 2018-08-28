@@ -223,3 +223,14 @@ $$E=mc^2$$ )
     (goto-char 169)
     (pm-switch-to-buffer)
     (should (eq major-mode 'pascal-mode))))
+
+;; this test is useless actually; #163 shows only when `kill-buffer` is called
+;; interactively and is not picked up by this test
+(ert-deftest poly/markdown/kill-buffer ()
+  (pm-test-run-on-file poly-markdown-mode "markdown.md"
+    (let ((base-buff (buffer-base-buffer)))
+      (re-search-forward "defmacro")
+      (pm-switch-to-buffer)
+      (let (kill-buffer-query-functions)
+        (kill-buffer))
+      (should-not (buffer-live-p base-buff)))))

@@ -170,7 +170,7 @@ initialized. Return the buffer."
     (setq-local syntax-ppss-wide (cons nil nil))
 
     ;; HOOKS
-    (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes t t)
+    (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes nil t)
     (add-hook 'post-command-hook #'polymode-post-command-select-buffer nil t)
 
     ;; FONT LOCK (see poly-lock.el)
