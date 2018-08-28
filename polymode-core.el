@@ -622,7 +622,9 @@ switch."
          (buff (if type
                    (pm-get-buffer-create chunkmode type)
                  (pm-get-buffer-create (oref pm/polymode -hostmode)))))
-    (pm--select-existing-buffer buff span visibly)))
+    ;; just in case
+    (when (buffer-live-p buff)
+      (pm--select-existing-buffer buff span visibly))))
 
 ;; extracted for debugging purpose
 (defun pm--select-existing-buffer (buffer span visibly)
@@ -848,7 +850,11 @@ This function is placed in `before-change-functions' hook."
 (defun polymode-after-kill-fixes ()
   "Various fixes for polymode indirect buffers."
   (when pm/polymode
-    (let ((base (pm-base-buffer)))
+    ;; redisplay can trigger fontification, but other guards are "just in case"
+    (let ((poly-lock-allow-fontification nil)
+          (pm-allow-after-change-hook nil)
+          (pm-allow-post-command-hook nil)
+          (base (pm-base-buffer)))
       (when (buffer-live-p base)
         (set-buffer-modified-p nil)
         (unless (buffer-local-value 'pm--killed-once base)
@@ -870,7 +876,8 @@ This function is placed in `before-change-functions' hook."
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.
 Used in advises."
-  (if (and polymode-mode pm/polymode (buffer-base-buffer))
+  (if (and polymode-mode pm/polymode
+           (buffer-live-p (buffer-base-buffer)))
       (let ((cur-buf (current-buffer))
             (base (buffer-base-buffer)))
         (with-current-buffer base
