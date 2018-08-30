@@ -1,10 +1,14 @@
-;;; polymode-tangle.el --- Tangling facilities for polymodes (stump) -*- lexical-binding: t -*-
+;;; __MODULE__.el --- __MODULE__-mode polymode -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2013-2018, Vitalie Spinu
 ;; Author: Vitalie Spinu
-;; URL: https://github.com/vspinu/polymode
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2018 Vitalie Spinu
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "__POLYMODE_VERSION__"))
+;; URL: https://github.com/polymode/__MODULE__
+;; Keywords: languages, multi-modes
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; This file is *NOT* part of GNU Emacs.
 ;;
@@ -23,15 +27,17 @@
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;; Commentary:
 ;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;; Code:
 
-(defgroup polymode-tangle nil
-  "Polymode Tanglers."
-  :group 'polymode)
+(require 'polymode)
 
-(provide 'polymode-tangle)
-;;; polymode-tangle.el ends here
+
+
+(provide '__MODULE__)
+;;; __MODULE__.el ends here

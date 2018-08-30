@@ -2,19 +2,15 @@
 
 \begin{document}
 
-\begin{definitions}
-  Here is a code  chunk.
-\begin{definition}
+Here is a code chunk.
 
 <<foo, fig.height=4>>=
-    aa <- "sdfdsf"
-    plot(rnorm(100))
+1+1
+
+chartr('xie', 'XIE', c('xie yihui', 'Yihui Xie'))
+par(mar=c(4, 4, .2, .2)); plot(rnorm(100))
 @
 
-\end{definition}
-
-\end{definitions}
-You can also write inline expressions, e.g. $\pi=\Sexpr{pi}$, and
-\Sexpr{1.598673e8} is a big number.
+You can also write inline expressions, e.g. $\pi=\Sexpr{pi}$, and \Sexpr{1.598673e8} is a big number.
 
 \end{document}

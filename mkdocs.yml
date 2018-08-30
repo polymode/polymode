@@ -1,0 +1,25 @@
+site_name: Polymode
+repo_url: https://github.com/emacs-polymode/polymode
+site_favicon: favicon.ico
+copyright: "Copyright &copy; 2013-2018 Vitalie Spinu and contributors"
+pages:
+- Home: index.md
+- Installation: installation.md
+- Basic Usage: usage.md
+- Concepts: concepts.md
+- Defining Polymodes: defining-polymodes.md
+- For Developers: internals.md
+- Screenshots: screenshots.md
+- Licence: licence.md
+theme:
+    name: readthedocs
+    highlightjs: true
+    hljs_languages:
+        - lisp
+# theme: windmill
+# theme: readthedocs
+# theme: material
+# theme: cinder
+# theme: nature
+extra_css:
+  - css/extra.css

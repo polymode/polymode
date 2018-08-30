@@ -1,11 +1,11 @@
-;;; poly-markdown.el
+;;; poly-markdown.el --- Polymode for markdown-mode -*- lexical-binding: t -*-
 ;;
-;; Filename: poly-markdown.el
-;; Author: Spinu Vitalie
-;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
-;; Version: 1.0
-;; URL: https://github.com/vitoshka/polymode
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2018
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "0.1") (markdown-mode "2.3"))
+;; URL: https://github.com/polymode/poly-markdown
 ;; Keywords: emacs
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,38 +28,88 @@
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (require 'polymode)
-;; (require 'markdown-mode)
+(require 'markdown-mode)
 
 (defcustom pm-host/markdown
-  (pm-bchunkmode "Markdown"
-                 :mode 'markdown-mode
-                 :init-functions '(poly-markdown-remove-markdown-hooks))
+  (pm-host-chunkmode :object-name "Markdown"
+                     :mode 'markdown-mode
+                     :init-functions '(poly-markdown-remove-markdown-hooks)
+                     :protect-syntax nil
+                     :protect-font-lock nil)
   "Markdown host chunkmode"
-  :group 'hostmodes
+  :group 'poly-host-modes
   :type 'object)
 
-(defcustom  pm-inner/markdown
-  (pm-hbtchunkmode-auto "markdown"
-                        :head-reg "^[ \t]*```[{ \t]*\\w.*$"
-                        :tail-reg "^[ \t]*```[ \t]*$"
-                        :retriever-regexp "```[ 	]*{?\\(?:lang *= *\\)?\\([^ 	\n;=,}]+\\)"
-                        :font-lock-narrow t)
-  "Markdown typical chunk."
-  :group 'innermodes
+(defcustom pm-inner/markdown-fenced-code
+  (pm-inner-auto-chunkmode :object-name "markdown-fenced-code"
+                           :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
+                           :tail-matcher "^[ \t]*```[ \t]*$"
+                           :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1)
+                           :head-mode 'host
+                           :tail-mode 'host)
+  "Markdown fenced code block."
+  :group 'poly-inner-modes
+  :type 'object)
+
+(defcustom pm-inner/markdown-inline-code
+  (pm-inner-auto-chunkmode :object-name "markdown-inline-code"
+                           :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
+                           :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
+                           :mode-matcher (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
+                           :head-mode 'host
+                           :tail-mode 'host)
+  "Markdown inline code."
+  :group 'poly-inner-modes
+  :type 'object)
+
+(defcustom pm-inner/markdown-displayed-math
+  (pm-inner-chunkmode :object-name "markdown-displayed-math"
+                      :head-matcher (cons "^[ \t]*\\(\\$\\$\\)." 1)
+                      :tail-matcher (cons "[^$]\\(\\$\\$\\)[^$[:alnum:]]" 1)
+                      :head-mode 'host
+                      :tail-mode 'host
+                      :mode 'latex-mode)
+  "Displayed math $$..$$ block.
+Tail must be flowed by new line but head not (a space or comment
+character would do)."
+  :group 'poly-inner-modes
+  :type 'object)
+
+(defcustom pm-inner/markdown-inline-math
+  (pm-inner-chunkmode :object-name "markdown-inline-math"
+                      :head-matcher (cons "[ \t\n]\\(\\$\\)[^ $\t[:digit:]]" 1)
+                      :tail-matcher (cons "[^ $\\\t]\\(\\$\\)[^$[:alnum:]]" 1)
+                      :head-mode 'host
+                      :tail-mode 'host
+                      :mode 'latex-mode)
+  "Displayed math $$..$$ block.
+Tail must be flowed by new line but head not (a space or comment
+character would do)."
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-poly/markdown
-  (pm-polymode-multi-auto "markdown"
-                          :hostmode 'pm-host/markdown
-                          :auto-innermode 'pm-inner/markdown)
+  (pm-polymode :object-name "markdown"
+               :hostmode 'pm-host/markdown
+               :innermodes '(pm-inner/markdown-fenced-code
+                             pm-inner/markdown-inline-code
+                             pm-inner/markdown-displayed-math
+                             pm-inner/markdown-inline-math))
   "Markdown typical configuration"
   :group 'polymodes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-markdown-mode "poly-markdown")
 (define-polymode poly-markdown-mode pm-poly/markdown)
+(add-to-list 'auto-mode-alist '("\\.md$" . poly-markdown-mode))
 
 ;;; FIXES:
 (defun poly-markdown-remove-markdown-hooks ()
@@ -67,5 +117,23 @@
   (remove-hook 'window-configuration-change-hook 'markdown-fontify-buffer-wiki-links t)
   (remove-hook 'after-change-functions 'markdown-check-change-for-wiki-link t))
 
+(with-eval-after-load "markdown-mode"
+;;; https://github.com/jrblevin/markdown-mode/pull/356
+  (defun markdown-match-propertized-text (property last)
+    "Match text with PROPERTY from point to LAST.
+Restore match data previously stored in PROPERTY."
+    (let ((saved (get-text-property (point) property))
+          pos)
+      (unless saved
+        (setq pos (next-single-property-change (point) property nil last))
+        (unless (= pos last)
+          (setq saved (get-text-property pos property))))
+      (when saved
+        (set-match-data saved)
+        ;; Step at least one character beyond point. Otherwise
+        ;; `font-lock-fontify-keywords-region' infloops.
+        (goto-char (min (1+ (max (match-end 0) (point)))
+                        (point-max)))
+        saved))))
 
 (provide 'poly-markdown)

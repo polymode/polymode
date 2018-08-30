@@ -1,5 +1,15 @@
+
+
+$\int$  $dfdf$
+
 If `poly-markdown.el` is loaded. This should work by default. Otherwise `M-x
 poly-markdown+r-mode RET` should do the job.
+
+
+$$%
+
+
+$$
 
 ```r
 1 + 1
@@ -7,7 +17,6 @@ poly-markdown+r-mode RET` should do the job.
 
 ```r
 ## [1] 2
-
 ```
 
 ```r
@@ -28,12 +37,35 @@ poly-markdown+r-mode RET` should do the job.
 }
 ```
 
-  ```python
-    if len($declaration) > 0 and $declaration::isTypedef:
-        $Symbols::types.add($IDENTIFIER.text)
-        print "define type "+$IDENTIFIER.text  # line 19
-  ```
+Some text
+
+$$ 
+\int{}
+$$
 
 
+$$  
+\int_a^b f(x) dx 
+$$
 
+
+$$  $$
+ 
+ $\int{a+b}$  $p +$ 
+
+Some text
+
+
+```python
+    "some text with $ddd$ dfd"
+    if len(\$declaration) > 0 and \$declaration::isTypedef:
+        \$Symbols::types.add(\$IDENTIFIER.text)
+        print "define type "+\$IDENTIFIER.text  # line 19
+```
+  
+  
+$$\begin{equation}
+  L(\theta) = f(x_1,x_2, \ldots, x_n | \theta )
+  (\#eq:reference)
+\end{equation}$$
 

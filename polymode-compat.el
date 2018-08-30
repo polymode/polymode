@@ -1,4 +1,39 @@
-;;; COMPATIBILITY and FIXES
+;;; polymode-compat.el --- Various compatibility fixes for other packages -*- lexical-binding: t -*-
+;;
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2013-2018, Vitalie Spinu
+;; Version: 0.1
+;; URL: https://github.com/vitoshka/polymode
+;; Keywords: emacs
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (require 'polymode-core)
 (require 'advice nil t)
@@ -6,7 +41,6 @@
 (defgroup polymode-compat nil
   "Polymode compatibility settings."
   :group 'polymode)
-
 
 
 ;;; Various Wrappers for Around Advice
@@ -45,47 +79,65 @@ Return new name (symbol). FUN is an unquoted name of a function."
                       (error-message-string err)
                       ;; (or (and (symbolp fun) "")
                       ;;     (replace-regexp-in-string "\n" "" (format "[%s]" fun)))
-                      "[M-x pm-debug-mode RET for more info]"
-                      )
-             (when pm-debug-mode
-               (backtrace))
+                      "[M-x pm-debug-mode RET for more info]")
              nil))))
 
 (defun pm-override-output-position (orig-fun &rest args)
   "Restrict returned value of ORIG-FUN to fall into the current span.
-*span* in `pm-map-over-spans` has precedence over span at point.'"
+*span* in `pm-map-over-spans` has precedence over span at point.
+ ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
-                       (pm-get-innermost-range)))
+                       (pm-innermost-range)))
             (pos (pm-apply-protected orig-fun args)))
         (and pos
              (min (max pos (car range))
                   (cdr range))))
     (apply orig-fun args)))
 
+
 (defun pm-override-output-cons (orig-fun &rest args)
   "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
-*span* in `pm-map-over-spans` has precedence over span at point.'"
+*span* in `pm-map-over-spans` has precedence over span at point.
+This will break badly if (point) is not inside expected range.
+ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
-                       (pm-get-innermost-range)))
+                       (pm-innermost-range)))
             (be (pm-apply-protected orig-fun args)))
-        (and be
-             (cons (min (max (car be) (car range))
-                        (cdr range))
-                   (max (min (cdr be) (cdr range))
-                        (car range)))))
+        (let ((out (and be
+                        (cons (and (car be)
+                                   (min (max (car be) (car range))
+                                        (cdr range)))
+                              (and (cdr be)
+                                   (max (min (cdr be) (cdr range))
+                                        (car range)))))))
+          (when pm-verbose
+            (message "(pm-override-output-cons %s) -> %s" args out))
+          out))
+    (apply orig-fun args)))
+
+(defun pm-narrowed-override-output-cons (orig-fun &rest args)
+  "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
+Run ORIG-FUN with buffer narrowed to span. *span* in
+`pm-map-over-spans` has precedence over span at point. ARGS are
+passed to ORIG-FUN."
+  (if (and polymode-mode pm/polymode)
+      (let ((*span* (or *span* (pm-innermost-span))))
+        (pm-with-narrowed-to-span *span*
+          (apply #'pm-override-output-cons orig-fun args)))
     (apply orig-fun args)))
 
 (defun pm-substitute-beg-end (orig-fun beg end &rest args)
-  "Execute orig-fun with first two arguments limited to current span.
-*span* in `pm-map-over-spans` has precedence over span at point."
+  "Execute ORIG-FUN with first BEG and END arguments limited to current span.
+*span* in `pm-map-over-spans` has precedence over span at point.
+ ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let* ((pos (if (and (<= (point) end) (>=  (point) beg))
                       (point)
                     end))
              (range (or (pm-span-to-range *span*)
-                        (pm-get-innermost-range pos)))
+                        (pm-innermost-range pos)))
              (new-beg (max beg (car range)))
              (new-end (min end (cdr range))))
         (pm-apply-protected orig-fun (append (list new-beg new-end) args)))
@@ -93,7 +145,8 @@ Return new name (symbol). FUN is an unquoted name of a function."
 
 (defun pm-execute-narrowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.
-*span* in `pm-map-over-spans` has precedence over span at point."
+*span* in `pm-map-over-spans` has precedence over span at point.
+ ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (pm-with-narrowed-to-span *span*
         (pm-apply-protected orig-fun args))
@@ -103,7 +156,8 @@ Return new name (symbol). FUN is an unquoted name of a function."
   "Execute ORIG-FUN without allowing polymode core hooks.
 That is, bind `pm-allow-post-command-hook' and
 `pm-allow-after-change-hook' to nil. *span* in
-`pm-map-over-spans' has precedence over span at point."
+`pm-map-over-spans' has precedence over span at point. ARGS are
+passed to ORIG-FUN."
   ;; this advice is nowhere used yet
   (if (and polymode-mode pm/polymode)
       (let ((pm-allow-post-command-hook t)
@@ -117,7 +171,8 @@ That is, bind `pm-allow-post-command-hook' and
     (apply orig-fun args)))
 
 (defun pm-execute-with-save-excursion (orig-fun &rest args)
-  "Execute ORIG-FUN within save-excursion."
+  "Execute ORIG-FUN within ‘save-excursion’.
+ARGS are passed to ORIG-FUN."
   ;; This advice is required when other functions switch buffers to work inside
   ;; base buffer and don't restore the point. For some not very clear reason
   ;; this seem to be necessary for save-buffer which saves buffer but not point.
@@ -128,54 +183,11 @@ That is, bind `pm-allow-post-command-hook' and
           (apply orig-fun args)))
     (apply orig-fun args)))
 
-(defun pm-around-advice (fun advice)
-  "Apply around ADVICE to FUN.
-Check for if new advice is available and if FUN is a symbol, do
-nothing otherwise. If FUN is a list, apply advice to each element
-in a list. "
-  (when (and fun (fboundp 'advice-add))
-    (cond ((listp fun)
-           (dolist (el fun) (pm-around-advice el advice)))
-          ((and (symbolp fun)
-                (not (advice-member-p advice fun)))
-           (advice-add fun :around advice)))))
-
-
-;;; Syntax
-(defun pm-execute-syntax-propertize-narrowed-to-span (orig-fun pos)
-  "Execute `syntax-propertize' narrowed to the current span.
-Don't throw errors, but give relevant messages instead."
-  ;; in emacs 25.1 internal--syntax-propertize is called from C. We
-  ;; cannot advice it, but we can check for its argument. Very hackish
-  ;; but I don't see another way besides re-defining that function.
-  (if (and polymode-mode pm/polymode)
-      (condition-case err
-          (save-excursion
-            (when (< syntax-propertize--done pos)
-              (pm-map-over-spans
-               (lambda ()
-                 (when (< syntax-propertize--done pos)
-                   (pm-with-narrowed-to-span *span*
-                     (funcall orig-fun (min pos (point-max)))
-                     (let ((new--done syntax-propertize--done))
-                       (dolist (buff (oref pm/polymode -buffers))
-                         (with-current-buffer buff
-                           (setq-local syntax-propertize--done new--done)))))))
-               syntax-propertize--done pos)))
-        (error (message "(syntax-propertize %s): %s [M-x pm-debug-info RET to see backtrace]"
-                        pos (error-message-string err))
-               (and pm-debug-mode
-                    (backtrace))))
-    (funcall orig-fun pos)))
-
-(pm-around-advice 'syntax-propertize 'pm-execute-syntax-propertize-narrowed-to-span)
-
-
 
 ;;; Flyspel
-(defun pm--flyspel-dont-highlight-in-chunkmodes (beg end poss)
-  (or (get-text-property beg :pm-span-type)
-      (get-text-property end :pm-span-type)))
+(defun pm--flyspel-dont-highlight-in-chunkmodes (beg end _poss)
+  (or (car (get-text-property beg :pm-span))
+      (car (get-text-property end :pm-span))))
 
 
 ;;; C/C++/Java
@@ -188,8 +200,9 @@ Don't throw errors, but give relevant messages instead."
 
 
 ;;; Python
+(declare-function pm--first-line-indent "polymode-methods")
 (defun pm--python-dont-indent-to-0 (fun)
-  "Don't cycle to 0 indentation in polymode chunks."
+  "Fix indent FUN not to cycle to 0 indentation."
   (if (and polymode-mode pm/type)
       (let ((last-command (unless (eq (pm--first-line-indent) (current-indentation))
                             last-command)))
@@ -200,9 +213,12 @@ Don't throw errors, but give relevant messages instead."
 
 
 ;;; Core Font Lock
+(defvar font-lock-beg)
+(defvar font-lock-end)
 (defun pm-check-for-real-change-in-extend-multiline (fun)
-  "Fix `font-lock-extend-region-multiline' which causes infloops on point-max.
-Propagate only real change."
+  "Protect FUN from inf-looping at ‘point-max’.
+FUN is `font-lock-extend-region-multiline'. Propagate only real
+changes."
   ;; fixme: report this ASAP!
   (let ((obeg font-lock-beg)
         (oend font-lock-end)
@@ -235,6 +251,7 @@ Propagate only real change."
 
 ;;; EVIL
 
+(declare-function evil-change-state "evil-core")
 (defun polymode-switch-buffer-keep-evil-state-maybe (old-buffer new-buffer)
   (when (and (boundp 'evil-state)
              evil-state)
@@ -247,5 +264,5 @@ Propagate only real change."
 (eval-after-load 'evil-core
   '(add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
 
-
 (provide 'polymode-compat)
+;;; polymode-compat.el ends here

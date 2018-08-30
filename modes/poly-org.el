@@ -1,12 +1,12 @@
-;;; poly-org.el
+;;; poly-org.el --- Polymode for org-mode -*- lexical-binding: t -*-
 ;;
-;; Filename: poly-org.el
-;; Author: Spinu Vitalie
-;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
-;; Version: 1.0
-;; URL: https://github.com/vitoshka/polymode
-;; Keywords: emacs
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2013-2018 Vitalie Spinu
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "0.1"))
+;; URL: https://github.com/polymode/poly-org
+;; Keywords: languages, multi-modes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -28,35 +28,40 @@
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (require 'org-src)
 (require 'polymode)
 
 (defcustom pm-host/org
-  (pm-bchunkmode "Org mode"
-               :mode 'org-mode)
-  "Org host innermode"
-  :group 'hostmodes
+  (pm-host-chunkmode :object-name "Org mode"
+                     :mode 'org-mode)
+  "Org host chunkmode."
+  :group 'poly-host-modes
   :type 'object)
 
 (defcustom  pm-inner/org
-  (pm-hbtchunkmode-auto "org"
-                     :head-reg "^[ \t]*#\\+begin_src .*$"
-                     :tail-reg "^[ \t]*#\\+end_src"
-                     :head-mode 'host
-                     :tail-mode 'host
-                     :retriever-regexp "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
-                     :indent-offset org-edit-src-content-indentation
-                     :font-lock-narrow t)
+  (pm-inner-auto-chunkmode :object-name "org"
+                           :head-matcher "^[ \t]*#\\+begin_src .*$"
+                           :tail-matcher "^[ \t]*#\\+end_src"
+                           :head-mode 'host
+                           :tail-mode 'host
+                           :head-matcher "#\\+begin_src +\\(\\(\\w\\|\\s_\\)+\\)"
+                           :indent-offset org-edit-src-content-indentation)
   "Org typical chunk."
-  :group 'innermodes
+  :group 'poly-inner-modes
   :type 'object)
 
 (defcustom pm-poly/org
-  (pm-polymode-multi-auto "org"
-                        :hostmode 'pm-host/org
-                        :auto-innermode 'pm-inner/org)
-  "Org typical configuration"
+  (pm-polymode :object-name "org"
+               :hostmode 'pm-host/org
+               :innermodes '(pm-inner/org))
+  "Org typical polymode configuration."
   :group 'polymodes
   :type 'object)
 
@@ -64,4 +69,3 @@
 (define-polymode poly-org-mode pm-poly/org)
 
 (provide 'poly-org)
-

@@ -1,3 +1,36 @@
+;;; polymode-export.el --- Exporting facilities for polymodes -*- lexical-binding: t -*-
+;;
+;; Copyright (C) 2013-2018, Vitalie Spinu
+;; Author: Vitalie Spinu
+;; URL: https://github.com/vspinu/polymode
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+
+;;; Commentary:
+;;
+
+;;; Code:
+
 (require 'polymode-core)
 (require 'polymode-classes)
 
@@ -125,7 +158,7 @@
   ((callback
     :initarg :callback
     :initform (lambda (&optional rest)
-                (error "No callback defined for this exporter."))
+                (error "No callback defined for this exporter"))
     :type (or symbol function)
     :documentation
     "Callback function to be called by :function. There is no
@@ -153,10 +186,10 @@
   "Class to represent exporters that call external processes.")
 
 (defun pm-default-shell-export-function (command sentinel from to)
-  "Run exporting command interactively.
+  "Run exporting COMMAND interactively to convert FROM to TO.
 Run command in a buffer (in comint-shell-mode) so that it accepts
 user interaction. This is a default function in all exporters
-that call a shell command"
+that call a shell command. SENTINEL is the process sentinel."
   (pm--run-shell-command command sentinel "*polymode export*"
                          (concat "Exporting " from "-->" to " with command:\n\n     "
                                  command "\n\n")))
@@ -164,19 +197,19 @@ that call a shell command"
 
 ;;; METHODS
 
-(defgeneric pm-export (exporter from to &optional ifile)
+(cl-defgeneric pm-export (exporter from to &optional ifile)
   "Process IFILE with EXPORTER.")
 
-(defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
+(cl-defmethod pm-export ((exporter pm-exporter) from to &optional ifile)
   (pm--process-internal exporter from to ifile))
 
-(defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
+(cl-defmethod pm-export ((exporter pm-callback-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :callback ifile)))
     (pm--process-internal exporter from to ifile cb)))
 
-(defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
+(cl-defmethod pm-export ((exporter pm-shell-exporter) from to &optional ifile)
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
-    (pm--process-internal exporter from to ifile cb (oref exporter :quote))))
+    (pm--process-internal exporter from to ifile cb (eieio-oref exporter 'quote))))
 
 
 ;; UI
@@ -205,9 +238,9 @@ exporters input extension. When such combination is possible,
 settle on weaving first and exporting the weaved output. When
 none of the above worked, ask the user for `from' and `to' specs.
 
-When called interactively with C-u argument, ask for FROM and TO
-interactively. See class `pm-exporter' for the complete
-specification."
+When called with prefix argument, ask for FROM and TO
+interactively. See constructor function ‘pm-exporter’ for the
+complete specification."
   (interactive "P")
   (cl-flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
                                     (name (if ext
@@ -215,7 +248,7 @@ specification."
                                             (funcall (cdr el) 'doc))))
                                (cons name (car el))))
             (from-name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
-    (let* ((exporter (symbol-value (or (oref pm/polymode :exporter)
+    (let* ((exporter (symbol-value (or (eieio-oref pm/polymode 'exporter)
                                        (polymode-set-exporter))))
            (fname (file-name-nondirectory buffer-file-name))
            (gprompt nil)
@@ -240,14 +273,14 @@ specification."
                      (cdar matched))))
 
                ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
-               (let ((weaver (symbol-value (or (oref pm/polymode :weaver)
+               (let ((weaver (symbol-value (or (eieio-oref pm/polymode 'weaver)
                                                (progn
                                                  (setq gprompt "Choose `from' spec: ")
                                                  (polymode-set-weaver))))))
                  (when weaver
                    ;; fixme: weaver was not yet ported to selectors
                    ;; fixme: currently only first match is returned
-                   (let ((pair (cl-loop for w in (oref weaver :from-to)
+                   (let ((pair (cl-loop for w in (eieio-oref weaver 'from-to)
                                         ;; weaver input extension matches the filename
                                         if (string-match-p (nth 1 w) fname)
                                         return (cl-loop for el in (pm--selectors exporter :from)
@@ -259,9 +292,7 @@ specification."
                        pair))))
 
                ;; 4. nothing matched; ask
-               (let* ((prompt (or gprompt
-                                  (format "No `from' specs matched. Choose one: "
-                                          (file-name-nondirectory fname) (eieio-object-name-string exporter))))
+               (let* ((prompt (or gprompt "No `from' specs matched. Choose one: "))
                       (sel (pm--completing-read prompt from-opts nil t nil 'pm--export:from-hist)))
                  (cdr sel))))
 
@@ -273,7 +304,7 @@ specification."
 
              ;; C. string
              ((stringp from)
-              (if (assoc from (oref exporter :from))
+              (if (assoc from (eieio-oref exporter 'from))
                   from
                 (error "Cannot find `from' spec '%s' in %s exporter"
                        from (eieio-object-name exporter))))
@@ -295,7 +326,7 @@ specification."
 
              ;; B. string
              ((stringp to)
-              (if (assoc to (oref exporter :to))
+              (if (assoc to (eieio-oref exporter 'to))
                   to
                 (error "Cannot find output spec '%s' in %s exporter"
                        to (eieio-object-name exporter))))
@@ -309,7 +340,7 @@ specification."
           ;; run through weaver
           (let ((pm--export-spec (cons (cdr from-id) to-id))
                 (pm--output-not-real t))
-            (pm-weave (symbol-value (oref pm/polymode :weaver)) (car from-id)))
+            (pm-weave (symbol-value (eieio-oref pm/polymode 'weaver)) (car from-id)))
         (pm-export exporter from-id to-id)))))
 
 (defun polymode-set-exporter ()
@@ -327,66 +358,68 @@ specification."
     (oset pm/polymode :exporter out)
     out))
 
-(defmacro polymode-register-exporter (exporter defaultp &rest configs)
+(defmacro polymode-register-exporter (exporter default &rest configs)
   "Add EXPORTER to :exporters slot of all config objects in CONFIGS.
-When DEFAULT? is non-nil, also make EXPORTER the default exporter
+When DEFAULT is non-nil, also make EXPORTER the default exporter
 for each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) :exporters ',exporter)
-     (when ,defaultp (oset (symbol-value pm) :exporter ',exporter))))
+     (when ,default (oset (symbol-value pm) :exporter ',exporter))))
 
 
 ;;; GLOBAL EXPORTERS
 (defcustom pm-exporter/pandoc
-  (pm-shell-exporter "pandoc"
-               :from
-               '(;; ("json" "\\.json\\'" "JSON native AST"  "pandoc %i -f json -t %t -o %o")
-                 ("markdown"    "\\.md\\'" "pandoc's markdown"  "pandoc %i -f markdown -t %t -o %o")
-                 ("markdown_strict" "\\.md\\'" "original markdown"  "pandoc %i -f markdown_strict -t %t -o %o")
-                 ("markdown_phpextra"   "\\.md\\'" "PHP markdown"   "pandoc %i -f markdown_phpextra -t %t -o %o")
-                 ("markdown_phpextra"   "\\.md\\'" "github markdown"    "pandoc %i -f markdown_phpextra -t %t -o %o")
-                 ("textile" "\\.textile\\'" "Textile"       "pandoc %i -f textile -t %t -o %o")
-                 ("rst"     "\\.rst\\'" "reStructuredText"  "pandoc %i -f rst -t %t -o %o")
-                 ("html"    "\\.x?html?\\'" "HTML"  "pandoc %i -f html -t %t -o %o")
-                 ("doocbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f doocbook -t %t -o %o")
-                 ("mediawiki"   "\\.wiki\\'" "MediaWiki"        "pandoc %i -f mediawiki -t %t -o %o")
-                 ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o")
-                 )
-               :to
-               '(;; ("json"     "json"  "JSON version of native AST" "json")
-                 ("plain"   "txt"  "plain text" "plain")
-                 ("markdown"    "md"  "pandoc's extended markdown" "markdown")
-                 ("markdown_strict"     "md"  "original markdown" "markdown_strict")
-                 ("markdown_phpextra"   "md"  "PHP extended markdown" "markdown_phpextra")
-                 ("markdown_github"     "md"  "github extended markdown" "markdown_github")
-                 ("rst"     "rst"  "reStructuredText" "rst")
-                 ("html"    "html"  "XHTML 1" "html")
-                 ("html5"   "html"  "HTML 5" "html5")
-                 ("latex"   "tex"  "LaTeX" "latex")
-                 ("beamer"      "tex"  "LaTeX beamer" "beamer")
-                 ("context"     "tex"  "ConTeXt" "context")
-                 ("man"     "man"  "groff man" "man")
-                 ("mediawiki"   "wiki"  "MediaWiki markup" "mediawiki")
-                 ("textile"     "textile"  "Textile" "textile")
-                 ("org"     "org"  "Emacs Org-Mode" "org")
-                 ("texinfo"     "info"  "GNU Texinfo" "texinfo")
-                 ("docbook"     "xml"  "DocBook XML" "docbook")
-                 ("opendocument"    "xml"  "OpenDocument XML" "opendocument")
-                 ("odt"     "odt"  "OpenOffice text document" "odt")
-                 ("docx"    "docx"  "Word docx" "docx")
-                 ("epub"    "epub"  "EPUB book" "epub")
-                 ("epub3"   "epub"  "EPUB v3" "epub3")
-                 ("fb2"     "fb"  "FictionBook2 e-book" "fb2")
-                 ("asciidoc"    "txt"  "AsciiDoc" "asciidoc")
-                 ("slidy"   "html"  "Slidy HTML slide show" "slidy")
-                 ("slideous"    "html"  "Slideous HTML slide show" "slideous")
-                 ("dzslides"    "html"  "HTML5 slide show" "dzslides")
-                 ("s5"      "html"  "S5 HTML slide show" "s5")
-                 ("rtf"     "rtf"  "rich text format" "rtf"))
-               :function 'pm-default-shell-export-function
-               :sentinel 'pm-default-export-sentinel)
-  "Pandoc exporter"
+  (pm-shell-exporter
+   :object-name "pandoc"
+   :from
+   '(;; ("json" "\\.json\\'" "JSON native AST"  "pandoc %i -f json -t %t -o %o")
+     ("markdown"    "\\.md\\'" "pandoc's markdown"  "pandoc %i -f markdown -t %t -o %o")
+     ("markdown_strict" "\\.md\\'" "original markdown"  "pandoc %i -f markdown_strict -t %t -o %o")
+     ("markdown_phpextra"   "\\.md\\'" "PHP markdown"   "pandoc %i -f markdown_phpextra -t %t -o %o")
+     ("markdown_phpextra"   "\\.md\\'" "github markdown"    "pandoc %i -f markdown_phpextra -t %t -o %o")
+     ("textile" "\\.textile\\'" "Textile"       "pandoc %i -f textile -t %t -o %o")
+     ("rst"     "\\.rst\\'" "reStructuredText"  "pandoc %i -f rst -t %t -o %o")
+     ("html"    "\\.x?html?\\'" "HTML"  "pandoc %i -f html -t %t -o %o")
+     ("doocbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f doocbook -t %t -o %o")
+     ("mediawiki"   "\\.wiki\\'" "MediaWiki"        "pandoc %i -f mediawiki -t %t -o %o")
+     ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o")
+     )
+   :to
+   '(;; ("json"     "json"  "JSON version of native AST" "json")
+     ("plain"   "txt"  "plain text" "plain")
+     ("markdown"    "md"  "pandoc's extended markdown" "markdown")
+     ("markdown_strict"     "md"  "original markdown" "markdown_strict")
+     ("markdown_phpextra"   "md"  "PHP extended markdown" "markdown_phpextra")
+     ("markdown_github"     "md"  "github extended markdown" "markdown_github")
+     ("rst"     "rst"  "reStructuredText" "rst")
+     ("html"    "html"  "XHTML 1" "html")
+     ("html5"   "html"  "HTML 5" "html5")
+     ("latex"   "tex"  "LaTeX" "latex")
+     ("beamer"      "tex"  "LaTeX beamer" "beamer")
+     ("context"     "tex"  "ConTeXt" "context")
+     ("man"     "man"  "groff man" "man")
+     ("mediawiki"   "wiki"  "MediaWiki markup" "mediawiki")
+     ("textile"     "textile"  "Textile" "textile")
+     ("org"     "org"  "Emacs Org-Mode" "org")
+     ("texinfo"     "info"  "GNU Texinfo" "texinfo")
+     ("docbook"     "xml"  "DocBook XML" "docbook")
+     ("opendocument"    "xml"  "OpenDocument XML" "opendocument")
+     ("odt"     "odt"  "OpenOffice text document" "odt")
+     ("docx"    "docx"  "Word docx" "docx")
+     ("epub"    "epub"  "EPUB book" "epub")
+     ("epub3"   "epub"  "EPUB v3" "epub3")
+     ("fb2"     "fb"  "FictionBook2 e-book" "fb2")
+     ("asciidoc"    "txt"  "AsciiDoc" "asciidoc")
+     ("slidy"   "html"  "Slidy HTML slide show" "slidy")
+     ("slideous"    "html"  "Slideous HTML slide show" "slideous")
+     ("dzslides"    "html"  "HTML5 slide show" "dzslides")
+     ("s5"      "html"  "S5 HTML slide show" "s5")
+     ("rtf"     "rtf"  "rich text format" "rtf"))
+   :function 'pm-default-shell-export-function
+   :sentinel 'pm-default-export-sentinel)
+  "Pandoc exporter."
   :group 'polymode-export
   :type 'object)
 
 (provide 'polymode-export)
+;;; polymode-export.el ends here

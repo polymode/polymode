@@ -1,16 +1,15 @@
 ;;; Directory Local Variables
-;;; See Info node `(emacs) Directory Variables' for more information.
+;;; For more information see (info "(emacs) Directory Variables")
 
-((nil
+((emacs-lisp-mode
   (require-final-newline . t)
-  ;; not tabs in code
   (indent-tabs-mode)
-  ;; checkdoc, one space is enough
   (sentence-end-double-space . nil)
-  ;; checkdoc, don't botch English grammar
   (checkdoc-arguments-in-order-flag . nil)
-  ;; checkdoc, we don't want docs for internal vars
-  (checkdoc-force-docstrings-flag . nil))
- (emacs-lisp-mode
-  ;; remove trailing whitespace
-  (eval . (add-hook 'before-save-hook 'delete-trailing-whitespace nil t))))
+  (checkdoc-force-docstrings-flag . nil)
+  (checkdoc-verb-check-experimental-flag . nil)
+  (bug-reference-bug-regexp . "#\\(?2:[[:digit:]]+\\)")
+  (bug-reference-url-format . "https://github.com/vspinu/polymode/issues/%s")
+  (eval . (add-hook 'before-save-hook 'delete-trailing-whitespace nil t))
+  (elisp-lint-indent-specs . ((pm-test-run-on-file . 2)
+                              (pm-debug-eval-with-trace . 1)))))

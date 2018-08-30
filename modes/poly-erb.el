@@ -1,60 +1,69 @@
+;;; poly-erb.el --- Polymode for erb -*- lexical-binding: t -*-
+;;
+;; Author: Siavash Sajjadi and Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2018
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "0.1"))
+;; URL: https://github.com/polymode/poly-erb
+;; Keywords: emacs
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
+
 (require 'polymode)
-
-(defcustom pm-host/coffee
-  (pm-bchunkmode "coffee" :mode 'coffee-mode)
-  "coffee host chunkmode"
-  :group 'hostmodes
-  :type 'object)
-
-(defcustom pm-host/javascript
-  (pm-bchunkmode "javascript" :mode 'js-mode)
-  "javascript host chunkmode"
-  :group 'hostmodes
-  :type 'object)
+(require 'ruby-mode)
 
 (defcustom pm-inner/erb
-  (pm-hbtchunkmode "erb"
-                   :mode 'ruby-mode
-                   :head-reg  "\"?\<\% *[-=]?"
-                   :tail-reg  "\%\>\"?")
-  "erb typical chunk."
-  :group 'innermodes
-  :type 'object)
-
-(defcustom pm-poly/coffee-erb
-  (pm-polymode-one "coffee-erb"
-                   :hostmode 'pm-host/coffee
-                   :innermode 'pm-inner/erb)
-  "coffee-erb typical polymode."
-  :group 'polymodes
+  (pm-inner-chunkmode :object-name "erb"
+                      :mode 'ruby-mode
+                      :head-matcher  "\"?\<\% *[-=]?"
+                      :tail-matcher  "\%\>\"?")
+  "Erb typical chunk."
+  :group 'poly-inner-modes
   :type 'object)
 
 ;;;###autoload  (autoload 'poly-coffee+erb-mode "poly-erb")
-(define-polymode poly-coffee+erb-mode pm-poly/coffee-erb)
-(define-obsolete-function-alias 'poly-coffee-erb-mode 'poly-coffee+erb-mode)
+(define-polymode poly-coffee+erb-mode
+  :hostmode 'pm-host/coffee
+  :innermodes '(pm-inner/erb))
 
-(defcustom pm-poly/javascript-erb
-  (pm-polymode-one "javascript-erb"
-                   :hostmode 'pm-host/javascript
-                   :innermode 'pm-inner/erb)
-  "javascript-erb typical polymode."
-  :group 'polymodes
-  :type 'object)
-
-;;;###autoload  (autoload 'poly-javascript+erb-mode "poly-erb")
-(define-polymode poly-javascript+erb-mode pm-poly/javascript-erb)
-(define-obsolete-function-alias 'poly-javascript-erb-mode 'poly-javascript+erb-mode)
-
-(defcustom pm-poly/html-erb
-  (pm-polymode-one "html-erb"
-                   :hostmode 'pm-host/html
-                   :innermode 'pm-inner/erb)
-  "html-erb typical polymode."
-  :group 'polymodes
-  :type 'object)
+;;;###autoload
+(define-polymode poly-js+erb-mode
+  :hostmode 'pm-host/js
+  :innermodes '(pm-inner/erb))
 
 ;;;###autoload  (autoload 'poly-html+erb-mode "poly-erb")
-(define-polymode poly-html+erb-mode pm-poly/html-erb)
-(define-obsolete-function-alias 'poly-html-erb-mode 'poly-html+erb-mode)
+(define-polymode poly-html+erb-mode
+  :hostmode 'pm-host/html
+  :innermode 'pm-inner/erb)
+
+(add-to-list 'auto-mode-alist '("\\.js.erb$" . poly-javascript+erb-mode))
+(add-to-list 'auto-mode-alist '("\\.coffee.erb$" . poly-coffee+erb-mode))
+(add-to-list 'auto-mode-alist '("\\.html.erb$" . poly-html+erb-mode))
 
 (provide 'poly-erb)

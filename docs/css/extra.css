@@ -1,0 +1,22 @@
+/* adapted from cider */
+
+/* By default kbd doesn't stand out very much. Let's fix this! */
+kbd {
+    padding: 2px 3px;
+    border: solid 1px #ccc;
+    /* color: black; */
+    background-color: #fcfcfc;
+    border-radius: 3px;
+    box-shadow: inset 0 -1px 0 #bbb;
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 90%;
+}
+
+/* The default font-size for code blocks is 75% which makes code
+hard to read. */
+code {
+    font-size: 85%;
+    color: #d04232;
+}
+

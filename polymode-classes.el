@@ -1,375 +1,391 @@
+;;; polymode-classes.el --- Core polymode classes -*- lexical-binding: t -*-
+;;
+;; Copyright (C) 2013-2018, Vitalie Spinu
+;; Author: Vitalie Spinu
+;; URL: https://github.com/vspinu/polymode
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This file is *NOT* part of GNU Emacs.
+;;
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 3, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
+;; Floor, Boston, MA 02110-1301, USA.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;;; Code:
+
 (require 'eieio)
-(require 'polymode-core)
+(require 'eieio-base)
+(require 'eieio-custom)
 
-;;; ROOT CLASS
-(if (fboundp 'eieio-named)
-    (progn
-      (defclass pm-root (eieio-instance-inheritor eieio-named)
-        ((-props
-          :initform '()
-          :type list
-          :documentation "Internal. Used to store various user
-    history values. Use `pm--prop-get' and `pm--prop-put' to
-    place key value pairs into this list."))
-        "Root polymode class.")
+;; FIXME: fix emacs eieo-named bug #22840 where they wrongly set name of the
+;; parent object in clone method
 
-      (when (fboundp 'defmethod)
-        ;; bug #22840
-        (defmethod clone ((obj eieio-named) &rest params)
-          "Clone OBJ, initializing `:parent' to OBJ.
-        All slots are unbound, except those initialized with
-        PARAMS."
-          (let* ((newname (and (stringp (car params)) (pop params)))
-                 (nobj (apply #'call-next-method obj params))
-                 (nm (slot-value obj 'object-name)))
-            (eieio-oset nobj 'object-name
-                        (or newname
-                            (save-match-data
-                              (if (and nm (string-match "-\\([0-9]+\\)" nm))
-                                  (let ((num (1+ (string-to-number
-                                                  (match-string 1 nm)))))
-                                    (concat (substring nm 0 (match-beginning 0))
-                                            "-" (int-to-string num)))
-                                (concat nm "-1")))))
-            nobj))))
+(setq eieio-backward-compatibility nil)
 
-  (defclass pm-root (eieio-instance-inheritor)
-    ((-props
-      :initform '()
-      :type list
-      :documentation "Internal. Plist used to store various extra
-    metadata such as user history. Use `pm--prop-get' and
-    `pm--prop-put' to place key value pairs into this list."))
-    "Root polymode class."))
-
-;;; CONFIG
+(defvar pm--object-counter 0)
+
+(defun pm--filter-slots (slots)
+  (delq nil (mapcar (lambda (slot)
+                      (unless (or (= (elt (symbol-name slot) 0) ?-)
+                                  (eq slot 'minor-mode)
+                                  (eq slot 'parent-instance)
+                                  (eq slot 'object-name))
+                        (intern (concat ":" (symbol-name slot)))))
+                    slots)))
+
+(defclass pm-root (eieio-instance-inheritor)
+  ((object-name
+    :initarg :object-name
+    :initform "UNNAMED"
+    :type string
+    :custom string
+    :documentation
+    "Name of the object used to for display and info.")
+   (-id
+    :initform 0
+    :type number
+    :documentation
+    "[Internal] Numeric id to track objects. Every object has an id.")
+   (-props
+    :initform '()
+    :type list
+    :documentation
+    "[Internal] Plist used to store various extra metadata such as user history.
+Use `pm--prop-get' and `pm--prop-put' to place key value pairs
+into this list."))
+  "Root polymode class.")
+
+(cl-defmethod eieio-object-name-string ((obj pm-root))
+  (eieio-oref obj 'object-name))
+
+(cl-defmethod clone ((obj pm-root) &rest params)
+  (let ((old-name (eieio-oref obj 'object-name))
+        (new-obj (apply #'cl-call-next-method obj params)))
+    (when (equal old-name (eieio-oref new-obj 'object-name))
+      (let ((new-name (concat old-name ":")))
+        (eieio-oset new-obj 'object-name new-name)))
+    new-obj))
+
 (defclass pm-polymode (pm-root)
   ((hostmode
     :initarg :hostmode
-    :initform 'pm-host/blank
+    :initform nil
     :type symbol
     :custom symbol
     :documentation
-    "Symbol pointing to an object of class pm-chunkmode
-    representing the host chunkmode.")
-   (minor-mode
-    :initarg :minor-mode
-    :initform 'polymode-minor-mode
-    :type symbol
-    :custom symbol
+    "Symbol pointing to a `pm-host-chunkmode' object.
+When nil, any host-mode will be matched (suitable for
+poly-minor-modes. ")
+   (innermodes
+    :initarg :innermodes
+    :type list
+    :initform nil
+    :custom (repeat symbol)
     :documentation
-    "Symbol pointing to minor-mode function that should be
-    activated in all buffers (base and indirect). This is a
-    \"glue\" mode and is `polymode-minor-mode' by default. You
-    will rarely need to change this.")
-   (lighter
-    :initarg :lighter
-    :initform " PM"
-    :type string
-    :custom string
-    :documentation "Modline lighter.")
+    "List of inner-mode names (symbols) associated with this polymode.")
    (exporters
     :initarg :exporters
     :initform '(pm-exporter/pandoc)
-    :type list
-    :custom list
+    :custom (repeat symbol)
     :documentation
     "List of names of polymode exporters available for this polymode.")
    (exporter
     :initarg :exporter
     :initform nil
-    :type (or null symbol)
+    :type symbol
     :custom symbol
     :documentation
-    "Current exporter name. If non-nil should be the name of the
-    default exporter for this polymode. Can be set with
-    `polymode-set-exporter' command.")
+    "Current exporter name.
+If non-nil should be the name of the default exporter for this
+polymode. Can be set with `polymode-set-exporter' command.")
    (weavers
     :initarg :weavers
     :initform '()
     :type list
-    :custom list
+    :custom (repeat symbol)
     :documentation
     "List of names of polymode weavers available for this polymode.")
    (weaver
     :initarg :weaver
     :initform nil
-    :type (or null symbol)
+    :type symbol
     :custom symbol
     :documentation
-    "Current weaver name. If non-nil this is the default weaver
-    for this polymode. Can be dynamically set with
-    `polymode-set-weaver'")
-   (map
-    :initarg :map
-    :initform 'polymode-mode-map
-    :type (or symbol list)
-    :documentation
-    "Has a similar role as the :keymap argument in
-     `define-polymode' with the difference that this argument is
-     inherited through cloning, but :keymap argument is not. That
-     is, child objects derived through clone will inherit
-     the :map argument of its parents through the following
-     scheme: if :map is nil or an alist of keys, the parent is
-     inspected for :map argument and the keys are merged
-     recursively from parent to parent till a symbol :map slot is
-     met. If :map is a symbol, it must be a keymap, in which case
-     this keymap is used and no parents are further inspected
-     for :map slot. If :map is an alist it must be suitable for
-     `easy-mmode-define-keymap'.")
-   (init-functions
-    :initarg :init-functions
-    :initform '()
-    :type list
-    :documentation
-    "List of functions to run at the initialization time.
-     All init-functions in the inheritance chain are called. Parents
-     hooks first. So, if current config object C inherits from object
-     B, which in turn inherits from object A. Then A's init-functions
-     are called first, then B's and then C's.
-     Either customize this slot or use `object-add-to-list' function.")
+    "Current weaver name.
+If non-nil this is the default weaver for this polymode. Can be
+dynamically set with `polymode-set-weaver'")
    (switch-buffer-functions
     :initarg :switch-buffer-functions
     :initform '()
     :type list
+    :custom (repeat symbol)
     :documentation
     "List of functions to run at polymode buffer switch.
-     Each function is run with two arguments, OLD-BUFFER and
-     NEW-BUFFER.")
+Each function is run with two arguments, OLD-BUFFER and
+NEW-BUFFER.")
+   (keylist
+    :initarg :keylist
+    :initform 'polymode-minor-mode-map
+    :type (or symbol list)
+    :custom (choice (symbol :tag "Keymap")
+                    (repeat (cons string symbol)))
+    :documentation
+    "A list of elements of the form (KEY . BINDING).
+This slot is reserved for building hierarchies through cloning
+and should not be used in `define-polymode'.")
 
+   ;; fixme: prefix with -
+   (minor-mode
+    :initarg :minor-mode
+    :initform 'polymode-minor-mode
+    :type symbol
+    :documentation
+    "[Internal] Symbol pointing to minor-mode function.")
    (-hostmode
     :type (or null pm-chunkmode)
     :documentation
-    "Dynamically populated `pm-chunkmode' object.")
+    "[Dynamic] Dynamically populated `pm-chunkmode' object.")
    (-innermodes
     :type list
     :initform '()
     :documentation
-    "Dynamically populated list of chunkmodes objects that
-    inherit from `pm-hbtchunkmode'.")
-   (-buffers
-    :initform '()
-    :type list
-    :documentation
-    "Holds all buffers associated with current buffer. Dynamically populated."))
-
-  "Configuration for a polymode. Each polymode buffer contains a local
-variable `pm/polymode' instantiated from this class or a subclass
-of this class.")
-
-(defclass pm-polymode-one (pm-polymode)
-  ((innermode
-    :initarg :innermode
-    :type symbol
-    :custom symbol
-    :documentation
-    "Symbol of the chunkmode. At run time this object is cloned
-     and placed in -innermodes slot."))
-
-  "Configuration for a simple polymode that allows only one
-innermode. For example noweb.")
-
-(defclass pm-polymode-multi (pm-polymode)
-  ((innermodes
-    :initarg :innermodes
-    :type list
-    :custom list
-    :initform nil
-    :documentation
-    "List of names of the chunkmode objects that are associated
-     with this configuration. At initialization time, all of
-     these are cloned and plased in -innermodes slot."))
-
-  "Configuration for a polymode that allows multiple (known in
-advance) innermodes.")
-
-(defclass pm-polymode-multi-auto (pm-polymode-multi)
-  ((auto-innermode
-    :initarg :auto-innermode
-    :type symbol
-    :custom symbol
-    :documentation
-    "Name of pm-hbtchunkmode-auto object (a symbol). At run time
-     this object is cloned and placed in -auto-innermodes with
-     coresponding :mode slot initialized at run time.")
+    "[Dynamic] List of chunkmodes objects.")
    (-auto-innermodes
     :type list
     :initform '()
     :documentation
-    "List of chunkmode objects that are auto-generated in
-    `pm-get-span' method for this class."))
+    "[Dynamic] List of auto chunkmodes.")
+   (-buffers
+    :initform '()
+    :type list
+    :documentation
+    "[Dynamic] Holds all buffers associated with current buffer."))
 
-  "Configuration for a polymode that allows multiple innermodes
-that are not known in advance. Examples are org-mode and markdown.")
+  "Polymode Configuration object.
+Each polymode buffer holds a local variable `pm/polymode'
+instantiated from this class or a subclass of this class.")
 
-
-;;; CHUNKMODE CLASSES
+(defvar pm--polymode-slots
+  (mapcar #'cl--slot-descriptor-name
+          (eieio-class-slots 'pm-polymode)))
+
 (defclass pm-chunkmode (pm-root)
-  ((mode :initarg :mode
-     :type symbol
-     :initform nil
-     :custom symbol)
-   (protect-indent-line :initarg :protect-indent-line
-            :type boolean
-            :initform t
-            :custom boolean
-            :documentation
-            "Whether to modify local `indent-line-function' by narrowing
-    to current span first")
-   (indent-offset :initarg :indent-offset
-          :type integer
-          :initform 0
-          :documentation
-          "Offset to add when indenting chunk's line. Takes effect only
-    when :protect-indent-line is non-nil.")
-   (font-lock-narrow :initarg :font-lock-narrow
-             :type boolean
-             :initform t
-             :documentation
-             "Whether to narrow to span during font lock")
-   (adjust-face :initarg :adjust-face
-        :type (or number face list)
-        :custom (or number face list)
-        :initform nil
-        :documentation
-        "Fontification adjustments chunk face. It should be either,
-    nil, number, face or a list of text properties as in
-    `put-text-property' specification. If nil no highlighting
-    occurs. If a face, use that face. If a number, it is a
-    percentage by which to lighten/darken the default chunk
-    background. If positive - lighten the background on dark
-    themes and darken on light thems. If negative - darken in
-    dark thems and lighten in light thems.")
+  ((mode
+    :initarg :mode
+    :initform nil
+    :type symbol
+    :custom symbol
+    :documentation
+    "Emacs major mode in the chunk's body.")
+   (indent-offset
+    :initarg :indent-offset
+    :initform 0
+    :type integer
+    :custom integer
+    :documentation
+    "Offset to add when indenting chunk's line.
+Takes effect only when :protect-indent is non-nil.")
+   (protect-indent
+    :initarg :protect-indent
+    :initform t
+    :type boolean
+    :custom boolean
+    :documentation
+    "Whether to narrowing to current span before indent.")
+   (protect-font-lock
+    :initarg :protect-font-lock
+    :initform t
+    :type boolean
+    :custom boolean
+    :documentation
+    "Whether to narrow to span during font lock.")
+   (protect-syntax
+    :initarg :protect-syntax
+    :initform t
+    :type boolean
+    :custom boolean
+    :documentation
+    "Whether to narrow to span when calling `syntax-propertize-function'.")
+   (adjust-face
+    :initarg :adjust-face
+    :initform '()
+    :type (or number face list)
+    :custom (choice number face sexp)
+    :documentation
+    "Fontification adjustment for the body of the chunk.
+It should be either, nil, number, face or a list of text
+properties as in `put-text-property' specification. If nil no
+highlighting occurs. If a face, use that face. If a number, it is
+a percentage by which to lighten/darken the default chunk
+background. If positive - lighten the background on dark themes
+and darken on light thems. If negative - darken in dark thems and
+lighten in light thems.")
    (init-functions
     :initarg :init-functions
     :initform '()
     :type list
+    :custom hook
     :documentation
-    "List of functions to called after the initialization of  chunkmode has finished.
-     Functions are called the buffer associated with this
-     chunkmode. All init-functions in the inheritance chain are
-     called. Parents hooks first. So, if current config object C
-     inherits from object B, which in turn inherits from object
-     A. Then A's init-functions are called first, then B's and
-     then C's. Either customize this slot or use
-     `object-add-to-list' function.")
+    "List of functions called after the initialization.
+Functions are called in the buffer associated with this
+chunkmode. All init-functions in the inheritance chain are called
+in parent-first order. Either customize this slot or use
+`object-add-to-list' function.")
    (switch-buffer-functions
     :initarg :switch-buffer-functions
     :initform '()
     :type list
+    :custom hook
     :documentation
     "List of functions to run at polymode buffer switch.
-     Each function is run with two arguments, OLD-BUFFER and
-     NEW-BUFFER. In contrast to identically named slot in
-     `pm-polymode' class, these functions are run only when
-     NEW-BUFFER is associated with this chunkmode.")
+Each function is run with two arguments, OLD-BUFFER and
+NEW-BUFFER. In contrast to identically named slot in
+`pm-polymode' class, these functions are run only when NEW-BUFFER
+is of this chunkmode.")
 
    (-buffer
     :type (or null buffer)
     :initform nil))
+  "Generic chunkmode object.")
 
-  "Representatioin of a generic chunkmode object.")
-
-(defclass pm-bchunkmode (pm-chunkmode)
+(defclass pm-host-chunkmode (pm-chunkmode)
   ()
-  "Representation of the body-only chunkmodes. Body-only
-  chunkmodes are commonly used as host modes. For example for a
-  the web-mdoe the hostmode is `html-mode', for nowweb mode the
-  host mode is usually `latex-mode', etc.")
+  "This chunkmode doesn't know how to compute spans and takes
+over all the other space not claimed by other chunkmodes in the
+buffer.")
 
-(defclass pm-hbtchunkmode (pm-chunkmode)
-  ((head-mode
+(defclass pm-inner-chunkmode (pm-chunkmode)
+  ((can-nest
+    :initarg :can-nest
+    :initform nil
+    :type boolean
+    :custom boolean
+    :documentation
+    "Non-nil if this chunk can nest within other inner modes.
+All chunks can nest within the host-mode.")
+   (can-overlap
+    :initarg :can-overlap
+    :initform nil
+    :type boolean
+    :custom boolean
+    :documentation
+    "Non-nil if chunks of this type can overlap with other chunks of the same type.
+See noweb for an example.")
+   (head-mode
     :initarg :head-mode
-    :type symbol
     :initform 'poly-head-tail-mode
+    :type symbol
     :custom symbol
     :documentation
-    "Chunk's header mode. If set to 'body, the head is considered
-    part of the chunk body. If set to 'host, head is considered
-    part of the surrounding host mode.")
+    "Chunk's head mode.
+If set to 'body, the head is considered part of the chunk body.
+If set to 'host, head is considered part of the surrounding host
+mode.")
    (tail-mode
     :initarg :tail-mode
-    :type symbol
     :initform nil
-    :custom symbol
+    :type symbol
+    :custom (choice (const nil :tag "From Head")
+                    function)
     :documentation
-    "Chunk's tail mode. If nil, or 'head, the mode is picked
-    from :HEAD-MODE slot. If set to 'body, the tail's mode is the
-    same as chunk's body mode. If set to 'host, the mode will be
-    of the parent host.")
-
-   (head-reg
-    :initarg :head-reg
-    :initform ""
-    :type (or string symbol)
-    :custom (or string symbol)
-    :documentation "Regexp for the chunk start (aka head), or a
-    function returning the start and end positions of the head.
-    See `pm--default-matcher' for an example function.")
-   (tail-reg
-    :initarg :tail-reg
-    :initform ""
-    :type (or string symbol)
-    :custom (or string symbol)
-    :documentation "Regexp for chunk end (aka tail), or a
-    function returning the start and end positions of the tail.
-    See `pm--default-matcher' for an example function.")
-
+    "Chunk's tail mode.
+If 'body or 'host the tail's mode is the same as chunk's body or
+host mode. If nil, pick the mode from :HEAD-MODE slot.")
+   (head-matcher
+    :initarg :head-matcher
+    :initform nil
+    :type (or string symbol cons)
+    :custom (choice string (cons string integer) function)
+    :documentation
+    "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
+When a function, the matcher must accept one argument that can
+take either values 1 (forwards search) or -1 (backward search).
+This function must return either nil (no match) or a (cons BEG
+END) representing the span of the head or tail respectively. See
+the code of `pm-fun-matcher' for a simple example.")
+   (tail-matcher
+    :initarg :tail-matcher
+    :initform nil
+    :type (or string cons symbol)
+    :custom (choice string (cons string integer) function)
+    :documentation
+    "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
+Like :head-matcher but for the chunk's tail. It is always called
+with the point at the end of the matched head and with the
+positive argument.")
    (adjust-face
     :initform 2)
    (head-adjust-face
     :initarg :head-adjust-face
-    :initform font-lock-type-face
-    :type (or null number face list)
-    :custom (or null number face list)
+    :initform 'bold
+    :type (or number face list)
+    :custom (choice number face sexp)
     :documentation
-    "Can be a number, list or face.")
+    "Head's face adjustment.
+Can be a number, a list of properties or a face.")
    (tail-adjust-face
     :initarg :tail-adjust-face
     :initform nil
     :type (or null number face list)
-    :custom (or null number face list)
+    :custom (choice (const :tag "From Head" nil)
+                    number face sexp)
     :documentation
-    "Can be a number, list or face. If nil, take the
-    configuration from :head-adjust-face.")
+    "Tail's face adjustment.
+A number, a list of properties, a face or nil. When nil, take the
+configuration from :head-adjust-face.")
 
    (-head-buffer
     :type (or null buffer)
     :initform nil
     :documentation
-    "This buffer is set automatically to -buffer if :head-mode is
-    'body, and to base-buffer if :head-mode is 'host")
+    "[Internal] This buffer is set automatically to -buffer if
+:head-mode is 'body, and to base-buffer if :head-mode is 'host.")
    (-tail-buffer
     :initform nil
-    :type (or null buffer)))
+    :type (or null buffer)
+    :documentation
+    "[Internal] Same as -head-buffer, but for tail span."))
 
-  "Representation of an inner Head-Body-Tail chunkmode.")
+  "Inner-chunkmodes represent innermodes (or sub-modes) within a
+buffer. Chunks are commonly delimited by head and tail markup but
+can be delimited by some other logic (e.g. indentation). In the
+latter case, heads or tails have zero length and are not
+physically present in the buffer.")
 
-(defclass pm-hbtchunkmode-auto (pm-hbtchunkmode)
-  ((retriever-regexp :initarg :retriever-regexp
-             :type (or null string)
-             :custom string
-             :initform nil
-             :documentation
-             "Regexp that is used to retrive the modes symbol from the
-    head of the chunkmode chunk. fixme: elaborate")
-   (retriever-num :initarg :retriever-num
-          :type integer
-          :custom integer
-          :initform 1
-          :documentation
-          "Subexpression to be matched by :retriver-regexp")
-   (retriever-function :initarg :retriever-function
-               :type symbol
-               :custom symbol
-               :initform nil
-               :documentation
-               "Function symbol used to retrive the modes symbol from the
-    head of the chunkmode chunk. It is called with no arguments
-    with the point positioned at the beginning of the chunk
-    header. It must return the mode name string or symbol (need
-    not include '-mode' postfix).)"))
+(defclass pm-inner-auto-chunkmode (pm-inner-chunkmode)
+  ((mode-matcher
+    :initarg :mode-matcher
+    :type (or string cons symbol)
+    :initform nil
+    :custom (choice )
+    :documentation
+    "Matcher used to retrieve the mode's symbol from the chunk's head.
+Can be either a regexp string, cons of the form (REGEXP .
+SUBEXPR) or a function to be called with no arguments. If a
+function, it must return a string name of the mode. Function is
+called at the beginning of the head span."))
 
-  "Representation of an inner chunkmode")
+  "Inner chunkmodes with unknown (at definition time) mode of the
+body span. The body mode is determined dynamically by retrieving
+the name with the :mode-matcher.")
+
+(setq eieio-backward-compatibility t)
 
 (provide 'polymode-classes)
+;;; polymode-classes.el ends here
