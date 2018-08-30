@@ -2,11 +2,11 @@
 ;;
 ;; Author: Vitalie Spinu
 ;; Maintainer: Vitalie Spinu
-;; Copyright (C) 2018 Vitalie Spinu
+;; Copyright (C) 2013-2018 Vitalie Spinu
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "25") (polymode "0.1"))
 ;; URL: https://github.com/polymode/poly-noweb
-;; Keywords: emacs
+;; Keywords: languages, multi-modes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

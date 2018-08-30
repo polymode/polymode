@@ -1,12 +1,12 @@
-;;; poly-org.el
+;;; poly-org.el --- Polymode for org-mode -*- lexical-binding: t -*-
 ;;
-;; Filename: poly-org.el
-;; Author: Spinu Vitalie
-;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2018 Spinu Vitalie
-;; Version: 1.0
-;; URL: https://github.com/vitoshka/polymode
-;; Keywords: emacs
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2013-2018 Vitalie Spinu
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "0.1"))
+;; URL: https://github.com/polymode/poly-org
+;; Keywords: languages, multi-modes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -29,7 +29,11 @@
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Code:
+;;; Commentary:
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (require 'org-src)
 (require 'polymode)

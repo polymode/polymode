@@ -1,11 +1,11 @@
-;;; poly-markdown.el
+;;; poly-markdown.el --- Polymode for markdown-mode -*- lexical-binding: t -*-
 ;;
-;; Filename: poly-markdown.el
-;; Author: Spinu Vitalie
-;; Maintainer: Spinu Vitalie
-;; Copyright (C) 2013-2014, Spinu Vitalie, all rights reserved.
-;; Version: 1.0
-;; URL: https://github.com/vitoshka/polymode
+;; Author: Vitalie Spinu
+;; Maintainer: Vitalie Spinu
+;; Copyright (C) 2018
+;; Version: 0.1
+;; Package-Requires: ((emacs "25") (polymode "0.1") (markdown-mode "2.3"))
+;; URL: https://github.com/polymode/poly-markdown
 ;; Keywords: emacs
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,9 +28,15 @@
 ;; Floor, Boston, MA 02110-1301, USA.
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
 (require 'polymode)
-;; (require 'markdown-mode)
+(require 'markdown-mode)
 
 (defcustom pm-host/markdown
   (pm-host-chunkmode :object-name "Markdown"
