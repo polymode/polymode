@@ -41,7 +41,7 @@
 
 (defcustom  pm-inner/org
   (pm-hbtchunkmode-auto "org"
-                     :head-reg "^[ \t]*#\\+begin_src .*$"
+                     :head-reg "^[ \t]*#\\+begin_src .*\n"
                      :tail-reg "^[ \t]*#\\+end_src"
                      :head-mode 'host
                      :tail-mode 'host
