@@ -170,8 +170,8 @@ objects provides same functionality for narrower scope. See also
 
 (defun pm-format-span (&optional span prefixp)
   (let* ((span (cond
-                ((number-or-marker-p span) (pm-innermost-range span))
-                ((null span) (pm-innermost-range))
+                ((number-or-marker-p span) (pm-innermost-span span))
+                ((null span) (pm-innermost-span))
                 (span)))
          (message-log-max nil)
          (beg (nth 1 span))
@@ -930,7 +930,6 @@ list, apply advice to each element of it."
     (with-current-buffer b
       ;; `setq' doesn't have an effect because the var is let bound; `set' works
       (set 'syntax-propertize--done end)))
-
   (unless pm-initialization-in-progress
     (save-restriction
       (widen)
@@ -972,7 +971,7 @@ list, apply advice to each element of it."
                   ;; in the most common case when span == beg-end, simply return
                   range
                 (when (or pm-verbose pm-syntax-verbose)
-                  (message "(polymode-restrict-syntax-propertize-extension %s %s) %s"
+                  (message "(polymode-restrict-syntax-propertize-extension -fn- %s %s) %s"
                            beg end (pm-format-span span)))
                 (let ((be (funcall orig-fun beg end)))
                   (and be
