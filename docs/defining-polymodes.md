@@ -10,7 +10,7 @@ Here is an example of markdown host mode:
 ```el
 
 (defcustom pm-host/markdown
-  (pm-host-chunkmode :object-name "markdown"
+  (pm-host-chunkmode :name "markdown"
                      :mode 'markdown-mode)
   "Markdown host chunkmode"
   :group 'poly-host-modes
@@ -22,7 +22,7 @@ Here we call the constructor of host chunkmode objects `pm-host-chunkmode` with
 the `:mode` parameter which should be a name (symbol) of a valid emacs major
 mode function. In this case `markdown-mode`. 
 
-The`:object-name` slot is used in various contexts for object identification and
+The`:name` slot is used in various contexts for object identification and
 information messages.
 
 ## Inner Modes
@@ -36,7 +36,7 @@ This is an example of two markdown auto innermodes:
 ```el
 
 (defcustom  pm-inner/markdown-fenced-code
-  (pm-inner-auto-chunkmode :object-name "markdown-fenced-code"
+  (pm-inner-auto-chunkmode :name "markdown-fenced-code"
                            :head-matcher "^[ \t]*```[{ \t]*\\w.*$"
                            :tail-matcher "^[ \t]*```[ \t]*$"
                            :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1))
@@ -45,7 +45,7 @@ This is an example of two markdown auto innermodes:
   :type 'object)
 
 (defcustom  pm-inner/markdown-inline-code
-  (pm-inner-auto-chunkmode :object-name "markdown-inline-code"
+  (pm-inner-auto-chunkmode :name "markdown-inline-code"
                            :head-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)
                            :tail-matcher (cons "[^`]\\(`\\)[^`]" 1)
                            :mode-matcher (cons "`[ \t]*{?\\(?:lang *= *\\)?\\([[:alpha:]+-]+\\)" 1)
@@ -119,7 +119,7 @@ polymode has no sense.
 
 ```el
 (defcustom pm-poly/latex
-  (pm-polymode :object-name "latex"
+  (pm-polymode :name "latex"
                :hostmode 'pm-host/latex)
   "LaTeX typical configuration."
   :group 'polymodes

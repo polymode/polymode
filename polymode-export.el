@@ -370,7 +370,7 @@ for each polymode in CONFIGS."
 ;;; GLOBAL EXPORTERS
 (defcustom pm-exporter/pandoc
   (pm-shell-exporter
-   :object-name "pandoc"
+   :name "pandoc"
    :from
    '(;; ("json" "\\.json\\'" "JSON native AST"  "pandoc %i -f json -t %t -o %o")
      ("markdown"    "\\.md\\'" "pandoc's markdown"  "pandoc %i -f markdown -t %t -o %o")

@@ -40,56 +40,56 @@
 ;; HOST MODES
 
 (defcustom pm-host/coffee
-  (pm-host-chunkmode :object-name "coffee"
+  (pm-host-chunkmode :name "coffee"
                      :mode 'coffee-mode)
   "Coffee host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/fallback
-  (pm-host-chunkmode :object-name "FallBack"
+  (pm-host-chunkmode :name "FallBack"
                      :mode 'poly-fallback-mode)
   "Polymode fall back host mode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/fundamental
-  (pm-host-chunkmode :object-name "fundamental"
+  (pm-host-chunkmode :name "fundamental"
                      :mode 'fundamental-mode)
   "Fundamental host mode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/js
-  (pm-host-chunkmode :object-name "js"
+  (pm-host-chunkmode :name "js"
                      :mode 'js-mode)
   "Javascript host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/latex
-  (pm-host-chunkmode :object-name "latex"
+  (pm-host-chunkmode :name "latex"
                      :mode 'latex-mode)
   "Latex host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/html
-  (pm-host-chunkmode :object-name "html"
+  (pm-host-chunkmode :name "html"
                      :mode 'html-mode)
   "HTML host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/R
-  (pm-host-chunkmode :object-name "R"
+  (pm-host-chunkmode :name "R"
                      :mode 'R-mode)
   "R host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/C++
-  (pm-host-chunkmode :object-name "C++"
+  (pm-host-chunkmode :name "C++"
                      :mode 'c++-mode
                      :protect-font-lock nil)
   "C++ host chunkmode."
@@ -97,14 +97,14 @@
   :type 'object)
 
 (defcustom pm-host/text
-  (pm-host-chunkmode :object-name "text"
+  (pm-host-chunkmode :name "text"
                      :mode 'text-mode)
   "Text host chunkmode."
   :group 'poly-host-modes
   :type 'object)
 
 (defcustom pm-host/yaml
-  (pm-host-chunkmode :object-name "YAML"
+  (pm-host-chunkmode :name "YAML"
                      :mode 'yaml-mode)
   "YAML chunkmode."
   :group 'poly-host-modes
@@ -118,7 +118,7 @@
 ;; should clone these.
 
 (defcustom pm-poly/brew
-  (pm-polymode :object-name "brew"
+  (pm-polymode :name "brew"
                :hostmode 'pm-host/text
                :innermodes nil)
   "Typical Brew configuration."
@@ -126,7 +126,7 @@
   :type 'object)
 
 (defcustom pm-poly/html
-  (pm-polymode :object-name "html"
+  (pm-polymode :name "html"
                :hostmode 'pm-host/html
                :innermodes nil)
   "HTML typical configuration."
@@ -134,14 +134,14 @@
   :type 'object)
 
 (defcustom pm-poly/C++
-  (pm-polymode :object-name "C++"
+  (pm-polymode :name "C++"
                :hostmode 'pm-host/C++)
   "C++ typical configuration."
   :group 'polymodes
   :type 'object)
 
 (defcustom pm-poly/latex
-  (pm-polymode :object-name "latex"
+  (pm-polymode :name "latex"
                :hostmode 'pm-host/latex)
   "LaTeX typical configuration."
   :group 'polymodes

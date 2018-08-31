@@ -426,9 +426,9 @@ most frequently used slots are:
              (setq ,config-name
                    ,(if parent-name
                         `(clone ,parent-name
-                                :object-name ,(symbol-name config-name)
+                                :name ,(symbol-name config-name)
                                 ,@slots)
-                      `(pm-polymode :object-name ,(symbol-name config-name)
+                      `(pm-polymode :name ,(symbol-name config-name)
                                     ,@slots)))))
 
        ;; The actual mode function:

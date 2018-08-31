@@ -45,13 +45,13 @@
                       (unless (or (= (elt (symbol-name slot) 0) ?-)
                                   (eq slot 'minor-mode)
                                   (eq slot 'parent-instance)
-                                  (eq slot 'object-name))
+                                  (eq slot 'name))
                         (intern (concat ":" (symbol-name slot)))))
                     slots)))
 
 (defclass pm-root (eieio-instance-inheritor)
-  ((object-name
-    :initarg :object-name
+  ((name
+    :initarg :name
     :initform "UNNAMED"
     :type string
     :custom string
@@ -72,14 +72,14 @@ into this list."))
   "Root polymode class.")
 
 (cl-defmethod eieio-object-name-string ((obj pm-root))
-  (eieio-oref obj 'object-name))
+  (eieio-oref obj 'name))
 
 (cl-defmethod clone ((obj pm-root) &rest params)
-  (let ((old-name (eieio-oref obj 'object-name))
+  (let ((old-name (eieio-oref obj 'name))
         (new-obj (apply #'cl-call-next-method obj params)))
-    (when (equal old-name (eieio-oref new-obj 'object-name))
+    (when (equal old-name (eieio-oref new-obj 'name))
       (let ((new-name (concat old-name ":")))
-        (eieio-oset new-obj 'object-name new-name)))
+        (eieio-oset new-obj 'name new-name)))
     new-obj))
 
 (defclass pm-polymode (pm-root)

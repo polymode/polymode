@@ -45,7 +45,7 @@ Ran by the polymode mode function."
   (let* ((hostmode-name (eieio-oref config 'hostmode))
          (hostmode (if hostmode-name
                        (clone (symbol-value hostmode-name))
-                     (pm-host-chunkmode :object-name "ANY" :mode nil))))
+                     (pm-host-chunkmode :name "ANY" :mode nil))))
     (let ((pm-initialization-in-progress t)
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
           ;; minor modes.
@@ -321,7 +321,7 @@ in this case."
                                    when (equal name (pm-object-name obj))
                                    return obj)
                           ;; b. create new
-                          (let ((innermode (clone proto :object-name name :mode mode)))
+                          (let ((innermode (clone proto :name name :mode mode)))
                             (object-add-to-list pm/polymode '-auto-innermodes innermode)
                             innermode))))
           (setf (nth 3 span) outchunk)
