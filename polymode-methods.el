@@ -163,8 +163,8 @@ initialized. Return the buffer."
 
     ;; advising all functions even those with :protect-syntax nil in order to
     ;; get the debug message
-    (pm-around-advice syntax-propertize-extend-region-functions
-                      #'polymode-restrict-syntax-propertize-extension)
+    ;; (pm-around-advice syntax-propertize-extend-region-functions
+    ;;                   #'polymode-restrict-syntax-propertize-extension)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-wide (cons nil nil))
