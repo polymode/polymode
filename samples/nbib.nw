@@ -799,6 +799,7 @@ whitespace character or an end-of-line, else to
 nonwhitespace [[illegal_id_char]].  By convention, when some calling
 code really wants just one or two ``specified'' characters, it merely
 repeats one of the characters.
+
 <<Procedures and functions for input scanning>>=
 static int scan_identifier (Bibreader rdr, char c1, char c2, char c3) {
   unsigned char *p, *orig, c;

@@ -35,23 +35,24 @@
 
 (require 'ert)
 (require 'polymode)
+(eval-when-compile
+  (require 'cl-lib))
 
 (setq ert-batch-backtrace-right-margin 130)
 (setq pm-verbose (getenv "PM_VERBOSE"))
 (setq poly-lock-verbose (getenv "PM_VERBOSE"))
 
 (defvar pm-test-current-change-set nil)
-(defvar pm-test-input-dir
-  (expand-file-name
-   "tests/input"
-   (file-name-directory
-    (or load-file-name buffer-file-name))))
-
-(defvar pm-samples-dir
-  (expand-file-name
-   "samples"
-   (file-name-directory
-    (or load-file-name buffer-file-name))))
+(defun pm-test-get-file (name)
+  "Find the file with NAME from inside a poly-xyz repo.
+Look into tests/input directory then in samples directory."
+  (let ((files (list (expand-file-name (format "tests/input/%s" name) default-directory)
+                     (expand-file-name (format "input/%s" name) default-directory)
+                     (expand-file-name (format "samples/%s" name) default-directory)
+                     (expand-file-name (format "../samples/%s" name) default-directory))))
+    (or (cl-loop for f in files
+                 if (file-exists-p f) return f)
+        (error "No file with name '%s' found in '%s'" name default-directory))))
 
 (defun pm-test-matcher (string span-alist matcher &optional dry-run)
   (with-temp-buffer
@@ -104,11 +105,10 @@ MODE is a quoted symbol."
                     (prog1 (cadr body)
                       (setq body (cddr body))))))
     `(let ((poly-lock-allow-background-adjustment nil)
-           (file (expand-file-name ,file-name pm-test-input-dir))
+           ;; snapshot it during the expansion to be able to run polymode-organization tests
+           (file ,(pm-test-get-file file-name))
            (pm-extra-span-info nil)
            (buf "*pm-test-file-buffer*"))
-       (unless (file-exists-p file)
-         (setq file (expand-file-name ,file-name pm-samples-dir)))
        (when (get-buffer buf)
          (kill-buffer buf))
        (with-current-buffer (get-buffer-create buf)

@@ -4,4 +4,5 @@
 (dolist (f (directory-files polymode-test-dir t ".*el$"))
   (load f))
 
+(toggle-debug-on-error)
 (ert-run-tests-batch-and-exit t)
