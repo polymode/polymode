@@ -31,10 +31,12 @@
 
 (require 'polymode-classes)
 
-;;;###autoload (put 'poly-inner-mode 'safe-local-variable 'symbolp)
-(defvar-local poly-inner-mode nil
-  "Inner mode for chunks with unspecified modes.")
-(put 'poly-inner-mode 'safe-local-variable 'symbolp)
+;;;###autoload
+(defvar-local poly-default-inner-mode nil
+  "Inner mode for chunks with unspecified modes.
+Intended to be used as local variable in polymode buffers.")
+;;;###autoload
+(put 'poly-default-inner-mode 'safe-local-variable 'symbolp)
 
 
 ;; HOST MODES
