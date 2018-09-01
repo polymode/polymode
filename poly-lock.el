@@ -207,7 +207,7 @@ Fontifies chunk-by chunk within the region BEG END."
           ;; markdown, org and slim which understand inner modes in a limited way.
           (unless protect-host
             (let ((span (pm-innermost-span beg)))
-              (when (or (null (car span))
+              (when (or (null (pm-true-span-type span))
                         ;; in inner spans fontify only if region is bigger than the span
                         (< (nth 2 span) end))
                 (with-current-buffer (pm-base-buffer)
