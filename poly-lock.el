@@ -328,7 +328,7 @@ are as in `after-change-functions'."
                  pm-allow-after-change-hook
                  (not memory-full))
         (when poly-lock-verbose
-          (message "(poly-lock-after-change %d %d %d) %s -------------------------------"
+          (message "(poly-lock-after-change %d %d %d) %s --------------------"
                    beg end old-len (pm-format-span beg)))
         (pm-map-over-spans
          (lambda ()

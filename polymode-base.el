@@ -46,13 +46,6 @@
   :group 'poly-host-modes
   :type 'object)
 
-(defcustom pm-host/fallback
-  (pm-host-chunkmode :name "FallBack"
-                     :mode 'poly-fallback-mode)
-  "Polymode fall back host mode."
-  :group 'poly-host-modes
-  :type 'object)
-
 (defcustom pm-host/fundamental
   (pm-host-chunkmode :name "fundamental"
                      :mode 'fundamental-mode)

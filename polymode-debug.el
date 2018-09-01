@@ -33,6 +33,7 @@
 
 (require 'polymode-core)
 (require 'poly-lock)
+(require 'trace)
 
 
 ;;; MINOR MODE
@@ -250,15 +251,35 @@ With NO-CACHE prefix, don't use cached values of the span."
 
 ;;; TRACING
 
-(defun pm-debug-trace-background-1 (fn)
-  "Trace FN in background."
+;; fix object print
+(defun pm-debug--fix-1-arg-for-tracing (arg)
+  (cond
+   ((eieio-object-p arg) (eieio-object-name arg))
+   ((and (listp arg) (eieio-object-p (nth 3 arg)))
+    (list (nth 0 arg) (nth 1 arg) (nth 2 arg) (eieio-object-name (nth 3 arg))))
+   (arg)))
+
+(defun pm-debug--fix-args-for-tracing (orig-fn fn level args context)
+  (let ((args (mapcar #'pm-debug--fix-1-arg-for-tracing args)))
+    (funcall orig-fn fn level args context)))
+
+(advice-add 'trace-entry-message :around #'pm-debug--fix-args-for-tracing)
+(advice-add 'trace-exit-message :around #'pm-debug--fix-args-for-tracing)
+
+(defun pm-debug-trace-to-messages (fn)
+  (interactive (trace--read-args "Trace: "))
+  (pm-debug-trace-background-1 fn (get-buffer "*Messages*")))
+
+(defun pm-debug-trace-background-1 (fn &optional buffer)
+  "Trace FN in background.
+If BUFFER is non-nil, trace into that buffer."
   (unless (symbolp fn)
     (error "Can trace symbols only"))
   (unless (get fn 'cl--class)
-    (trace-function-background fn nil
+    (trace-function-background fn buffer
                                '(lambda ()
-                                  (format " [buf:%s pos:%s type:%s (%f)]"
-                                          (current-buffer) (point)
+                                  (format " [buf:%s pos:%d pos-max:%d type:%s (%f)]"
+                                          (current-buffer) (point) (point-max)
                                           (car (get-text-property (point) :pm-span))
                                           (float-time))))))
 
@@ -311,45 +332,53 @@ On SPAN-ONLY prefix, fontify current span only."
 ;;; RELEVANT VARIABLES
 
 (defvar pm-debug-relevant-variables
-  '(after-save-hook
-    before-save-hook
-    revert-buffer-function
-    before-revert-hook
-    after-revert-hook
-    fontification-functions
-    font-lock-function
-    font-lock-flush-function
-    font-lock-ensure-function
-    font-lock-fontify-region-function
-    font-lock-fontify-buffer-function
-    font-lock-unfontify-region-function
-    font-lock-unfontify-buffer-function
-    jit-lock-after-change-extend-region-functions
-    jit-lock-functions
-    syntax-propertize-function
-    syntax-propertize-extend-region-functions
-    pm--syntax-propertize-function-original
-    pm--indent-line-function-original
-    pre-command-hook
-    post-command-hook
-    before-change-functions
-    after-change-functions
-    indent-line-function))
+  '(
+    :change (before-change-functions
+             after-change-functions)
+    :command (pre-command-hook
+              post-command-hook)
+    :font-lock (fontification-functions
+                font-lock-function
+                font-lock-flush-function
+                font-lock-ensure-function
+                font-lock-fontify-region-function
+                font-lock-fontify-buffer-function
+                font-lock-unfontify-region-function
+                font-lock-unfontify-buffer-function
+                jit-lock-after-change-extend-region-functions
+                jit-lock-functions)
+    :indent (indent-line-function
+             indent-region-function
+             pm--indent-line-function-original)
+    :revert (revert-buffer-function
+             before-revert-hook
+             after-revert-hook)
+    :save (after-save-hook
+           before-save-hook)
+    :syntax (syntax-propertize-function
+             syntax-propertize-extend-region-functions
+             pm--syntax-propertize-function-original)
+    ))
 
 (defun pm-debug-print-relevant-variables ()
   "Print values of relevant hooks and other variables."
   (interactive)
-  (let ((buff (get-buffer-create "*polymode-vars*"))
-        (vars (mapcar (lambda (v) (cons v (buffer-local-value v (current-buffer))))
-                      pm-debug-relevant-variables))
-        (cbuff (current-buffer)))
+  (let* ((buff (get-buffer-create "*polymode-vars*"))
+         (cbuff (current-buffer))
+         (vars (cl-loop for v on pm-debug-relevant-variables by #'cddr
+                        collect (cons (car v)
+                                      (mapcar (lambda (v)
+                                                (cons v (buffer-local-value v cbuff)))
+                                              (cadr v)))))
+         (cbuff (current-buffer)))
     (require 'pp)
     (with-current-buffer buff
+      (erase-buffer)
       (goto-char (point-max))
-      (insert "===============================================================\n")
-      (insert (format "relevant vars in buffer: %s\n" cbuff))
+      (insert (format "\n================== %s ===================\n" cbuff))
       (insert (pp-to-string vars))
-      (toggle-truncate-lines -1))
+      (toggle-truncate-lines -1)
+      (goto-char (point-max)))
     (display-buffer buff)))
 
 
@@ -357,15 +386,16 @@ On SPAN-ONLY prefix, fontify current span only."
 
 (defun pm-debug-highlight-current-span ()
   (when polymode-mode
-    (unless (memq this-command '(pm-debug-info-on-current-span
-                                 pm-debug-highlight-last-font-lock-error-region))
-      (delete-overlay pm--highlight-overlay))
-    (condition-case err
-        (let ((span (pm-innermost-span)))
-          (when pm-debug-display-info-message
-            (message (pm--debug-info span)))
-          (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))
-      (error (message "%s" (error-message-string err))))))
+    (with-silent-modifications
+      (unless (memq this-command '(pm-debug-info-on-current-span
+                                   pm-debug-highlight-last-font-lock-error-region))
+        (delete-overlay pm--highlight-overlay))
+      (condition-case err
+          (let ((span (pm-innermost-span)))
+            (when pm-debug-display-info-message
+              (message (pm--debug-info span)))
+            (move-overlay pm--underline-overlay (nth 1 span) (nth 2 span) (current-buffer)))
+        (error (message "%s" (error-message-string err)))))))
 
 (defun pm-debug-flick-region (start end &optional delay)
   (move-overlay pm--highlight-overlay start end (current-buffer))
