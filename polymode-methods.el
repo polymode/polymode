@@ -312,22 +312,25 @@ in this case."
                             (funcall matcher)))))
              (mode (or (pm--get-mode-symbol-from-name str)
                        (eieio-oref proto 'mode)
+                       poly-default-inner-mode
                        'poly-fallback-mode)))
-        ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
-        ;; Head/tail/body indirect buffers are shared across chunkmodes and span
-        ;; types.
-        (let* ((name (concat (pm-object-name proto) ":" (symbol-name mode)))
-               (outchunk (or
-                          ;; a. loop through installed inner modes
-                          (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
-                                   when (equal name (pm-object-name obj))
-                                   return obj)
-                          ;; b. create new
-                          (let ((innermode (clone proto :name name :mode mode)))
-                            (object-add-to-list pm/polymode '-auto-innermodes innermode)
-                            innermode))))
-          (setf (nth 3 span) outchunk)
-          span)))))
+        (if (eq mode 'host)
+            span
+          ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
+          ;; Head/tail/body indirect buffers are shared across chunkmodes and span
+          ;; types.
+          (let* ((name (concat (pm-object-name proto) ":" (symbol-name mode)))
+                 (outchunk (or
+                            ;; a. loop through installed inner modes
+                            (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
+                                     when (equal name (pm-object-name obj))
+                                     return obj)
+                            ;; b. create new
+                            (let ((innermode (clone proto :name name :mode mode)))
+                              (object-add-to-list pm/polymode '-auto-innermodes innermode)
+                              innermode))))
+            (setf (nth 3 span) outchunk)
+            span))))))
 
 
 ;;; INDENT

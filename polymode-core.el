@@ -394,7 +394,10 @@ case TYPE is ignored."
           chunkmode (nth 3 chunkmode)))
   (unless (or (null type) (eq type 'host))
     (with-slots (mode head-mode tail-mode) chunkmode
-      (cond ((or (eq type 'body)
+      (cond ((and (eq type 'body)
+                  (eq mode 'host))
+             nil)
+            ((or (eq type 'body)
                  (and (eq type 'head)
                       (eq head-mode 'body))
                  (and (eq type 'tail)

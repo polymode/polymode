@@ -192,7 +192,10 @@ instantiated from this class or a subclass of this class.")
     :type symbol
     :custom symbol
     :documentation
-    "Emacs major mode in the chunk's body.")
+    "Emacs major mode for the chunk's body.
+When nil the value of `poly-default-inner-mode' is used. Or if
+that is nil `poly-fallback-mode' is used. A special value 'host
+means to use the host mode in the body of this chunk.")
    (indent-offset
     :initarg :indent-offset
     :initform 0
