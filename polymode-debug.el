@@ -64,12 +64,14 @@
     (define-key map (kbd "M-n M-t c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t a")   #'pm-debug-toggle-all)
     (define-key map (kbd "M-n M-t v")   #'pm-debug-toggle-verbose)
+    (define-key map (kbd "M-n M-t s")   #'pm-debug-toggle-verbose-syntax)
     (define-key map (kbd "M-n M-t M-i")   #'pm-debug-toogle-info-message)
     (define-key map (kbd "M-n M-t M-f")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-t M-p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t M-c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t M-a")   #'pm-debug-toggle-all)
     (define-key map (kbd "M-n M-t M-v")   #'pm-debug-toggle-verbose)
+    (define-key map (kbd "M-n M-t M-s")   #'pm-debug-toggle-verbose-syntax)
     (define-key map (kbd "M-n M-f t")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-f s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f b")   #'pm-debug-fontify-current-buffer)
@@ -173,23 +175,25 @@ With NO-CACHE prefix, don't use cached values of the span."
     (setq poly-lock-allow-fontification t
           font-lock-mode t)))
 
-(defun pm-debug-toggle-verbose (syntax-only)
+(defun pm-debug-toggle-verbose-syntax ()
+  "Toggle syntax related polymode messages."
+  (interactive)
+  (setq pm-syntax-verbose (not pm-syntax-verbose))
+  (if pm-syntax-verbose
+      (message "verbose syntax enabled")
+    (message "verbose syntax disabled")))
+
+(defun pm-debug-toggle-verbose ()
   "Activate verbose tracing for polymode core functions."
-  (interactive "P")
-  (if syntax-only
+  (interactive)
+  (if (or poly-lock-verbose pm-verbose)
       (progn
-        (setq pm-syntax-verbose (not pm-syntax-verbose))
-        (if pm-syntax-verbose
-            (message "verbose syntax enabled")
-          (message "verbose syntax disabled")))
-    (if (or poly-lock-verbose pm-verbose)
-        (progn
-          (message "verbose log disabled")
-          (setq poly-lock-verbose nil
-                pm-verbose nil))
-      (message "verbose log enabled")
-      (setq poly-lock-verbose t
-            pm-verbose t))))
+        (message "verbose log disabled")
+        (setq poly-lock-verbose nil
+              pm-verbose nil))
+    (message "verbose log enabled")
+    (setq poly-lock-verbose t
+          pm-verbose t)))
 
 (defun pm-debug-toggle-after-change ()
   "Allow or disallow polymode actions in `after-change-functions'."
@@ -307,7 +311,12 @@ On SPAN-ONLY prefix, fontify current span only."
 ;;; RELEVANT VARIABLES
 
 (defvar pm-debug-relevant-variables
-  '(fontification-functions
+  '(after-save-hook
+    before-save-hook
+    revert-buffer-function
+    before-revert-hook
+    after-revert-hook
+    fontification-functions
     font-lock-function
     font-lock-flush-function
     font-lock-ensure-function
@@ -321,6 +330,7 @@ On SPAN-ONLY prefix, fontify current span only."
     syntax-propertize-extend-region-functions
     pm--syntax-propertize-function-original
     pm--indent-line-function-original
+    pre-command-hook
     post-command-hook
     before-change-functions
     after-change-functions

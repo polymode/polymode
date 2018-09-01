@@ -5,8 +5,9 @@
 (require 'polymode-test)
 
 (let* ((root (expand-file-name "../.."
-                               (file-name-directory
-                                (or load-file-name buffer-file-name default-directory))))
+                               (file-truename
+                                (file-name-directory
+                                 (or load-file-name buffer-file-name default-directory)))))
        (repos (directory-files root t "^poly-.*$")))
   (dolist (r repos)
     (let ((test-dir (expand-file-name "tests" r)))
