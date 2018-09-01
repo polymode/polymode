@@ -273,22 +273,30 @@ objects provides same functionality for narrower scope. See also
 (defun pm--innermost-span (config &optional pos)
   (let ((pos (or pos (point)))
         (omin (point-min))
-        (omax (point-max)))
-    (save-excursion
-      (save-restriction
-        (widen)
-        (let ((span (pm--intersect-spans config pos)))
-          (if (= omax pos)
-              (when (and (= omax (nth 1 span))
-                         (> omax omin))
-                ;; When pos == point-max and it's beg of span, return the
-                ;; previous span. This occurs because the computation of
-                ;; pm--intersect-spans is done on a widened buffer.
-                (setq span (pm--intersect-spans config (1- pos))))
-            (when (= pos (nth 2 span))
-              (error "Span ends at %d in (pm-inermost-span %d) %s"
-                     pos pos (pm-format-span span))))
-          (pm--chop-span span omin omax))))))
+        (omax (point-max))
+        ;; `re-search-forward' and other search functions trigger full
+        ;; `internal--syntax-propertize' on the whole buffer on every
+        ;; single buffer modification. This is a small price to pay for a
+        ;; much improved efficiency in modes which heavily rely on
+        ;; `syntax-propertize' like `markdown-mode'.
+        (parse-sexp-lookup-properties nil)
+        (case-fold-search t))
+    (save-match-data
+      (save-excursion
+        (save-restriction
+          (widen)
+          (let ((span (pm--intersect-spans config pos)))
+            (if (= omax pos)
+                (when (and (= omax (nth 1 span))
+                           (> omax omin))
+                  ;; When pos == point-max and it's beg of span, return the
+                  ;; previous span. This occurs because the computation of
+                  ;; pm--intersect-spans is done on a widened buffer.
+                  (setq span (pm--intersect-spans config (1- pos))))
+              (when (= pos (nth 2 span))
+                (error "Span ends at %d in (pm-inermost-span %d) %s"
+                       pos pos (pm-format-span span))))
+            (pm--chop-span span omin omax)))))))
 
 (defun pm--cached-span (&optional pos)
   ;; fixme: add basic miss statistics
@@ -326,13 +334,7 @@ defaults to point. Guarantied to return a non-empty span."
                   :point-max (point-max))))
   (or (unless no-cache
         (pm--cached-span pos))
-      (let (;; `re-search-forward' and other search functions trigger full
-            ;; `internal--syntax-propertize' on the whole buffer on every
-            ;; single buffer modification. This is a small price to pay for a
-            ;; much improved efficiency in modes which heavily rely on
-            ;; `syntax-propertize' like `markdown-mode'.
-            (parse-sexp-lookup-properties nil))
-        (pm--innermost-span pm/polymode pos))))
+      (pm--innermost-span pm/polymode pos)))
 
 (defun pm-span-to-range (span)
   (and span (cons (nth 1 span) (nth 2 span))))
@@ -844,6 +846,8 @@ This function is placed in `before-change-functions' hook."
   ;; Modification hooks are run only in current buffer and not in other (base or
   ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
   ;; care explicitly. We run some safety hooks checks here as well.
+  (when pm-verbose
+    (message "(polymode-before-change-setup %d %d) %s" beg end (current-buffer)))
   (dolist (buff (oref pm/polymode -buffers))
     (with-current-buffer buff
       ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
@@ -941,17 +945,19 @@ Used in advises."
 
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
-  ;; either this or polymode-set-syntax-propertize-end
+  ;; fixme: not sure if this is really needed. In any case either here or in
+  ;; extend functions through polymode-set-syntax-propertize-end, but not both
   (dolist (b (oref pm/polymode -buffers))
     (with-current-buffer b
       ;; `setq' doesn't have an effect because the var is let bound; `set' works
       (set 'syntax-propertize--done end)))
+
   (unless pm-initialization-in-progress
     (save-restriction
       (widen)
       (save-excursion
         (when (or pm-verbose pm-syntax-verbose)
-          (message "(polymode-syntax-propertize %d %d) [%s]" start end (current-buffer)))
+          (message "(polymode-syntax-propertize %d %d) [%d %s]" start end (point) (current-buffer)))
         (let ((protect-host (with-current-buffer (pm-base-buffer)
                               (eieio-oref pm/chunkmode 'protect-syntax))))
           ;; 1. host if no protection
@@ -972,6 +978,9 @@ Used in advises."
                      (pos1 (min (nth 2 *span*) end)))
                  (if (eieio-oref (nth 3 *span*) 'protect-syntax)
                      (pm-with-narrowed-to-span *span*
+                       (when (or pm-verbose pm-syntax-verbose)
+                         (message "(polymode-syntax-propertize %d %d) [%d %s]"
+                                  start end (point) (current-buffer)))
                        (pm--call-syntax-propertize-original pos0 pos1))
                    (pm--call-syntax-propertize-original pos0 pos1)))))
            start end))))))
@@ -1066,8 +1075,8 @@ near future.")
 
 (defun pm--get-existent-mode (mode &optional no-fallback)
   "Check if MODE symbol is defined and is a valid function.
-If so, return it, otherwise return `poly-fallback-mode' and issue
-a warning. If NO-FALLBACK is non-nil, return nil otherwise return
+If so, return it, otherwise silently return `poly-fallback-mode'.
+If NO-FALLBACK is non-nil, return nil otherwise return
 `poly-fallback-mode'."
   (cond ((fboundp mode) mode)
         (no-fallback nil)
