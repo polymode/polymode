@@ -55,8 +55,8 @@ use-package [RET]</kbd>.
 
 ```sh
 cd path/to/vc/dir
-git clone https://github.com/emacs-polymode/polymode
-git clone https://github.com/emacs-polymode/poly-markdown
+git clone https://github.com/polymode/polymode
+git clone https://github.com/polymode/poly-markdown
 ...
 ```
 

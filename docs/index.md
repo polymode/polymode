@@ -1,6 +1,3 @@
-<!-- <p align="center"> -->
-<!--   <img src="https://raw.github.com/emacs-polymode/polymode/master/img/large-icon.png" alt="Polymode Logo"/> -->
-<!-- </p> -->
 
 <p align="center">
   <img src="img/large-icon.png" 
