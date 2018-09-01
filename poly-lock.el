@@ -206,10 +206,16 @@ Fontifies chunk-by chunk within the region BEG END."
           ;; fontify the whole region in host first. It's ok for modes like
           ;; markdown, org and slim which understand inner modes in a limited way.
           (unless protect-host
-            (with-current-buffer (pm-base-buffer)
-              (when poly-lock-verbose
-                (message "(jit-lock-fontify-now %d %d) /unprotected/ %s" beg end (current-buffer)))
-              (jit-lock-fontify-now beg end)))
+            (let ((span (pm-innermost-span beg)))
+              (when (or (null (car span))
+                        ;; in inner spans fontify only if region is bigger than the span
+                        (< (nth 2 span) end))
+                (with-current-buffer (pm-base-buffer)
+                  (when poly-lock-verbose
+                    (message "(jit-lock-fontify-now %d %d) /unprotected/ %s" beg end (current-buffer)))
+                  (with-buffer-prepared-for-poly-lock
+                   (jit-lock-fontify-now beg end)
+                   (put-text-property beg end 'fontified t))))))
           (pm-map-over-spans
            (lambda ()
              (when (or (pm-true-span-type *span*)
