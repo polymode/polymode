@@ -57,6 +57,7 @@ Ran by the polymode mode function."
       (oset config -hostmode hostmode)
       (setq pm/polymode config
             pm/chunkmode hostmode
+            pm/current t
             pm/type nil)
       (pm--common-setup)
       ;; Initialize innermodes
@@ -172,6 +173,7 @@ initialized. Return the buffer."
     ;; HOOKS
     (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes nil t)
     (add-hook 'post-command-hook #'polymode-post-command-select-buffer nil t)
+    (add-hook 'pre-command-hook #'polymode-pre-command-synchronize-state nil t)
 
     ;; FONT LOCK (see poly-lock.el)
     (setq-local font-lock-function 'poly-lock-mode)

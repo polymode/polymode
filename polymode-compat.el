@@ -152,37 +152,6 @@ passed to ORIG-FUN."
         (pm-apply-protected orig-fun args))
     (apply orig-fun args)))
 
-(defun pm-execute-with-no-polymode-hooks (orig-fun &rest args)
-  "Execute ORIG-FUN without allowing polymode core hooks.
-That is, bind `pm-allow-post-command-hook' and
-`pm-allow-after-change-hook' to nil. *span* in
-`pm-map-over-spans' has precedence over span at point. ARGS are
-passed to ORIG-FUN."
-  ;; this advice is nowhere used yet
-  (if (and polymode-mode pm/polymode)
-      (let ((pm-allow-post-command-hook t)
-            (pm-allow-after-change-hook t))
-        ;; This advice might be useful when functions can switch buffers to work
-        ;; inside the base buffer (like basic-save-buffer does). Thus, we sync
-        ;; points first.
-        (pm--synchronize-points)
-        ;; save-excursion might be also often necessary
-        (apply orig-fun args))
-    (apply orig-fun args)))
-
-(defun pm-execute-with-save-excursion (orig-fun &rest args)
-  "Execute ORIG-FUN within ‘save-excursion’.
-ARGS are passed to ORIG-FUN."
-  ;; This advice is required when other functions switch buffers to work inside
-  ;; base buffer and don't restore the point. For some not very clear reason
-  ;; this seem to be necessary for save-buffer which saves buffer but not point.
-  (if (and polymode-mode pm/polymode)
-      (progn
-        (pm--synchronize-points)
-        (save-excursion
-          (apply orig-fun args)))
-    (apply orig-fun args)))
-
 
 ;;; Flyspel
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end _poss)
@@ -233,20 +202,35 @@ changes."
 ;;; Editing
 (pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
 
-;; `save-buffer` misbehaves because after each replacement modification hooks
-;; are triggered and poly buffer is switched in unpredictable fashion.
-;;
-;; https://github.com/vspinu/polymode/issues/93 It can be
-;; reproduced with (add-hook 'before-save-hook 'delete-trailing-whitespace nil
-;; t) in the base buffer.
-;;
-;; save-excursion is probably not quite right fix for this but it seem to work
-(pm-around-advice 'basic-save-buffer #'pm-execute-with-save-excursion)
 
-;; Query replace were probably misbehaving due to unsaved match data.
-;; (https://github.com/vspinu/polymode/issues/92) The following is probably not
-;; necessary.
-;; (pm-around-advice 'perform-replace 'pm-execute-inhibit-modification-hooks)
+;; (defun polymode-with-save-excursion (orig-fun &rest args)
+;;   "Execute ORIG-FUN surrounded with `save-excursion'.
+;; This function is intended to be used in advises of functions
+;; which modify the buffer in the background and thus trigger
+;; `pm-switch-to-buffer' on next post-command hook in a wrong place.
+;; ARGS are passed to ORIG-FUN."
+;;   (if polymode-mode
+;;       (save-excursion
+;;         (apply orig-fun args))
+;;     (apply orig-fun args)))
+
+;; We are synchronizing point in pre-command-hook so the following hack is no
+;; longer needed. Leaving here as a reference for the time being.
+;;
+;; `save-buffer` misbehaves because after each replacement modification hooks
+;; are triggered and poly buffer is switched in unpredictable fashion (#93).
+;; This happens because basic-save-buffer uses save-buffer but not
+;; save-excursion. Thus if base and indirect buffer don't have same point, at
+;; the end of the function inner buffer will have the point from the base
+;; buffer. Can be reproduced with (add-hook 'before-save-hook
+;; 'delete-trailing-whitespace nil t) in the base buffer.
+;;
+;; (pm-around-advice 'basic-save-buffer #'polymode-with-save-excursion)
+;; (advice-remove 'basic-save-buffer #'polymode-with-save-excursion)
+
+;; Query replace were probably misbehaving due to unsaved match data (#92). The
+;; following is probably not necessary. (pm-around-advice 'perform-replace
+;; 'pm-execute-inhibit-modification-hooks)
 
 
 ;;; EVIL

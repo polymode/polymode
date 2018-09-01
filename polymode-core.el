@@ -29,14 +29,13 @@
 ;;
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
-
 (require 'gv)
 (require 'font-lock)
 (require 'color)
 (require 'polymode-classes)
 (require 'format-spec)
 (eval-when-compile
+  (require 'cl-lib)
   (require 'derived))
 
 
@@ -45,7 +44,8 @@
 (defvar *span* nil)
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
-(defvar-local pm/type nil)
+(defvar-local pm/current nil)
+(defvar-local pm/type nil) ;; fixme: remove this
 (defvar-local polymode-mode nil
   "Non-nil if current \"mode\" is a polymode.")
 (defvar pm--emacs>26 (version<= "26" emacs-version))
@@ -632,8 +632,13 @@ switch."
     ;; (message (pm--debug-info span))
     (pm--reset-ppss-last span))
 
+  (when visibly
+    ;; always synchronize points to avoid interference from tooling working in
+    ;; different buffers
+    (pm--synchronize-points (current-buffer)))
+
   ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
-  ;; no action if BUFFER is already the current buffer
+  ;; no further action if BUFFER is already the current buffer
   (when (and (not (eq buffer (current-buffer)))
              (buffer-live-p buffer))
 
@@ -663,6 +668,7 @@ switch."
         (mkt (mark t))
         (bro buffer-read-only))
 
+    (setq pm/current nil)
     (when hl-line
       (hl-line-mode -1))
 
@@ -670,6 +676,8 @@ switch."
 
     (switch-to-buffer new-buffer)
     (bury-buffer-internal old-buffer)
+
+    (setq pm/current t)
 
     (unless (eq bro buffer-read-only)
       (read-only-mode (if bro 1 -1)))
@@ -808,16 +816,23 @@ bound variable *span* holds the current innermost span."
 ;;; HOOKS
 ;; In addition to these hooks there is `poly-lock-after-change' in poly-lock.el
 
+(defun polymode-pre-command-synchronize-state ()
+  "Synchronize state between buffers.
+Currently point only."
+  (pm--synchronize-points (current-buffer)))
+
 (defun polymode-post-command-select-buffer ()
   "Select the appropriate (indirect) buffer corresponding to point's context.
 This funciton is placed in local `post-command-hook'."
   (when (and pm-allow-post-command-hook
              polymode-mode
              pm/chunkmode)
-    (when pm-syntax-verbose
-      (dolist (b (oref pm/polymode -buffers))
-        (with-current-buffer b
-          (message "sp--done: %d [%s]" syntax-propertize--done (current-buffer)))))
+    (when pm-verbose
+      (message "(polymode-post-command-select-buffer) %s" (pm-format-span)))
+    ;; (when pm-syntax-verbose
+    ;;   (dolist (b (oref pm/polymode -buffers))
+    ;;     (with-current-buffer b
+    ;;       (message "sp--done: %d [%s]" syntax-propertize--done (current-buffer)))))
     (condition-case err
         (pm-switch-to-buffer)
       (error (message "(pm-switch-to-buffer %s): %s"
@@ -863,6 +878,18 @@ This function is placed in `before-change-functions' hook."
             (setq buffer-file-number nil)
             (setq buffer-file-truename nil)))))))
 
+
+;;; CORE ADVICE
+
+(defun pm-around-advice (fun advice)
+  "Apply around ADVICE to FUN.
+If FUN is a list, apply ADVICE to each element of it."
+  (cond ((listp fun)
+         (dolist (el fun) (pm-around-advice el advice)))
+        ((and (symbolp fun)
+              (not (advice-member-p advice fun)))
+         (advice-add fun :around advice))))
+
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.
 Used in advises."
@@ -879,17 +906,6 @@ Used in advises."
               (apply orig-fun base (cdr args))
             (apply orig-fun args))))
     (apply orig-fun args)))
-
-(defun pm-around-advice (fun advice)
-  "Apply around ADVICE to FUN.
-If `advice-add` is available apply advice to FUN. If FUN is a
-list, apply advice to each element of it."
-  (when (and fun (fboundp 'advice-add))
-    (cond ((listp fun)
-           (dolist (el fun) (pm-around-advice el advice)))
-          ((and (symbolp fun)
-                (not (advice-member-p advice fun)))
-           (advice-add fun :around advice)))))
 
 (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
@@ -1114,16 +1130,21 @@ Elements of LIST can be either strings or symbols."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-(defun pm--synchronize-points (&rest _ignore)
-  "Synchronize points in all buffers.
-IGNORE is there to allow this function in advises."
+(defun pm--synchronize-points (&optional buffer)
+  "Synchronize the point in polymode buffers with the point in BUFFER.
+By default BUFFER is the buffer where `pm/current' is t."
   (when polymode-mode
-    (let ((pos (point))
-          (cbuff (current-buffer)))
-      (dolist (buff (eieio-oref pm/polymode '-buffers))
-        (when (and (not (eq buff cbuff))
-                   (buffer-live-p buff))
-          (with-current-buffer buff
+    (let* ((bufs (eieio-oref pm/polymode '-buffers))
+           (buffer (or buffer
+                       (cl-loop for b in bufs
+                                if (and (buffer-live-p b)
+                                        (buffer-local-value 'pm/current b))
+                                return b)
+                       (current-buffer)))
+           (pos (with-current-buffer buffer (point))))
+      (dolist (b bufs)
+        (when (buffer-live-p b)
+          (with-current-buffer b
             (goto-char pos)))))))
 
 (defun pm--completing-read (prompt collection &optional predicate require-match
