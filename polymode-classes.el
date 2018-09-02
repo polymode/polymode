@@ -190,7 +190,7 @@ instantiated from this class or a subclass of this class.")
     :custom symbol
     :documentation
     "Emacs major mode for the chunk's body.
-When nil the value of `poly-default-inner-mode' is used when set;
+When nil the value of `polymode-default-inner-mode' is used when set;
 otherwise `poly-fallback-mode' is used. A special value 'host
 means to use the host mode as a fallback in the body of this
 chunk.")

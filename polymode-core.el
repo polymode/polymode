@@ -1062,24 +1062,24 @@ near future.")
 (defun pm--get-existing-mode (mode &optional no-fallback)
   "Return MODE symbol if it's defined and is a valid function.
 If so, return it, otherwise the value of
-`poly-default-inner-mode' if non-nil and a valid function symbol,
+`polymode-default-inner-mode' if non-nil and a valid function symbol,
 otherwise `poly-fallback-mode'. If NO-FALLBACK is non-nil, return
 nil without checking any fallbacks."
   (cond ((fboundp mode) mode)
         (no-fallback nil)
-        ((fboundp poly-default-inner-mode) poly-default-inner-mode)
+        ((fboundp polymode-default-inner-mode) polymode-default-inner-mode)
         (t 'poly-fallback-mode)))
 
 (defun pm-get-mode-symbol-from-name (name &optional fallback)
   "Guess and return mode function from short NAME.
 Return FALLBACK if non-nil, otherwise the value of
-`poly-default-inner-mode' if non-nil, otherwise
+`polymode-default-inner-mode' if non-nil, otherwise
 `poly-fallback-mode'."
   (cond
    ((or (null name)
         (and (stringp name) (= (length name) 0)))
     (or fallback
-        poly-default-inner-mode
+        polymode-default-inner-mode
         'poly-fallback-mode))
    ((and (symbolp name) (fboundp name) name))
    ((let* ((str (pm--symbol-name
