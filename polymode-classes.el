@@ -203,21 +203,21 @@ means to use the host mode in the body of this chunk.")
 Takes effect only when :protect-indent is non-nil.")
    (protect-indent
     :initarg :protect-indent
-    :initform t
+    :initform nil
     :type boolean
     :custom boolean
     :documentation
     "Whether to narrowing to current span before indent.")
    (protect-font-lock
     :initarg :protect-font-lock
-    :initform t
+    :initform nil
     :type boolean
     :custom boolean
     :documentation
     "Whether to narrow to span during font lock.")
    (protect-syntax
     :initarg :protect-syntax
-    :initform t
+    :initform nil
     :type boolean
     :custom boolean
     :documentation
@@ -263,7 +263,9 @@ is of this chunkmode.")
    (-buffer
     :type (or null buffer)
     :initform nil))
-  "Generic chunkmode object.")
+  "Generic chunkmode object.
+Please note that by default :protect-xyz slots are nil in
+host-modes and t in inner-modes.")
 
 (defclass pm-host-chunkmode (pm-chunkmode)
   ()
@@ -272,7 +274,13 @@ over all the other space not claimed by other chunkmodes in the
 buffer.")
 
 (defclass pm-inner-chunkmode (pm-chunkmode)
-  ((can-nest
+  ((protect-font-lock
+    :initform t)
+   (protect-syntax
+    :initform t)
+   (protect-indent
+    :initform t)
+   (can-nest
     :initarg :can-nest
     :initform nil
     :type boolean
