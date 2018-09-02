@@ -35,7 +35,7 @@ credit for this idea.
 Host and inner chunks are configured through _objects_ derived from
 `pm-chunkmode` class and are generically referred to as "chunkmodes". These
 objects have named of the form `pm-host/NAME` and `pm-inner/NAME` and are
-grouped into `poly-host-modes` and `poly-inner-modes` customization groups
+grouped into `poly-hostmodes` and `poly-innermodes` customization groups
 respectively. During the initialization chunkmodes are cloned and stored in
 buffer local variable `pm/chunkmode.`
 

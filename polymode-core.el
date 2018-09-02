@@ -101,11 +101,11 @@
   "Polymode Configuration Objects"
   :group 'polymode)
 
-(defgroup poly-host-modes nil
+(defgroup poly-hostmodes nil
   "Polymode Host Chunkmode Objects"
   :group 'polymode)
 
-(defgroup poly-inner-modes nil
+(defgroup poly-innermodes nil
   "Polymode Chunkmode Objects"
   :group 'polymode)
 

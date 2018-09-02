@@ -13,7 +13,7 @@ Here is an example of markdown host mode:
   (pm-host-chunkmode :name "markdown"
                      :mode 'markdown-mode)
   "Markdown host chunkmode"
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 ```
@@ -41,7 +41,7 @@ This is an example of two markdown auto innermodes:
                            :tail-matcher "^[ \t]*```[ \t]*$"
                            :mode-matcher (cons "```[ \t]*{?\\(?:lang *= *\\)?\\([^ \t\n;=,}]+\\)" 1))
   "Markdown fenced code block."
-  :group 'poly-inner-modes
+  :group 'poly-innermodes
   :type 'object)
 
 (defcustom  pm-inner/markdown-inline-code
@@ -52,7 +52,7 @@ This is an example of two markdown auto innermodes:
                            :head-mode 'host
                            :tail-mode 'host)
   "Markdown inline code."
-  :group 'poly-inner-modes
+  :group 'poly-innermodes
   :type 'object)
 
 ```

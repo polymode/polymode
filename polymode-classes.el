@@ -266,7 +266,7 @@ is of this chunkmode.")
     :initform nil))
   "Generic chunkmode object.
 Please note that by default :protect-xyz slots are nil in
-host-modes and t in inner-modes.")
+hostmodes and t in innermodes.")
 
 (defclass pm-host-chunkmode (pm-chunkmode)
   ()

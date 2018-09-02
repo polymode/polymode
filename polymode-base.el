@@ -45,49 +45,49 @@ Intended to be used as local variable in polymode buffers.")
   (pm-host-chunkmode :name "coffee"
                      :mode 'coffee-mode)
   "Coffee host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/fundamental
   (pm-host-chunkmode :name "fundamental"
                      :mode 'fundamental-mode)
   "Fundamental host mode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/js
   (pm-host-chunkmode :name "js"
                      :mode 'js-mode)
   "Javascript host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/java
   (pm-host-chunkmode :name "js"
                      :mode 'java-mode)
   "Java host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/latex
   (pm-host-chunkmode :name "latex"
                      :mode 'latex-mode)
   "Latex host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/html
   (pm-host-chunkmode :name "html"
                      :mode 'html-mode)
   "HTML host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/R
   (pm-host-chunkmode :name "R"
                      :mode 'R-mode)
   "R host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/C++
@@ -95,21 +95,21 @@ Intended to be used as local variable in polymode buffers.")
                      :mode 'c++-mode
                      :protect-font-lock nil)
   "C++ host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/text
   (pm-host-chunkmode :name "text"
                      :mode 'text-mode)
   "Text host chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 (defcustom pm-host/yaml
   (pm-host-chunkmode :name "YAML"
                      :mode 'yaml-mode)
   "YAML chunkmode."
-  :group 'poly-host-modes
+  :group 'poly-hostmodes
   :type 'object)
 
 
