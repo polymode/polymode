@@ -62,6 +62,13 @@ Intended to be used as local variable in polymode buffers.")
   :group 'poly-host-modes
   :type 'object)
 
+(defcustom pm-host/java
+  (pm-host-chunkmode :name "js"
+                     :mode 'java-mode)
+  "Java host chunkmode."
+  :group 'poly-host-modes
+  :type 'object)
+
 (defcustom pm-host/latex
   (pm-host-chunkmode :name "latex"
                      :mode 'latex-mode)
