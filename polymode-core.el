@@ -420,14 +420,6 @@ case TYPE is ignored."
                'head))
             (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
 
-;; FIXME: Simplify/merge and make this public API which can operate on spans or
-;; chunkmodes. Return nil if type is nil or 'host.
-(defun pm--get-chunkmode-mode (chunkmode type)
-  (cl-case (pm-true-span-type chunkmode type)
-    (body (eieio-oref chunkmode 'mode))
-    (head (eieio-oref chunkmode 'head-mode))
-    (tail (eieio-oref chunkmode 'tail-mode))))
-
 ;; Attempt to check for in-comments; doesn't work because we end up calling
 ;; syntax-propertize recursively.
 ;; (defun pm--funcall-matcher (matcher arg)
@@ -1058,29 +1050,56 @@ near future.")
       (symbol-name str-or-symbol)
     str-or-symbol))
 
-(defun pm--get-mode-symbol-from-name (name)
-  "Guess and return mode function from NAME or nil if not found."
-  (if (and (symbolp name)
-           (fboundp name))
-      name
-    (let* ((str (pm--symbol-name
+(defun pm--get-innermode-mode (chunkmode type)
+  "Retrieve the mode name of for inner CHUNKMODE for span of TYPE."
+  (pm--get-existing-mode
+   (cl-case (pm-true-span-type chunkmode type)
+     (body (eieio-oref chunkmode 'mode))
+     (head (eieio-oref chunkmode 'head-mode))
+     (tail (eieio-oref chunkmode 'tail-mode))
+     (t (error "Invalid type (%s); must be one of body, head tail" type)))))
+
+(defun pm--get-existing-mode (mode &optional no-fallback)
+  "Return MODE symbol if it's defined and is a valid function.
+If so, return it, otherwise the value of
+`poly-default-inner-mode' if non-nil and a valid function symbol,
+otherwise `poly-fallback-mode'. If NO-FALLBACK is non-nil, return
+nil without checking any fallbacks."
+  (cond ((fboundp mode) mode)
+        (no-fallback nil)
+        ((fboundp poly-default-inner-mode) poly-default-inner-mode)
+        (t 'poly-fallback-mode)))
+
+(defun pm-get-mode-symbol-from-name (name &optional fallback)
+  "Guess and return mode function from short NAME.
+Return FALLBACK if non-nil, otherwise the value of
+`poly-default-inner-mode' if non-nil, otherwise
+`poly-fallback-mode'."
+  (cond
+   ((or (null name)
+        (and (stringp name) (= (length name) 0)))
+    (or fallback
+        poly-default-inner-mode
+        'poly-fallback-mode))
+   ((and (symbolp name) (fboundp name) name))
+   ((let* ((str (pm--symbol-name
                  (or (cdr (assq (intern (pm--symbol-name name))
                                 polymode-mode-name-override-alist))
                      name)))
-           (mname (if (string-match-p "-mode$" str)
-                      str
-                    (concat str "-mode"))))
-      (or (pm--get-existent-mode (intern mname) t)
-          (pm--get-existent-mode (intern (downcase mname)) t)))))
-
-(defun pm--get-existent-mode (mode &optional no-fallback)
-  "Check if MODE symbol is defined and is a valid function.
-If so, return it, otherwise silently return `poly-fallback-mode'.
-If NO-FALLBACK is non-nil, return nil otherwise return
-`poly-fallback-mode'."
-  (cond ((fboundp mode) mode)
-        (no-fallback nil)
-        (t 'poly-fallback-mode)))
+           (mname (concat str "-mode")))
+      (or
+       ;; direct search
+       (pm--get-existing-mode (intern mname) t)
+       ;; downcase
+       (pm--get-existing-mode (intern (downcase mname)) t)
+       ;; auto-mode alist
+       (let ((dummy (concat "a." str)))
+         (cl-loop for (k . v) in auto-mode-alist
+                  if (and (string-match-p k dummy)
+                          (not (string-match-p "^poly-" (symbol-name v))))
+                  return v))
+       fallback
+       (pm--get-existing-mode nil))))))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."

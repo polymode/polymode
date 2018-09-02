@@ -70,17 +70,17 @@ Ran by the polymode mode function."
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
     (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)))
 
-(cl-defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
+(cl-defmethod pm-initialize ((chunkmode pm-inner-chunkmode) &optional type mode)
   "Initialization of chunkmode (indirect) buffers."
   ;; run in chunkmode indirect buffer
-  (setq mode (or mode (pm--get-chunkmode-mode chunkmode type)))
+  (setq mode (or mode (pm--get-innermode-mode chunkmode type)))
   (let ((pm-initialization-in-progress t)
         (new-name  (generate-new-buffer-name
                     (format "%s[%s]" (buffer-name (pm-base-buffer))
                             (replace-regexp-in-string "poly-\\|-mode" ""
                                                       (symbol-name mode))))))
     (rename-buffer new-name)
-    (pm--mode-setup (pm--get-existent-mode mode))
+    (pm--mode-setup mode)
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
     ;; fixme: This breaks if different chunkmodes use same-mode buffer. Even for
     ;; head/tail the value of pm/type will be wrong for tail
@@ -195,12 +195,11 @@ initialized. Return the buffer."
   "Get the indirect buffer associated with SUBMODE and SPAN-TYPE.
 Create and initialize the buffer if does not exist yet.")
 
-;; hostmode only gets this ATM
-(cl-defmethod pm-get-buffer-create ((chunkmode pm-chunkmode) &optional type)
+(cl-defmethod pm-get-buffer-create ((chunkmode pm-host-chunkmode) &optional type)
   (let ((buff (eieio-oref chunkmode '-buffer)))
-    (or (and (buffer-live-p buff) buff)
-        (oset chunkmode -buffer
-              (pm--get-chunkmode-buffer-create chunkmode type)))))
+    (if (buffer-live-p buff)
+        buff
+      (error "Cannot create host buffer for host chunkmode %s" (eieio-object-name chunkmode)))))
 
 (cl-defmethod pm-get-buffer-create ((chunkmode pm-inner-chunkmode) &optional type)
   (let ((buff (cl-case type
@@ -211,12 +210,11 @@ Create and initialize the buffer if does not exist yet.")
                           type (eieio-object-name chunkmode))))))
     (if (buffer-live-p buff)
         buff
-      (pm--set-chunkmode-buffer chunkmode type
-                                (pm--get-chunkmode-buffer-create chunkmode type)))))
+      (let ((new-buff (pm--get-innermode-buffer-create chunkmode type)))
+        (pm--set-innermode-buffer chunkmode type new-buff)))))
 
-(defun pm--get-chunkmode-buffer-create (chunkmode type)
-  (let ((mode (pm--get-existent-mode
-               (pm--get-chunkmode-mode chunkmode type))))
+(defun pm--get-innermode-buffer-create (chunkmode type)
+  (let ((mode (pm--get-innermode-mode chunkmode type)))
     (or
      ;; 1. look through existent buffer list
      (cl-loop for bf in (eieio-oref pm/polymode '-buffers)
@@ -231,7 +229,7 @@ Create and initialize the buffer if does not exist yet.")
            (pm-initialize chunkmode type mode))
          new-buffer)))))
 
-(defun pm--set-chunkmode-buffer (obj type buff)
+(defun pm--set-innermode-buffer (obj type buff)
   "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
   (with-slots (-buffer head-mode -head-buffer tail-mode -tail-buffer) obj
     (pcase (list type head-mode tail-mode)
@@ -311,10 +309,7 @@ in this case."
                             (match-string-no-properties (cdr matcher)))
                            ((functionp matcher)
                             (funcall matcher)))))
-             (mode (or (pm--get-mode-symbol-from-name str)
-                       (eieio-oref proto 'mode)
-                       poly-default-inner-mode
-                       'poly-fallback-mode)))
+             (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'mode))))
         (if (eq mode 'host)
             span
           ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
