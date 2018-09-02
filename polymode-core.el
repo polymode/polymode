@@ -564,9 +564,9 @@ is one of the following symbols:
                 (set mm old-mm))))
           (pm--collect-parent-slots config :minor-mode))))
 
-(defun pm--run-init-hooks (object &optional emacs-hook)
+(defun pm--run-init-hooks (object type &optional emacs-hook)
   (unless pm-initialization-in-progress
-    (pm--run-hooks object :init-functions)
+    (pm--run-hooks object :init-functions (or type 'host))
     (when emacs-hook
       (run-hooks emacs-hook))))
 
@@ -590,10 +590,10 @@ Parents' hooks are run first."
                 (apply #'append
                        (pm--collect-parent-slots object slot))))))
     (if args
-        (mapc (lambda (hook)
-                (apply #'run-hook-with-args hook args))
+        (mapc (lambda (fn)
+                (apply fn args))
               funs)
-      (mapc #'run-hooks funs))))
+      (mapc #'funcall funs))))
 
 
 ;;; BUFFER SELECTION

@@ -91,8 +91,8 @@ Ran by the polymode mode function."
     (funcall (eieio-oref pm/polymode 'minor-mode))
     ;; FIXME: should not be here?
     (vc-refresh-state)
-    (pm--common-setup)
-    (pm--run-init-hooks chunkmode 'polymode-init-inner-hook)))
+    (pm--common-setup))
+  (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook))
 
 (defvar poly-lock-allow-fontification)
 (defun pm--mode-setup (mode &optional buffer)

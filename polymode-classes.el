@@ -246,10 +246,11 @@ lighten in light thems.")
     :custom hook
     :documentation
     "List of functions called after the initialization.
-Functions are called in the buffer associated with this
-chunkmode. All init-functions in the inheritance chain are called
-in parent-first order. Either customize this slot or use
-`object-add-to-list' function.")
+Functions are called with one argument TYPE in the buffer
+associated with this chunkmode's span. TYPE is either 'host,
+'head, 'body or 'tail. All init-functions in the inheritance
+chain are called in parent-first order. Either customize this
+slot or use `object-add-to-list' function.")
    (switch-buffer-functions
     :initarg :switch-buffer-functions
     :initform '()
