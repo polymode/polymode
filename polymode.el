@@ -479,7 +479,13 @@ most frequently used slots are:
   nil " PM")
 
 (define-derived-mode poly-head-tail-mode prog-mode "HeadTail"
-  "Default major mode for polymode head and tail spans.")
+  "Default major mode for polymode head and tail spans."
+  (let ((base (pm-base-buffer)))
+    ;; (#119) hideshow needs comment regexp and throws if not found. We are
+    ;; using these values from the host mode which should have been installed
+    ;; already.
+    (setq-local comment-start (buffer-local-value 'comment-start base))
+    (setq-local comment-end (buffer-local-value 'comment-end base))))
 
 (define-derived-mode poly-fallback-mode prog-mode "FallBack"
   ;; fixme:
