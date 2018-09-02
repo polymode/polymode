@@ -297,9 +297,7 @@ See noweb for an example.")
     :custom symbol
     :documentation
     "Chunk's head mode.
-If set to 'body, the head is considered part of the chunk body.
-If set to 'host, head is considered part of the surrounding host
-mode.")
+If set to 'host or 'body use host or body's mode respectively.")
    (tail-mode
     :initarg :tail-mode
     :initform nil
@@ -308,8 +306,8 @@ mode.")
                     function)
     :documentation
     "Chunk's tail mode.
-If 'body or 'host the tail's mode is the same as chunk's body or
-host mode. If nil, pick the mode from :HEAD-MODE slot.")
+If set to 'host or 'body use host or body's mode respectively. If
+nil, pick the mode from :head-mode slot.")
    (head-matcher
     :initarg :head-matcher
     :initform nil

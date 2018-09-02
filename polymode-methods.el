@@ -453,9 +453,9 @@ to indent."
   (cond ((eq type 'head)
          (eieio-oref chunkmode 'head-adjust-face))
         ((eq type 'tail)
-         (or (eieio-oref pm/chunkmode 'tail-adjust-face)
-             (eieio-oref pm/chunkmode 'head-adjust-face)))
-        (t (eieio-oref pm/chunkmode 'adjust-face))))
+         (or (eieio-oref chunkmode 'tail-adjust-face)
+             (eieio-oref chunkmode 'head-adjust-face)))
+        (t (eieio-oref chunkmode 'adjust-face))))
 
 (provide 'polymode-methods)
 
