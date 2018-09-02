@@ -336,10 +336,12 @@ in this case."
 ;;; INDENT
 
 (defun pm--indent-line (span)
-  (let (point)
+  (let ((point (point)))
+    ;; do fast synchronization here
     (save-current-buffer
       (pm-set-buffer span)
       (pm-with-narrowed-to-span span
+        (goto-char point)
         (funcall pm--indent-line-function-original)
         (setq point (point))))
     (goto-char point)))
@@ -420,6 +422,10 @@ to indent."
   (save-excursion
     (let ((pos (point)))
       (goto-char (nth 1 (or span (pm-innermost-span))))
+      ;; when body starts at bol move to previous line
+      (when (and (= (point) (point-at-bol))
+                 (not (bobp)))
+        (backward-char 1))
       (goto-char (point-at-eol))
       (skip-chars-forward " \t\n")
       (let ((indent (- (point) (point-at-bol))))
@@ -429,6 +435,10 @@ to indent."
 (defun pm--head-indent (&optional span)
   (save-excursion
     (goto-char (nth 1 (or span (pm-innermost-span))))
+    ;; when body starts at bol move to previous line
+    (when (and (= (point) (point-at-bol))
+               (not (bobp)))
+      (backward-char 1))
     (back-to-indentation)
     (- (point) (point-at-bol))))
 
