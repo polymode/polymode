@@ -294,9 +294,9 @@ Assumes widen buffer."
             (setq jit-lock-start old-beg)))
       ;; refontify the entire new span
       (setq jit-lock-start sbeg))
-    ;; I think it's not possible to do better than this. When region is
-    ;; shrunk, previous region could be incorrectly fontify even if the mode
-    ;; is preserved due to wrong ppss
+    ;; I think it's not possible to do better than this. When region is shrunk,
+    ;; previous region could be incorrectly fontified even if the mode is
+    ;; preserved due to wrong ppss
     (setq jit-lock-end (max send old-end))
     ;; (if (> old-end send)
     ;;     (let ((new-end-span (pm-innermost-span (max (1- old-end) end))))
@@ -307,7 +307,18 @@ Assumes widen buffer."
     ;;         (setq jit-lock-end old-end)))
     ;;   ;; refontify the entire new span
     ;;   (setq jit-lock-end send))
-    ))
+
+    ;; Check if the type of following span changed (for example when
+    ;; modification is in head of an auto-chunk). Do this repeatedly till no
+    ;; change. [TOTHINK: Do we need similar extension backwards?]
+    (let ((go-on t))
+      (while (and (< jit-lock-end (point-max))
+                  go-on)
+        (let ((ospan (get-text-property jit-lock-end :pm-span))
+              (nspan (pm-innermost-span jit-lock-end 'no-cache)))
+          (if (eq (nth 3 nspan) (nth 3 ospan))
+              (setq go-on nil)
+            (setq jit-lock-end (nth 2 nspan))))))))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
