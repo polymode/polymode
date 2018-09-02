@@ -203,11 +203,12 @@ Create and initialize the buffer if does not exist yet.")
               (pm--get-chunkmode-buffer-create chunkmode type)))))
 
 (cl-defmethod pm-get-buffer-create ((chunkmode pm-inner-chunkmode) &optional type)
-  (let ((buff (cond ((eq 'body type) (eieio-oref chunkmode '-buffer))
-                    ((eq 'head type) (eieio-oref chunkmode '-head-buffer))
-                    ((eq 'tail type) (eieio-oref chunkmode '-tail-buffer))
-                    (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s'"
-                              type (eieio-object-name chunkmode))))))
+  (let ((buff (cl-case type
+                (body (eieio-oref chunkmode '-buffer))
+                (head (eieio-oref chunkmode '-head-buffer))
+                (tail (eieio-oref chunkmode '-tail-buffer))
+                (t (error "Don't know how to select buffer of type '%s' for chunkmode '%s'"
+                          type (eieio-object-name chunkmode))))))
     (if (buffer-live-p buff)
         buff
       (pm--set-chunkmode-buffer chunkmode type

@@ -420,16 +420,13 @@ case TYPE is ignored."
                'head))
             (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
 
-;; return nil if type is nil or 'host
+;; FIXME: Simplify/merge and make this public API which can operate on spans or
+;; chunkmodes. Return nil if type is nil or 'host.
 (defun pm--get-chunkmode-mode (chunkmode type)
-  (let ((ttype (pm-true-span-type chunkmode type)))
-    (cond
-     ((eq ttype 'body)
-      (eieio-oref chunkmode 'mode))
-     ((eq ttype 'head)
-      (eieio-oref chunkmode 'head-mode))
-     ((eq ttype 'tail)
-      (eieio-oref chunkmode 'tail-mode)))))
+  (cl-case (pm-true-span-type chunkmode type)
+    (body (eieio-oref chunkmode 'mode))
+    (head (eieio-oref chunkmode 'head-mode))
+    (tail (eieio-oref chunkmode 'tail-mode))))
 
 ;; Attempt to check for in-comments; doesn't work because we end up calling
 ;; syntax-propertize recursively.
