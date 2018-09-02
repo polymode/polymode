@@ -399,7 +399,7 @@ most frequently used slots are:
        (parent-conf
         (setq parent-map
               (derived-mode-map-name
-               (eieio-oref parent-conf 'minor-mode))))
+               (eieio-oref parent-conf '-minor-mode))))
        ;; 3. nil
        (t (setq parent-map
                 'polymode-minor-mode-map))))
@@ -451,7 +451,7 @@ most frequently used slots are:
            (unless (buffer-base-buffer)
              (when ,mode
                (let ((obj (clone ,config-name)))
-                 (oset obj :minor-mode ',mode)
+                 (eieio-oset obj '-minor-mode ',mode)
                  (pm-initialize obj))
                ;; when host mode is reset in pm-initialize we end up with now
                ;; minor mode in hosts

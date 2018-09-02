@@ -43,7 +43,6 @@
 (defun pm--filter-slots (slots)
   (delq nil (mapcar (lambda (slot)
                       (unless (or (= (elt (symbol-name slot) 0) ?-)
-                                  (eq slot 'minor-mode)
                                   (eq slot 'parent-instance)
                                   (eq slot 'name))
                         (intern (concat ":" (symbol-name slot)))))
@@ -150,9 +149,7 @@ NEW-BUFFER.")
 This slot is reserved for building hierarchies through cloning
 and should not be used in `define-polymode'.")
 
-   ;; fixme: prefix with -
-   (minor-mode
-    :initarg :minor-mode
+   (-minor-mode
     :initform 'polymode-minor-mode
     :type symbol
     :documentation

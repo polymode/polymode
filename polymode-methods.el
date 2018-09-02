@@ -40,7 +40,7 @@
 (cl-defmethod pm-initialize ((config pm-polymode))
   "Initialization of host buffers.
 Ran by the polymode mode function."
-  ;; Not calling config's :minor-mode in hosts because this pm-initialize is
+  ;; Not calling config's '-minor-mode in hosts because this pm-initialize is
   ;; called from minor-mode itself.
   (let* ((hostmode-name (eieio-oref config 'hostmode))
          (hostmode (if hostmode-name
@@ -68,10 +68,10 @@ Ran by the polymode mode function."
       ;; FIXME: must go into polymode-compat.el
       (add-hook 'flyspell-incorrect-hook
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
-    (pm--run-init-hooks hostmode 'polymode-init-host-hook)))
+    (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)))
 
 (cl-defmethod pm-initialize ((chunkmode pm-chunkmode) &optional type mode)
-  "Initialization of chunk (indirect) buffers."
+  "Initialization of chunkmode (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-chunkmode-mode chunkmode type)))
   (let ((pm-initialization-in-progress t)
@@ -88,7 +88,7 @@ Ran by the polymode mode function."
           pm/type (pm-true-span-type chunkmode type))
     ;; Call polymode mode for the sake of the keymap. Same minor mode which runs
     ;; in the host buffer but without all the heavy initialization.
-    (funcall (eieio-oref pm/polymode 'minor-mode))
+    (funcall (eieio-oref pm/polymode '-minor-mode))
     ;; FIXME: should not be here?
     (vc-refresh-state)
     (pm--common-setup))

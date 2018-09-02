@@ -554,7 +554,7 @@ is one of the following symbols:
   ;; Minor modes run-hooks, major-modes run-mode-hooks.
   ;; Polymodes is a minor mode but with major-mode flavor. We
   ;; run all parent hooks in reversed order here.
-  (let ((this-mode (eieio-oref config 'minor-mode)))
+  (let ((this-mode (eieio-oref config '-minor-mode)))
     (mapc (lambda (mm)
             (let ((old-mm (symbol-value mm)))
               (unwind-protect
@@ -562,7 +562,7 @@ is one of the following symbols:
                     (set mm (symbol-value this-mode))
                     (run-hooks (derived-mode-hook-name mm)))
                 (set mm old-mm))))
-          (pm--collect-parent-slots config :minor-mode))))
+          (pm--collect-parent-slots config '-minor-mode))))
 
 (defun pm--run-init-hooks (object type &optional emacs-hook)
   (unless pm-initialization-in-progress
