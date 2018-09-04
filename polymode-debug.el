@@ -405,7 +405,7 @@ level is 3."
       (unless (memq this-command '(pm-debug-info-on-current-span
                                    pm-debug-highlight-last-font-lock-error-region))
         (delete-overlay pm--highlight-overlay))
-      (condition-case err
+      (condition-case-unless-debug err
           (let ((span (pm-innermost-span)))
             (when pm-debug-display-info-message
               (message (pm--debug-info span)))

@@ -1002,7 +1002,7 @@ near future.")
   (when ofile
     ;; errors might occur (most notably with open-with package errors are intentional)
     ;; We need to catch those if we want to display multiple files like with Rmarkdown
-    (condition-case err
+    (condition-case-unless-debug err
         (let ((buff (get-file-buffer ofile)))
           ;; silently kill and re-open
           (when buff

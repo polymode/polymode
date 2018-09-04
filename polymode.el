@@ -113,7 +113,7 @@ Return the number of actually moved over chunks."
          (beg (if back (point-min) (point)))
          (end (if back (point) (point-max)))
          (N (if back (- N) N)))
-    (condition-case nil
+    (condition-case-unless-debug nil
         (pm-map-over-spans
          (lambda ()
            (unless (memq (car *span*) '(head tail))
@@ -144,7 +144,7 @@ Return the number of chunks of the same type moved over."
          (end (if back (point) (point-max)))
          (N (if back (- N) N))
          this-type this-name)
-    (condition-case nil
+    (condition-case-unless-debug nil
         (pm-map-over-spans
          (lambda ()
            (unless (memq (car *span*) '(head tail))
