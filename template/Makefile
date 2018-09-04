@@ -1,7 +1,7 @@
 MODULE = __MODULE__
 export EMACS ?= emacs
 EMACS_VERSION = $(shell ${EMACS} -Q --batch --eval "(princ emacs-version)")
-ELPA_DIR := ELPA/$(EMACS_VERSION)
+ELPA_DIR := .ELPA/$(EMACS_VERSION)
 EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(ELPA_DIR)
 EMACSBATCH = $(EMACSRUN) --batch
 

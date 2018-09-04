@@ -13,11 +13,8 @@
                       (when (re-search-forward "Package-Requires:" nil t)
                         (car (read-from-string (buffer-substring (point) (point-at-eol))))))
       package-deps (delq 'emacs (append dev-deps deps (mapcar #'car deps-requires)))
-      package-user-dir (expand-file-name (format "ELPA/%s" emacs-version))
-      ;; only melpa for speed
+      package-user-dir (expand-file-name (format ".ELPA/%s" emacs-version))
       package-archives '(("melpa" . "https://melpa.org/packages/")))
-
-;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 
 (package-initialize)
 
