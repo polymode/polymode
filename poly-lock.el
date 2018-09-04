@@ -315,25 +315,24 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
 Extend `jit-lock-start' and `jit-lock-end' by side effect."
   (let ((beg jit-lock-start)
         (end jit-lock-end))
-    (with-buffer-prepared-for-poly-lock
-     (let ((sbeg (nth 1 *span*))
-           (send (nth 2 *span*)))
-       ;; expand only in top & bottom spans
-       (when (or (> beg sbeg) (< end send))
-         (pm-with-narrowed-to-span *span*
-           (setq jit-lock-start (max beg sbeg)
-                 jit-lock-end   (min end send))
-           (condition-case err
-               (progn
-                 ;; set jit-lock-start and jit-lock-end by side effect
-                 (run-hook-with-args 'jit-lock-after-change-extend-region-functions
-                                     jit-lock-start jit-lock-end old-len))
-             (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
-                             jit-lock-start jit-lock-end old-len
-                             (error-message-string err))))
-           (setq jit-lock-start (min beg (max jit-lock-start sbeg))
-                 jit-lock-end (max end (min jit-lock-end send))))
-         (cons jit-lock-start jit-lock-end))))))
+    (let ((sbeg (nth 1 *span*))
+          (send (nth 2 *span*)))
+      ;; expand only in top & bottom spans
+      (when (or (> beg sbeg) (< end send))
+        (pm-with-narrowed-to-span *span*
+          (setq jit-lock-start (max beg sbeg)
+                jit-lock-end   (min end send))
+          (condition-case err
+              (progn
+                ;; set jit-lock-start and jit-lock-end by side effect
+                (run-hook-with-args 'jit-lock-after-change-extend-region-functions
+                                    jit-lock-start jit-lock-end old-len))
+            (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
+                            jit-lock-start jit-lock-end old-len
+                            (error-message-string err))))
+          (setq jit-lock-start (min beg (max jit-lock-start sbeg))
+                jit-lock-end (max end (min jit-lock-end send))))
+        (cons jit-lock-start jit-lock-end)))))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
@@ -345,18 +344,19 @@ are as in `after-change-functions'."
   (when (and poly-lock-mode
              pm-allow-after-change-hook
              (not memory-full))
-    (save-excursion
-      (save-match-data
-        (save-restriction
-          (widen)
-          (poly-lock--extend-region beg end)
-          (pm-flush-span-cache beg end)
-          (pm-map-over-spans
-           #'poly-lock--extend-region-span
-           ;; fixme: no-cache is no longer necessary, we flush the region
-           beg end nil nil nil 'no-cache)
-          (put-text-property jit-lock-start jit-lock-end 'fontified nil)
-          (cons jit-lock-start jit-lock-end))))))
+    (with-buffer-prepared-for-poly-lock
+     (save-excursion
+       (save-match-data
+         (save-restriction
+           (widen)
+           (poly-lock--extend-region beg end)
+           (pm-flush-span-cache beg end)
+           (pm-map-over-spans
+            #'poly-lock--extend-region-span
+            ;; fixme: no-cache is no longer necessary, we flush the region
+            beg end nil nil nil 'no-cache)
+           (put-text-property jit-lock-start jit-lock-end 'fontified nil)
+           (cons jit-lock-start jit-lock-end)))))))
 
 (defun poly-lock--adjusted-background (prop)
   ;; if > lighten on dark backgroun. Oposite on light.
