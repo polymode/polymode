@@ -58,22 +58,20 @@
     (define-key map (kbd "M-n p")       #'pm-debug-print-relevant-variables)
     (define-key map (kbd "M-n M-h")     #'pm-debug-map-over-spans-and-highlight)
     (define-key map (kbd "M-n h")       #'pm-debug-map-over-spans-and-highlight)
-
+    (define-key map (kbd "M-n M-t t")   #'pm-toggle-tracing)
     (define-key map (kbd "M-n M-t i")   #'pm-debug-toogle-info-message)
     (define-key map (kbd "M-n M-t f")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-t p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t a")   #'pm-debug-toggle-all)
     (define-key map (kbd "M-n M-t v")   #'pm-debug-toggle-verbose)
-    (define-key map (kbd "M-n M-t s")   #'pm-debug-toggle-verbose-syntax)
+    (define-key map (kbd "M-n M-t M-t")   #'pm-toggle-tracing)
     (define-key map (kbd "M-n M-t M-i")   #'pm-debug-toogle-info-message)
     (define-key map (kbd "M-n M-t M-f")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-t M-p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t M-c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t M-a")   #'pm-debug-toggle-all)
     (define-key map (kbd "M-n M-t M-v")   #'pm-debug-toggle-verbose)
-    (define-key map (kbd "M-n M-t M-s")   #'pm-debug-toggle-verbose-syntax)
-    (define-key map (kbd "M-n M-f t")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-f s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f b")   #'pm-debug-fontify-current-buffer)
     (define-key map (kbd "M-n M-f M-t")   #'pm-debug-toggle-fontification)
@@ -81,6 +79,7 @@
     (define-key map (kbd "M-n M-f M-b")   #'pm-debug-fontify-current-buffer)
     map))
 
+;;;###autoload
 (define-minor-mode pm-debug-minor-mode
   "Turns on/off useful facilities for debugging polymode.
 
@@ -97,12 +96,14 @@ Key bindings:
     (delete-overlay pm--highlight-overlay)
     (remove-hook 'post-command-hook 'pm-debug-highlight-current-span)))
 
+;;;###autoload
 (defun pm-debug-minor-mode-on ()
   ;; activating everywhere (in case font-lock infloops in a polymode buffer )
   ;; this doesn't activate in fundamental mode
   (unless (eq major-mode 'minibuffer-inactive-mode)
     (pm-debug-minor-mode t)))
 
+;;;###autoload
 (define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on)
 
 
@@ -176,26 +177,6 @@ With NO-CACHE prefix, don't use cached values of the span."
     (setq poly-lock-allow-fontification t
           font-lock-mode t)))
 
-(defun pm-debug-toggle-verbose-syntax ()
-  "Toggle syntax related polymode messages."
-  (interactive)
-  (setq pm-syntax-verbose (not pm-syntax-verbose))
-  (if pm-syntax-verbose
-      (message "verbose syntax enabled")
-    (message "verbose syntax disabled")))
-
-(defun pm-debug-toggle-verbose ()
-  "Activate verbose tracing for polymode core functions."
-  (interactive)
-  (if (or poly-lock-verbose pm-verbose)
-      (progn
-        (message "verbose log disabled")
-        (setq poly-lock-verbose nil
-              pm-verbose nil))
-    (message "verbose log enabled")
-    (setq poly-lock-verbose t
-          pm-verbose t)))
-
 (defun pm-debug-toggle-after-change ()
   "Allow or disallow polymode actions in `after-change-functions'."
   (interactive)
@@ -251,82 +232,116 @@ With NO-CACHE prefix, don't use cached values of the span."
 
 ;;; TRACING
 
-;; fix object print
-(defun pm-debug--fix-1-arg-for-tracing (arg)
+(defvar pm-traced-functions
+  '(
+    ;; core initialization
+    (0 (pm-initialize
+        pm--common-setup
+        pm--mode-setup))
+    ;; core hooks
+    (1 (polymode-post-command-select-buffer
+        polymode-before-change-setup
+        polymode-after-kill-fixes))
+    ;; advises
+    (2 (pm-override-output-cons
+        pm-around-advice
+        polymode-with-current-base-buffer))
+    ;; font-lock
+    (3 (poly-lock-function
+        poly-lock-fontify-now
+        poly-lock-flush
+        jit-lock-fontify-now
+        poly-lock-after-change
+        poly-lock--extend-region-span
+        poly-lock--extend-region
+        poly-lock-adjust-span-face))
+    ;; syntax
+    (4 (polymode-set-syntax-propertize-end
+        pm--call-syntax-propertize-original
+        polymode-syntax-propertize
+        polymode-restrict-syntax-propertize-extension
+        pm--reset-ppss-last))))
+
+(defvar pm--do-trace nil)
+;;;###autoload
+(defun pm-toggle-tracing (level)
+  "Toggle polymode tracing.
+With numeric prefix toggle tracing for that level. Currently
+universal argument toggles maximum level of tracing (4). Default
+level is 3."
+  (interactive "P")
+  (setq level (prefix-numeric-value (or level 3)))
+  (setq pm--do-trace (not pm--do-trace))
+  (if pm--do-trace
+      (progn (dolist (kv pm-traced-functions)
+               (when (<= (car kv) level)
+                 (dolist (fn (cadr kv))
+                   (pm-trace fn))))
+             (message "Polymode tracing activated"))
+    (untrace-all)
+    (message "Polymode tracing deactivated")))
+
+;;;###autoload
+(defun pm-trace (fn)
+  (interactive (trace--read-args "Trace: "))
+  (let ((buff (get-buffer "*Messages*")))
+    (advice-add
+     fn :around
+     (let ((advice (trace-make-advice
+                    fn buff 'background #'pm-trace--tracing-context)))
+       (lambda (body &rest args)
+         (when (eq fn 'polymode-before-change-setup)
+           (with-current-buffer buff
+             (save-excursion
+               (goto-char (point-max))
+               (insert "\n"))))
+         (if polymode-mode
+             (apply advice body args)
+           (apply body args))))
+     `((name . ,trace-advice-name) (depth . -100)))))
+
+(defun pm-trace-functions-by-regexp (regexp)
+  "Trace all functions whose name matched REGEXP."
+  (interactive "sRegex: ")
+  (cl-loop for sym being the symbols
+           when (and (fboundp sym)
+                     (not (eq sym 'pm-trace)))
+           when (string-match regexp (symbol-name sym))
+           do (pm-trace sym)))
+
+(defun pm-trace--tracing-context ()
+  (let ((span (or *span*
+                  (get-text-property (point) :pm-span))))
+    (format " [%s pos:%d(%d-%d) %s%s (%f)]"
+            (current-buffer) (point) (point-min) (point-max)
+            (or (when span
+                  (when (not (and (= (point-min) (nth 1 span))
+                                  (= (point-max) (nth 2 span))))
+                    "UNPR "))
+                "")
+            (when span
+              (pm-format-span span))
+            (float-time))))
+
+;; fix object printing
+(defun pm-trace--fix-1-arg-for-tracing (arg)
   (cond
    ((eieio-object-p arg) (eieio-object-name arg))
    ((and (listp arg) (eieio-object-p (nth 3 arg)))
     (list (nth 0 arg) (nth 1 arg) (nth 2 arg) (eieio-object-name (nth 3 arg))))
    (arg)))
 
-(defun pm-debug--fix-args-for-tracing (orig-fn fn level args context)
-  (let ((args (mapcar #'pm-debug--fix-1-arg-for-tracing args)))
+(defun pm-trace--fix-args-for-tracing (orig-fn fn level args context)
+  (let ((args (or (and (listp args)
+                       (listp (cdr args))
+                       (ignore-errors (mapcar #'pm-trace--fix-1-arg-for-tracing args)))
+                  args)))
     (funcall orig-fn fn level args context)))
 
-(advice-add 'trace-entry-message :around #'pm-debug--fix-args-for-tracing)
-(advice-add 'trace-exit-message :around #'pm-debug--fix-args-for-tracing)
-
-(defun pm-debug-trace-to-messages (fn)
-  (interactive (trace--read-args "Trace: "))
-  (pm-debug-trace-background-1 fn (get-buffer "*Messages*")))
-
-(defun pm-debug-trace-background-1 (fn &optional buffer)
-  "Trace FN in background.
-If BUFFER is non-nil, trace into that buffer."
-  (unless (symbolp fn)
-    (error "Can trace symbols only"))
-  (unless (get fn 'cl--class)
-    (trace-function-background fn buffer
-                               '(lambda ()
-                                  (format " [buf:%s pos:%d pos-max:%d type:%s (%f)]"
-                                          (current-buffer) (point) (point-max)
-                                          (car (get-text-property (point) :pm-span))
-                                          (float-time))))))
-
-(defun pm-debug-trace-functions-by-regexp (regexp)
-  "Trace all functions whose name matched REGEXP."
-  (interactive "sRegex: ")
-  (cl-loop for sym being the symbols
-           when (and (fboundp sym)
-                     (not (eq sym 'pm-debug-trace-background-1)))
-           when (string-match regexp (symbol-name sym))
-           do (pm-debug-trace-background-1 sym)))
-
-(declare-function untrace-all "trace")
-(defmacro pm-debug-eval-with-trace (regexp &rest body)
-  "Trace all functions matched with REGEXP during the execution of BODY."
-  (declare (indent 1) (debug (sexp body)))
-  `(let ((trace-buf- (get-buffer-create "*trace-output*")))
-     (unwind-protect
-         (progn
-           (with-current-buffer trace-buf-
-             (erase-buffer))
-           (pm-debug-trace-functions-by-regexp ,regexp)
-           ,@body
-           ;; ensure jit-lock finished
-           (sit-for 1)
-           (pop-to-buffer trace-buf-)
-           (goto-char (point-min)))
-       (untrace-all))))
-
-(defun pm-debug-fontify-with-trace (span-only)
-  "Trace fontification functions during the fontification of the current buffer.
-On SPAN-ONLY prefix, fontify current span only."
-  (interactive "P")
-  (let ((reg (if span-only
-                 (let ((span (pm-innermost-span)))
-                   (cons (nth 1 span) (nth 2 span)))
-               (cons (point-min) (point-max)))))
-    (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
-      (font-lock-flush (car reg) (cdr reg))
-      (font-lock-unfontify-region (car reg) (cdr reg))
-      (font-lock-ensure (car reg) (cdr reg)))))
-
-(defun pm-debug-visit-file-with-trace (file)
-  "Trace fontification functions during the fontification of FILE."
-  (interactive "f")
-  (pm-debug-eval-with-trace "\\(jit\\|poly\\|font\\)-lock-"
-    (find-file-noselect file)))
+(advice-add #'trace-entry-message :around #'pm-trace--fix-args-for-tracing)
+(advice-add #'trace-exit-message :around #'pm-trace--fix-args-for-tracing)
+;; (advice-remove #'trace-entry-message #'pm-trace--fix-args-for-tracing)
+;; (advice-remove #'trace-exit-message #'pm-trace--fix-args-for-tracing)
 
 
 ;;; RELEVANT VARIABLES

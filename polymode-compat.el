@@ -112,8 +112,6 @@ ARGS are passed to ORIG-FUN."
                               (and (cdr be)
                                    (max (min (cdr be) (cdr range))
                                         (car range)))))))
-          (when pm-verbose
-            (message "(pm-override-output-cons %s) -> %s" args out))
           out))
     (apply orig-fun args)))
 

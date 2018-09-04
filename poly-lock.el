@@ -76,7 +76,6 @@
 (require 'jit-lock)
 (require 'polymode-core)
 
-(defvar poly-lock-verbose nil)
 (defvar poly-lock-allow-fontification t)
 (defvar poly-lock-allow-background-adjustment t)
 (defvar poly-lock-fontification-in-progress nil)
@@ -166,8 +165,6 @@ scope as `jit-lock-function'."
   ;;      poly-lock-allow-fontification
   ;;      poly-lock-mode
   ;;      (input-pending-p))
-  (when poly-lock-verbose
-    (message "(poly-lock-function %d) %s" start (pm-format-span)))
   (unless pm-initialization-in-progress
     (if poly-lock-allow-fontification
         (when (and poly-lock-mode (not memory-full))
@@ -182,8 +179,6 @@ scope as `jit-lock-function'."
 (defun poly-lock-fontify-now (beg end &optional _verbose)
   "Polymode main fontification function.
 Fontifies chunk-by chunk within the region BEG END."
-  (when poly-lock-verbose
-    (message "(poly-lock-fontify-now %d %d) %s" beg end (pm-format-span beg)))
   (unless (or poly-lock-fontification-in-progress
               pm-initialization-in-progress)
     (let* ((font-lock-dont-widen t)
@@ -211,8 +206,6 @@ Fontifies chunk-by chunk within the region BEG END."
                         ;; in inner spans fontify only if region is bigger than the span
                         (< (nth 2 span) end))
                 (with-current-buffer (pm-base-buffer)
-                  (when poly-lock-verbose
-                    (message "(jit-lock-fontify-now %d %d) /unprotected/ %s" beg end (current-buffer)))
                   (with-buffer-prepared-for-poly-lock
                    (jit-lock-fontify-now beg end)
                    (put-text-property beg end 'fontified t))))))
@@ -229,8 +222,6 @@ Fontifies chunk-by chunk within the region BEG END."
                         (put-text-property sbeg send 'fontified t)
                       (let ((new-beg (max sbeg beg))
                             (new-end (min send end)))
-                        (when poly-lock-verbose
-                          (message "(jit-lock-fontify-now %d %d) %s" new-beg new-end (pm-format-span *span*)))
                         (put-text-property new-beg new-end 'fontified nil)
                         (condition-case-unless-debug err
                             (if (eieio-oref pm/chunkmode 'protect-font-lock)
@@ -258,8 +249,6 @@ placed in `font-lock-flush-function''"
              (not poly-lock-fontification-in-progress))
     (let ((beg (or beg (point-min)))
           (end (or end (point-max))))
-      (when poly-lock-verbose
-        (message "(poly-lock-flush %s %s) %s" beg end (pm-format-span beg)))
       (with-buffer-prepared-for-poly-lock
        (save-restriction
          (widen)
@@ -268,9 +257,9 @@ placed in `font-lock-flush-function''"
 
 (defvar jit-lock-start)
 (defvar jit-lock-end)
-(defun pm--after-change-extend-region (beg end)
+(defun poly-lock--extend-region (beg end)
   "Our own extension function which runs first on BEG END change.
-Assumes widen buffer."
+Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
   ;; old span can disappear, shrunk, extend etc
   (let* ((old-beg (or (previous-single-property-change end :pm-span)
                       (point-min)))
@@ -318,7 +307,33 @@ Assumes widen buffer."
               (nspan (pm-innermost-span jit-lock-end 'no-cache)))
           (if (eq (nth 3 nspan) (nth 3 ospan))
               (setq go-on nil)
-            (setq jit-lock-end (nth 2 nspan))))))))
+            (setq jit-lock-end (nth 2 nspan))))))
+    (cons jit-lock-start jit-lock-end)))
+
+(defun poly-lock--extend-region-span ()
+  "Call `jit-lock-after-change-extend-region-functions' appropriately protected.
+Extend `jit-lock-start' and `jit-lock-end' by side effect."
+  (let ((beg jit-lock-start)
+        (end jit-lock-end))
+    (with-buffer-prepared-for-poly-lock
+     (let ((sbeg (nth 1 *span*))
+           (send (nth 2 *span*)))
+       ;; expand only in top & bottom spans
+       (when (or (> beg sbeg) (< end send))
+         (pm-with-narrowed-to-span *span*
+           (setq jit-lock-start (max beg sbeg)
+                 jit-lock-end   (min end send))
+           (condition-case err
+               (progn
+                 ;; set jit-lock-start and jit-lock-end by side effect
+                 (run-hook-with-args 'jit-lock-after-change-extend-region-functions
+                                     jit-lock-start jit-lock-end old-len))
+             (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
+                             jit-lock-start jit-lock-end old-len
+                             (error-message-string err))))
+           (setq jit-lock-start (min beg (max jit-lock-start sbeg))
+                 jit-lock-end (max end (min jit-lock-end send))))
+         (cons jit-lock-start jit-lock-end))))))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
@@ -327,48 +342,21 @@ Installed in `after-change-functions' and behaves similarly to
 `jit-lock-after-change-extend-region-functions' in turn but with
 the buffer narrowed to the relevant spans. BEG, END and OLD-LEN
 are as in `after-change-functions'."
-  (save-excursion
-    (save-match-data
-      (save-restriction
-        (widen)
-        (pm--after-change-extend-region beg end)
-        (setq beg jit-lock-start
-              end jit-lock-end)
-        (pm-flush-span-cache beg end))
-      (when (and poly-lock-mode
-                 pm-allow-after-change-hook
-                 (not memory-full))
-        (when poly-lock-verbose
-          (message "(poly-lock-after-change %d %d %d) %s --------------------"
-                   beg end old-len (pm-format-span beg)))
-        (pm-map-over-spans
-         (lambda ()
-           (with-buffer-prepared-for-poly-lock
-            (let ((sbeg (nth 1 *span*))
-                  (send (nth 2 *span*)))
-              (when poly-lock-verbose
-                (message "after-change-map-over %s" (pm-format-span *span*)))
-              (pm-with-narrowed-to-span *span*
-                (setq jit-lock-start (max beg sbeg)
-                      jit-lock-end   (min end send))
-                ;; if the whole span, don't bother with extension functions
-                (when (or (> beg sbeg) (< end send))
-                  (condition-case err
-                      ;; set jit-lock-start and jit-lock-end by side effect
-                      (run-hook-with-args 'jit-lock-after-change-extend-region-functions
-                                          jit-lock-start jit-lock-end old-len)
-                    (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
-                                    jit-lock-start jit-lock-end old-len
-                                    (error-message-string err)))))
-                (setq jit-lock-start (max jit-lock-start sbeg)
-                      jit-lock-end (min jit-lock-end send))
-                (when poly-lock-verbose
-                  (message "after-change-extend-region-functions: %d-%d %s"
-                           jit-lock-start jit-lock-end
-                           (pm-format-span *span*)))
-                (put-text-property jit-lock-start jit-lock-end 'fontified nil)))))
-         ;; fixme: no-cache is no longer necessary, we flush the region
-         beg end nil nil nil 'no-cache)))))
+  (when (and poly-lock-mode
+             pm-allow-after-change-hook
+             (not memory-full))
+    (save-excursion
+      (save-match-data
+        (save-restriction
+          (widen)
+          (poly-lock--extend-region beg end)
+          (pm-flush-span-cache beg end)
+          (pm-map-over-spans
+           #'poly-lock--extend-region-span
+           ;; fixme: no-cache is no longer necessary, we flush the region
+           beg end nil nil nil 'no-cache)
+          (put-text-property jit-lock-start jit-lock-end 'fontified nil)
+          (cons jit-lock-start jit-lock-end))))))
 
 (defun poly-lock--adjusted-background (prop)
   ;; if > lighten on dark backgroun. Oposite on light.

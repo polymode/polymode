@@ -127,8 +127,6 @@ Ran by the polymode mode function."
 Runs after major mode and core polymode structures have been
 initialized. Return the buffer."
   (with-current-buffer (or buffer (current-buffer))
-    (when pm-verbose
-      (message "common-setup for %s: [%s]" major-mode (current-buffer)))
     (object-add-to-list pm/polymode '-buffers (current-buffer))
 
     ;; INDENTATION

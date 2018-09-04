@@ -164,8 +164,6 @@ objects provides same functionality for narrower scope. See also
 
 ;;; MESSAGES
 
-(defvar pm-verbose nil)
-(defvar pm-syntax-verbose nil)
 (defvar pm-extra-span-info nil)
 
 (defun pm-format-span (&optional span prefixp)
@@ -821,12 +819,6 @@ This funciton is placed in local `post-command-hook'."
   (when (and pm-allow-post-command-hook
              polymode-mode
              pm/chunkmode)
-    (when pm-verbose
-      (message "(polymode-post-command-select-buffer) %s" (pm-format-span)))
-    ;; (when pm-syntax-verbose
-    ;;   (dolist (b (oref pm/polymode -buffers))
-    ;;     (with-current-buffer b
-    ;;       (message "sp--done: %d [%s]" syntax-propertize--done (current-buffer)))))
     (condition-case err
         (pm-switch-to-buffer)
       (error (message "(pm-switch-to-buffer %s): %s"
@@ -838,8 +830,6 @@ This function is placed in `before-change-functions' hook."
   ;; Modification hooks are run only in current buffer and not in other (base or
   ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
   ;; care explicitly. We run some safety hooks checks here as well.
-  (when pm-verbose
-    (message "(polymode-before-change-setup %d %d) %s" beg end (current-buffer)))
   (dolist (buff (oref pm/polymode -buffers))
     (with-current-buffer buff
       ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
@@ -948,17 +938,12 @@ Used in advises."
     (save-restriction
       (widen)
       (save-excursion
-        (when (or pm-verbose pm-syntax-verbose)
-          (message "(polymode-syntax-propertize %d %d) [%d %s]" start end (point) (current-buffer)))
         (let ((protect-host (with-current-buffer (pm-base-buffer)
                               (eieio-oref pm/chunkmode 'protect-syntax))))
           ;; 1. host if no protection
           (unless protect-host
             (with-current-buffer (pm-base-buffer)
               (when pm--syntax-propertize-function-original
-                (when (or pm-verbose pm-syntax-verbose)
-                  (message "(polymode-syntax-propertize %d %d) /unprotected host/ [%s]"
-                           start end (current-buffer)))
                 (pm--call-syntax-propertize-original start end))))
           ;; 2. all others
           (pm-map-over-spans
@@ -969,16 +954,10 @@ Used in advises."
                (let ((pos0 (max (nth 1 *span*) start))
                      (pos1 (min (nth 2 *span*) end)))
                  (if (eieio-oref (nth 3 *span*) 'protect-syntax)
-                     (pm-with-narrowed-to-span *span*
-                       (when (or pm-verbose pm-syntax-verbose)
-                         (message "(polymode-syntax-propertize %d %d) [%d %s]"
-                                  start end (point) (current-buffer)))
-                       (pm--call-syntax-propertize-original pos0 pos1))
-                   (pm--call-syntax-propertize-original pos0 pos1)))))
+                     (pm--call-syntax-propertize-original pos0 pos1)))))
            start end))))))
 
 (defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
-  ;; (funcall orig-fun beg end)
   (if (and polymode-mode pm/polymode)
       (let ((span (pm-innermost-span beg)))
         (if (eieio-oref (nth 3 span) 'protect-syntax)
@@ -987,16 +966,10 @@ Used in advises."
                        (eq end (cdr range)))
                   ;; in the most common case when span == beg-end, simply return
                   range
-                (when (or pm-verbose pm-syntax-verbose)
-                  (message "(polymode-restrict-syntax-propertize-extension -fn- %s %s) %s"
-                           beg end (pm-format-span span)))
                 (let ((be (funcall orig-fun beg end)))
                   (and be
                        (cons (max (car be) (car range))
                              (min (cdr be) (cdr range)))))))
-          (when (or pm-verbose pm-syntax-verbose)
-            (message "(syntax-propertize-extend-region %s %s) /unprotected/ %s"
-                     beg end (pm-format-span span)))
           (funcall orig-fun beg end)))
     (funcall orig-fun beg end)))
 
@@ -1006,8 +979,6 @@ Used in advises."
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
   (let* ((sbeg (nth 1 span))
          (new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
-    ;; (when pm-syntax-verbose
-    ;;   (message "reasserting PPSS %s" (pm-format-span span)))
     (if pm--emacs>26
         ;; in emacs 26 there are two caches syntax-ppss-wide and
         ;; syntax-ppss-narrow. The latter is reset automatically each time a
