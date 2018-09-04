@@ -1,6 +1,6 @@
 
-Defining polymodes always starts by defining one host chunkmode and at least one
-inner chunkmode.
+Defining polymodes always starts with defining one host chunkmode and at least
+one inner chunkmode.
 
 ## Hosts Modes
 
@@ -24,6 +24,10 @@ mode function. In this case `markdown-mode`.
 
 The`:name` slot is used in various contexts for object identification and
 information messages.
+
+A wide range of hostmodes is already defined in the
+[polymode-base.el](https://github.com/polymode/polymode/blob/master/polymode-base.el)
+file. Consider re-using or clonning those for your own polymodes.
 
 ## Inner Modes
 
@@ -112,10 +116,10 @@ completed.
 
 ### Config Objects as Parents 
 
-`PARENT` argument can also be a configuration object. Sometimes creating of
-polymodes for parent objects has little or no sense. For example `pm-poly/latex`
-is as parent of `pm-poly/noweb` but having a dedicated `poly-latex-mode`
-polymode has no sense.
+`PARENT` argument can also be a configuration object. Occasionally the creation
+of polymodes for parent objects has little or no sense. For example
+`pm-poly/latex` is as parent of `pm-poly/noweb` but having a dedicated
+`poly-latex-mode` polymode has no sense.
 
 ```el
 (defcustom pm-poly/latex
