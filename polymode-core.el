@@ -384,6 +384,42 @@ forward."
     (setq end (min (point-max) (1+ end)))
     (cons end end)))
 
+(defun pm--get-property-nearby (property accessor ahead)
+  (let ((ahead (> ahead 0)))
+    (let* ((pos (if ahead
+                    (if (get-text-property (point) property)
+                        (point)
+                      (next-single-property-change (point) property))
+                  (previous-single-property-change (point) property)))
+           (val (when pos
+                  (or (get-text-property pos property)
+                      (and (setq pos (previous-single-property-change pos property nil (point-min)))
+                           (get-text-property pos property))))))
+      (when val
+        (if accessor
+            (let ((val (save-excursion
+                         (goto-char pos)
+                         (funcall accessor val))))
+              (cond
+               ((numberp val) (cons val val))
+               ((consp val) (cons (car val) (if (listp (cdr val))
+                                                (cadr val)
+                                              (cdr val))))
+               (t (cons pos (next-single-property-change pos property nil (point-max))))))
+          (cons pos (next-single-property-change pos property nil (point-max))))))))
+
+(defun pm-make-text-property-matcher (property &optional accessor)
+  "Return a head or tail matcher for PROPERTY with ACCESSOR.
+ACCESSOR is a function which is applied to the PROPERTY's value
+to retrieve the position of the head in the buffer. It should
+return either a number in which case head has 0 length, a cons of
+the form (BEG . END), or a list (BEG END). When ACCESSOR is
+missing the head span is the region covered by the same value of
+PROPERTY. ACCESSOR is called at the beginning of the PROPERTY
+region."
+  (lambda (ahead)
+    (pm--get-property-nearby property accessor ahead)))
+
 (defun pm-true-span-type (chunkmode &optional type)
   "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
 `pm-innermost-span' returns a raw type (head, body or tail) but
@@ -460,7 +496,7 @@ is one of the following symbols:
         (if head1
             (if (or (< pos (cdr head1))
                     (and at-max (= (cdr head1) pos)))
-                ;;           |
+                ;;      -----|
                 ;; host)[head)           ; can occur with sub-head == 0 only
                 (list 'head (car head1) (cdr head1))
               ;;            ------------------------
