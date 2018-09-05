@@ -45,9 +45,9 @@
 (defun pm-test-get-file (name)
   "Find the file with NAME from inside a poly-xyz repo.
 Look into tests/input directory then in samples directory."
-  (let ((files (list (expand-file-name (format "tests/input/%s" name) default-directory)
-                     (expand-file-name (format "input/%s" name) default-directory)
-                     (expand-file-name (format "samples/%s" name) default-directory)
+  (let ((files (list (expand-file-name (format "./tests/input/%s" name) default-directory)
+                     (expand-file-name (format "./input/%s" name) default-directory)
+                     (expand-file-name (format "./samples/%s" name) default-directory)
                      (expand-file-name (format "../samples/%s" name) default-directory))))
     (or (cl-loop for f in files
                  if (file-exists-p f) return f)
@@ -135,7 +135,7 @@ MODE is a quoted symbol."
          ,@body
          (current-buffer)))))
 
-(defun pm-test-span ()
+(defun pm-test-span (&optional allow-failed-faces)
   ;; head/tail is usually highlighted incorrectly by host modes when only head
   ;; is in the buffer, so we just skip those head-tails which have
   ;; :head/tail-mode 'host
@@ -161,6 +161,7 @@ MODE is a quoted symbol."
                    (and (= opos 1)
                         (with-current-buffer obuf
                           (eq (char-after 1) ?\n)))
+                   (member face allow-failed-faces)
                    (equal face oface))
             (let ((data
                    (append
@@ -180,10 +181,13 @@ MODE is a quoted symbol."
               (ert-fail data)))
           (setq opos (next-single-property-change opos 'face obuf)))))))
 
-(defun pm-test-spans ()
-  "Execute `pm-test-span' for every span in the buffer."
+(defun pm-test-spans (&optional allow-failed-faces)
+  "Execute `pm-test-span' for every span in the buffer.
+ALLOW-FAILED-FACES should be a list of faces on which failures
+are OK."
   (save-excursion
-    (pm-map-over-spans #'pm-test-span)))
+    (pm-map-over-spans
+     (lambda () (pm-test-span allow-failed-faces)))))
 
 (defun pm-test-goto-loc (loc)
   "Go to LOC and switch to polymode indirect buffer.
@@ -267,7 +271,7 @@ execution undo is called once. After each change-set
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
-      (pm-test-spans)
+      ;; (pm-test-spans)
       (dolist (cset ',change-sets)
         (let ((pm-test-current-change-set (caar cset)))
           (setq pm-extra-span-info (caar cset))
