@@ -193,6 +193,61 @@ objects provides same functionality for narrower scope. See also
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
+(defun pm-span-buffer (&optional span)
+  "Retrieve the buffer associated with SPAN."
+  (setq span (or span (pm-innermost-span)))
+  (let* ((chunkmode (nth 3 span))
+         (type (pm-true-span-type span)))
+    (if type
+        (pm-get-buffer-create chunkmode type)
+      (pm-get-buffer-create (oref pm/polymode -hostmode)))))
+
+(defun pm-span-mode (&optional span)
+  "Retrieve the major mode associated with SPAN."
+  (with-current-buffer (pm-span-buffer span)
+    major-mode))
+
+(defun pm-true-span-type (chunkmode &optional type)
+  "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
+`pm-innermost-span' returns a raw type (head, body or tail) but
+the actual type installed depends on the values of :host-mode ant
+:tail-mode of the CHUNKMODE object. Always return nil if TYPE is
+nil (aka a host span). CHUNKMODE could also be a span, in which
+case TYPE is ignored."
+  ;; fixme: this works on inner modes only. Fix naming.
+  (when (listp chunkmode)
+    ;; a span
+    (setq type (car chunkmode)
+          chunkmode (nth 3 chunkmode)))
+  (unless (or (null type) (eq type 'host))
+    (with-slots (mode head-mode tail-mode) chunkmode
+      (cond ((and (eq type 'body)
+                  (eq mode 'host))
+             nil)
+            ((or (eq type 'body)
+                 (and (eq type 'head)
+                      (eq head-mode 'body))
+                 (and (eq type 'tail)
+                      (or (eq tail-mode 'body)
+                          (and (null tail-mode)
+                               (eq head-mode 'body)))))
+             'body)
+            ((or (and (eq type 'head)
+                      (eq head-mode 'host))
+                 (and (eq type 'tail)
+                      (or (eq tail-mode 'host)
+                          (and (null tail-mode)
+                               (eq head-mode 'host)))))
+             nil)
+            ((eq type 'head)
+             'head)
+            ((eq type 'tail)
+             (if tail-mode
+                 'tail
+               'head))
+            (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
+
+
 (defun pm-cache-span (span)
   ;; cache span
   (unless pm-initialization-in-progress
@@ -420,56 +475,6 @@ region."
   (lambda (ahead)
     (pm--get-property-nearby property accessor ahead)))
 
-(defun pm-true-span-type (chunkmode &optional type)
-  "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
-`pm-innermost-span' returns a raw type (head, body or tail) but
-the actual type installed depends on the values of :host-mode ant
-:tail-mode of the CHUNKMODE object. Always return nil if TYPE is
-nil (aka a host span). CHUNKMODE could also be a span, in which
-case TYPE is ignored."
-  ;; fixme: this works on inner modes only. Fix naming.
-  (when (listp chunkmode)
-    ;; a span
-    (setq type (car chunkmode)
-          chunkmode (nth 3 chunkmode)))
-  (unless (or (null type) (eq type 'host))
-    (with-slots (mode head-mode tail-mode) chunkmode
-      (cond ((and (eq type 'body)
-                  (eq mode 'host))
-             nil)
-            ((or (eq type 'body)
-                 (and (eq type 'head)
-                      (eq head-mode 'body))
-                 (and (eq type 'tail)
-                      (or (eq tail-mode 'body)
-                          (and (null tail-mode)
-                               (eq head-mode 'body)))))
-             'body)
-            ((or (and (eq type 'head)
-                      (eq head-mode 'host))
-                 (and (eq type 'tail)
-                      (or (eq tail-mode 'host)
-                          (and (null tail-mode)
-                               (eq head-mode 'host)))))
-             nil)
-            ((eq type 'head)
-             'head)
-            ((eq type 'tail)
-             (if tail-mode
-                 'tail
-               'head))
-            (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
-
-;; Attempt to check for in-comments; doesn't work because we end up calling
-;; syntax-propertize recursively.
-;; (defun pm--funcall-matcher (matcher arg)
-;;   "Call MATCHER with ARG till a match outside comment has been found."
-;;   (let ((beg.end (funcall matcher arg)))
-;;     (while (and beg.end
-;;                 (> (car beg.end) (point-min))
-;;                 (nth 4 (syntax-ppss (1- (car beg.end))))
-;;                 (setq beg.end (funcall matcher arg))))
-;;     beg.end))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap)
   "Span detector with head and tail matchers.
@@ -652,44 +657,30 @@ Install a new indirect buffer if it is not already installed.
 Chunkmode's class should define `pm-get-buffer-create' method. If
 VISIBLY is non-nil perform extra adjustment for \"visual\" buffer
 switch."
-  (let* ((chunkmode (nth 3 span))
-         (type (pm-true-span-type span))
-         (buff (if type
-                   (pm-get-buffer-create chunkmode type)
-                 (pm-get-buffer-create (oref pm/polymode -hostmode)))))
-    (pm--select-existing-buffer buff span visibly)))
-
-;; extracted for debugging purpose
-(defun pm--select-existing-buffer (buffer span visibly)
-  ;; emacs bug: ppss cache is invalidated incorrectly; so need to do this every
-  ;; single command
-  (with-current-buffer buffer
-    ;; (message (pm--debug-info span))
-    (pm--reset-ppss-last span))
-
-  (when visibly
-    ;; always synchronize points to avoid interference from tooling working in
-    ;; different buffers
-    (pm--synchronize-points (current-buffer)))
-
-  ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
-  ;; no further action if BUFFER is already the current buffer
-  (when (and (not (eq buffer (current-buffer)))
-             (buffer-live-p buffer))
-
-    (let ((base (pm-base-buffer)))
-      (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
-      (pm--move-vars pm-move-vars-from-base base buffer))
-
-    (if visibly
-        ;; slow, visual selection
-        (pm--select-existent-buffer-visibly buffer)
-      ;; fast set-buffer
-      (set-buffer buffer))))
+  (let ((buffer (pm-span-buffer span)))
+    (with-current-buffer buffer
+      ;; (message (pm--debug-info span))
+      (pm--reset-ppss-last span))
+    (when visibly
+      ;; always synchronize points to avoid interference from tooling working in
+      ;; different buffers
+      (pm--synchronize-points (current-buffer)))
+    ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
+    ;; no further action if BUFFER is already the current buffer
+    (when (and (not (eq buffer (current-buffer)))
+               (buffer-live-p buffer))
+      (let ((base (pm-base-buffer)))
+        (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
+        (pm--move-vars pm-move-vars-from-base base buffer))
+      (if visibly
+          ;; slow, visual selection
+          (pm--select-existing-buffer-visibly buffer)
+        ;; fast set-buffer
+        (set-buffer buffer)))))
 
 (defvar text-scale-mode)
 (defvar text-scale-mode-amount)
-(defun pm--select-existent-buffer-visibly (new-buffer)
+(defun pm--select-existing-buffer-visibly (new-buffer)
   (let ((old-buffer (current-buffer))
         (point (point))
         (window-start (window-start))
@@ -788,11 +779,11 @@ transport) are performed."
 
 (defun pm-map-over-spans (fun &optional beg end count backwardp visibly no-cache)
   "For all spans between BEG and END, execute FUN.
-FUN is a function of no args. It is executed with point at the
+FUN is a function of one argument a span object (also available
+in a dynamic variable *span*). It is executed with point at the
 beginning of the span. Buffer is *not* narrowed to the span. If
 COUNT is non-nil, jump at most that many times. If BACKWARDP is
-non-nil, map backwards. During the call of FUN, a dynamically
-bound variable *span* holds the current innermost span."
+non-nil, map backwards."
   ;; Important! Don't forget to save-excursion when calling map-overs-spans.
   ;; Mapping can end different buffer and invalidate whatever caller that used
   ;; your function.
@@ -943,18 +934,6 @@ Used in advises."
 
 ;;; SYNTAX
 
-;; fixme: this doesn't help with "din't move syntax-propertize--done" errors
-(defun polymode-set-syntax-propertize-end (beg end)
-  ;; syntax-propertize sets 'syntax-propertize--done to end in the original
-  ;; buffer just before calling syntax-propertize-function; we do it in all
-  ;; buffers in syntax-propertize-extend-region-functions because they are
-  ;; called with syntax-propertize--done still unbound
-  (dolist (b (oref pm/polymode -buffers))
-    (with-current-buffer b
-      ;; setq doesn't have effect because the var is let bound; set seems to work
-      (set 'syntax-propertize--done end)))
-  (cons beg end))
-
 (defun pm--call-syntax-propertize-original (start end)
   (condition-case err
       (funcall pm--syntax-propertize-function-original start end)
@@ -969,8 +948,7 @@ Used in advises."
 
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
-  ;; fixme: not sure if this is really needed. In any case either here or in
-  ;; extend functions through polymode-set-syntax-propertize-end, but not both
+  ;; fixme: not entirely sure if this is really needed
   (dolist (b (oref pm/polymode -buffers))
     (with-current-buffer b
       ;; `setq' doesn't have an effect because the var is let bound; `set' works
