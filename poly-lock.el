@@ -210,12 +210,12 @@ Fontifies chunk-by chunk within the region BEG END."
                    (jit-lock-fontify-now beg end)
                    (put-text-property beg end 'fontified t))))))
           (pm-map-over-spans
-           (lambda ()
-             (when (or (pm-true-span-type *span*)
+           (lambda (span)
+             (when (or (pm-true-span-type span)
                        protect-host)
                (with-buffer-prepared-for-poly-lock
-                (let ((sbeg (nth 1 *span*))
-                      (send (nth 2 *span*)))
+                (let ((sbeg (nth 1 span))
+                      (send (nth 2 span)))
                   ;; skip empty spans
                   (when (> send sbeg)
                     (if  (not font-lock-mode)
@@ -225,7 +225,7 @@ Fontifies chunk-by chunk within the region BEG END."
                         (put-text-property new-beg new-end 'fontified nil)
                         (condition-case-unless-debug err
                             (if (eieio-oref pm/chunkmode 'protect-font-lock)
-                                (pm-with-narrowed-to-span *span*
+                                (pm-with-narrowed-to-span span
                                   (jit-lock-fontify-now new-beg new-end))
                               (jit-lock-fontify-now new-beg new-end))
                           (error
@@ -236,7 +236,7 @@ Fontifies chunk-by chunk within the region BEG END."
                         ;; even if failed set to t
                         (put-text-property new-beg new-end 'fontified t)))
                     (when poly-lock-allow-background-adjustment
-                      (poly-lock-adjust-span-face *span*)))))))
+                      (poly-lock-adjust-span-face span)))))))
            beg end))))
     (current-buffer)))
 
@@ -310,16 +310,16 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
             (setq jit-lock-end (nth 2 nspan))))))
     (cons jit-lock-start jit-lock-end)))
 
-(defun poly-lock--extend-region-span ()
+(defun poly-lock--extend-region-span (span)
   "Call `jit-lock-after-change-extend-region-functions' appropriately protected.
 Extend `jit-lock-start' and `jit-lock-end' by side effect."
   (let ((beg jit-lock-start)
         (end jit-lock-end))
-    (let ((sbeg (nth 1 *span*))
-          (send (nth 2 *span*)))
+    (let ((sbeg (nth 1 span))
+          (send (nth 2 span)))
       ;; expand only in top & bottom spans
       (when (or (> beg sbeg) (< end send))
-        (pm-with-narrowed-to-span *span*
+        (pm-with-narrowed-to-span span
           (setq jit-lock-start (max beg sbeg)
                 jit-lock-end   (min end send))
           (condition-case err

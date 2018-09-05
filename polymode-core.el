@@ -815,8 +815,7 @@ bound variable *span* holds the current innermost span."
         ;; after-change runs immediately or after this function ends?
         (goto-char (nth 1 *span*))
         (save-excursion
-          ;; FIXME: call with *span* argument
-          (funcall fun))
+          (funcall fun *span*))
         ;; enter previous/next chunk
         (if backwardp
             (goto-char (max 1 (1- (nth 1 *span*))))
@@ -990,13 +989,13 @@ Used in advises."
                 (pm--call-syntax-propertize-original start end))))
           ;; 2. all others
           (pm-map-over-spans
-           (lambda ()
+           (lambda (span)
              (when (and pm--syntax-propertize-function-original
-                        (or (pm-true-span-type *span*)
+                        (or (pm-true-span-type span)
                             protect-host))
-               (let ((pos0 (max (nth 1 *span*) start))
-                     (pos1 (min (nth 2 *span*) end)))
-                 (if (eieio-oref (nth 3 *span*) 'protect-syntax)
+               (let ((pos0 (max (nth 1 span) start))
+                     (pos1 (min (nth 2 span) end)))
+                 (if (eieio-oref (nth 3 span) 'protect-syntax)
                      (pm--call-syntax-propertize-original pos0 pos1)))))
            start end))))))
 

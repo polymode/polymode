@@ -147,23 +147,6 @@ initialized. Return the buffer."
       ;; [OBSOLETE as of 25.1 but we still protect it]
       (pm-around-advice syntax-begin-function 'pm-override-output-position))
 
-    ;; VS[19-08-2018]: doesn't work and doesn't fix the problem
-    ;; Make sure that none of the `syntax-propertize-extend-region-functions'
-    ;; extends the region beyond current span. In practice the only negative
-    ;; effect of such extra-extension is slight performance hit. Not sure here,
-    ;; but there might be situations when extending beyond current span does
-    ;; make sense. Remains to be seen. Make sure it's the last hook.
-    ;; (remove-hook 'syntax-propertize-extend-region-functions
-    ;;              'polymode-set-syntax-propertize-end
-    ;;              t)
-    ;; (add-hook 'syntax-propertize-extend-region-functions
-    ;;           'polymode-set-syntax-propertize-end
-    ;;           t t)
-
-    ;; advising all functions even those with :protect-syntax nil in order to
-    ;; get the debug message
-    ;; (pm-around-advice syntax-propertize-extend-region-functions
-    ;;                   #'polymode-restrict-syntax-propertize-extension)
     ;; flush ppss in all buffers and hook checks
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-wide (cons nil nil))

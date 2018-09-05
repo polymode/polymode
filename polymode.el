@@ -115,8 +115,8 @@ Return the number of actually moved over chunks."
          (N (if back (- N) N)))
     (condition-case-unless-debug nil
         (pm-map-over-spans
-         (lambda ()
-           (unless (memq (car *span*) '(head tail))
+         (lambda (span)
+           (unless (memq (car span) '(head tail))
              (when (>= sofar N)
                (signal 'quit nil))
              (setq sofar (1+ sofar))))
@@ -146,15 +146,15 @@ Return the number of chunks of the same type moved over."
          this-type this-name)
     (condition-case-unless-debug nil
         (pm-map-over-spans
-         (lambda ()
-           (unless (memq (car *span*) '(head tail))
+         (lambda (span)
+           (unless (memq (car span) '(head tail))
              (when (and (equal this-name
-                               (eieio-object-name (car (last *span*))))
-                        (eq this-type (car *span*)))
+                               (eieio-object-name (car (last span))))
+                        (eq this-type (car span)))
                (setq sofar (1+ sofar)))
              (unless this-name
-               (setq this-name (eieio-object-name (car (last *span*)))
-                     this-type (car *span*)))
+               (setq this-name (eieio-object-name (car (last span)))
+                     this-type (car span)))
              (when (>= sofar N)
                (signal 'quit nil))))
          beg end nil back)

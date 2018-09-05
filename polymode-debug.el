@@ -256,8 +256,7 @@ With NO-CACHE prefix, don't use cached values of the span."
         poly-lock--extend-region
         poly-lock-adjust-span-face))
     ;; syntax
-    (4 (polymode-set-syntax-propertize-end
-        pm--call-syntax-propertize-original
+    (4 (pm--call-syntax-propertize-original
         polymode-syntax-propertize
         polymode-restrict-syntax-propertize-extension
         pm--reset-ppss-last))))
@@ -419,9 +418,9 @@ level is 3."
 (defun pm-debug-map-over-spans-and-highlight ()
   "Map over all spans in the buffer and highlight briefly."
   (interactive)
-  (pm-map-over-spans (lambda ()
-                       (let ((start (nth 1 *span*))
-                             (end (nth 2 *span*)))
+  (pm-map-over-spans (lambda (span)
+                       (let ((start (nth 1 span))
+                             (end (nth 2 span)))
                          (pm-debug-flick-region start end)
                          (sit-for 1)))
                      (point-min) (point-max) nil nil t))

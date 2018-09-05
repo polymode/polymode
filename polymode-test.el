@@ -123,7 +123,7 @@ MODE is a quoted symbol."
          (goto-char (point-min))
          (save-excursion
            (pm-map-over-spans
-            (lambda ()
+            (lambda (_)
               (setq font-lock-mode t)
               ;; font-lock is not activated in batch mode
               (poly-lock-mode t)
@@ -135,21 +135,21 @@ MODE is a quoted symbol."
          ,@body
          (current-buffer)))))
 
-(defun pm-test-span (&optional allow-failed-faces)
+(defun pm-test-span (span &optional allow-failed-faces)
   ;; head/tail is usually highlighted incorrectly by host modes when only head
   ;; is in the buffer, so we just skip those head-tails which have
   ;; :head/tail-mode 'host
-  (when (eq (car *span*) (pm-true-span-type *span*))
+  (when (eq (car span) (pm-true-span-type *span*))
     (let* ((poly-lock-allow-background-adjustment nil)
-           (sbeg (nth 1 *span*))
-           (send (nth 2 *span*))
+           (sbeg (nth 1 span))
+           (send (nth 2 span))
            (smode major-mode)
            (stext (buffer-substring-no-properties sbeg send))
            ;; other buffer
            (obuf (pm-test-run-on-string smode stext))
            (opos 1))
       (when pm-verbose
-        (message "---- testing %s ----" (pm-format-span *span* t)))
+        (message "---- testing %s ----" (pm-format-span span t)))
       (while opos
         (let* ((pos (1- (+ opos sbeg)))
                (face (get-text-property pos 'face))
@@ -187,7 +187,7 @@ ALLOW-FAILED-FACES should be a list of faces on which failures
 are OK."
   (save-excursion
     (pm-map-over-spans
-     (lambda () (pm-test-span allow-failed-faces)))))
+     (lambda (span) (pm-test-span span allow-failed-faces)))))
 
 (defun pm-test-goto-loc (loc)
   "Go to LOC and switch to polymode indirect buffer.
