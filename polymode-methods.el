@@ -336,7 +336,8 @@ in this case."
       (pm-set-buffer span)
       (pm-with-narrowed-to-span span
         (goto-char point)
-        (funcall pm--indent-line-function-original)
+        (when pm--indent-line-function-original
+          (funcall pm--indent-line-function-original))
         (setq point (point))))
     (goto-char point)))
 
@@ -345,7 +346,7 @@ in this case."
 Value of `indent-line-function' in polymode buffers."
   (let ((span (or span (pm-innermost-span)))
         (inhibit-read-only t))
-    (pm-indent-line (car (last span)) span)))
+    (pm-indent-line (nth 3 span) span)))
 
 (cl-defgeneric pm-indent-line (chunkmode &optional span)
   "Indent current line.
@@ -390,24 +391,27 @@ to indent."
          ;; 2. body
          (t
           (back-to-indentation)
-          (if (> (nth 1 span) (point))
+          (if (< (point) (nth 1 span))
               ;; first body line in the same line with header (re-indent at indentation)
               (pm-indent-line-dispatcher)
-            (setq delta (- pos (point)))
-            (pm--indent-line span)
+            (setq delta (- pos (save-excursion (back-to-indentation) (point))))
             (let ((fl-indent (pm--first-line-indent span)))
               (if fl-indent
-                  (when (bolp)
-                    ;; Not first line. Indent only when original indent is at
-                    ;; 0. Otherwise it's a continuation indentation and we assume
-                    ;; the original function did it correctly with respect to
-                    ;; previous lines.
-                    (indent-to fl-indent))
-                ;; First line. Indent with respect to header line.
-                (indent-to
-                 (+ (- (point) (point-at-bol)) ;; non-0 if code in header line
-                    (pm--head-indent span) ;; indent with respect to header line
-                    (eieio-oref chunkmode 'indent-offset))))))))
+                  ;; We are not on the 1st line
+                  (progn
+                    ;; thus indent according to mode
+                    (pm--indent-line span)
+                    (when (bolp)
+                      ;; When original mode's indented to bol, match with the
+                      ;; first line indent. Otherwise it's a continuation
+                      ;; indentation and we assume the original function did it
+                      ;; correctly with respect to previous lines.
+                      (indent-to fl-indent)))
+                ;; On the first line. Indent with respect to header line.
+                (indent-line-to
+                 (+ ;; (- (point) (point-at-bol)) ;; non-0 if there is code in header line (ignore this case)
+                  (pm--head-indent span) ;; indent with respect to header line
+                  (eieio-oref chunkmode 'indent-offset))))))))
       ;; keep point on same characters
       (when (and delta (> delta 0))
         (goto-char (+ (point) delta))))))
@@ -426,15 +430,21 @@ to indent."
         (when (< (point-at-eol) pos)
           indent)))))
 
+;; SPAN is a body span
 (defun pm--head-indent (&optional span)
   (save-excursion
-    (goto-char (nth 1 (or span (pm-innermost-span))))
-    ;; when body starts at bol move to previous line
-    (when (and (= (point) (point-at-bol))
-               (not (bobp)))
-      (backward-char 1))
-    (back-to-indentation)
-    (- (point) (point-at-bol))))
+    (let ((sbeg (nth 1 (or span (pm-innermost-span)))))
+      (goto-char sbeg)
+      (backward-char 1)
+      (let ((head-span (pm-innermost-span)))
+        (if (eq (car head-span) 'head)
+            (goto-char (nth 1 head-span))
+          ;; body span is not preceded by a head span. We don't have such
+          ;; practical cases yet, but headless spans are real - indented blocks
+          ;; for instance.
+          (goto-char sbeg)))
+      (back-to-indentation)
+      (- (point) (point-at-bol)))))
 
 
 ;;; FACES
