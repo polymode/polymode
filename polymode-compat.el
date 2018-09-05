@@ -159,6 +159,7 @@ passed to ORIG-FUN."
 
 ;;; C/C++/Java
 (pm-around-advice 'c-before-context-fl-expand-region #'pm-override-output-cons)
+;; (advice-remove 'c-before-context-fl-expand-region #'pm-override-output-cons)
 (pm-around-advice 'c-state-semi-safe-place #'pm-override-output-position)
 ;; (advice-remove 'c-state-semi-safe-place #'pm-override-output-position)
 ;; c-font-lock-fontify-region calls it directly

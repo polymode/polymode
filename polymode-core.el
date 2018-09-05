@@ -363,16 +363,22 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
    (t (error "Head and tail matchers must be either regexp strings, cons cells or functions"))))
 
 (defun pm-same-indent-tail-matcher (_arg)
-  "Return the end position of block with the higher indent as the current line.
+  "Return the end position of block with the higher indent as the current column.
 Used as tail matcher for blocks identified by same indent. See
 function `poly-slim-mode' for examples. ARG is ignored; always search
 forward."
-  (let ((block-col (current-indentation))
-        (end (point-at-eol)))
+  ;; we are at the head end; so either use head indent or this code indent
+  (let* ((cur-indent (current-indentation))
+         (cur-col (current-column))
+         (block-col (if (< cur-indent cur-col)
+                        cur-indent
+                      (1- cur-indent)))
+         (end (point-at-eol)))
     (forward-line 1)
     (while (and (not (eobp))
-                (> (current-indentation) block-col)
-                (setq end (point-at-eol)))
+                (or (looking-at-p "[ \t]*$")
+                    (and (> (current-indentation) block-col)
+                         (setq end (point-at-eol)))))
       (forward-line 1))
     ;; end at bol for the sake of indentation
     (setq end (min (point-max) (1+ end)))
@@ -452,7 +458,8 @@ is one of the following symbols:
              (tail-matcher (pm-fun-matcher tail-matcher))
              (head1 (funcall head-matcher -1)))
         (if head1
-            (if (and at-max (= (cdr head1) pos))
+            (if (or (< pos (cdr head1))
+                    (and at-max (= (cdr head1) pos)))
                 ;;           |
                 ;; host)[head)           ; can occur with sub-head == 0 only
                 (list 'head (car head1) (cdr head1))
