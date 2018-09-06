@@ -2,7 +2,7 @@
 ;; load all tests from individual poly-xyz repositories located in the parent of
 ;; this repository
 
-(require 'polymode-test)
+(require 'polymode-test-utils)
 
 (let* ((root (expand-file-name "../.."
                                (file-truename

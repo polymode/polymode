@@ -1,4 +1,4 @@
-(require 'polymode-test)
+(require 'polymode-test-utils)
 
 (defvar markdown-inline-head-fun-matcher (pm-fun-matcher (cons "[^`]\\(`{?[[:alpha:]+-]+\\)[ \t]" 1)))
 (defvar markdown-inline-tail-fun-matcher (pm-fun-matcher (cons "[^`]\\(`\\)[^`]" 1)))
