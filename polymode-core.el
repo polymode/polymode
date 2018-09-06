@@ -255,7 +255,8 @@ case TYPE is ignored."
       ;; (message "caching: %s %s" (car span) (pm-span-to-range span))
       (let ((sbeg (nth 1 span))
             (send (nth 2 span)))
-        (put-text-property sbeg send :pm-span span)))))
+        (put-text-property sbeg send :pm-span span)
+        (put-text-property sbeg send :pm-mode (pm-span-mode span))))))
 
 (defun pm-flush-span-cache (beg end &optional buffer)
   (with-silent-modifications
@@ -816,6 +817,29 @@ non-nil, map backwards."
                      (< (point) end))
                    (< nr count)
                    (pm-innermost-span (point) no-cache)))))))
+
+(defun pm-map-over-modes (fun &optional beg end)
+  "Execute FUN on regions of the same major-mode between BEG and END.
+FUN is a function of 2 arguments beginning and end of region and
+with the mode's buffer current. Point is at the beginning of the
+region. Buffer is *not* narrowed to the region."
+  (setq beg (or beg (point-min))
+        end (if end
+                (min end (point-max))
+              (point-max)))
+  (save-restriction
+    (widen)
+    (let ((mode (get-text-property beg :pm-mode))
+          (span (pm-innermost-span beg)))
+      ;; ensure that :pm-mode property is correct
+      (while (< (nth 2 span) end)
+        (setq span (pm-innermost-span (nth 2 span))))
+      (while (< beg end)
+        (setq end1 (next-single-property-change pos :pm-mode nil (point-max)))
+        (goto-char beg)
+        (pm-set-buffer beg)
+        (funcall fun beg end1)
+        (setq beg end1)))))
 
 (defun pm-narrow-to-span (&optional span)
   "Narrow to current SPAN."
