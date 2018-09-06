@@ -177,6 +177,8 @@ initialized. Return the buffer."
 Create and initialize the buffer if does not exist yet.")
 
 (cl-defmethod pm-get-buffer-create ((chunkmode pm-host-chunkmode) &optional type)
+  (when type
+    (error "Cannot create host buffer of type '%s'" type))
   (let ((buff (eieio-oref chunkmode '-buffer)))
     (if (buffer-live-p buff)
         buff

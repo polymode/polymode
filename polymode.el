@@ -103,28 +103,39 @@ Not effective after loading the polymode library."
 
 
 ;;; COMMANDS
-(defvar *span*)
-(defun polymode-next-chunk (&optional N)
-  "Go N chunks forwards.
-Return the number of actually moved over chunks."
-  (interactive "p")
+
+(defun pm-goto-span-of-type (type N)
+  "Skip to N - 1 spans of TYPE and stop at the start of a span of TYPE.
+TYPE is either a symbol or a list of symbols of span types."
   (let* ((sofar 0)
+         (types (if (symbolp type)
+                    (list type)
+                  type))
          (back (< N 0))
+         (N (if back (- N) N))
          (beg (if back (point-min) (point)))
-         (end (if back (point) (point-max)))
-         (N (if back (- N) N)))
-    (condition-case-unless-debug nil
+         (end (if back (point) (point-max))))
+    (condition-case nil
         (pm-map-over-spans
          (lambda (span)
-           (unless (memq (car span) '(head tail))
+           (when (memq (car span) types)
+             (goto-char (nth 1 span))
              (when (>= sofar N)
                (signal 'quit nil))
              (setq sofar (1+ sofar))))
          beg end nil back)
-      (quit (when (looking-at "\\s *$")
-              (forward-line)))
-      (pm-switch-to-buffer))
+      (quit nil))
     sofar))
+
+(defun polymode-next-chunk (&optional N)
+  "Go N chunks forwards.
+Return the number of actually moved over chunks."
+  (interactive "p")
+  (pm-goto-span-of-type '(nil body) N)
+  (while (looking-at "^\\s *$")
+    (forward-line 1))
+  (back-to-indentation)
+  (pm-switch-to-buffer))
 
 ;;fixme: problme with long chunks .. point is recentered
 ;;todo: merge into next-chunk
@@ -195,7 +206,7 @@ Return the number of chunks of the same type moved over."
     (_ (error "Canoot find chunk to kill"))))
 
 (defun polymode-toggle-chunk-narrowing ()
-  "Toggle narrowing of the current chunk."
+  "Toggle narrowing of the body of current chunk."
   (interactive)
   (if (buffer-narrowed-p)
       (progn (widen) (recenter))
@@ -210,11 +221,14 @@ Return the number of chunks of the same type moved over."
          (pm-narrow-to-span)))
       (_ (pm-narrow-to-span)))))
 
-
 (defun polymode-mark-or-extend-chunk ()
   "Not implemented yet."
   (interactive)
-  (error "Not implemented yet"))
+  (let ((span (pm-innermost-span)))
+    (push-mark (nth 2 span) t t)
+    (goto-char (nth 1 span))
+    (cl-case (car span)
+      (head ))))
 
 (defun polymode-insert-new-chunk ()
   "Not implemented yet."

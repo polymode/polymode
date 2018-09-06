@@ -40,7 +40,6 @@
 
 
 ;;; ESSENTIAL DECLARATIONS
-
 (defvar *span* nil)
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
@@ -419,7 +418,7 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
    (t (error "Head and tail matchers must be either regexp strings, cons cells or functions"))))
 
 (defun pm-same-indent-tail-matcher (_arg)
-  "Return the end position of block with the higher indent as the current column.
+  "Get the end position of block with the higher indent than the current column.
 Used as tail matcher for blocks identified by same indent. See
 function `poly-slim-mode' for examples. ARG is ignored; always search
 forward."
@@ -819,7 +818,7 @@ non-nil, map backwards."
                    (pm-innermost-span (point) no-cache)))))))
 
 (defun pm-map-over-modes (fun &optional beg end)
-  "Execute FUN on regions of the same major-mode between BEG and END.
+  "Execute FUN on regions of the same `major-mode' between BEG and END.
 FUN is a function of 2 arguments beginning and end of region and
 with the mode's buffer current. Point is at the beginning of the
 region. Buffer is *not* narrowed to the region."
@@ -829,13 +828,13 @@ region. Buffer is *not* narrowed to the region."
               (point-max)))
   (save-restriction
     (widen)
-    (let ((mode (get-text-property beg :pm-mode))
-          (span (pm-innermost-span beg)))
+    (let ((span (pm-innermost-span beg))
+          (end1))
       ;; ensure that :pm-mode property is correct
       (while (< (nth 2 span) end)
         (setq span (pm-innermost-span (nth 2 span))))
       (while (< beg end)
-        (setq end1 (next-single-property-change pos :pm-mode nil (point-max)))
+        (setq end1 (next-single-property-change beg :pm-mode nil (point-max)))
         (goto-char beg)
         (pm-set-buffer beg)
         (funcall fun beg end1)
@@ -1114,9 +1113,9 @@ Return FALLBACK if non-nil, otherwise the value of
          (when (fboundp mode)
            mode))
        ;; auto-mode alist
-       (let ((dummy (concat "a." str)))
+       (let ((dummy-file (concat "a." str)))
          (cl-loop for (k . v) in auto-mode-alist
-                  if (and (string-match-p k dummy)
+                  if (and (string-match-p k dummy-file)
                           (not (string-match-p "^poly-" (symbol-name v))))
                   return v))
        ;; default-inner-mode is for anonymous chunks only

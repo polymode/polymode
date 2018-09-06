@@ -64,14 +64,12 @@
     (define-key map (kbd "M-n M-t p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t a")   #'pm-debug-toggle-all)
-    (define-key map (kbd "M-n M-t v")   #'pm-debug-toggle-verbose)
     (define-key map (kbd "M-n M-t M-t")   #'pm-toggle-tracing)
     (define-key map (kbd "M-n M-t M-i")   #'pm-debug-toogle-info-message)
     (define-key map (kbd "M-n M-t M-f")   #'pm-debug-toggle-fontification)
     (define-key map (kbd "M-n M-t M-p")   #'pm-debug-toggle-post-command)
     (define-key map (kbd "M-n M-t M-c")   #'pm-debug-toggle-after-change)
     (define-key map (kbd "M-n M-t M-a")   #'pm-debug-toggle-all)
-    (define-key map (kbd "M-n M-t M-v")   #'pm-debug-toggle-verbose)
     (define-key map (kbd "M-n M-f s")   #'pm-debug-fontify-current-span)
     (define-key map (kbd "M-n M-f b")   #'pm-debug-fontify-current-buffer)
     (define-key map (kbd "M-n M-f M-t")   #'pm-debug-toggle-fontification)
@@ -265,7 +263,7 @@ With NO-CACHE prefix, don't use cached values of the span."
 ;;;###autoload
 (defun pm-toggle-tracing (level)
   "Toggle polymode tracing.
-With numeric prefix toggle tracing for that level. Currently
+With numeric prefix toggle tracing for that LEVEL. Currently
 universal argument toggles maximum level of tracing (4). Default
 level is 3."
   (interactive "P")
@@ -282,6 +280,9 @@ level is 3."
 
 ;;;###autoload
 (defun pm-trace (fn)
+  "Trace function FN.
+Use `untrace-function' to untrace or `untrace-all' to untrace all
+currently traced functions."
   (interactive (trace--read-args "Trace: "))
   (let ((buff (get-buffer "*Messages*")))
     (advice-add

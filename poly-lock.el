@@ -310,9 +310,10 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
             (setq jit-lock-end (nth 2 nspan))))))
     (cons jit-lock-start jit-lock-end)))
 
-(defun poly-lock--extend-region-span (span)
-  "Call `jit-lock-after-change-extend-region-functions' appropriately protected.
-Extend `jit-lock-start' and `jit-lock-end' by side effect."
+(defun poly-lock--extend-region-span (span old-len)
+  "Call `jit-lock-after-change-extend-region-functions' protected to SPAN.
+Extend `jit-lock-start' and `jit-lock-end' by side effect.
+OLD-LEN is passed to the extension function."
   (let ((beg jit-lock-start)
         (end jit-lock-end))
     (let ((sbeg (nth 1 span))
@@ -352,7 +353,7 @@ are as in `after-change-functions'."
            (poly-lock--extend-region beg end)
            (pm-flush-span-cache beg end)
            (pm-map-over-spans
-            #'poly-lock--extend-region-span
+            (lambda (span) (poly-lock--extend-region-span span old-len))
             ;; fixme: no-cache is no longer necessary, we flush the region
             beg end nil nil nil 'no-cache)
            (put-text-property jit-lock-start jit-lock-end 'fontified nil)
