@@ -388,7 +388,6 @@ most frequently used slots are:
         (`:lighter (setq lighter (purecopy (pop body))))
         (`:keymap (setq keymap (pop body)))
         (`:after-hook (setq after-hook (pop body)))
-        (`:add-innermodes (user-error ":add-innermodes has been removed; use :inherit in innermodes list instead"))
         (`:keylist (error ":keylist is not allowed in `define-polymode'"))
         (_ (push (pop body) slots) (push keyw slots))))
 
@@ -433,7 +432,7 @@ most frequently used slots are:
                ;; setting in two steps as defcustom is not re-evaluated on repeated evals
                (setq ,config-name
                      (if parent-conf-name
-                         (clone parent-conf-name
+                         (clone parent-conf
                                 :name ,(symbol-name config-name)
                                 ,@slots)
                        (pm-polymode :name ,(symbol-name config-name)
