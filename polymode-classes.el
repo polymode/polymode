@@ -317,8 +317,7 @@ If set to 'host or 'body use host or body's mode respectively. If
 nil, pick the mode from :head-mode slot.")
    (head-matcher
     :initarg :head-matcher
-    :initform nil
-    :type (or string symbol cons)
+    :type (or string cons function)
     :custom (choice string (cons string integer) function)
     :documentation
     "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
@@ -329,14 +328,13 @@ END) representing the span of the head or tail respectively. See
 the code of `pm-fun-matcher' for a simple example.")
    (tail-matcher
     :initarg :tail-matcher
-    :initform nil
-    :type (or string cons symbol)
+    :type (or string cons function)
     :custom (choice string (cons string integer) function)
     :documentation
     "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
-Like :head-matcher but for the chunk's tail. It is always called
-with the point at the end of the matched head and with the
-positive argument.")
+Like :head-matcher but for the chunk's tail. Currently, it is
+always called with the point at the end of the matched head and
+with the positive argument (aka match forward).")
    (adjust-face
     :initform 2)
    (head-adjust-face
@@ -379,9 +377,8 @@ physically present in the buffer.")
 (defclass pm-inner-auto-chunkmode (pm-inner-chunkmode)
   ((mode-matcher
     :initarg :mode-matcher
-    :type (or string cons symbol)
-    :initform nil
-    :custom (choice )
+    :type (or string cons function)
+    :custom (choice string (cons string integer) function)
     :documentation
     "Matcher used to retrieve the mode's symbol from the chunk's head.
 Can be either a regexp string, cons of the form (REGEXP .
