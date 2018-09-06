@@ -25,8 +25,8 @@ done
 
 echo "-- Creating $OUTDIR/$MODULE.el"
 sed -i "s/__POLYMODE_VERSION__/$POLYMODE_VERSION/g" $OUTDIR/poly-xyz.el
-mv -i $OUTDIR/poly-xyz.el $OUTDIR/$MODULE.el
-mv -i $OUTDIR/README-xyz.md $OUTDIR/README.md
+mv -n $OUTDIR/poly-xyz.el $OUTDIR/$MODULE.el
+mv -n $OUTDIR/README-xyz.md $OUTDIR/README.md
 rm -f $OUTDIR/*xyz*
 
 echo "-- Done!"
