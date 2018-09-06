@@ -1,4 +1,4 @@
-;;; polymode-test.el --- Testing utilities for polymode -*- lexical-binding: t -*-
+;;; polymode-test-utils.el --- Testing utilities for polymode -*- lexical-binding: t -*-
 ;;
 ;; Copyright (C) 2018, Vitalie Spinu
 ;; Author: Vitalie Spinu
@@ -333,5 +333,5 @@ points."
            (pm-test--run-indentation-tests)
          (undo-boundary)))))
 
-(provide 'polymode-test)
+(provide 'polymode-test-utils)
 ;;; polymode-test.el ends here
