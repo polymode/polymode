@@ -51,6 +51,7 @@
 (defvar pm--emacs>26 (version<= "26" emacs-version))
 
 ;; overwrites
+(defvar-local pm--indent-region-function-original nil)
 (defvar-local pm--indent-line-function-original nil)
 (defvar-local pm--syntax-propertize-function-original nil)
 
@@ -246,7 +247,6 @@ case TYPE is ignored."
                  'tail
                'head))
             (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
-
 
 (defun pm-cache-span (span)
   ;; cache span
@@ -785,8 +785,7 @@ beginning of the span. Buffer is *not* narrowed to the span. If
 COUNT is non-nil, jump at most that many times. If BACKWARDP is
 non-nil, map backwards."
   ;; Important! Don't forget to save-excursion when calling map-overs-spans.
-  ;; Mapping can end different buffer and invalidate whatever caller that used
-  ;; your function.
+  ;; Mapping can end in different buffer and invalidate the caller assumptions.
   (save-restriction
     (widen)
     (setq beg (or beg (point-min))
@@ -803,7 +802,7 @@ non-nil, map backwards."
         (pm-select-buffer *span* visibly)
         ;; FUN might change buffer and invalidate our *span*. Should we care or
         ;; reserve pm-map-over-spans for "read-only" actions only? Does
-        ;; after-change runs immediately or after this function ends?
+        ;; after-change run immediately or after this function ends?
         (goto-char (nth 1 *span*))
         (save-excursion
           (funcall fun *span*))

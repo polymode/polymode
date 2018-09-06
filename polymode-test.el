@@ -115,8 +115,10 @@ MODE is a quoted symbol."
            (message "\n===================  testing %s =======================" file))
          (switch-to-buffer buf)
          (insert-file-contents file)
+         (remove-hook 'text-mode-hook 'flyspell-mode) ;; triggers "too much reentrancy" error
          (let ((inhibit-message t))
            (funcall-interactively ',mode))
+         ;; (flyspell-mode -1) ;; triggers "too much reentrancy" error
          (goto-char (point-min))
          ,pre-form
          (font-lock-ensure)
@@ -260,7 +262,7 @@ Needed because redisplay is not triggered in batch mode."
               (run-hook-with-args 'fontification-functions pos))))))))
 
 (defmacro pm-test-poly-lock (mode file &rest change-sets)
-  "Test font-lock and indentation for MODE and FILE.
+  "Test font-lock for MODE and FILE.
 CHANGE-SETS is a collection of forms of the form (NAME-LOC &rest
 BODY). NAME-LOC is a list of the form (NAME LOCK) where NAME is a
 symbol, LOC is the location as in `pm-test-goto-loc'. Before and
@@ -282,6 +284,54 @@ execution undo is called once. After each change-set
           (pm-test-spans)
           (let ((inhibit-message (not pm-verbose)))
             (undo)))))))
+
+(defun pm-test--run-indentation-tests ()
+  "Run an automatic batch of indentation tests.
+First run `indent-line' on every line and compare original and
+indented version. Then compute stasrt,middle and end points of
+each span and call `indent-region' on a shuffled set of these
+points."
+  (goto-char (point-min))
+  (set-buffer-modified-p nil)
+  (while (not (eobp))
+    (let ((orig-line (buffer-substring-no-properties (point-at-eol) (point-at-bol))))
+      (unless (string-match-p "no-indent-test" orig-line)
+        (undo-boundary)
+        (pm-indent-line-dispatcher)
+        (unless (equal orig-line (buffer-substring-no-properties (point-at-eol) (point-at-bol)))
+          (undo-boundary)
+          (pm-switch-to-buffer (point))
+          (ert-fail (list :pos (point) :line (line-number-at-pos)
+                          :indent-line (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))
+    (forward-line 1))
+  (let (points1 points2)
+    (pm-map-over-spans (lambda (span) (push (/ (+ (nth 1 span) (nth 2 span)) 2) points1)))
+    (random "some-seed")
+    (let ((len (length points1)))
+      (dotimes (_ len)
+        (push (elt points1 (random len)) points2)))
+    (let ((points2 (reverse points1)))
+      (cl-mapc
+       (lambda (beg end)
+         (unless (= beg end)
+           (let ((orig-region (buffer-substring-no-properties beg end)))
+             (unless (string-match-p "no-indent-test" orig-region)
+               (undo-boundary)
+               (indent-region beg end)
+               (unless (equal orig-region (buffer-substring-no-properties beg end))
+                 (undo-boundary)
+                 (pm-switch-to-buffer beg)
+                 (ert-fail `(indent-region ,beg ,end)))))))
+       points1 points2))))
+
+(defmacro pm-test-indentation (mode file)
+  "Test indentation for MODE and FILE."
+  `(pm-test-run-on-file ,mode ,file
+     (undo-boundary)
+     (let ((inhibit-message t))
+       (unwind-protect
+           (pm-test--run-indentation-tests)
+         (undo-boundary)))))
 
 (provide 'polymode-test)
 ;;; polymode-test.el ends here

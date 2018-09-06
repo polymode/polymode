@@ -130,10 +130,10 @@ initialized. Return the buffer."
     (object-add-to-list pm/polymode '-buffers (current-buffer))
 
     ;; INDENTATION
-    (when (and indent-line-function     ; not that it should ever be nil...
-               (eieio-oref pm/chunkmode 'protect-indent))
-      (setq-local pm--indent-line-function-original indent-line-function)
-      (setq-local indent-line-function #'pm-indent-line-dispatcher))
+    (setq-local pm--indent-line-function-original indent-line-function)
+    (setq-local indent-line-function #'pm-indent-line-dispatcher)
+    (setq-local pm--indent-region-function-original indent-region-function)
+    (setq-local indent-region-function #'pm-indent-region)
 
     ;; SYNTAX
     ;; Ideally this should be called in some hook to avoid minor-modes messing
@@ -312,7 +312,7 @@ in this case."
 
 ;;; INDENT
 
-(defun pm--indent-line (span)
+(defun pm--indent-line-raw (span)
   (let ((point (point)))
     ;; do fast synchronization here
     (save-current-buffer
@@ -324,31 +324,50 @@ in this case."
         (setq point (point))))
     (goto-char point)))
 
+(defun pm-indent-region (beg end)
+  "Indent region between BEG and END in polymode buffers.
+Function used for `indent-region-function'."
+  ;; (message "(pm-indent-region %d %d)" beg end)
+  ;; cannot use pm-map-over-spans here because of the buffer modification
+  (let ((inhibit-point-motion-hooks t))
+    (save-excursion
+      (while (< beg end)
+        (let ((span (pm-innermost-span beg)))
+          (let ((end1 (copy-marker (min (nth 2 span) end))))
+            (goto-char beg)
+            (while (and (not (eobp))
+                        (< (point-at-bol) end1))
+              (pm-indent-line (nth 3 span) span)
+              (forward-line 1))
+            (setq beg (point))))))))
+
 (defun pm-indent-line-dispatcher (&optional span)
   "Dispatch `pm-indent-line' methods on current SPAN.
 Value of `indent-line-function' in polymode buffers."
   (let ((span (or span (pm-innermost-span)))
         (inhibit-read-only t))
-    (pm-indent-line (nth 3 span) span)))
+    (pm-indent-line (nth 3 span) span)
+    ;; pm-indent-line-dispatcher is intended for interactive use
+    (pm-switch-to-buffer)))
 
 (cl-defgeneric pm-indent-line (chunkmode &optional span)
   "Indent current line.
 Protect and call original indentation function associated with
 the chunkmode.")
 
-(cl-defmethod pm-indent-line ((_chunkmode pm-chunkmode) span)
+(cl-defmethod pm-indent-line ((chunkmode pm-chunkmode) span)
   (let ((bol (point-at-bol))
         (span (or span (pm-innermost-span))))
     (if (or (< (nth 1 span) bol)
-            (= bol (point-min)))
-        (pm--indent-line span)
-      ;; dispatch to previous span
+            (= bol (point-min))
+            (null (eieio-oref chunkmode 'protect-indent)))
+        (pm--indent-line-raw span)
+      ;; first line dispatch to previous span
       (let ((delta (- (point) (nth 1 span)))
             (prev-span (pm-innermost-span (1- bol))))
         (goto-char bol)
         (pm-indent-line-dispatcher prev-span)
-        (goto-char (+ (point) delta))
-        (pm-switch-to-buffer)))))
+        (goto-char (+ (point) delta))))))
 
 (cl-defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) span)
   "Indent line in inner chunkmodes.
@@ -362,14 +381,17 @@ to indent."
          ((or (eq 'head (car span))
               (eq 'tail (car span)))
           (goto-char (nth 1 span))
-          (setq delta (- pos (point)))
           (when (not (bobp))
-            (let ((prev-span (pm-innermost-span (1- pos))))
-              (if (and (eq 'tail (car span))
-                       (eq (point) (save-excursion (back-to-indentation) (point))))
-                  ;; if tail is first on the line, indent as head
-                  (indent-to (pm--head-indent prev-span))
-                (pm--indent-line prev-span)))))
+            (let* ((ind-point (save-excursion (back-to-indentation) (point)))
+                   (ind-span (pm-innermost-span ind-point)))
+              ;; ind-point need not be in prev-span; there might be other spans in between
+              (if (eq (nth 3 span) (nth 3 ind-span))
+                  (let ((prev-span (pm-innermost-span (1- (nth 1 span)))))
+                    (if (eq 'tail (car span))
+                        (indent-to (pm--head-indent prev-span))
+                      (pm--indent-line-raw prev-span)))
+                ;; fixme: if ind-span is again tail or head?
+                (pm--indent-line-raw ind-span)))))
 
          ;; 2. body
          (t
@@ -383,7 +405,7 @@ to indent."
                   ;; We are not on the 1st line
                   (progn
                     ;; thus indent according to mode
-                    (pm--indent-line span)
+                    (pm--indent-line-raw span)
                     (when (bolp)
                       ;; When original mode's indented to bol, match with the
                       ;; first line indent. Otherwise it's a continuation
