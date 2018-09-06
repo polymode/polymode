@@ -92,6 +92,13 @@
 
 ;; CUSTOM
 
+;;;###autoload
+(defvar-local polymode-default-inner-mode nil
+  "Inner mode for chunks with unspecified modes.
+Intended to be used as local variable in polymode buffers.")
+;;;###autoload
+(put 'polymode-default-inner-mode 'safe-local-variable 'symbolp)
+
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"
   :link '(emacs-commentary-link "polymode")
@@ -937,7 +944,7 @@ Used in advises."
   (if (and polymode-mode pm/polymode
            (not pm--killed)
            (buffer-live-p (buffer-base-buffer)))
-      (let ((poly-lock-allow-fontification nil)
+      (let ((pm-initialization-in-progress t) ; just in case
             (cur-buf (current-buffer))
             (base (buffer-base-buffer))
             (first-arg (car-safe args)))
