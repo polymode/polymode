@@ -255,7 +255,7 @@ Return the number of chunks of the same type moved over."
                   (symbol-value symbol)
                   (object-of-class-p (symbol-value symbol) 'pm-polymode))
              symbol
-           (let ((poly-name (replace-regexp-in-string "poly-\\|-mode\\|-minor-mode" ""
+           (let ((poly-name (replace-regexp-in-string "pm-poly/\\|poly-\\|-mode\\|-minor-mode" ""
                                                       (symbol-name symbol))))
              (intern (concat "pm-poly/" poly-name))))))
     (when must-exist
