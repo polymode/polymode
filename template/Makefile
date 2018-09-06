@@ -41,7 +41,7 @@ elpa: melpa
 start: version
 	$(EMACSRUN) -L ~/VC/markdown-mode/ \
 		--load tests/*.el \
-		--file tests/poly-markdown-tests.el 
+		--file tests/poly-markdown-tests.el
 
 test: version
 	@echo "******************* Testing $(MODULE) ***************************"
