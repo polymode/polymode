@@ -132,9 +132,9 @@ TYPE is either a symbol or a list of symbols of span types."
 Return the number of actually moved over chunks."
   (interactive "p")
   (pm-goto-span-of-type '(nil body) N)
-  (while (looking-at "^\\s *$")
+  ;; If head/tail end before eol we move to the next line
+  (when (looking-at "\\s *$")
     (forward-line 1))
-  (back-to-indentation)
   (pm-switch-to-buffer))
 
 ;;fixme: problme with long chunks .. point is recentered
@@ -221,14 +221,85 @@ Return the number of chunks of the same type moved over."
          (pm-narrow-to-span)))
       (_ (pm-narrow-to-span)))))
 
+(defun pm-chunk-range (&optional pos)
+  (setq pos (or pos (point)))
+  (let ((span (pm-innermost-span pos))
+        (pmin (point-min))
+        (pmax (point-max))
+        beg end)
+    (cl-case (car span)
+      ((nil) (pm-span-to-range span))
+      (body (cons (if (= pmin (nth 1 span))
+                      pmin
+                    (nth 1 (pm-innermost-span (1- (nth 1 span)))))
+                  (if (= pmax (nth 2 span))
+                      pmax
+                    (nth 2 (pm-innermost-span (nth 2 span))))))
+      (head (if (= pmax (nth 2 span))
+                (pm-span-to-range span)
+              (pm-chunk-range (nth 2 span))))
+      (tail (if (= pmin (nth 1 span))
+                (pm-span-to-range span)
+              (pm-chunk-range (1- (nth 1 span))))))))
+
 (defun polymode-mark-or-extend-chunk ()
-  "Not implemented yet."
+  "DWIM command to repeatedly mark chunk or extend region.
+When no region is active, mark the current span if in body of a
+chunk or the whole chunk if in head or tail. On repeated
+invocation extend the region either forward or backward. You need
+not use the prefix key on repeated invocation. For example
+assuming we are in the body of the inner chunk and this command
+is bound on \"M-n M-m\" (the default)
+
+  [M-n M-m M-m M-m] selects body, expand selection to chunk then
+                    expand selection to previous chunk
+
+  [M-n M-m C-x C-x M-m] selects body, expand selection to chunk,
+                    then reverse point and mark, then extend the
+                    selection to the following chunk"
   (interactive)
   (let ((span (pm-innermost-span)))
-    (push-mark (nth 2 span) t t)
-    (goto-char (nth 1 span))
-    (cl-case (car span)
-      (head ))))
+    (if (region-active-p)
+        (if (< (mark) (point))
+            ;; forward extension
+            (if (eobp)
+                (user-error "End of buffer")
+              (if (eq (car span) 'head)
+                  (goto-char (cdr (pm-chunk-range)))
+                (goto-char (nth 2 span))
+                ;; special dwim when extending from body
+                (when (and (eq (car span) 'tail)
+                           (not (= (point-min) (nth 1 span))))
+                  (let ((body-span (pm-innermost-span (1- (nth 1 span)))))
+                    (when (and (= (nth 1 body-span) (mark))
+                               (not (= (nth 1 body-span) (point-min))))
+                      (let ((head-span (pm-innermost-span (1- (nth 1 body-span)))))
+                        (when (eq (car head-span) 'head)
+                          (set-mark (nth 1 head-span)))))))))
+          ;; backward extension
+          (if (bobp)
+              (user-error "Beginning of buffer")
+            (goto-char (car (if (= (point) (nth 1 span))
+                                (pm-chunk-range (1- (point)))
+                              (pm-chunk-range (point)))))
+            ;; special dwim when extending from body
+            (when (and (eq (car span) 'body)
+                       (= (nth 2 span) (mark)))
+              (let ((tail-span (pm-innermost-span (nth 2 span))))
+                (when (eq (car tail-span) 'tail)
+                  (set-mark (nth 2 tail-span)))))))
+      (let ((range (if (memq (car span) '(nil body))
+                       (pm-span-to-range span)
+                     (pm-chunk-range))))
+        (set-mark (cdr range))
+        (goto-char (car range)))))
+  (let ((map (make-sparse-keymap)))
+    (define-key map (vector last-command-event) #'polymode-mark-or-extend-chunk)
+    (define-key map (car (where-is-internal #'exchange-point-and-mark)) #'exchange-point-and-mark)
+    (let ((ev (event-basic-type last-command-event)))
+      (define-key map (vector ev) #'polymode-mark-or-extend-chunk))
+    (set-transient-map map (lambda () (eq this-command 'exchange-point-and-mark)))))
+
 
 (defun polymode-insert-new-chunk ()
   "Not implemented yet."
