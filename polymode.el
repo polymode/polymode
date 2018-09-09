@@ -67,7 +67,6 @@ Not effective after loading the polymode library."
         (define-key map "\M-k" 'polymode-kill-chunk)
         (define-key map "\M-m" 'polymode-mark-or-extend-chunk)
         (define-key map "\C-t" 'polymode-toggle-chunk-narrowing)
-        (define-key map "\M-i" 'polymode-insert-new-chunk)
         ;; backends
         (define-key map "e" 'polymode-export)
         (define-key map "E" 'polymode-set-exporter)
@@ -93,8 +92,6 @@ Not effective after loading the polymode library."
                 '(menu-item "Mark or extend chunk" polymode-mark-or-extend-chunk))
               (define-key-after map [kill]
                 '(menu-item "Kill chunk" polymode-kill-chunk))
-              (define-key-after map [insert]
-                '(menu-item "Insert new chunk" polymode-insert-new-chunk))
               map)))
     map)
   "The minor mode keymap which is inherited by all polymodes.")
@@ -299,12 +296,6 @@ is bound on \"M-n M-m\" (the default)
     (let ((ev (event-basic-type last-command-event)))
       (define-key map (vector ev) #'polymode-mark-or-extend-chunk))
     (set-transient-map map (lambda () (eq this-command 'exchange-point-and-mark)))))
-
-
-(defun polymode-insert-new-chunk ()
-  "Not implemented yet."
-  (interactive)
-  (error "Not implemented yet"))
 
 (defun polymode-show-process-buffer ()
   "Show the process buffer used by weaving and exporting programs."

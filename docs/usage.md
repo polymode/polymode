@@ -18,8 +18,7 @@ Shortcut | Description
 ---------|-------------
 <kbd>M-k</kbd> | Kill current chunk (`polymode-kill-chunk`) 
 <kbd>C-t</kbd> | Toggle narrowing of the body of current chunk (`polymode-toggle-chunk-narrowing`) 
-<kbd>M-m</kbd> | ;; not implemented (`polymode-mark-or-extend-chunk`) 
-<kbd>M-i</kbd> | ;; not implemented yet (`polymode-insert-new-chunk`)
+<kbd>M-m</kbd> | DWIM repeatedly mark or extend region (`polymode-mark-or-extend-chunk`) 
 
 ## Exporting, Weaving and Tangling
 
