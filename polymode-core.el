@@ -1026,8 +1026,23 @@ Used in advises."
 (defvar syntax-ppss-last)
 (defun pm--reset-ppss-last (span)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
-  (let* ((sbeg (nth 1 span))
-         (new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
+  ;; host chunk is special; body chunks with nested inner chunks should be
+  ;; treated the same but no practical example showed so far
+  (let ((sbeg (nth 1 span))
+        new-ppss)
+    (unless (car span)
+      (save-restriction
+        (widen)
+        (save-excursion
+          (let ((pos sbeg))
+            (while (and (null new-ppss)
+                        (not (= pos (point-min))))
+              (let ((prev-span (pm-innermost-span (1- pos))))
+                (if (null (car prev-span))
+                    (setq new-ppss (cons sbeg (syntax-ppss (1- pos))))
+                  (setq pos (nth 1 prev-span)))))))))
+    (unless new-ppss
+      (setq new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
     (if pm--emacs>26
         ;; in emacs 26 there are two caches syntax-ppss-wide and
         ;; syntax-ppss-narrow. The latter is reset automatically each time a
