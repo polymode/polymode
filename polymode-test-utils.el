@@ -25,10 +25,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-
+;;
 ;;; Commentary:
 ;;
-
+;; This file should be loaded only in tests.
+;;
 ;;; Code:
 
 (setq eieio-backward-compatibility nil)
@@ -38,7 +39,12 @@
 (eval-when-compile
   (require 'cl-lib))
 
-(setq ert-batch-backtrace-right-margin 130)
+;; (require 'font-lock)
+;; (global-font-lock-mode t)
+;; (add-hook 'after-change-major-mode-hook #'global-font-lock-mode-enable-in-buffers)
+;; (message "ACMH: %s  GFL:%s" after-change-major-mode-hook global-font-lock-mode)
+
+(setq ert-batch-backtrace-right-margin 200)
 (defvar pm-verbose (getenv "PM_VERBOSE"))
 
 (defvar pm-test-current-change-set nil)
@@ -124,15 +130,21 @@ MODE is a quoted symbol."
          (font-lock-ensure)
          (goto-char (point-min))
          (save-excursion
-           (pm-map-over-spans
-            (lambda (_)
-              (setq font-lock-mode t)
-              ;; font-lock is not activated in batch mode
-              (poly-lock-mode t)
-              ;; redisplay is not triggered in batch and often it doesn't trigger
-              ;; fontification in X either (waf?)
-              (add-hook 'after-change-functions #'pm-test-invoke-fontification t t))
-            (point-min) (point-max)))
+           (let ((font-lock-mode t))
+             (pm-map-over-spans
+              (lambda (_)
+                (setq font-lock-mode t)
+                ;; This is not picked up because font-lock is nil on innermode
+                ;; initialization. Don't know how to fix this more elegantly.
+                ;; For now our tests are all with font-lock, so we are fine for
+                ;; now.
+                (setq-local poly-lock-allow-fontification t)
+                ;; font-lock is not activated in batch mode
+                (poly-lock-mode t)
+                ;; redisplay is not triggered in batch and often it doesn't trigger
+                ;; fontification in X either (waf?)
+                (add-hook 'after-change-functions #'pm-test-invoke-fontification t t))
+              (point-min) (point-max))))
          (font-lock-ensure)
          ,@body
          (current-buffer)))))
@@ -170,6 +182,8 @@ MODE is a quoted symbol."
                     (when pm-test-current-change-set
                       (list :change pm-test-current-change-set))
                     (list
+                     ;; :af poly-lock-allow-fontification
+                     ;; :fl font-lock-mode
                      :face face
                      :oface oface
                      :pos pos

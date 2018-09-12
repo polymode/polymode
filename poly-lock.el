@@ -216,7 +216,7 @@ Fontifies chunk-by chunk within the region BEG END."
                   ;; skip empty spans
                   (when (> send sbeg)
                     (if (not (and poly-lock-allow-fontification
-                                  font-lock-mode))
+                                  poly-lock-mode))
                         (put-text-property sbeg send 'fontified t)
                       (let ((new-beg (max sbeg beg))
                             (new-end (min send end)))
