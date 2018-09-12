@@ -893,19 +893,20 @@ This function is placed in `before-change-functions' hook."
   ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
   ;; care explicitly. We run some safety hooks checks here as well.
   (dolist (buff (oref pm/polymode -buffers))
-    (with-current-buffer buff
-      ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
-      (when (memq 'syntax-ppss-flush-cache before-change-functions)
-        (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
-      (syntax-ppss-flush-cache beg end)
-      ;; Check if something has changed our hooks. (Am I theoretically paranoid or
-      ;; this is indeed needed?) `fontification-functions' (and others?) should be
-      ;; checked as well I guess.
-      ;; (when (memq 'font-lock-after-change-function after-change-functions)
-      ;;   (remove-hook 'after-change-functions 'font-lock-after-change-function t))
-      ;; (when (memq 'jit-lock-after-change after-change-functions)
-      ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
-      )))
+    (when (buffer-live-p buff)
+      (with-current-buffer buff
+        ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
+        (when (memq 'syntax-ppss-flush-cache before-change-functions)
+          (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
+        (syntax-ppss-flush-cache beg end)
+        ;; Check if something has changed our hooks. (Am I theoretically paranoid or
+        ;; this is indeed needed?) `fontification-functions' (and others?) should be
+        ;; checked as well I guess.
+        ;; (when (memq 'font-lock-after-change-function after-change-functions)
+        ;;   (remove-hook 'after-change-functions 'font-lock-after-change-function t))
+        ;; (when (memq 'jit-lock-after-change after-change-functions)
+        ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
+        ))))
 
 (defvar-local pm--killed nil)
 (defun polymode-after-kill-fixes ()
@@ -979,9 +980,10 @@ Used in advises."
 (defun polymode-syntax-propertize (start end)
   ;; fixme: not entirely sure if this is really needed
   (dolist (b (oref pm/polymode -buffers))
-    (with-current-buffer b
-      ;; `setq' doesn't have an effect because the var is let bound; `set' works
-      (set 'syntax-propertize--done end)))
+    (when (buffer-live-p b)
+      (with-current-buffer b
+        ;; `setq' doesn't have an effect because the var is let bound; `set' works
+        (set 'syntax-propertize--done end))))
 
   (unless pm-initialization-in-progress
     (save-restriction

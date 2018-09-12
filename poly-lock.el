@@ -161,18 +161,14 @@ switched on."
 This is the entry point called by the display engine. START is
 defined in `fontification-functions'. This function has the same
 scope as `jit-lock-function'."
-  ;; (dbg pm-initialization-in-progress
-  ;;      poly-lock-allow-fontification
-  ;;      poly-lock-mode
-  ;;      (input-pending-p))
   (unless pm-initialization-in-progress
-    (if poly-lock-allow-fontification
-        (when (and poly-lock-mode (not memory-full))
-          (unless (input-pending-p)
-            (let ((end (or (text-property-any start (point-max) 'fontified t)
-                           (point-max))))
-              (when (< start end)
-                (poly-lock-fontify-now start end)))))
+    (if (and poly-lock-mode
+             (not memory-full))
+        (unless (input-pending-p)
+          (let ((end (or (text-property-any start (point-max) 'fontified t)
+                         (point-max))))
+            (when (< start end)
+              (poly-lock-fontify-now start end))))
       (with-buffer-prepared-for-poly-lock
        (put-text-property start (point-max) 'fontified t)))))
 
@@ -207,7 +203,8 @@ Fontifies chunk-by chunk within the region BEG END."
                         (< (nth 2 span) end))
                 (with-current-buffer (pm-base-buffer)
                   (with-buffer-prepared-for-poly-lock
-                   (jit-lock-fontify-now beg end)
+                   (when poly-lock-allow-fontification
+                     (jit-lock-fontify-now beg end))
                    (put-text-property beg end 'fontified t))))))
           (pm-map-over-spans
            (lambda (span)
@@ -218,7 +215,8 @@ Fontifies chunk-by chunk within the region BEG END."
                       (send (nth 2 span)))
                   ;; skip empty spans
                   (when (> send sbeg)
-                    (if  (not font-lock-mode)
+                    (if (not (and poly-lock-allow-fontification
+                                  font-lock-mode))
                         (put-text-property sbeg send 'fontified t)
                       (let ((new-beg (max sbeg beg))
                             (new-end (min send end)))
@@ -244,9 +242,7 @@ Fontifies chunk-by chunk within the region BEG END."
   "Force refontification of the region BEG..END.
 END is extended to the next chunk separator. This function is
 placed in `font-lock-flush-function''"
-  (when (and poly-lock-allow-fontification
-             ;; (not pm-initialization-in-progress)
-             (not poly-lock-fontification-in-progress))
+  (unless poly-lock-fontification-in-progress
     (let ((beg (or beg (point-min)))
           (end (or end (point-max))))
       (with-buffer-prepared-for-poly-lock
@@ -379,7 +375,8 @@ SPAN's chunkmode."
                              (list (cons 'background-color
                                          (poly-lock--adjusted-background face))))
                         face)))
-          (font-lock-prepend-text-property (nth 1 span) (nth 2 span) 'face face))))))
+          (font-lock-prepend-text-property
+           (nth 1 span) (nth 2 span) 'face face))))))
 
 (provide 'poly-lock)
 ;;; poly-lock.el ends here

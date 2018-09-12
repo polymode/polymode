@@ -160,9 +160,12 @@ initialized. Return the buffer."
     (setq-local font-lock-function 'poly-lock-mode)
     ;; Font lock is initialized `after-change-major-mode-hook' by means of
     ;; `run-mode-hooks' and poly-lock won't get installed if polymode is
-    ;; installed as minor mode or interactively.
-    ;; Use font-lock-mode instead of poly-lock-mode because modes which don't
-    ;; want font-lock can simply set `font-lock-mode' to nil.
+    ;; installed as minor mode or interactively. We install font/poly-lock in
+    ;; all buffers because this is how buffers are installed.
+    ;; `poly-lock-allow-fontification` is intended for buffers which don't want
+    ;; font-lock.
+
+    (setq-local poly-lock-allow-fontification font-lock-mode)
     (font-lock-mode t)
     (font-lock-flush)
 
