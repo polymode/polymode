@@ -96,7 +96,7 @@ Not effective after loading the polymode library."
     map)
   "The minor mode keymap which is inherited by all polymodes.")
 
-(defalias 'polymode-mode-map 'polymode-minor-mode-map)
+(defvaralias 'polymode-mode-map 'polymode-minor-mode-map)
 
 
 ;;; COMMANDS
