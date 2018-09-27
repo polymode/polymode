@@ -321,11 +321,13 @@ in this case."
     ;; do fast synchronization here
     (save-current-buffer
       (pm-set-buffer span)
-      (pm-with-narrowed-to-span span
-        (goto-char point)
-        (when pm--indent-line-function-original
-          (funcall pm--indent-line-function-original))
-        (setq point (point))))
+      (goto-char point)
+      (when pm--indent-line-function-original
+        (if (eieio-oref (nth 3 span) 'protect-indent)
+            (pm-with-narrowed-to-span span
+              (funcall pm--indent-line-function-original))
+          (funcall pm--indent-line-function-original)))
+      (setq point (point)))
     (goto-char point)))
 
 (defun pm-indent-region (beg end)
