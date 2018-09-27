@@ -419,10 +419,20 @@ to indent."
                       ;; correctly with respect to previous lines.
                       (indent-to fl-indent)))
                 ;; On the first line. Indent with respect to header line.
-                (indent-line-to
-                 (+ ;; (- (point) (point-at-bol)) ;; non-0 if there is code in header line (ignore this case)
-                  (pm--head-indent span) ;; indent with respect to header line
-                  (eieio-oref chunkmode 'indent-offset))))))))
+                (let ((delta (save-excursion
+                               (goto-char (nth 1 span))
+                               (if (or (= (point) (point-at-bol))
+                                       (looking-at-p "[ \t]*$"))
+                                   0
+                                 ;; code after header
+                                 (end-of-line)
+                                 (skip-chars-forward "\t\n")
+                                 (pm--indent-line-raw span)
+                                 (- (point) (point-at-bol))))))
+                  (indent-line-to
+                   (+ delta
+                      (pm--head-indent span) ;; indent with respect to header line
+                      (eieio-oref chunkmode 'indent-offset)))))))))
       ;; keep point on same characters
       (when (and delta (> delta 0))
         (goto-char (+ (point) delta))))))
@@ -435,11 +445,11 @@ to indent."
       (when (and (= (point) (point-at-bol))
                  (not (bobp)))
         (backward-char 1))
-      (goto-char (point-at-eol))
-      (skip-chars-forward " \t\n")
-      (let ((indent (- (point) (point-at-bol))))
-        (when (< (point-at-eol) pos)
-          indent)))))
+      (let ((eol (point-at-eol)))
+        (skip-chars-forward " \t\n")
+        (when (and (< eol (point))
+                   (< (point-at-eol) pos))
+          (- (point) (point-at-bol)))))))
 
 ;; SPAN is a body span
 (defun pm--head-indent (&optional span)
