@@ -13,21 +13,21 @@ for f in "$OUTDIR"/* ;
 do
     if [ ! -d "$f" ]; then
 	  sed -i "s/__MODULE__/$MODULE/g" $f;
-  fi
+    fi
 done
 
 for f in "$OUTDIR"/targets/* ;
 do
     if [ ! -d "$f" ]; then
 	  sed -i "s/__MODULE__/$MODULE/g" $f;
-  fi
+    fi
 done
 
 for f in "$OUTDIR"/tests/* ;
 do
     if [ ! -d "$f" ]; then
 	  sed -i "s/__MODULE__/$MODULE/g" $f;
-  fi
+    fi
 done
 
 echo "-- Creating $OUTDIR/$MODULE.el"
@@ -36,5 +36,6 @@ mv -n $OUTDIR/poly-xyz.el $OUTDIR/$MODULE.el
 mv -n $OUTDIR/README-xyz.md $OUTDIR/README.md
 mv -n $OUTDIR/tests/xyz-tests.el $OUTDIR/tests/$MODULE-tests.el
 rm -f $OUTDIR/*xyz*
+rm -f $OUTDIR/tests/xyz*
 
 echo "-- Done!"

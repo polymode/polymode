@@ -61,3 +61,7 @@ template../%:
 	$(eval OUTDIR := $(subst template, , $@))
 	$(eval ABSDIR := $(abspath $(OUTDIR)))
 	./targets/template.sh $(ABSDIR)
+
+update-versions:
+	@echo "******************* UPDATING VERSIONS **************************"
+	@./targets/update-versions.sh
