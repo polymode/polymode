@@ -40,7 +40,7 @@ elpa: melpa
 
 start: version
 	$(EMACSRUN) -L . \
-		--load targets/melpa.el
+		--load targets/melpa.el \
 		--load tests/*.el
 
 test: version
