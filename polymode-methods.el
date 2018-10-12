@@ -130,7 +130,10 @@ initialized. Return the buffer."
     (object-add-to-list pm/polymode '-buffers (current-buffer))
 
     ;; INDENTATION
-    (setq-local pm--indent-line-function-original indent-line-function)
+    (setq-local pm--indent-line-function-original
+                (if (memq indent-line-function '(indent-relative indent-relative-maybe))
+                    #'pm--indent-line-basic
+                  indent-line-function))
     (setq-local indent-line-function #'pm-indent-line-dispatcher)
     (setq-local pm--indent-region-function-original indent-region-function)
     (setq-local indent-region-function #'pm-indent-region)
@@ -316,6 +319,18 @@ in this case."
 
 ;;; INDENT
 
+(defun pm--indent-line-basic ()
+  "Used as `indent-line-function' for modes with tab indent."
+  ;; adapted from indent-according-to-mode
+  (let ((column (save-excursion
+		          (beginning-of-line)
+		          (if (bobp) 0
+                    (beginning-of-line 0)
+                    (if (looking-at "[ \t]*$") 0 (current-indentation))))))
+	(if (<= (current-column) (current-indentation))
+	    (indent-line-to column)
+	  (save-excursion (indent-line-to column)))))
+
 (defun pm--indent-line-raw (span)
   (let ((point (point)))
     ;; do fast synchronization here
@@ -334,7 +349,7 @@ in this case."
   "Indent region between BEG and END in polymode buffers.
 Function used for `indent-region-function'."
   ;; (message "(pm-indent-region %d %d)" beg end)
-  ;; cannot use pm-map-over-spans here because of the buffer modification
+  ;; cannot use pm-map-over-spans here because of the buffer modifications
   (let ((inhibit-point-motion-hooks t))
     (save-excursion
       (while (< beg end)
