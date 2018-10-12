@@ -126,25 +126,34 @@ TYPE is either a symbol or a list of symbols of span types."
 
 (defun polymode-next-chunk (&optional N)
   "Go N chunks forwards.
-Return the number of actually moved over chunks."
+Return the number of actually moved over chunks. This command is
+a \"cycling\" command (see `polymode-next-chunk-same-type' for an
+example)."
   (interactive "p")
   (pm-goto-span-of-type '(nil body) N)
   ;; If head/tail end before eol we move to the next line
   (when (looking-at "\\s *$")
     (forward-line 1))
-  (pm-switch-to-buffer))
+  (pm--set-transient-map (list #'polymode-previous-chunk
+                               #'polymode-next-chunk)))
 
 ;;fixme: problme with long chunks .. point is recentered
 ;;todo: merge into next-chunk
 (defun polymode-previous-chunk (&optional N)
-  "Go N chunks backwards .
-Return the number of chunks jumped over."
+  "Go N chunks backwards.
+This command is a \"cycling\" command (see
+`polymode-next-chunk-same-type' for an example). Return the
+number of chunks jumped over."
   (interactive "p")
   (polymode-next-chunk (- N)))
 
 (defun polymode-next-chunk-same-type (&optional N)
   "Go to next N chunk.
-Return the number of chunks of the same type moved over."
+Return the number of chunks of the same type moved over. This
+command is a \"cycling\" command in the sense that you can repeat
+the basic key of the command to invoke it multiple times. For
+example, with the default polymode bindings, M-n C-M-n C-M-n
+C-M-p will move forward twice and backwards once."
   (interactive "p")
   (let* ((sofar 0)
          (back (< N 0))
@@ -174,6 +183,8 @@ Return the number of chunks of the same type moved over."
       (message "No more chunks of type %s" this-name)
       (ding)
       (goto-char pos))
+    (pm--set-transient-map (list #'polymode-previous-chunk-same-type
+                                 #'polymode-next-chunk-same-type))
     sofar))
 
 (defun polymode-previous-chunk-same-type (&optional N)

@@ -1059,6 +1059,21 @@ Used in advises."
 
 ;;; INTERNAL UTILITIES
 
+(defun pm--set-transient-map (commands)
+  "Set transient map with COMMANDS.
+COMMANDS is a list of commands which are bound to their
+accessible keys as well as the basic event of those keys. Used
+for \"cycling\" commands."
+  (let ((map (make-sparse-keymap)))
+    (mapc (lambda (cmd)
+            (mapc (lambda (vec)
+                    (define-key map vec cmd)
+                    (let ((basic-ev (elt vec (1- (length vec)))))
+                      (define-key map (vector basic-ev) cmd)))
+                  (where-is-internal cmd)))
+          commands)
+    (set-transient-map map)))
+
 (defvar polymode-display-output-file t
   "When non-nil automatically display output file in Emacs.
 This is temporary variable, it might be changed or removed in the
