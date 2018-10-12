@@ -151,24 +151,29 @@ Return the number of chunks of the same type moved over."
          (beg (if back (point-min) (point)))
          (end (if back (point) (point-max)))
          (N (if back (- N) N))
+         (pos (point))
          this-type this-name)
     (condition-case-unless-debug nil
         (pm-map-over-spans
          (lambda (span)
            (unless (memq (car span) '(head tail))
              (when (and (equal this-name
-                               (eieio-object-name (car (last span))))
+                               (eieio-object-name-string (car (last span))))
                         (eq this-type (car span)))
+               (setq pos (point))
                (setq sofar (1+ sofar)))
              (unless this-name
-               (setq this-name (eieio-object-name (car (last span)))
+               (setq this-name (eieio-object-name-string (car (last span)))
                      this-type (car span)))
              (when (>= sofar N)
                (signal 'quit nil))))
          beg end nil back)
       (quit (when (looking-at "\\s *$")
-              (forward-line)))
-      (pm-switch-to-buffer))
+              (forward-line))))
+    (when (or (eobp) (bobp))
+      (message "No more chunks of type %s" this-name)
+      (ding)
+      (goto-char pos))
     sofar))
 
 (defun polymode-previous-chunk-same-type (&optional N)
