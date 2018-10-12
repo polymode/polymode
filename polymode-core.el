@@ -615,16 +615,28 @@ is one of the following symbols:
     (when emacs-hook
       (run-hooks emacs-hook))))
 
-(defun pm--collect-parent-slots (object slot)
+(defun pm--collect-parent-slots (object slot &optional do-when inclusive)
   "Descend into parents of OBJECT and return a list of SLOT values.
-Returned list is in parent first order."
+Returned list is in parent first order. If non-nil DO-WHEN must
+be a function which would take an object and return non-nil if
+the recursion should descend into the parent. When nil, all
+parents are descended. If INCLUSIVE is non-nil, include the slot
+of the first object for which DO-WHEN failed."
   (let ((inst object)
-        (vals nil))
+        (vals nil)
+        (failed nil))
     (while inst
       (when (slot-boundp inst slot)
         (push (eieio-oref inst slot) vals))
-      (setq inst (and (slot-boundp inst :parent-instance)
-                      (eieio-oref inst 'parent-instance))))
+      (setq inst (and
+                  (or (null do-when)
+                      (if failed
+                          (progn (setq failed nil) t)
+                        (or (funcall do-when inst)
+                            (and inclusive
+                                 (setq failed t)))))
+                  (slot-boundp inst :parent-instance)
+                  (eieio-oref inst 'parent-instance))))
     vals))
 
 (defun pm--run-hooks (object slot &rest args)

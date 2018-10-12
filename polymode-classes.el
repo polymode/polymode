@@ -97,7 +97,11 @@ poly-minor-modes. ")
     :initform nil
     :custom (repeat symbol)
     :documentation
-    "List of inner-mode names (symbols) associated with this polymode.")
+    "List of inner-mode names (symbols) associated with this polymode.
+A special marker :inherit in this list is replaced with the
+innermodes of the parent. This allows for a simple way to add
+innermodes to the child without explicitly listing all the
+innermodes of the parent.")
    (exporters
     :initarg :exporters
     :initform '(pm-exporter/pandoc)

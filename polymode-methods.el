@@ -61,10 +61,16 @@ Ran by the polymode mode function."
             pm/type nil)
       (pm--common-setup)
       ;; Initialize innermodes
-      (oset config -innermodes
-            (mapcar (lambda (sub-name)
-                      (clone (symbol-value sub-name)))
-                    (eieio-oref config 'innermodes)))
+      (let* ((inner-syms (delete-dups
+                          (delq :inherit
+                                (apply #'append
+                                       (pm--collect-parent-slots
+                                        config 'innermodes
+                                        (lambda (obj) (memq :inherit (eieio-oref obj 'innermodes)))))))))
+        (oset config -innermodes
+              (mapcar (lambda (sub-name)
+                        (clone (symbol-value sub-name)))
+                      inner-syms)))
       ;; FIXME: must go into polymode-compat.el
       (add-hook 'flyspell-incorrect-hook
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
