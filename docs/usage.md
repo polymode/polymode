@@ -5,6 +5,12 @@ polymodes' maps.
 
 ## Navigation
 
+All polymode navigation commands are "cycling commands" in the sense that they
+can be invoked repeatedly with the press of the basic keys. For example, if the
+`polymode-minor-mode-map` is bound to the default <kbd>M-n</kbd> prefix, then
+the sequence <kbd>M-n C-n C-n C-p</kbd> will invoke `polymode-next-chunk` twice
+and `polymode-previous-chunk` once.
+
 Shortcut | Description
 ---------|-------------
 <kbd>C-n</kbd> | Move to next chunk (`polymode-next-chunk`) 
@@ -18,7 +24,7 @@ Shortcut | Description
 ---------|-------------
 <kbd>M-k</kbd> | Kill current chunk (`polymode-kill-chunk`) 
 <kbd>C-t</kbd> | Toggle narrowing of the body of current chunk (`polymode-toggle-chunk-narrowing`) 
-<kbd>M-m</kbd> | DWIM repeatedly mark or extend region (`polymode-mark-or-extend-chunk`) 
+<kbd>M-m</kbd> | DWIM repeatedly mark or extend region (`polymode-mark-or-extend-chunk`, a "cycling" command)
 
 ## Exporting, Weaving and Tangling
 
