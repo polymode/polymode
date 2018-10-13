@@ -8,12 +8,13 @@ minim veniam, quis nostrud exercitation ullamco laboris nisi ut
 aliquip ex ea commodo consequat. Duis aute irure dolor in
 reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
 pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum. `r a <- n-b`
+culpa qui officia deserunt mollit anim id est laborum. `r a <- 1+2`
 
 
 ```{r test1}
 1+1
-bla[[i]]
+a + 3
+iris[[2]]
 ```
 
 Sed ut perspiciatis unde omnis iste natus error sit voluptatem
@@ -31,7 +32,7 @@ ea voluptate velit esse quam nihil molestiae consequatur, vel illum
 qui dolorem eum fugiat quo voluptas nulla pariatur?
 
 ```{r test2, include = FALSE}
-2+2
+str(2+2)
 ```
 
 Non eram nescius, Brute, cum, quae summis ingeniis exquisitaque

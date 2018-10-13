@@ -38,3 +38,18 @@ Shortcut | Description
 <kbd>T</kbd> | ;; not implemented yet (`polymode-set-tangler`)
 <kbd>$</kbd> | Show the process buffer is something went wrong during the processing. (`polymode-show-process-buffer`)
 
+## Evaluation of Chunks
+
+Many Emacs modes provide interactive evaluation of code. The output of the
+evaluation is commonly directed into an inferior process buffer or directly into
+the source buffer (e.g. `org-mode`). Polymode provides a few generic commands in
+`polymode-eval-map` (<kbd>M-n v</kbd> by default) in order to facilitate
+evaluation of code in polymode buffers.
+
+Shortcut | Description
+---------|-------------
+<kbd>v</kbd> | Eval all inner chunks in a region if region is active or the current chunk at point (`polymode-eval-region-or-chunk`)
+<kbd>b</kbd> | Eval all inner chunks in a buffer (`polymode-eval-buffer`)
+<kbd>u/<up></kbd> | Eval from beginning of buffer till point (`polymode-eval-buffer-from-beg-to-point`)
+<kbd>d/<down></kbd> | Eval from point till end of buffer (`polymode-eval-buffer-from-point-to-end`)
+

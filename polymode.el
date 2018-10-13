@@ -58,6 +58,8 @@ Not effective after loading the polymode library."
   (let ((map (make-sparse-keymap)))
     (define-key map polymode-prefix-key
       (let ((map (make-sparse-keymap)))
+        ;; eval
+        (define-key map "v" 'polymode-eval-map)
         ;; navigation
         (define-key map "\C-n" 'polymode-next-chunk)
         (define-key map "\C-p" 'polymode-previous-chunk)
@@ -99,7 +101,7 @@ Not effective after loading the polymode library."
 (defvaralias 'polymode-mode-map 'polymode-minor-mode-map)
 
 
-;;; COMMANDS
+;;; NAVIGATION
 
 (defun pm-goto-span-of-type (type N)
   "Skip to N - 1 spans of TYPE and stop at the start of a span of TYPE.
@@ -193,6 +195,9 @@ Return the number of chunks of the same type moved over."
   (interactive "p")
   (polymode-next-chunk-same-type (- N)))
 
+
+;;; KILL and NARROWING
+
 (defun pm--kill-span (types)
   (let ((span (pm-innermost-span)))
     (when (memq (car span) types)
@@ -235,6 +240,7 @@ Return the number of chunks of the same type moved over."
       (_ (pm-narrow-to-span)))))
 
 (defun pm-chunk-range (&optional pos)
+  "Return a range (BEG . END) for a chunk at POS."
   (setq pos (or pos (point)))
   (let ((span (pm-innermost-span pos))
         (pmin (point-min))
@@ -323,6 +329,109 @@ is bound on \"M-n M-m\" (the default)
         (pop-to-buffer buf `(nil . ((inhibit-same-window . ,pop-up-windows))))
       (message "No polymode process buffers found."))))
 
+
+;;; EVALUATION
+
+(defvar polymode-eval-map
+  (let (polymode-eval-map)
+    (define-prefix-command 'polymode-eval-map)
+    (define-key polymode-eval-map "v" #'polymode-eval-region-or-chunk)
+    (define-key polymode-eval-map "b" #'polymode-eval-buffer)
+    (define-key polymode-eval-map "u" #'polymode-eval-buffer-from-beg-to-point)
+    (define-key polymode-eval-map "d" #'polymode-eval-buffer-from-point-to-end)
+    (define-key polymode-eval-map (kbd "<up>") #'polymode-eval-buffer-from-beg-to-point)
+    (define-key polymode-eval-map (kbd "<down>") #'polymode-eval-buffer-from-point-to-end)
+    polymode-eval-map)
+  "Keymap for polymode evaluation commands.")
+
+(defvar-local polymode-eval-region-function nil
+  "Function taking three arguments which does mode specific evaluation.
+First two arguments are BEG and END of the region. The third
+argument is the message describing the evaluation type. If the
+value of this variable is non-nil in the host mode then all inner
+spans are evaluated within the host buffer and values of this
+variable for the inner modes are ignored.")
+
+(defun polymode-eval-region (beg end &optional msg)
+  "Eval all spans within region defined by BEG and END.
+MSG is a message to be passed to `polymode-eval-region-function';
+defaults to \"Eval region\"."
+  (interactive "r")
+  (save-excursion
+    (let* ((base (pm-base-buffer))
+           (host-fun (buffer-local-value 'polymode-eval-region-function base))
+           (msg (or msg "Eval region"))
+           evalled mapped)
+      (if host-fun
+          (pm-map-over-spans
+           (lambda (span)
+             (when (eq (car span) 'body)
+               (with-current-buffer base
+                 (funcall host-fun (max beg (nth 1 span)) (min end (nth 2 span)) msg))))
+           beg end)
+        (pm-map-over-spans
+         (lambda (span)
+           (when (eq (car span) 'body)
+             (setq mapped t)
+             (when polymode-eval-region-function
+               (setq evalled t)
+               (funcall polymode-eval-region-function
+                        (max beg (nth 1 span))
+                        (min end (nth 2 span))
+                        msg))))
+         beg end)
+        (unless mapped
+          (user-error "No inner spans in the region"))
+        (unless evalled
+          (user-error "None of the inner spans have `polymode-eval-region-function' defined"))))))
+
+(defun polymode-eval-chunk (span-or-pos &optional no-error)
+  "Eval the body span of the inner chunk at point.
+SPAN-OR-POS is either a span or a point. When NO-ERROR is
+non-nil, don't throw if `polymode-eval-region-function' is nil."
+  (interactive "d")
+  (let* ((span (if (number-or-marker-p span-or-pos)
+                   (pm-innermost-span span-or-pos)
+                 span-or-pos))
+         (body-span (pcase (car span)
+                      ('head (pm-innermost-span (nth 2 span)))
+                      ('tail (pm-innermost-span (1- (nth 1 span))))
+                      ('body span)
+                      (_ (user-error "Not in an inner chunk"))))
+         (base (pm-base-buffer))
+         (host-fun (buffer-local-value 'polymode-eval-region-function base))
+         (msg "Eval chunk"))
+    (save-excursion
+      (pm-set-buffer body-span)
+      (if host-fun
+          (with-current-buffer base
+            (funcall host-fun (nth 1 body-span) (nth 2 body-span) msg))
+        (if polymode-eval-region-function
+            (funcall polymode-eval-region-function (nth 1 body-span) (nth 2 body-span) msg)
+          (unless no-error
+            (error "Undefined `polymode-eval-region-function' in buffer %s" (current-buffer))))))))
+
+(defun polymode-eval-region-or-chunk ()
+  "Eval all inner chunks in region if active, or current chunk otherwise."
+  (interactive)
+  (if (use-region-p)
+      (polymode-eval-region (region-beginning) (region-end))
+    (polymode-eval-chunk (point))))
+
+(defun polymode-eval-buffer ()
+  "Eval all inner chunks in the buffer."
+  (interactive)
+  (polymode-eval-region (point-min) (point-max) "Eval buffer"))
+
+(defun polymode-eval-buffer-from-beg-to-point ()
+  "Eval all inner chunks from beginning of buffer till point."
+  (interactive)
+  (polymode-eval-region (point-min) (point) "Eval buffer till point"))
+
+(defun polymode-eval-buffer-from-point-to-end ()
+  "Eval all inner chunks from point to the end of buffer."
+  (interactive)
+  (polymode-eval-region (point) (point-max) "Eval buffer till end"))
 
 
 ;;; DEFINE
