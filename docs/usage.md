@@ -50,6 +50,6 @@ Shortcut | Description
 ---------|-------------
 <kbd>v</kbd> | Eval all inner chunks in a region if region is active or the current chunk at point (`polymode-eval-region-or-chunk`)
 <kbd>b</kbd> | Eval all inner chunks in a buffer (`polymode-eval-buffer`)
-<kbd>u/<up></kbd> | Eval from beginning of buffer till point (`polymode-eval-buffer-from-beg-to-point`)
-<kbd>d/<down></kbd> | Eval from point till end of buffer (`polymode-eval-buffer-from-point-to-end`)
+<kbd>u</kbd> or <kbd>↑</kbd> | Eval from beginning of buffer till point (`polymode-eval-buffer-from-beg-to-point`)
+<kbd>d</kbd> or <kbd>↓</kbd> | Eval from point till end of buffer (`polymode-eval-buffer-from-point-to-end`)
 
