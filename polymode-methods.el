@@ -337,36 +337,47 @@ in this case."
 	    (indent-line-to column)
 	  (save-excursion (indent-line-to column)))))
 
-(defun pm--indent-line-raw (span)
+(defun pm--indent-raw (span fn-sym &rest args)
   (let ((point (point)))
     ;; do fast synchronization here
     (save-current-buffer
       (pm-set-buffer span)
       (goto-char point)
-      (when pm--indent-line-function-original
-        (if (eieio-oref (nth 3 span) 'protect-indent)
-            (pm-with-narrowed-to-span span
-              (funcall pm--indent-line-function-original))
-          (funcall pm--indent-line-function-original)))
+      (let ((fn (symbol-function fn-sym)))
+        (when fn
+          (if (eieio-oref (nth 3 span) 'protect-indent)
+              (pm-with-narrowed-to-span span
+                (apply fn args))
+            (apply fn args))))
       (setq point (point)))
     (goto-char point)))
+
+(defun pm--indent-line-raw (span)
+  (pm--indent-raw span #'pm--indent-line-function-original))
+
+(defun pm--indent-region-raw (span beg end)
+  (pm--indent-raw span #'pm--indent-region-function-original beg end))
 
 (defun pm-indent-region (beg end)
   "Indent region between BEG and END in polymode buffers.
 Function used for `indent-region-function'."
   ;; (message "(pm-indent-region %d %d)" beg end)
   ;; cannot use pm-map-over-spans here because of the buffer modifications
-  (let ((inhibit-point-motion-hooks t))
+  (let ((inhibit-point-motion-hooks t)
+        (end (copy-marker end)))
     (save-excursion
       (while (< beg end)
-        (let ((span (pm-innermost-span beg)))
+        (let ((span (pm-innermost-span beg 'no-cache)))
           (let ((end1 (copy-marker (min (nth 2 span) end))))
             (goto-char beg)
-            (while (and (not (eobp))
-                        (< (point-at-bol) end1))
-              (pm-indent-line (nth 3 span) span)
-              (forward-line 1))
-            (setq beg (point))))))))
+            ;; indent first line separately
+            (pm-indent-line (nth 3 span) span)
+            (beginning-of-line 2)
+            (when (< (point) end1)
+              ;; we know that span end was moved, hard reset without recomputation
+              (setf (nth 2 span) end1)
+              (pm--indent-region-raw span (point) end1))
+            (setq beg (max end1 (point)))))))))
 
 (defun pm-indent-line-dispatcher (&optional span)
   "Dispatch `pm-indent-line' methods on current SPAN.

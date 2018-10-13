@@ -880,7 +880,7 @@ region. Buffer is *not* narrowed to the region."
 
 
 ;;; HOOKS
-;; In addition to these hooks there is `poly-lock-after-change' in poly-lock.el
+;; There is also `poly-lock-after-change' in poly-lock.el
 
 (defun polymode-pre-command-synchronize-state ()
   "Synchronize state between buffers.
