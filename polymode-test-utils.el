@@ -347,5 +347,24 @@ points."
            (pm-test--run-indentation-tests)
          (undo-boundary)))))
 
+(defmacro pm-test-file-indent (mode file-no-indent file-with-indent)
+  `(pm-test-run-on-file ,mode ,file-no-indent
+     (let ((right (with-current-buffer (find-file-noselect
+                                        (pm-test-get-file ,file-with-indent))
+                    (substring-no-properties (buffer-string)))))
+       (indent-region (point-min) (point-max))
+       (let ((new (substring-no-properties (buffer-string))))
+         (unless (string= right new)
+           (require 'pascal)
+           (let ((pos (1+ (pascal-string-diff right new))))
+             (ert-fail (list "Wrong indent" :pos pos
+                             :ref (with-temp-buffer
+                                    (insert right)
+                                    (goto-char pos)
+                                    (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+                             :new (progn
+                                    (goto-char pos)
+                                    (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))))))
+
 (provide 'polymode-test-utils)
 ;;; polymode-test.el ends here
