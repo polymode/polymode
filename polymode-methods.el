@@ -368,14 +368,15 @@ Function used for `indent-region-function'."
     (save-excursion
       (while (< beg end)
         (let ((span (pm-innermost-span beg 'no-cache)))
-          (let ((end1 (copy-marker (min (nth 2 span) end))))
+          (let* ((end-span (copy-marker (nth 2 span)))
+                 (end1 (min end end-span)))
             (goto-char beg)
             ;; indent first line separately
             (pm-indent-line (nth 3 span) span)
             (beginning-of-line 2)
             (when (< (point) end1)
               ;; we know that span end was moved, hard reset without recomputation
-              (setf (nth 2 span) end1)
+              (setf (nth 2 span) end-span)
               (pm--indent-region-raw span (point) end1))
             (setq beg (max end1 (point)))))))))
 
