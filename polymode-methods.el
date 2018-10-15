@@ -343,7 +343,7 @@ in this case."
     (save-current-buffer
       (pm-set-buffer span)
       (goto-char point)
-      (let ((fn (symbol-function fn-sym)))
+      (let ((fn (symbol-value fn-sym)))
         (when fn
           (if (eieio-oref (nth 3 span) 'protect-indent)
               (pm-with-narrowed-to-span span
