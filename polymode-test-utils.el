@@ -350,8 +350,9 @@ points."
 (defmacro pm-test-file-indent (mode file-no-indent file-with-indent)
   `(pm-test-run-on-file ,mode ,file-no-indent
      (let ((right (with-current-buffer (find-file-noselect
-                                        (pm-test-get-file ,file-with-indent))
-                    (substring-no-properties (buffer-string)))))
+                                        ,(pm-test-get-file file-with-indent))
+                    (substring-no-properties (buffer-string))))
+           (inhibit-message t))
        (indent-region (point-min) (point-max))
        (let ((new (substring-no-properties (buffer-string))))
          (unless (string= right new)
