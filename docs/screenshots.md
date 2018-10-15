@@ -1,15 +1,9 @@
 
 ## Screenshots
 
-### Slim
-
-<img src="../img/slim.png" width="500px"/>
-
-### Markdown+R
+### Markdown
 
 <img src="../img/Rmd.png" width="500px"/>
-
-### Markdown+R+YAML
 
 <img src="../img/rapport.png" width="500px"/>
 
