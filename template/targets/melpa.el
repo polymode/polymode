@@ -16,12 +16,28 @@
       package-user-dir (expand-file-name (format ".ELPA/%s" emacs-version))
       package-archives '(("melpa" . "https://melpa.org/packages/")))
 
-(package-initialize)
+(defun package-desc-new (name)
+  (cadr (assq name package-archive-contents)))
 
-(let ((refreshed nil))
-  (dolist (package package-deps)
-    (unless (package-installed-p package)
-      (unless refreshed
-        (package-refresh-contents)
-        (setq refreshed t))
-      (package-install package))))
+(defun package-outdated-p (name)
+  (let ((old-version (package-desc-version (cadr (assq name package-alist))))
+        (new-version (package-desc-version (cadr (assq name package-archive-contents)))))
+    (and (listp old-version) (listp new-version)
+         (version-list-< old-version new-version))))
+
+(package-initialize)
+(package-refresh-contents)
+
+(dolist (package package-deps)
+  (if (package-installed-p package)
+      (when (package-outdated-p package)
+        (package-install-from-archive (cadr (assq package package-archive-contents))))
+    (package-install package)))
+
+(message "INSTALLED DEPS: %s"
+         (mapconcat
+          (lambda (pkg)
+            (format "%s:%S" pkg
+                    (package-desc-version (cadr (assq pkg package-archive-contents)))))
+          package-deps
+          " "))

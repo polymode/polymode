@@ -44,14 +44,14 @@ melpa: version
 
 elpa: melpa
 
-start: version
+start: version melpa
 	$(EMACSRUN) -L . \
-		--load targets/melpa.el
+		--load targets/melpa-init.el \
 		--load tests/*.el
 
 test: version
 	@echo "******************* TESTING $(MODULE) **************************"
-	@$(EMACSBATCH) --load targets/melpa.el --load targets/test.el
+	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
 
 version:
 	@echo "EMACS VERSION: $(EMACS_VERSION)"

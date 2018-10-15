@@ -1,2 +1,2 @@
-(markdown-mode yaml-mode rust-mode
+(ess markdown-mode yaml-mode rust-mode
   coffee-mode markdown-mode slim-mode)
