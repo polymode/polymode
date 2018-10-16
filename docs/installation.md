@@ -1,5 +1,5 @@
 
-*!! Polymode required Emacs version 25.1 or higher!!*
+*!! Polymode requires Emacs version 26.1 or higher!!*
 
 ## Via package.el
 
