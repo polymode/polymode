@@ -681,20 +681,17 @@ switch."
       ;; (message (pm--debug-info span))
       (pm--reset-ppss-last span))
     (when visibly
-      ;; always synchronize points to avoid interference from tooling working in
-      ;; different buffers
+      ;; always sync to avoid issues with tooling working in different buffers
       (pm--synchronize-points (current-buffer)))
     ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
     ;; no further action if BUFFER is already the current buffer
-    (when (and (not (eq buffer (current-buffer)))
-               (buffer-live-p buffer))
+    (unless (eq buffer (current-buffer))
       (let ((base (pm-base-buffer)))
         (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
         (pm--move-vars pm-move-vars-from-base base buffer))
       (if visibly
           ;; slow, visual selection
           (pm--select-existing-buffer-visibly buffer)
-        ;; fast set-buffer
         (set-buffer buffer)))))
 
 (defvar text-scale-mode)
@@ -884,7 +881,7 @@ region. Buffer is *not* narrowed to the region."
 
 (defun polymode-pre-command-synchronize-state ()
   "Synchronize state between buffers.
-Currently point only."
+Currently synchronize points only. Runs in local `pre-command-hook'."
   (pm--synchronize-points (current-buffer)))
 
 (defun polymode-post-command-select-buffer ()
@@ -1038,6 +1035,7 @@ Used in advises."
 
 (defvar syntax-ppss-wide)
 (defvar syntax-ppss-last)
+(defvar syntax-ppss-cache)
 (defun pm--reset-ppss-last (span)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
   ;; host chunk is special; body chunks with nested inner chunks should be
@@ -1057,16 +1055,19 @@ Used in advises."
                   (setq pos (nth 1 prev-span)))))))))
     (unless new-ppss
       (setq new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
-    (if pm--emacs>26
-        ;; in emacs 26 there are two caches syntax-ppss-wide and
-        ;; syntax-ppss-narrow. The latter is reset automatically each time a
-        ;; different narrowing is in place so we don't deal with it for now.
-        (let ((cache (cdr syntax-ppss-wide)))
-          (while (and cache (>= (caar cache) sbeg))
-            (setq cache (cdr cache)))
-          (setq cache (cons new-ppss cache))
-          (setq syntax-ppss-wide (cons new-ppss cache)))
-      (setq syntax-ppss-last new-ppss))))
+    ;; in emacs 26 there are two caches syntax-ppss-wide and
+    ;; syntax-ppss-narrow. The latter is reset automatically each time a
+    ;; different narrowing is in place so we don't deal with it for now.
+    (let ((cache (if pm--emacs>26
+                     (cdr syntax-ppss-wide)
+                   syntax-ppss-cache)))
+      (while (and cache (>= (caar cache) sbeg))
+        (setq cache (cdr cache)))
+      (setq cache (cons new-ppss cache))
+      (if pm--emacs>26
+          (setq syntax-ppss-wide (cons new-ppss cache))
+        (setq syntax-ppss-cache cache)
+        (setq syntax-ppss-last new-ppss)))))
 
 
 ;;; INTERNAL UTILITIES
