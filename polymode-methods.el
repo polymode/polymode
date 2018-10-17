@@ -141,7 +141,10 @@ initialized. Return the buffer."
                     #'pm--indent-line-basic
                   indent-line-function))
     (setq-local indent-line-function #'pm-indent-line-dispatcher)
-    (setq-local pm--indent-region-function-original indent-region-function)
+    (setq-local pm--indent-region-function-original
+                (if (memq indent-region-function '(nil indent-region-line-by-line))
+                    #'pm--indent-region-line-by-line
+                  indent-region-function))
     (setq-local indent-region-function #'pm-indent-region)
 
     ;; SYNTAX
@@ -325,6 +328,21 @@ in this case."
 
 ;;; INDENT
 
+;; indent-region-line-by-line for polymode buffers (more efficient, works on
+;; emacs 25, no progress reporter)
+(defun pm--indent-region-line-by-line (start end)
+  (save-excursion
+    ;; called from pm--indent-raw; so we know we are in the same span with
+    ;; buffer set and narrowed to span if 'protect-indent is non-nil
+    (let ((span (pm-innermost-span start)))
+      (setq end (copy-marker end))
+      (goto-char start)
+      (while (< (point) end)
+        (unless (and (bolp) (eolp))
+          (pm-indent-line (nth 3 span) span))
+        (forward-line 1))
+      (move-marker end nil))))
+
 (defun pm--indent-line-basic ()
   "Used as `indent-line-function' for modes with tab indent."
   ;; adapted from indent-according-to-mode
@@ -338,6 +356,7 @@ in this case."
 	  (save-excursion (indent-line-to column)))))
 
 (defun pm--indent-raw (span fn-sym &rest args)
+  ;; fixme: do save-excursion instead of this?
   (let ((point (point)))
     ;; do fast synchronization here
     (save-current-buffer
@@ -378,7 +397,8 @@ Function used for `indent-region-function'."
               ;; we know that span end was moved, hard reset without recomputation
               (setf (nth 2 span) end-span)
               (pm--indent-region-raw span (point) end1))
-            (setq beg (max end1 (point)))))))))
+            (setq beg (max end1 (point)))))))
+    (move-marker end nil)))
 
 (defun pm-indent-line-dispatcher (&optional span)
   "Dispatch `pm-indent-line' methods on current SPAN.
@@ -478,27 +498,27 @@ to indent."
       (when (and (= (point) (point-at-bol))
                  (not (bobp)))
         (backward-char 1))
-      (let ((eol (point-at-eol)))
-        (skip-chars-forward " \t\n")
-        (when (and (< eol (point))
-                   (< (point-at-eol) pos))
-          (- (point) (point-at-bol)))))))
+      (skip-chars-forward " \t\n")
+      (when (< (point-at-eol) pos)
+        (- (point) (point-at-bol))))))
 
-;; SPAN is a body span
+;; SPAN is a body span; do nothing if narrowed to body
 (defun pm--head-indent (&optional span)
-  (save-excursion
-    (let ((sbeg (nth 1 (or span (pm-innermost-span)))))
-      (goto-char sbeg)
-      (backward-char 1)
-      (let ((head-span (pm-innermost-span)))
-        (if (eq (car head-span) 'head)
-            (goto-char (nth 1 head-span))
-          ;; body span is not preceded by a head span. We don't have such
-          ;; practical cases yet, but headless spans are real - indented blocks
-          ;; for instance.
-          (goto-char sbeg)))
-      (back-to-indentation)
-      (- (point) (point-at-bol)))))
+  (save-restriction
+    (widen)
+    (save-excursion
+      (let ((sbeg (nth 1 (or span (pm-innermost-span)))))
+        (goto-char sbeg)
+        (backward-char 1)
+        (let ((head-span (pm-innermost-span)))
+          (if (eq (car head-span) 'head)
+              (goto-char (nth 1 head-span))
+            ;; body span is not preceded by a head span. We don't have such
+            ;; practical cases yet, but headless spans are real - indented blocks
+            ;; for instance.
+            (goto-char sbeg)))
+        (back-to-indentation)
+        (- (point) (point-at-bol))))))
 
 
 ;;; FACES
