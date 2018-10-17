@@ -98,21 +98,22 @@
     :type list
     :custom list
     :documentation
-    "Output specifications alist. Each element is either a list
+    "
+     Output specifications alist. Each element is either a list
      of the form (id ext doc t-spec) or a cons (id . selector).
 
-     In the former case EXT is an extension of the output
-     file. DOC is a short documentation string. t-spec is a
-     string what is substituted instead of %t in :from spec
-     commmand. `t-spec' can be a list of one element '(command),
-     in which case the whole :from spec command is substituted
-     with command from %t-spec.
+     In the former case EXT is an extension of the output file.
+     DOC is a short documentation string. t-spec is a string what
+     is substituted instead of %t in :from spec commmand.
+     `t-spec' can be a list of one element '(command), in which
+     case the whole :from spec command is substituted with
+     command from %t-spec.
 
      When specification is of the form (id . selector), SELECTOR
-     is a function of variable arguments that accepts at least
-     one argument ACTION. This function is called in a buffer
-     visiting input file. ACTION is a symbol and can one of the
-     following:
+     is a function of variable arguments with first two arguments
+     being ACTION and ID of the specification. This function is
+     called in a buffer visiting input file. ACTION is a symbol
+     and can one of the following:
 
          output-file - return an output file name or a list of file
            names. Receives input-file as argument. If this
@@ -128,10 +129,10 @@
            file name, a list of file names or nil if no such
            files have been detected.
 
-         ext - extension of output file. If nil and
-           `output' also returned nil, the exporter won't be able
-           to identify the output file and no automatic display
-           or preview will be available.
+         ext - extension of output file. If nil and `output-file'
+           also returned nil, the exporter won't be able to
+           identify the output file and no automatic display or
+           preview will be available.
 
          doc - return documentation string
 
@@ -242,12 +243,12 @@ When called with prefix argument, ask for FROM and TO
 interactively. See constructor function ‘pm-exporter’ for the
 complete specification."
   (interactive "P")
-  (cl-flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext))
+  (cl-flet ((to-name.id (el) (let* ((ext (funcall (cdr el) 'ext (car el)))
                                     (name (if ext
-                                              (format "%s (%s)" (funcall (cdr el) 'doc) ext)
-                                            (funcall (cdr el) 'doc))))
+                                              (format "%s (%s)" (funcall (cdr el) 'doc (car el)) ext)
+                                            (funcall (cdr el) 'doc (car el)))))
                                (cons name (car el))))
-            (from-name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
+            (from-name.id (el) (cons (funcall (cdr el) 'doc (car el)) (car el))))
     (let* ((exporter (symbol-value (or (eieio-oref pm/polymode 'exporter)
                                        (polymode-set-exporter))))
            (fname (file-name-nondirectory buffer-file-name))
@@ -265,7 +266,7 @@ complete specification."
 
                ;; 2. select :from entries which match to current file
                (let ((matched (cl-loop for el in (pm--selectors exporter :from)
-                                       when (pm--selector-match (cdr el))
+                                       when (pm--selector-match el)
                                        collect (from-name.id el))))
                  (when matched
                    (if (> (length matched) 1)
@@ -285,7 +286,7 @@ complete specification."
                                         if (string-match-p (nth 1 w) fname)
                                         return (cl-loop for el in (pm--selectors exporter :from)
                                                         ;; input exporter extensnion matches weaver output extension
-                                                        when (pm--selector-match (cdr el) (concat "dummy." (nth 2 w)))
+                                                        when (pm--selector-match el (concat "dummy." (nth 2 w)))
                                                         return (cons (car w) (car el))))))
                      (when pair
                        (message "Matching weaver found. Weaving to '%s' first." (car pair))

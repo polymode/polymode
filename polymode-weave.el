@@ -50,7 +50,8 @@
     :type list
     :custom list
     :documentation
-    "Input-output specifications. An alist with elements of the
+    "
+    Input-output specifications. An alist with elements of the
     form (id reg-from ext-to doc command) or (id . selector).
 
      In both cases ID is the unique identifier of the spec. In
@@ -69,10 +70,10 @@
          %t - 4th element of the :to spec
 
      When specification is of the form (id . selector), SELECTOR
-     is a function of variable arguments that accepts at least
-     one argument ACTION. This function is called in a buffer
-     visiting input file. ACTION is a symbol and can one of the
-     following:
+     is a function of variable arguments with first two arguments
+     being ACTION and ID of the specification. This function is
+     called in a buffer visiting input file. ACTION is a symbol
+     and can one of the following:
 
          match - must return non-nil if this specification
              applies to the file that current buffer is visiting,
@@ -213,7 +214,7 @@ When `from-to' is universal argument ask user for specification
 for the specification. See also `pm-weaveer' for the complete
 specification."
   (interactive "P")
-  (cl-flet ((name.id (el) (cons (funcall (cdr el) 'doc) (car el))))
+  (cl-flet ((name.id (el) (cons (funcall (cdr el) 'doc (car el)) (car el))))
     (let* ((weaver (symbol-value (or (eieio-oref pm/polymode 'weaver)
                                      (polymode-set-weaver))))
            (case-fold-search t)
@@ -229,7 +230,7 @@ specification."
 
                ;; 2. select :from entries which match to current file
                (let ((matched (cl-loop for el in (pm--selectors weaver :from-to)
-                                       when (pm--selector-match (cdr el))
+                                       when (pm--selector-match el)
                                        collect (name.id el))))
                  (when matched
                    (if (> (length matched) 1)

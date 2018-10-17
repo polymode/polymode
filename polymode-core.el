@@ -1288,10 +1288,10 @@ By default BUFFER is the buffer where `pm/current' is t."
   (if (and (listp collection)
            (listp (car collection)))
       (let* ((candidates (mapcar #'car collection))
-             (thist (and hist
-                         (delq nil (mapcar (lambda (x) (car (member x candidates)))
-                                           (symbol-value hist)))))
-             (def (or def (car thist))))
+             (thirst (and hist
+                          (delq nil (mapcar (lambda (x) (car (member x candidates)))
+                                            (symbol-value hist)))))
+             (def (or def (car thirst) (car candidates))))
         (assoc (completing-read prompt candidates predicate t initial-input hist def inherit-input-method)
                collection))
     (completing-read prompt collection predicate require-match initial-input hist def inherit-input-method)))
@@ -1412,11 +1412,11 @@ By default BUFFER is the buffer where `pm/current' is t."
 (fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "weaving"))
 
 (defun pm--make-selector (specs elements)
-  (cond ((listp elements)
+  (cond ((functionp elements) elements)
+        ((listp elements)
          (let ((spec-alist (cl-mapcar #'cons specs elements)))
            (lambda (selsym &rest _ignore)
              (cdr (assoc selsym spec-alist)))))
-        ((functionp elements) elements)
         (t (error "Elements argument must be either a list or a function"))))
 
 (defun pm--selector (processor type id)
@@ -1430,24 +1430,26 @@ By default BUFFER is the buffer where `pm/current' is t."
                 ;; weaver slot
                 ((eq type :from-to) '(regexp ext doc command))
                 (t (error "Invalid type '%s'" type)))))
-    (pm--make-selector names (cdr spec))))
+    (cons id (pm--make-selector names (cdr spec)))))
 
-(defun pm--selector-match (selector &optional file)
-  (or (funcall selector 'match file)
-      (string-match-p (funcall selector 'regexp)
-                      (or file buffer-file-name))))
+(defun pm--selector-match (el &optional file)
+  (let ((id (car el)))
+    (or (funcall (cdr el) 'match id file)
+        (string-match-p (funcall (cdr el) 'regexp id)
+                        (or file buffer-file-name)))))
 
 (defun pm--selectors (processor type)
   (let ((ids (mapcar #'car (eieio-oref processor type))))
-    (mapcar (lambda (id) (cons id (pm--selector processor type id))) ids)))
+    (mapcar (lambda (id) (pm--selector processor type id)) ids)))
 
 (defun pm--output-command.file (output-file-format sfrom &optional sto quote)
   ;; !!Must be run in input buffer!!
   (cl-flet ((squote (arg) (or (and (stringp arg)
                                    (if quote (shell-quote-argument arg) arg))
                               "")))
-    (let* ((base-ofile (or (funcall (or sto sfrom) 'output-file)
-                           (let ((ext (funcall (or sto sfrom) 'ext)))
+    (let* ((el (or sto sfrom))
+           (base-ofile (or (funcall (cdr el) 'output-file (car el))
+                           (let ((ext (funcall (cdr el) 'ext (car el))))
                              (when ext
                                (concat (format output-file-format
                                                (file-name-base buffer-file-name))
@@ -1456,10 +1458,10 @@ By default BUFFER is the buffer where `pm/current' is t."
                        (expand-file-name base-ofile)))
            (oname (and (stringp base-ofile)
                        (file-name-base base-ofile)))
-           (t-spec (and sto (funcall sto 't-spec)))
-           (command-w-formats (or (and sto (funcall sto 'command))
+           (t-spec (and sto (funcall (cdr sto) 't-spec (car sto))))
+           (command-w-formats (or (and sto (funcall (cdr sto) 'command (car sto)))
                                   (and (listp t-spec) (car t-spec))
-                                  (funcall sfrom 'command)))
+                                  (funcall (cdr sfrom) 'command (car sfrom))))
            (command (format-spec command-w-formats
                                  (list (cons ?i (squote (file-name-nondirectory buffer-file-name)))
                                        (cons ?I (squote buffer-file-name))
