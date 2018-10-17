@@ -964,6 +964,7 @@ Used in advises."
 
 (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
+(pm-around-advice #'write-file #'polymode-with-current-base-buffer)
 ;; (advice-remove #'kill-buffer #'polymode-with-current-base-buffer)
 ;; (advice-remove #'find-alternate-file #'polymode-with-current-base-buffer)
 
