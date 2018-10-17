@@ -679,7 +679,7 @@ switch."
   (let ((buffer (pm-span-buffer span)))
     (with-current-buffer buffer
       ;; (message (pm--debug-info span))
-      (pm--reset-ppss-last span))
+      (pm--reset-ppss-cache span))
     (when visibly
       ;; always sync to avoid issues with tooling working in different buffers
       (pm--synchronize-points (current-buffer)))
@@ -865,7 +865,7 @@ region. Buffer is *not* narrowed to the region."
       (let ((sbeg (nth 1 span))
             (send (nth 2 span)))
         (unless pm--emacs>26
-          (pm--reset-ppss-last span))
+          (pm--reset-ppss-cache span))
         (narrow-to-region sbeg send)))))
 
 (defmacro pm-with-narrowed-to-span (span &rest body)
@@ -904,7 +904,7 @@ This function is placed in `before-change-functions' hook."
   (dolist (buff (oref pm/polymode -buffers))
     (when (buffer-live-p buff)
       (with-current-buffer buff
-        ;; now `syntax-ppss-flush-cache is harmless, but who knows in the future.
+        ;; micro-optimization to avoid calling the flush twice
         (when (memq 'syntax-ppss-flush-cache before-change-functions)
           (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
         (syntax-ppss-flush-cache beg end)
@@ -967,8 +967,8 @@ Used in advises."
 
 (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
-;; (advice-remove #'kill-buffer #'pm-with-current-base-buffer)
-;; (advice-remove #'find-alternate-file #'pm-with-current-base-buffer)
+;; (advice-remove #'kill-buffer #'polymode-with-current-base-buffer)
+;; (advice-remove #'find-alternate-file #'polymode-with-current-base-buffer)
 
 
 ;;; SYNTAX
@@ -1017,32 +1017,17 @@ Used in advises."
                      (pm--call-syntax-propertize-original pos0 pos1)))))
            start end))))))
 
-(defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
-  (if (and polymode-mode pm/polymode)
-      (let ((span (pm-innermost-span beg)))
-        (if (eieio-oref (nth 3 span) 'protect-syntax)
-            (let ((range (pm-span-to-range span)))
-              (if (and (eq beg (car range))
-                       (eq end (cdr range)))
-                  ;; in the most common case when span == beg-end, simply return
-                  range
-                (let ((be (funcall orig-fun beg end)))
-                  (and be
-                       (cons (max (car be) (car range))
-                             (min (cdr be) (cdr range)))))))
-          (funcall orig-fun beg end)))
-    (funcall orig-fun beg end)))
-
 (defvar syntax-ppss-wide)
 (defvar syntax-ppss-last)
 (defvar syntax-ppss-cache)
-(defun pm--reset-ppss-last (span)
+(defun pm--reset-ppss-cache (span)
   "Reset `syntax-ppss-last' cache if it was recorded before SPAN's start."
-  ;; host chunk is special; body chunks with nested inner chunks should be
-  ;; treated the same but no practical example showed so far
   (let ((sbeg (nth 1 span))
         new-ppss)
     (unless (car span)
+      ;; Host chunk is special. Pick ppss from end of last span. Body chunks
+      ;; with nested inner chunks should be treated the same but no practical
+      ;; example showed so far.
       (save-restriction
         (widen)
         (save-excursion
@@ -1067,7 +1052,34 @@ Used in advises."
       (if pm--emacs>26
           (setq syntax-ppss-wide (cons new-ppss cache))
         (setq syntax-ppss-cache cache)
-        (setq syntax-ppss-last new-ppss)))))
+        (setq syntax-ppss-last new-ppss)))
+    new-ppss))
+
+
+(defun polymode-reset-ppss-cache (&optional pos)
+  "Reset syntax-ppss cache in polymode buffers.
+Used in :before advice of `syntax-ppss'."
+  (when (and polymode-mode pm/polymode)
+    (pm--reset-ppss-cache (pm-innermost-span pos))))
+
+;; (unless pm--emacs>26
+;;   (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache))
+
+;; (defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
+;;   (if (and polymode-mode pm/polymode)
+;;       (let ((span (pm-innermost-span beg)))
+;;         (if (eieio-oref (nth 3 span) 'protect-syntax)
+;;             (let ((range (pm-span-to-range span)))
+;;               (if (and (eq beg (car range))
+;;                        (eq end (cdr range)))
+;;                   ;; in the most common case when span == beg-end, simply return
+;;                   range
+;;                 (let ((be (funcall orig-fun beg end)))
+;;                   (and be
+;;                        (cons (max (car be) (car range))
+;;                              (min (cdr be) (cdr range)))))))
+;;           (funcall orig-fun beg end)))
+;;     (funcall orig-fun beg end)))
 
 
 ;;; INTERNAL UTILITIES

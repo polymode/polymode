@@ -249,15 +249,15 @@ With NO-CACHE prefix, don't use cached values of the span."
         poly-lock-fontify-now
         poly-lock-flush
         jit-lock-fontify-now
+        ;; poly-lock-adjust-span-face
         poly-lock-after-change
         poly-lock--extend-region-span
-        poly-lock--extend-region
-        poly-lock-adjust-span-face))
+        poly-lock--extend-region))
     ;; syntax
     (4 (pm--call-syntax-propertize-original
         polymode-syntax-propertize
         polymode-restrict-syntax-propertize-extension
-        pm--reset-ppss-last))))
+        pm--reset-ppss-cache))))
 
 (defvar pm--do-trace nil)
 ;;;###autoload
