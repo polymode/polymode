@@ -660,14 +660,20 @@ Parents' hooks are run first."
   "Variables transferred from base buffer on buffer switch.")
 
 (defvar pm-move-vars-from-old-buffer
-  '(buffer-undo-list
+  '(buffer-face-mode
+    buffer-face-mode-face
+    buffer-face-mode-remapping
     buffer-invisibility-spec
-    selective-display
-    overwrite-mode
-    truncate-lines
-    word-wrap
+    face-remapping-alist
     line-move-visual
-    truncate-partial-width-windows)
+    overwrite-mode
+    selective-display
+    text-scale-mode
+    text-scale-mode-amount
+    truncate-lines
+    truncate-partial-width-windows
+    buffer-undo-list
+    word-wrap)
   "Variables transferred from old buffer on buffer switch.")
 
 (defun pm-select-buffer (span &optional visibly)
@@ -703,9 +709,6 @@ switch."
         (visible (pos-visible-in-window-p))
         (vlm visual-line-mode)
         (ractive (region-active-p))
-        ;; text-scale-mode
-        (scale (and (boundp 'text-scale-mode) text-scale-mode))
-        (scale-amount (and (boundp 'text-scale-mode-amount) text-scale-mode-amount))
         (hl-line (and (boundp 'hl-line-mode) hl-line-mode))
         (mkt (mark t))
         (bro buffer-read-only))
@@ -724,13 +727,6 @@ switch."
     (unless (eq bro buffer-read-only)
       (read-only-mode (if bro 1 -1)))
     (pm--adjust-visual-line-mode vlm)
-
-    (when (and (boundp 'text-scale-mode-amount)
-               (not (and (eq scale text-scale-mode)
-                         (= scale-amount text-scale-mode-amount))))
-      (if scale
-          (text-scale-set scale-amount)
-        (text-scale-set 0)))
 
     ;; fixme: what is the right way to do this ... activate-mark-hook?
     (if (not ractive)
@@ -762,8 +758,9 @@ switch."
     (unless (eq to-buffer from-buffer)
       (with-current-buffer to-buffer
         (dolist (var vars)
-          (and (boundp var)
-               (set var (buffer-local-value var from-buffer))))))))
+          (when (default-boundp var)
+            (make-variable-buffer-local var)
+            (set var (buffer-local-value var from-buffer))))))))
 
 (defun pm--adjust-visual-line-mode (vlm)
   (unless (eq visual-line-mode vlm)
