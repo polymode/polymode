@@ -656,12 +656,12 @@ Parents' hooks are run first."
 ;;; BUFFER SELECTION
 
 ;; Transfer of the buffer-undo-list is managed internally by emacs
-(define-obsolete-variable-alias 'pm-move-vars-from-base 'polymode-movable-vars-from-base-buffer "v0.1.6")
-(defvar polymode-movable-vars-from-base-buffer '(buffer-file-name outline-regexp outline-level)
+(define-obsolete-variable-alias 'pm-move-vars-from-base 'polymode-move-these-vars-from-base-buffer "v0.1.6")
+(defvar polymode-move-these-vars-from-base-buffer '(buffer-file-name outline-regexp outline-level)
   "Variables transferred from base buffer on buffer switch.")
 
-(define-obsolete-variable-alias 'pm-move-vars-from-old-buffer 'polymode-movable-vars-from-old-buffer "v0.1.6")
-(defvar polymode-movable-vars-from-old-buffer
+(define-obsolete-variable-alias 'pm-move-vars-from-old-buffer 'polymode-move-these-vars-from-old-buffer "v0.1.6")
+(defvar polymode-move-these-vars-from-old-buffer
   '(buffer-face-mode
     buffer-face-mode-face
     buffer-face-mode-remapping
@@ -678,9 +678,9 @@ Parents' hooks are run first."
     word-wrap)
   "Variables transferred from old buffer on buffer switch.")
 
-(defvar polymode-movable-minor-modes-from-base-buffer nil
+(defvar polymode-move-these-minor-modes-from-base-buffer nil
   "List of minor modes to move from base buffer.")
-(defvar polymode-movable-minor-modes-from-old-buffer
+(defvar polymode-move-these-minor-modes-from-old-buffer
   '(linum-mode
     visual-line-mode
     writeroom-mode)
@@ -702,8 +702,10 @@ switch."
     ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
     ;; no further action if BUFFER is already the current buffer
     (unless (eq buffer (current-buffer))
-      (pm--move-vars polymode-movable-vars-from-old-buffer (current-buffer) buffer)
-      (pm--move-vars polymode-movable-vars-from-base-buffer (pm-base-buffer) buffer)
+      (pm--move-vars polymode-move-these-vars-from-base-buffer
+                     (pm-base-buffer) buffer)
+      (pm--move-vars polymode-move-these-vars-from-old-buffer
+                     (current-buffer) buffer)
       (if visibly
           ;; slow, visual selection
           (pm--select-existing-buffer-visibly buffer)
@@ -725,8 +727,10 @@ switch."
     (when hl-line
       (hl-line-mode -1))
 
-    (pm--move-minor-modes polymode-movable-minor-modes-from-base-buffer (pm-base-buffer) new-buffer)
-    (pm--move-minor-modes polymode-movable-minor-modes-from-old-buffer old-buffer new-buffer)
+    (pm--move-minor-modes polymode-move-these-minor-modes-from-base-buffer
+                          (pm-base-buffer) new-buffer)
+    (pm--move-minor-modes polymode-move-these-minor-modes-from-old-buffer
+                          old-buffer new-buffer)
 
     (pm--move-overlays old-buffer new-buffer)
 
