@@ -656,7 +656,7 @@ Parents' hooks are run first."
 ;;; BUFFER SELECTION
 
 ;; Transfer of the buffer-undo-list is managed internally by emacs
-(defvar pm-move-vars-from-base '(buffer-file-name)
+(defvar pm-move-vars-from-base '(buffer-file-name outline-regexp outline-level)
   "Variables transferred from base buffer on buffer switch.")
 
 (defvar pm-move-vars-from-old-buffer
