@@ -680,7 +680,10 @@ Parents' hooks are run first."
 
 (defvar polymode-movable-minor-modes-from-base-buffer nil
   "List of minor modes to move from base buffer.")
-(defvar polymode-movable-minor-modes-from-old-buffer '(visual-line-mode linum-mode)
+(defvar polymode-movable-minor-modes-from-old-buffer
+  '(linum-mode
+    visual-line-mode
+    writeroom-mode)
   "List of minor modes to move from the old buffer.")
 
 (defun pm-select-buffer (span &optional visibly)
