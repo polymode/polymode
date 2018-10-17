@@ -95,7 +95,6 @@ Return new name (symbol). FUN is an unquoted name of a function."
                   (cdr range))))
     (apply orig-fun args)))
 
-
 (defun pm-override-output-cons (orig-fun &rest args)
   "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
 *span* in `pm-map-over-spans` has precedence over span at point.

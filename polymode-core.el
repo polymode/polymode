@@ -676,6 +676,11 @@ Parents' hooks are run first."
     word-wrap)
   "Variables transferred from old buffer on buffer switch.")
 
+(defvar pm-move-minor-modes-from-base nil
+  "List of minor modes to move from base buffer.")
+(defvar pm-move-minor-modes-from-old-buffer '(visual-line-mode linum-mode)
+  "List of minor modes to move from the old buffer.")
+
 (defun pm-select-buffer (span &optional visibly)
   "Select the buffer associated with SPAN.
 Install a new indirect buffer if it is not already installed.
@@ -692,9 +697,8 @@ switch."
     ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
     ;; no further action if BUFFER is already the current buffer
     (unless (eq buffer (current-buffer))
-      (let ((base (pm-base-buffer)))
-        (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
-        (pm--move-vars pm-move-vars-from-base base buffer))
+      (pm--move-vars pm-move-vars-from-old-buffer (current-buffer) buffer)
+      (pm--move-vars pm-move-vars-from-base (pm-base-buffer) buffer)
       (if visibly
           ;; slow, visual selection
           (pm--select-existing-buffer-visibly buffer)
@@ -707,7 +711,6 @@ switch."
         (point (point))
         (window-start (window-start))
         (visible (pos-visible-in-window-p))
-        (vlm visual-line-mode)
         (ractive (region-active-p))
         (hl-line (and (boundp 'hl-line-mode) hl-line-mode))
         (mkt (mark t))
@@ -716,6 +719,9 @@ switch."
     (setq pm/current nil)
     (when hl-line
       (hl-line-mode -1))
+
+    (pm--move-minor-modes pm-move-minor-modes-from-base (pm-base-buffer) new-buffer)
+    (pm--move-minor-modes pm-move-minor-modes-from-old-buffer old-buffer new-buffer)
 
     (pm--move-overlays old-buffer new-buffer)
 
@@ -726,7 +732,6 @@ switch."
 
     (unless (eq bro buffer-read-only)
       (read-only-mode (if bro 1 -1)))
-    (pm--adjust-visual-line-mode vlm)
 
     ;; fixme: what is the right way to do this ... activate-mark-hook?
     (if (not ractive)
@@ -762,11 +767,15 @@ switch."
             (make-variable-buffer-local var)
             (set var (buffer-local-value var from-buffer))))))))
 
-(defun pm--adjust-visual-line-mode (vlm)
-  (unless (eq visual-line-mode vlm)
-    (if (null vlm)
-        (visual-line-mode -1)
-      (visual-line-mode 1))))
+(defun pm--move-minor-modes (modes from-buffer &optional to-buffer)
+  (let ((to-buffer (or to-buffer (current-buffer))))
+    (unless (eq to-buffer from-buffer)
+      (with-current-buffer to-buffer
+        (dolist (m modes)
+          (when (default-boundp m)
+            (let ((from-state (buffer-local-value m from-buffer)))
+              (unless (equal from-state (symbol-value m))
+                (funcall (symbol-function m) (if from-state 1 -1))))))))))
 
 (defun pm-set-buffer (&optional pos-or-span)
   "Set buffer to polymode buffer appropriate for POS-OR-SPAN.
