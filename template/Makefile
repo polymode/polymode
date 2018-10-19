@@ -43,6 +43,11 @@ start: version melpa
 		--load targets/melpa-init.el \
 		--load tests/*.el
 
+startvs: version
+	$(EMACSRUN) -L . \
+		--load targets/local.el \
+		--load tests/*.el --load ~/.eBasic.el
+
 test: version
 	@echo "******************* Testing $(MODULE) ***************************"
 	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
