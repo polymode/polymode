@@ -347,12 +347,18 @@ points."
            (pm-test--run-indentation-tests)
          (undo-boundary)))))
 
-(defmacro pm-test-file-indent (mode file-no-indent file-with-indent)
-  `(pm-test-run-on-file ,mode ,file-no-indent
-     (let ((right (with-current-buffer (find-file-noselect
+(defmacro pm-test-file-indent (mode file-with-indent &optional file-no-indent)
+  `(pm-test-run-on-file ,mode ,(or file-no-indent file-with-indent)
+     (let ((indent-tabs-mode nil)
+           (right (with-current-buffer (find-file-noselect
                                         ,(pm-test-get-file file-with-indent))
                     (substring-no-properties (buffer-string))))
            (inhibit-message t))
+       (unless ,file-no-indent
+         (goto-char 1)
+         (while (re-search-forward "^[ \t]+"  nil t)
+           (replace-match ""))
+         (goto-char 1))
        (indent-region (point-min) (point-max))
        (let ((new (substring-no-properties (buffer-string))))
          (unless (string= right new)
