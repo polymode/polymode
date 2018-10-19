@@ -341,22 +341,21 @@ case TYPE is ignored."
         ;; `syntax-propertize' like `markdown-mode'.
         (parse-sexp-lookup-properties nil)
         (case-fold-search t))
-    (save-match-data
-      (save-excursion
-        (save-restriction
-          (widen)
-          (let ((span (pm--intersect-spans config pos)))
-            (if (= omax pos)
-                (when (and (= omax (nth 1 span))
-                           (> omax omin))
-                  ;; When pos == point-max and it's beg of span, return the
-                  ;; previous span. This occurs because the computation of
-                  ;; pm--intersect-spans is done on a widened buffer.
-                  (setq span (pm--intersect-spans config (1- pos))))
-              (when (= pos (nth 2 span))
-                (error "Span ends at %d in (pm-inermost-span %d) %s"
-                       pos pos (pm-format-span span))))
-            (pm--chop-span span omin omax)))))))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (let ((span (pm--intersect-spans config pos)))
+          (if (= omax pos)
+              (when (and (= omax (nth 1 span))
+                         (> omax omin))
+                ;; When pos == point-max and it's beg of span, return the
+                ;; previous span. This occurs because the computation of
+                ;; pm--intersect-spans is done on a widened buffer.
+                (setq span (pm--intersect-spans config (1- pos))))
+            (when (= pos (nth 2 span))
+              (error "Span ends at %d in (pm-inermost-span %d) %s"
+                     pos pos (pm-format-span span))))
+          (pm--chop-span span omin omax))))))
 
 (defun pm--cached-span (&optional pos)
   ;; fixme: add basic miss statistics
@@ -392,9 +391,10 @@ defaults to point. Guarantied to return a non-empty span."
             (list :pos pos
                   :point-min (point-min)
                   :point-max (point-max))))
-  (or (unless no-cache
-        (pm--cached-span pos))
-      (pm--innermost-span pm/polymode pos)))
+  (save-match-data
+    (or (unless no-cache
+          (pm--cached-span pos))
+        (pm--innermost-span pm/polymode pos))))
 
 (defun pm-span-to-range (span)
   (and span (cons (nth 1 span) (nth 2 span))))
@@ -1014,24 +1014,26 @@ Used in advises."
     (save-restriction
       (widen)
       (save-excursion
-        (let ((protect-host (with-current-buffer (pm-base-buffer)
-                              (eieio-oref pm/chunkmode 'protect-syntax))))
-          ;; 1. host if no protection
-          (unless protect-host
-            (with-current-buffer (pm-base-buffer)
-              (when pm--syntax-propertize-function-original
-                (pm--call-syntax-propertize-original start end))))
-          ;; 2. all others
-          (pm-map-over-spans
-           (lambda (span)
-             (when (and pm--syntax-propertize-function-original
-                        (or (pm-true-span-type span)
-                            protect-host))
-               (let ((pos0 (max (nth 1 span) start))
-                     (pos1 (min (nth 2 span) end)))
-                 (if (eieio-oref (nth 3 span) 'protect-syntax)
-                     (pm--call-syntax-propertize-original pos0 pos1)))))
-           start end))))))
+        ;; some modes don't save data in their syntax propertize functions
+        (save-match-data
+          (let ((protect-host (with-current-buffer (pm-base-buffer)
+                                (eieio-oref pm/chunkmode 'protect-syntax))))
+            ;; 1. host if no protection
+            (unless protect-host
+              (with-current-buffer (pm-base-buffer)
+                (when pm--syntax-propertize-function-original
+                  (pm--call-syntax-propertize-original start end))))
+            ;; 2. all others
+            (pm-map-over-spans
+             (lambda (span)
+               (when (and pm--syntax-propertize-function-original
+                          (or (pm-true-span-type span)
+                              protect-host))
+                 (let ((pos0 (max (nth 1 span) start))
+                       (pos1 (min (nth 2 span) end)))
+                   (if (eieio-oref (nth 3 span) 'protect-syntax)
+                       (pm--call-syntax-propertize-original pos0 pos1)))))
+             start end)))))))
 
 (defvar syntax-ppss-wide)
 (defvar syntax-ppss-last)
@@ -1078,6 +1080,7 @@ Used in :before advice of `syntax-ppss'."
   (when (and polymode-mode pm/polymode)
     (pm--reset-ppss-cache (pm-innermost-span pos))))
 
+;; (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache)
 ;; (unless pm--emacs>26
 ;;   (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache))
 

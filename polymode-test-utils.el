@@ -127,6 +127,7 @@ MODE is a quoted symbol."
          ;; (flyspell-mode -1) ;; triggers "too much reentrancy" error
          (goto-char (point-min))
          ,pre-form
+         ;; need this to activate all chunks
          (font-lock-ensure)
          (goto-char (point-min))
          (save-excursion
