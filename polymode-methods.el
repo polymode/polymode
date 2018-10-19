@@ -339,7 +339,8 @@ in this case."
       (goto-char start)
       (while (< (point) end)
         (unless (and (bolp) (eolp))
-          (pm-indent-line (nth 3 span) span))
+          ;; fixme: html-erb jumps line here; need save-excursion. why?
+          (save-excursion (pm-indent-line (nth 3 span) span)))
         (forward-line 1))
       (move-marker end nil))))
 

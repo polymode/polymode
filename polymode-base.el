@@ -78,7 +78,10 @@
 
 (defcustom pm-host/html
   (pm-host-chunkmode :name "html"
-                     :mode 'html-mode)
+                     :mode 'html-mode
+                     :indent-offset 'sgml-basic-offset
+                     :protect-font-lock nil
+                     :protect-syntax t)
   "HTML hostmode."
   :group 'poly-hostmodes
   :type 'object)
