@@ -372,10 +372,12 @@ in this case."
     (goto-char point)))
 
 (defun pm--indent-line-raw (span)
-  (pm--indent-raw span #'pm--indent-line-function-original))
+  (pm--indent-raw span #'pm--indent-line-function-original)
+  (pm--reindent-with+-indent span (point-at-bol) (point-at-eol)))
 
 (defun pm--indent-region-raw (span beg end)
-  (pm--indent-raw span #'pm--indent-region-function-original beg end))
+  (pm--indent-raw span #'pm--indent-region-function-original beg end)
+  (pm--reindent-with+-indent span beg end))
 
 (defun pm-indent-region (beg end)
   "Indent region between BEG and END in polymode buffers.
@@ -432,7 +434,7 @@ the chunkmode.")
                          (goto-char (nth 1 span))
                          (unless (bobp)
                            (setq prev-span-pos (1- (point))))
-                         (skip-chars-forward " \t\n")
+                         (forward-line)
                          (<= bol (point)))))
       (pm--indent-line-raw span)
       (when (and first-line prev-span-pos)
@@ -501,9 +503,8 @@ to indent."
                                  (pm--indent-line-raw span)
                                  (- (point) (point-at-bol))))))
                   (indent-line-to
-                   (+ delta
-                      (pm--head-indent span) ;; indent with respect to header line
-                      (eieio-oref chunkmode 'indent-offset)))))))))
+                   ;; indent with respect to header line
+                   (+ delta (pm--head-indent span)))))))))
 
       ;; keep point on same characters
       (when (and delta (> delta 0))
@@ -538,6 +539,17 @@ to indent."
             (goto-char sbeg)))
         (back-to-indentation)
         (- (point) (point-at-bol))))))
+
+(defun pm--reindent-with+-indent (span beg end)
+  (save-excursion
+    (goto-char beg)
+    (let ((basic-offset (pm--oref-value (nth 3 span) 'indent-offset)))
+      (while (re-search-forward "\\([+-]\\)indent" end t)
+        (let ((offset (if (string= (match-string 1) "-")
+                          (- basic-offset)
+                        basic-offset)))
+          (indent-line-to (max 0 (+ (current-indentation) offset)))
+          (forward-line))))))
 
 (defun pm--reindent-with-extra-offset (span offset-type &optional offset2)
   (let ((offset (eieio-oref (nth 3 span) offset-type)))

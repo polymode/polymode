@@ -1226,6 +1226,15 @@ Elements of LIST can be either strings or symbols."
                     str-nm)))
           list))
 
+(defun pm--oref-value (object slot)
+  (let ((val (eieio-oref object slot)))
+    (cond
+     ((functionp val)
+      (funcall val))
+     ((symbolp val)
+      (symbol-value val))
+     (t val))))
+
 (defun pm--prop-put (key val &optional object)
   (oset (or object pm/polymode) -props
         (plist-put (oref (or object pm/polymode) -props) key val)))

@@ -200,12 +200,17 @@ means to use the host mode as a fallback in the body of this
 chunk.")
    (indent-offset
     :initarg :indent-offset
-    :initform 0
-    :type integer
-    :custom integer
+    :initform 2
+    :type (or integer symbol)
+    :custom (or integer symbol)
     :documentation
-    "Offset to add when indenting chunk's line.
-Takes effect only when :protect-indent is non-nil.")
+    "Indentation offset for this mode.
+Currently this is only used in +indent and -indent cookies which
+when placed on a line cause manual shift in indentation with
+respect to how polymode would normally indent a line. Should be
+used in cases when indentation of the line is incorrect. Can be a
+number, a variable name or a function name to be called with no
+arguments.")
    (pre-indent-offset
     :initarg :pre-indent-offset
     :initform 0
