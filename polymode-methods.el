@@ -386,10 +386,14 @@ Function used for `indent-region-function'."
         (end (copy-marker end)))
     (save-excursion
       (while (< beg end)
+        (goto-char beg)
+        (back-to-indentation)
+        (setq beg (point))
         (let ((span (pm-innermost-span beg 'no-cache)))
           (let* ((end-span (copy-marker (nth 2 span)))
                  (end1 (min end end-span)))
             (goto-char beg)
+            ;; (pm-switch-to-buffer)
             ;; indent first line separately
             (pm-indent-line (nth 3 span) span)
             (beginning-of-line 2)
@@ -403,9 +407,11 @@ Function used for `indent-region-function'."
 (defun pm-indent-line-dispatcher (&optional span)
   "Dispatch `pm-indent-line' methods on current SPAN.
 Value of `indent-line-function' in polymode buffers."
-  (let ((span (or span (pm-innermost-span)))
+  (let ((span (or span (pm-innermost-span
+                        (save-excursion (back-to-indentation) (point)))))
         (inhibit-read-only t))
     (pm-indent-line (nth 3 span) span)
+    ;; fixme: remove this
     ;; pm-indent-line-dispatcher is intended for interactive use
     (pm-switch-to-buffer)))
 
@@ -415,50 +421,62 @@ Protect and call original indentation function associated with
 the chunkmode.")
 
 (cl-defmethod pm-indent-line ((chunkmode pm-chunkmode) span)
-  (let ((bol (point-at-bol))
-        (span (or span (pm-innermost-span))))
-    (if (or (< (nth 1 span) bol)
-            (= bol (point-min))
-            (null (eieio-oref chunkmode 'protect-indent)))
-        (pm--indent-line-raw span)
-      ;; first line dispatch to previous span
-      (let ((delta (- (point) (nth 1 span)))
-            (prev-span (pm-innermost-span (1- bol))))
-        (goto-char bol)
-        (pm-indent-line-dispatcher prev-span)
-        (goto-char (+ (point) delta))))))
+  (let ((pos (point))
+        (delta))
+    (back-to-indentation)
+    (setq delta (- pos (point)))
+    (let* ((bol (point-at-bol))
+           (span (or span (pm-innermost-span)))
+           (prev-span-pos)
+           (first-line (save-excursion
+                         (goto-char (nth 1 span))
+                         (unless (bobp)
+                           (setq prev-span-pos (1- (point))))
+                         (skip-chars-forward " \t\n")
+                         (<= bol (point)))))
+      (pm--indent-line-raw span)
+      (when (and first-line prev-span-pos)
+        (pm--reindent-with-extra-offset (pm-innermost-span prev-span-pos)
+                                        'post-indent-offset)))
+    (when (and delta (> delta 0))
+      (goto-char (+ (point) delta)))))
 
 (cl-defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) span)
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
   (let ((pos (point))
-        (delta nil))
+        (delta))
+    (back-to-indentation)
+    (setq delta (- pos (point)))
     (unwind-protect
         (cond
-         ;; 1. in head or tail (we assume head or tail fits in one line for now)
+
+         ;; 1. HEAD or TAIL (we assume head or tail fits in one line for now)
          ((or (eq 'head (car span))
               (eq 'tail (car span)))
           (goto-char (nth 1 span))
           (when (not (bobp))
-            (let* ((ind-point (save-excursion (back-to-indentation) (point)))
-                   (ind-span (pm-innermost-span ind-point)))
-              ;; ind-point need not be in prev-span; there might be other spans in between
-              (if (eq (nth 3 span) (nth 3 ind-span))
-                  (let ((prev-span (pm-innermost-span (1- (nth 1 span)))))
-                    (if (eq 'tail (car span))
-                        (indent-to (pm--head-indent prev-span))
-                      (pm--indent-line-raw prev-span)))
-                ;; fixme: if ind-span is again tail or head?
-                (pm--indent-line-raw ind-span)))))
+            ;; ind-point need not be in prev-span; there might be other spans in between
+            (let ((prev-span (pm-innermost-span (1- (point)))))
+              (if (eq 'tail (car span))
+                  (indent-line-to (pm--head-indent prev-span))
+                ;; head indent and adjustments
+                ;; (pm-indent-line (nth 3 prev-span) prev-span)
+                (pm--indent-line-raw prev-span)
+                (let ((prev-tail-pos (save-excursion
+                                       (beginning-of-line)
+                                       (skip-chars-backward " \t\n")
+                                       (if (bobp) (point) (1- (point))))))
+                  (setq prev-span (pm-innermost-span prev-tail-pos)))
+                (pm--reindent-with-extra-offset prev-span 'post-indent-offset)
+                (pm--reindent-with-extra-offset span 'pre-indent-offset)))))
 
-         ;; 2. body
+         ;; 2. BODY
          (t
-          (back-to-indentation)
           (if (< (point) (nth 1 span))
               ;; first body line in the same line with header (re-indent at indentation)
               (pm-indent-line-dispatcher)
-            (setq delta (- pos (save-excursion (back-to-indentation) (point))))
             (let ((fl-indent (pm--first-line-indent span)))
               (if fl-indent
                   ;; We are not on the 1st line
@@ -486,6 +504,7 @@ to indent."
                    (+ delta
                       (pm--head-indent span) ;; indent with respect to header line
                       (eieio-oref chunkmode 'indent-offset)))))))))
+
       ;; keep point on same characters
       (when (and delta (> delta 0))
         (goto-char (+ (point) delta))))))
@@ -519,6 +538,15 @@ to indent."
             (goto-char sbeg)))
         (back-to-indentation)
         (- (point) (point-at-bol))))))
+
+(defun pm--reindent-with-extra-offset (span offset-type &optional offset2)
+  (let ((offset (eieio-oref (nth 3 span) offset-type)))
+    (unless (and (numberp offset) (= offset 0))
+      (let ((pos (nth (if (eq offset-type 'post-indent-offset) 2 1) span)))
+        (save-excursion
+          (goto-char pos)
+          (setq offset (if (numberp offset) offset (funcall offset))))
+        (indent-line-to (max 0 (+ (current-indentation) offset (or offset2 0))))))))
 
 
 ;;; FACES

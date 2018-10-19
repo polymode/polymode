@@ -206,6 +206,25 @@ chunk.")
     :documentation
     "Offset to add when indenting chunk's line.
 Takes effect only when :protect-indent is non-nil.")
+   (pre-indent-offset
+    :initarg :pre-indent-offset
+    :initform 0
+    :type (or number function)
+    :custom (choice number function)
+    :documentation
+    "Function to compute the offset first line of this chunk.
+Offset is relative to how the host mode would indent it. Called
+with no-arguments with the point at the begging of the chunk.")
+   (post-indent-offset
+    :initarg :post-indent-offset
+    :initform 0
+    :type (or number function)
+    :custom (choice number function)
+    :documentation
+    "Function to compute the offset of the following line after this chunk.
+Offset is relative to how the host mode would indent it. Called
+without arguments with point at the end of the chunk but before
+the trailing white spaces if any.")
    (protect-indent
     :initarg :protect-indent
     :initform nil

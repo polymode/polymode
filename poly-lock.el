@@ -341,9 +341,9 @@ are as in `after-change-functions'."
   (when (and poly-lock-mode
              pm-allow-after-change-hook
              (not memory-full))
-    (with-buffer-prepared-for-poly-lock
-     (save-excursion
-       (save-match-data
+    (save-match-data
+      (with-buffer-prepared-for-poly-lock
+       (save-excursion
          (save-restriction
            (widen)
            (poly-lock--extend-region beg end)
