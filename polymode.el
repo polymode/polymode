@@ -114,6 +114,8 @@ TYPE is either a symbol or a list of symbols of span types."
          (N (if back (- N) N))
          (beg (if back (point-min) (point)))
          (end (if back (point) (point-max))))
+    (unless (memq (car (pm-innermost-span)) types)
+      (setq sofar 1))
     (condition-case nil
         (pm-map-over-spans
          (lambda (span)
