@@ -264,14 +264,13 @@ complete specification."
                ;; 1. repeated export; don't ask
                pm--export:from-last
 
-               ;; 2. select :from entries which match to current file
-               (let ((matched (cl-loop for el in (pm--selectors exporter :from)
-                                       when (pm--selector-match el)
-                                       collect (from-name.id el))))
+               ;; 2. select :from entries which match to current context
+               (let ((matched (pm--matched-selectors exporter :from)))
                  (when matched
                    (if (> (length matched) 1)
-                       (cdr (pm--completing-read "Multiple `from' specs matched. Choose one: " matched))
-                     (cdar matched))))
+                       (cdr (pm--completing-read "Multiple `from' specs matched. Choose one: "
+                                                 (mapcar from-name.id matched)))
+                     (caar matched))))
 
                ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)
                (let ((weaver (symbol-value (or (eieio-oref pm/polymode 'weaver)
@@ -350,9 +349,13 @@ complete specification."
   (unless pm/polymode
     (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((exporters (pm--abrev-names
-                     (delete-dups (pm--oref-with-parents pm/polymode :exporters))
+                     (cl-delete-if-not
+                      (lambda (el) (pm--matched-selectors el :from))
+                      (delete-dups (pm--oref-with-parents pm/polymode :exporters)))
                      "pm-exporter/"))
-         (sel (pm--completing-read "Choose exporter: " exporters nil t nil 'pm--exporter-hist))
+         (sel (if exporters
+                  (pm--completing-read "Choose exporter: " exporters nil t nil 'pm--exporter-hist)
+                (user-error "No valid exporters in current context")))
          (out (intern (cdr sel))))
     (setq-local pm--export:from-last nil)
     (setq-local pm--export:to-last nil)
@@ -383,8 +386,7 @@ for each polymode in CONFIGS."
      ("html"    "\\.x?html?\\'" "HTML"  "pandoc %i -f html -t %t -o %o")
      ("doocbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f doocbook -t %t -o %o")
      ("mediawiki"   "\\.wiki\\'" "MediaWiki"        "pandoc %i -f mediawiki -t %t -o %o")
-     ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o")
-     )
+     ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o"))
    :to
    '(;; ("json"     "json"  "JSON version of native AST" "json")
      ("plain"   "txt"  "plain text" "plain")
@@ -396,15 +398,15 @@ for each polymode in CONFIGS."
      ("html"    "html"  "XHTML 1" "html")
      ("html5"   "html"  "HTML 5" "html5")
      ("latex"   "tex"  "LaTeX" "latex")
-     ("beamer"      "tex"  "LaTeX beamer" "beamer")
-     ("context"     "tex"  "ConTeXt" "context")
+     ("beamer"	"tex"  "LaTeX beamer" "beamer")
+     ("context"	"tex"  "ConTeXt" "context")
      ("man"     "man"  "groff man" "man")
-     ("mediawiki"   "wiki"  "MediaWiki markup" "mediawiki")
-     ("textile"     "textile"  "Textile" "textile")
+     ("mediawiki"   "wiki"		"MediaWiki markup" "mediawiki")
+     ("textile"     "textile"	"Textile" "textile")
      ("org"     "org"  "Emacs Org-Mode" "org")
-     ("texinfo"     "info"  "GNU Texinfo" "texinfo")
-     ("docbook"     "xml"  "DocBook XML" "docbook")
-     ("opendocument"    "xml"  "OpenDocument XML" "opendocument")
+     ("texinfo"	"info"  "GNU Texinfo" "texinfo")
+     ("docbook"	"xml"  "DocBook XML" "docbook")
+     ("opendocument"    "xml"	"OpenDocument XML" "opendocument")
      ("odt"     "odt"  "OpenOffice text document" "odt")
      ("docx"    "docx"  "Word docx" "docx")
      ("epub"    "epub"  "EPUB book" "epub")

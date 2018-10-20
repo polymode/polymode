@@ -1450,6 +1450,14 @@ By default BUFFER is the buffer where `pm/current' is t."
         (string-match-p (funcall (cdr el) 'regexp id)
                         (or file buffer-file-name)))))
 
+(defun pm--matched-selectors (translator slot)
+  (let ((translator (if (symbolp translator)
+                        (symbol-value translator)
+                      translator)))
+    (cl-loop for el in (pm--selectors translator slot)
+             when (pm--selector-match el)
+             collect el)))
+
 (defun pm--selectors (processor type)
   (let ((ids (mapcar #'car (eieio-oref processor type))))
     (mapcar (lambda (id) (pm--selector processor type id)) ids)))

@@ -229,13 +229,12 @@ specification."
                pm--weave:fromto-last
 
                ;; 2. select :from entries which match to current file
-               (let ((matched (cl-loop for el in (pm--selectors weaver :from-to)
-                                       when (pm--selector-match el)
-                                       collect (name.id el))))
+               (let ((matched (pm--matched-selectors weaver :from-to)))
                  (when matched
                    (if (> (length matched) 1)
-                       (cdr (pm--completing-read "Multiple `from-to' specs matched. Choose one: " matched))
-                     (cdar matched))))
+                       (cdr (pm--completing-read "Multiple `from-to' specs matched. Choose one: "
+                                                 (mapcar name.id matched)))
+                     (caar matched))))
 
                ;; 3. nothing matched, ask
                (let* ((prompt "No `from-to' specs matched. Choose one: ")
