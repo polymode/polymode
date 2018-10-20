@@ -45,60 +45,62 @@
 (require 'polymode-weave)
 (require 'polymode-base)
 (require 'poly-lock)
+(require 'easymenu)
 (eval-when-compile
   (require 'derived))
 
-(defcustom polymode-prefix-key "\M-n"
-  "Prefix key for the polymode mode keymap.
-Not effective after loading the polymode library."
-  :group 'polymode
-  :type '(choice string vector))
+(defvar polymode-prefix-key nil
+  "[Obsoleted] Prefix key for the polymode mode keymap.
+Not effective after loading the polymode library.")
+(make-obsolete-variable 'polymode-prefix-key "Unbind in `polymode-mode-map'" "v0.1.6")
+
+(defvar polymode-map
+  (let ((map (define-prefix-command 'polymode-map)))
+    ;; eval
+    (define-key map "v" 'polymode-eval-map)
+    ;; navigation
+    (define-key map "\C-n" 'polymode-next-chunk)
+    (define-key map "\C-p" 'polymode-previous-chunk)
+    (define-key map "\C-\M-n" 'polymode-next-chunk-same-type)
+    (define-key map "\C-\M-p" 'polymode-previous-chunk-same-type)
+    ;; chunk manipulation
+    (define-key map "\M-k" 'polymode-kill-chunk)
+    (define-key map "\M-m" 'polymode-mark-or-extend-chunk)
+    (define-key map "\C-t" 'polymode-toggle-chunk-narrowing)
+    ;; backends
+    (define-key map "e" 'polymode-export)
+    (define-key map "E" 'polymode-set-exporter)
+    (define-key map "w" 'polymode-weave)
+    (define-key map "W" 'polymode-set-weaver)
+    (define-key map "t" 'polymode-tangle)
+    (define-key map "T" 'polymode-set-tangler)
+    (define-key map "$" 'polymode-show-process-buffer)
+    map)
+  "Polymode prefix map.
+Lives on `polymode-prefix-key' in polymode buffers.")
 
 (defvar polymode-minor-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map polymode-prefix-key
-      (let ((map (make-sparse-keymap)))
-        ;; eval
-        (define-key map "v" 'polymode-eval-map)
-        ;; navigation
-        (define-key map "\C-n" 'polymode-next-chunk)
-        (define-key map "\C-p" 'polymode-previous-chunk)
-        (define-key map "\C-\M-n" 'polymode-next-chunk-same-type)
-        (define-key map "\C-\M-p" 'polymode-previous-chunk-same-type)
-        ;; chunk manipulation
-        (define-key map "\M-k" 'polymode-kill-chunk)
-        (define-key map "\M-m" 'polymode-mark-or-extend-chunk)
-        (define-key map "\C-t" 'polymode-toggle-chunk-narrowing)
-        ;; backends
-        (define-key map "e" 'polymode-export)
-        (define-key map "E" 'polymode-set-exporter)
-        (define-key map "w" 'polymode-weave)
-        (define-key map "W" 'polymode-set-weaver)
-        (define-key map "t" 'polymode-tangle)
-        (define-key map "T" 'polymode-set-tangler)
-        (define-key map "$" 'polymode-show-process-buffer)
-        ;; todo: add polymode-goto-process-buffer
-        map))
-    (define-key map [menu-bar Polymode]
-      (cons "Polymode"
-            (let ((map (make-sparse-keymap "Polymode")))
-              (define-key-after map [next]
-                '(menu-item "Next chunk" polymode-next-chunk))
-              (define-key-after map [previous]
-                '(menu-item "Previous chunk" polymode-previous-chunk))
-              (define-key-after map [next-same]
-                '(menu-item "Next chunk same type" polymode-next-chunk-same-type))
-              (define-key-after map [previous-same]
-                '(menu-item "Previous chunk same type" polymode-previous-chunk-same-type))
-              (define-key-after map [mark]
-                '(menu-item "Mark or extend chunk" polymode-mark-or-extend-chunk))
-              (define-key-after map [kill]
-                '(menu-item "Kill chunk" polymode-kill-chunk))
-              map)))
+    (define-key map (or polymode-prefix-key "\M-n") 'polymode-map)
     map)
   "The minor mode keymap which is inherited by all polymodes.")
-
 (defvaralias 'polymode-mode-map 'polymode-minor-mode-map)
+
+(easy-menu-define polymode-mode-menu polymode-minor-mode-map
+  "Menu for polymode."
+  '("Polymode"
+    ["Next chunk" polymode-next-chunk]
+    ["Previous chunk" polymode-previous-chunk]
+    ["Next chunk same type" polymode-next-chunk-same-type]
+    ["Previous chunk same type" polymode-previous-chunk-same-type]
+    ["Mark or extend chunk" polymode-mark-or-extend-chunk]
+    ["Kill chunk" polymode-kill-chunk]
+    "--"
+    ["Weave" polymode-weave]
+    ["Set Weaver" polymode-set-weaver]
+    "--"
+    ["Export" polymode-export]
+    ["Set Exporter" polymode-set-exporter]))
 
 
 ;;; NAVIGATION
