@@ -1445,10 +1445,11 @@ By default BUFFER is the buffer where `pm/current' is t."
     (cons id (pm--make-selector names (cdr spec)))))
 
 (defun pm--selector-match (el &optional file)
-  (let ((id (car el)))
+  (let* ((id (car el))
+         (regexp (funcall (cdr el) 'regexp id)))
     (or (funcall (cdr el) 'match id file)
-        (string-match-p (funcall (cdr el) 'regexp id)
-                        (or file buffer-file-name)))))
+        (and regexp
+             (string-match-p regexp (or file buffer-file-name))))))
 
 (defun pm--matched-selectors (translator slot)
   (let ((translator (if (symbolp translator)
