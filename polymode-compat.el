@@ -246,5 +246,12 @@ changes."
 (eval-after-load 'evil-core
   '(add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
 
+
+;;; YAS
+
+(with-eval-after-load "yasnippet"
+  (add-hook 'yas-before-expand-snippet-hook #'polymode-disable-post-command)
+  (add-hook 'yas-after-exit-snippet-hook #'polymode-enable-post-command))
+
 (provide 'polymode-compat)
 ;;; polymode-compat.el ends here

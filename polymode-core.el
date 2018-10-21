@@ -79,9 +79,18 @@
   (with-no-warnings
     (eieio-object-name-string obj)))
 
-;; shields
+;; SHIELDS
+
 (defvar pm-allow-after-change-hook t)
+
 (defvar pm-allow-post-command-hook t)
+(defun polymode-disable-post-command ()
+  (when polymode-mode
+    (setq pm-allow-post-command-hook nil)))
+(defun polymode-enable-post-command ()
+  (when polymode-mode
+    (setq pm-allow-post-command-hook t)))
+
 ;; We need this during cascaded call-next-method in pm-initialize. -innermodes
 ;; are initialized after the hostmode setup has taken place. This means that
 ;; pm-get-span and all the functionality that relies on it will fail to work
@@ -763,7 +772,8 @@ switch."
 (defun pm--move-overlays (from-buffer to-buffer)
   (with-current-buffer from-buffer
     (mapc (lambda (o)
-            (unless (eq 'linum-str (car (overlay-properties o)))
+            (unless (or (overlay-get o 'linum-str)
+                        (overlay-get o 'yas--snippet))
               (move-overlay o (overlay-start o) (overlay-end o) to-buffer)))
           (overlays-in 1 (1+ (buffer-size))))))
 
