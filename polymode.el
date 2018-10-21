@@ -86,7 +86,7 @@ Lives on `polymode-prefix-key' in polymode buffers.")
   "The minor mode keymap which is inherited by all polymodes.")
 (defvaralias 'polymode-mode-map 'polymode-minor-mode-map)
 
-(easy-menu-define polymode-mode-menu polymode-minor-mode-map
+(easy-menu-define polymode-menu polymode-minor-mode-map
   "Menu for polymode."
   '("Polymode"
     ["Next chunk" polymode-next-chunk]
