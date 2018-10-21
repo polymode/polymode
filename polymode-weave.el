@@ -233,7 +233,7 @@ specification."
                  (when matched
                    (if (> (length matched) 1)
                        (cdr (pm--completing-read "Multiple `from-to' specs matched. Choose one: "
-                                                 (mapcar name.id matched)))
+                                                 (mapcar #'name.id matched)))
                      (caar matched))))
 
                ;; 3. nothing matched, ask

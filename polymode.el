@@ -46,8 +46,7 @@
 (require 'polymode-base)
 (require 'poly-lock)
 (require 'easymenu)
-(eval-when-compile
-  (require 'derived))
+(require 'derived)
 
 (defvar polymode-prefix-key nil
   "[Obsoleted] Prefix key for the polymode mode keymap.

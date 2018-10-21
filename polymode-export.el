@@ -269,7 +269,7 @@ complete specification."
                  (when matched
                    (if (> (length matched) 1)
                        (cdr (pm--completing-read "Multiple `from' specs matched. Choose one: "
-                                                 (mapcar from-name.id matched)))
+                                                 (mapcar #'from-name.id matched)))
                      (caar matched))))
 
                ;; 3. guess from weaver and return a cons (weaver-id . exporter-id)

@@ -1142,7 +1142,7 @@ near future.")
           ;; silently kill and re-open
           (when buff
             (with-current-buffer buff
-              (revert-buffer t t)))
+              (ignore-errors (revert-buffer t t))))
           (when polymode-display-output-file
             (if (string-match-p "html\\|htm$" ofile)
                 (browse-url ofile)
