@@ -321,7 +321,9 @@ complete specification."
                  pm--export:to-last)
 
                ;; 2. First export or C-u
-               (cdr (pm--completing-read "Export to: " to-opts nil t nil 'pm--export:to-hist))))
+               (if (= (length to-opts) 1)
+                   (cdar to-opts)
+                 (cdr (pm--completing-read "Export to: " to-opts nil t nil 'pm--export:to-hist)))))
 
              ;; B. string
              ((stringp to)
