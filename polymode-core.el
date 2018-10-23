@@ -1383,6 +1383,7 @@ By default BUFFER is the buffer where `pm/current' is t."
                    (list shell-command-switch command))
       (setq process (get-buffer-process buffer))
       (comint-mode)
+      (goto-address-mode 1)
       (set-process-sentinel process sentinel)
       (setq pm--process-buffer t)
       (set-marker (process-mark process) (point-max))
