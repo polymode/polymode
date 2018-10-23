@@ -692,6 +692,7 @@ Parents' hooks are run first."
 (defvar polymode-move-these-minor-modes-from-old-buffer
   '(linum-mode
     visual-line-mode
+    visual-fill-column-mode
     writeroom-mode)
   "List of minor modes to move from the old buffer.")
 
