@@ -13,7 +13,7 @@ LINTELS = $(filter-out __MODULE__-autoloads.el, $(ELS))
 
 .PHONY: test version compile
 
-all: compile checkdoc test
+all: build checkdoc test
 
 build: version clean
 	@echo "******************* BUILDING $(MODULE) *************************"
