@@ -124,8 +124,7 @@
 (defclass pm-callback-weaver (pm-weaver)
   ((callback
     :initarg :callback
-    :initform (lambda (&optional rest)
-                (error "No callback defined for this weaver"))
+    :initform nil
     :type (or symbol function)
     :documentation
     "Callback function to be called by :function. There is no
@@ -275,6 +274,7 @@ each polymode in CONFIGS."
                    "pm-weaver/"))
          (sel (pm--completing-read "Choose weaver: " weavers nil t nil 'pm--weaver-hist))
          (out (intern (cdr sel))))
+    (setq pm--weaver-hist (delete-dups pm--weaver-hist))
     (setq-local pm--weave:fromto-last nil)
     (oset pm/polymode :weaver out)
     out))

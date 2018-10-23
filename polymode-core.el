@@ -1431,7 +1431,7 @@ By default BUFFER is the buffer where `pm/current' is t."
              ;; 3. output file is not known; display process buffer
              (t (display-buffer (current-buffer)) nil))))))))
 
-(fset 'pm-default-export-sentinel (pm--make-shell-command-sentinel "export"))
+(fset 'pm-default-shell-export-sentinel (pm--make-shell-command-sentinel "export"))
 (fset 'pm-default-shell-weave-sentinel (pm--make-shell-command-sentinel "weaving"))
 
 (defun pm--make-selector (specs elements)

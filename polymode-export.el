@@ -158,8 +158,7 @@
 (defclass pm-callback-exporter (pm-exporter)
   ((callback
     :initarg :callback
-    :initform (lambda (&optional rest)
-                (error "No callback defined for this exporter"))
+    :initform nil
     :type (or symbol function)
     :documentation
     "Callback function to be called by :function. There is no
@@ -172,7 +171,7 @@
     :initform 'pm-default-shell-export-function)
    (sentinel
     :initarg :sentinel
-    :initform 'pm-default-export-sentinel
+    :initform 'pm-default-shell-export-sentinel
     :type (or symbol function)
     :documentation
     "Sentinel function to be called by :function when a shell
@@ -357,6 +356,7 @@ complete specification."
                   (pm--completing-read "Choose exporter: " exporters nil t nil 'pm--exporter-hist)
                 (user-error "No valid exporters in current context")))
          (out (intern (cdr sel))))
+    (setq pm--exporter-hist (delete-dups pm--exporter-hist))
     (setq-local pm--export:from-last nil)
     (setq-local pm--export:to-last nil)
     (oset pm/polymode :exporter out)
@@ -419,7 +419,7 @@ for each polymode in CONFIGS."
      ("s5"      "html"  "S5 HTML slide show" "s5")
      ("rtf"     "rtf"  "rich text format" "rtf"))
    :function 'pm-default-shell-export-function
-   :sentinel 'pm-default-export-sentinel)
+   :sentinel 'pm-default-shell-export-sentinel)
   "Pandoc exporter."
   :group 'polymode-export
   :type 'object)
