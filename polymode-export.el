@@ -249,7 +249,7 @@ complete specification."
                                (cons name (car el))))
             (from-name.id (el) (cons (funcall (cdr el) 'doc (car el)) (car el))))
     (let* ((exporter (symbol-value (or (eieio-oref pm/polymode 'exporter)
-                                       (polymode-set-exporter))))
+                                       (polymode-set-exporter t))))
            (fname (file-name-nondirectory buffer-file-name))
            (gprompt nil)
            (case-fold-search t)
@@ -344,18 +344,34 @@ complete specification."
             (pm-weave (symbol-value (eieio-oref pm/polymode 'weaver)) (car from-id)))
         (pm-export exporter from-id to-id)))))
 
-(defun polymode-set-exporter ()
-  "Interactively set exporter for the current file."
+(defun polymode-set-exporter (&optional no-ask-if-1)
+  "Interactively set exporter for the current file.
+If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
   (interactive)
   (unless pm/polymode
     (error "No pm/polymode object found. Not in polymode buffer?"))
-  (let* ((exporters (pm--abrev-names
+  (let* ((weavers (delete-dups (pm--oref-with-parents pm/polymode :weavers)))
+         (exporters (pm--abrev-names
                      (cl-delete-if-not
-                      (lambda (el) (pm--matched-selectors el :from))
+                      (lambda (el)
+                        (or (pm--matched-selectors el :from)
+                            ;; FIXME: this abomination
+                            ;; match weaver to exporter
+                            (cl-loop for weaver in weavers
+                                     if (cl-loop for w in (eieio-oref (symbol-value weaver) 'from-to)
+                                                 ;; weaver input extension matches the filename
+                                                 if (string-match-p (nth 1 w) buffer-file-name)
+                                                 return (cl-loop for el in (pm--selectors (symbol-value el) :from)
+                                                                 ;; input exporter extensnion matches weaver output extension
+                                                                 when (pm--selector-match el (concat "dummy." (nth 2 w)))
+                                                                 return t))
+                                     return t)))
                       (delete-dups (pm--oref-with-parents pm/polymode :exporters)))
                      "pm-exporter/"))
          (sel (if exporters
-                  (pm--completing-read "Choose exporter: " exporters nil t nil 'pm--exporter-hist)
+                  (if (and no-ask-if-1 (= (length exporters) 1))
+                      (car exporters)
+                    (pm--completing-read "Choose exporter: " exporters nil t nil 'pm--exporter-hist))
                 (user-error "No valid exporters in current context")))
          (out (intern (cdr sel))))
     (setq pm--exporter-hist (delete-dups pm--exporter-hist))
