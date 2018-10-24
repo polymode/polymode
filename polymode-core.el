@@ -1140,10 +1140,10 @@ near future.")
     ;; We need to catch those if we want to display multiple files like with Rmarkdown
     (condition-case-unless-debug err
         (let ((buff (get-file-buffer ofile)))
-          ;; silently kill and re-open
           (when buff
             (with-current-buffer buff
-              (ignore-errors (revert-buffer t t))))
+              (with-demoted-errors "Error while reverting: %s"
+                (revert-buffer t t))))
           (when polymode-display-output-file
             (if (string-match-p "html\\|htm$" ofile)
                 (browse-url ofile)
