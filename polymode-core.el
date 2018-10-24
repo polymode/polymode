@@ -1529,40 +1529,42 @@ By default BUFFER is the buffer where `pm/current' is t."
            (output-format (if is-exporter
                               polymode-exporter-output-file-format
                             polymode-weaver-output-file-format)))
-      (with-current-buffer ibuffer
-        (save-buffer)
-        (let ((comm.ofile (pm--output-command.file output-format sfrom sto quote)))
-          (message "%s '%s' with '%s' ..." (if is-exporter "Exporting" "Weaving")
-                   (file-name-nondirectory ifile) (eieio-object-name processor))
-          (let* ((pm--output-file (cdr comm.ofile))
-                 (pm--input-file ifile)
-                 ;; skip weaving step if possible
-                 ;; :fixme this should not happen after weaver/exporter change
-                 ;; or after errors in previous exporter
-                 (omt (and polymode-skip-processing-when-unmodified
-                           (stringp pm--output-file)
-                           (pm--file-mod-time pm--output-file)))
-                 (imt (and omt (pm--file-mod-time pm--input-file)))
-                 (ofile (or (and imt (time-less-p imt omt) pm--output-file)
-                            (let ((fun (with-no-warnings
-                                         (eieio-oref processor 'function)))
-                                  (args (delq nil (list callback from to))))
-                              (apply fun (car comm.ofile) args)))))
-            ;; ofile is non-nil in two cases:
-            ;;  -- synchronous back-ends (very uncommon)
-            ;;  -- when output is transitional (not real) and mod time of input < output
-            (when ofile
-              (if pm--export-spec
-                  ;; same logic as in pm--wrap-callback
-                  (let ((pm--input-not-real t)
-                        (espec pm--export-spec)
-                        (pm--export-spec nil))
-                    (when (listp ofile)
-                      (setq ofile (car ofile)))
-                    (pm-export (symbol-value (eieio-oref pm/polymode 'exporter))
-                               (car espec) (cdr espec)
-                               ofile))
-                (pm--display-file ofile)))))))))
+      (when (buffer-live-p ibuffer)
+        (with-current-buffer ibuffer
+          ;; FIXME: could be deleted buffer in weaver->exporter pipeline?
+          (save-buffer)
+          (let ((comm.ofile (pm--output-command.file output-format sfrom sto quote)))
+            (message "%s '%s' with '%s' ..." (if is-exporter "Exporting" "Weaving")
+                     (file-name-nondirectory ifile) (eieio-object-name processor))
+            (let* ((pm--output-file (cdr comm.ofile))
+                   (pm--input-file ifile)
+                   ;; skip weaving step if possible
+                   ;; :fixme this should not happen after weaver/exporter change
+                   ;; or after errors in previous exporter
+                   (omt (and polymode-skip-processing-when-unmodified
+                             (stringp pm--output-file)
+                             (pm--file-mod-time pm--output-file)))
+                   (imt (and omt (pm--file-mod-time pm--input-file)))
+                   (ofile (or (and imt (time-less-p imt omt) pm--output-file)
+                              (let ((fun (with-no-warnings
+                                           (eieio-oref processor 'function)))
+                                    (args (delq nil (list callback from to))))
+                                (apply fun (car comm.ofile) args)))))
+              ;; ofile is non-nil in two cases:
+              ;;  -- synchronous back-ends (very uncommon)
+              ;;  -- when output is transitional (not real) and mod time of input < output
+              (when ofile
+                (if pm--export-spec
+                    ;; same logic as in pm--wrap-callback
+                    (let ((pm--input-not-real t)
+                          (espec pm--export-spec)
+                          (pm--export-spec nil))
+                      (when (listp ofile)
+                        (setq ofile (car ofile)))
+                      (pm-export (symbol-value (eieio-oref pm/polymode 'exporter))
+                                 (car espec) (cdr espec)
+                                 ofile))
+                  (pm--display-file ofile))))))))))
 
 (provide 'polymode-core)
 ;;; polymode-core.el ends here
