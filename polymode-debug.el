@@ -375,6 +375,7 @@ currently traced functions."
              pm--syntax-propertize-function-original)
     ))
 
+;;;###autoload
 (defun pm-debug-print-relevant-variables ()
   "Print values of relevant hooks and other variables."
   (interactive)
