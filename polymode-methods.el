@@ -163,6 +163,10 @@ initialized. Return the buffer."
     (add-hook 'before-change-functions 'polymode-before-change-setup t t)
     (setq-local syntax-ppss-wide (cons nil nil))
 
+    ;; FILL
+    (setq-local pm--fill-forward-paragraph-original fill-forward-paragraph-function)
+    (setq-local fill-forward-paragraph-function #'polymode-fill-forward-paragraph)
+
     ;; HOOKS
     (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes nil t)
     (add-hook 'post-command-hook #'polymode-post-command-select-buffer nil t)

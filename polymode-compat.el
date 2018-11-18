@@ -198,8 +198,10 @@ changes."
 
 
 ;;; Editing
-(pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
 
+
+;; (pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
+;; (advice-remove 'fill-paragraph #'pm-execute-narrowed-to-span)
 
 ;; (defun polymode-with-save-excursion (orig-fun &rest args)
 ;;   "Execute ORIG-FUN surrounded with `save-excursion'.

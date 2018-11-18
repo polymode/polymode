@@ -51,6 +51,7 @@
 
 ;; overwrites
 (defvar-local pm--indent-region-function-original nil)
+(defvar-local pm--fill-forward-paragraph-original nil)
 (defvar-local pm--indent-line-function-original nil)
 (defvar-local pm--syntax-propertize-function-original nil)
 
@@ -998,6 +999,27 @@ Used in advises."
 ;; (advice-remove #'find-alternate-file #'polymode-with-current-base-buffer)
 
 
+;;; FILL
+;; FIXME: this is an incomplete heuristic and breaks on adjacent multi-span
+;; fill-region depending on the mode's fill-forward-paragraph-function. For a
+;; complete solution one might likely need to define fill-paragraph-function as
+;; well.
+(defun polymode-fill-forward-paragraph (&optional arg)
+  "Function for `fill-forward-paragraph-function'.
+ARG is the same as in `forward-paragraph'"
+  (let* ((neg (< arg 0))
+         (cur-span (pm-innermost-span (if neg (1- (point)) (point))))
+         (cur-mode (pm-span-mode cur-span))
+         (out (funcall (or pm--fill-forward-paragraph-original
+                           #'forward-paragraph)
+                       arg))
+         (new-mode (pm-span-mode (pm-innermost-span (point)))))
+    (unless (eq cur-mode new-mode)
+      ;; adjust to the most recent span border and hope for the best
+      (pm-goto-span-of-type (car cur-span) (if neg 1 -1)))
+    out))
+
+
 ;;; SYNTAX
 
 (defun pm--call-syntax-propertize-original (start end)
@@ -1143,6 +1165,8 @@ near future.")
           (when buff
             (with-current-buffer buff
               (with-demoted-errors "Error while reverting: %s"
+                ;; FIXME: something is not right with pdflatex export with
+                ;; pdf-tools viewer within emacs
                 (revert-buffer t t))))
           (when polymode-display-output-file
             (if (string-match-p "html\\|htm$" ofile)
