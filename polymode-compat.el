@@ -233,6 +233,27 @@ changes."
 ;; 'pm-execute-inhibit-modification-hooks)
 
 
+;;; DESKTOP SAVE #194
+
+;; NB: desktop-save saves indirect buffers as base buffers but assumes that
+;; buffer names are the same. This would be ok if we hide implementation buffers
+;; as per #34.
+
+(defun polymode-fix-desktop-buffer-info (fn buffer)
+  "Save polymode buffers without mode prefix."
+  (let ((out (funcall fn buffer))
+        (base (buffer-base-buffer)))
+    (with-current-buffer buffer
+      (if (not (and polymode-mode base))
+          out
+        (when (car out)
+          (setf (car out) (buffer-name base)))
+        (setf (nth 2 out) (buffer-name base))
+        out))))
+
+(advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info)
+
+
 ;;; EVIL
 
 (declare-function evil-change-state "evil-core")
