@@ -283,6 +283,15 @@ changes."
 (advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info)
 
 
+;;; MATLAB #199
+
+;; matlab-mode is an old non-standard mode which doesn't trigger
+;; `after-change-major-mode-hook`. As a result polymode cannot detect that
+;; font-lock-mode is on and sets the `poly-lock-allow-fontification` to nil.
+;; Explicitly trigger font-lock as a workaround.
+(add-hook 'matlab-mode-hook (lambda () (font-lock-mode t)))
+
+
 ;;; EVIL
 
 (declare-function evil-change-state "evil-core")
