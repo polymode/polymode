@@ -747,6 +747,7 @@ switch."
 
     (switch-to-buffer new-buffer)
     (bury-buffer-internal old-buffer)
+    (set-window-prev-buffers nil (assq-delete-all old-buffer (window-prev-buffers nil)))
 
     (setq pm/current t)
 
