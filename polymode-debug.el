@@ -249,6 +249,9 @@ With NO-CACHE prefix, don't use cached values of the span."
         poly-lock-fontify-now
         poly-lock-flush
         jit-lock-fontify-now
+        jit-lock--run-functions
+        font-lock-fontify-region
+        font-lock-default-fontify-region
         ;; poly-lock-adjust-span-face
         poly-lock-after-change
         poly-lock--extend-region-span
@@ -362,6 +365,12 @@ currently traced functions."
                 font-lock-unfontify-buffer-function
                 jit-lock-after-change-extend-region-functions
                 jit-lock-functions)
+    ;; If any of these are reset by host mode it can create issues with
+    ;; font-lock and syntax (e.g. scala-mode in #195)
+    :search (parse-sexp-lookup-properties
+             ;; (syntax-table)
+             ;; font-lock-syntax-table
+             case-fold-search)
     :indent (indent-line-function
              indent-region-function
              pm--indent-line-function-original)
@@ -372,8 +381,7 @@ currently traced functions."
            before-save-hook)
     :syntax (syntax-propertize-function
              syntax-propertize-extend-region-functions
-             pm--syntax-propertize-function-original)
-    ))
+             pm--syntax-propertize-function-original)))
 
 ;;;###autoload
 (defun pm-debug-print-relevant-variables ()
@@ -396,6 +404,27 @@ currently traced functions."
       (toggle-truncate-lines -1)
       (goto-char (point-max)))
     (display-buffer buff)))
+
+(defun pm-debug-diff-local-vars (&optional buffer1 buffer2)
+  (interactive)
+  (let* ((buffer1 (read-buffer "Buffer1: " (buffer-name (current-buffer))))
+         (buffer2 (read-buffer "Buffer2: " (buffer-name (nth 2 (buffer-list)))))
+         (vars1 (buffer-local-variables (get-buffer buffer1)))
+         (vars2 (buffer-local-variables (get-buffer buffer2)))
+         (all-keys (delete-dups (append (mapcar #'car vars1)
+                                        (mapcar #'car vars2))))
+         (out-buf (get-buffer-create "*pm-debug-output")))
+    (with-current-buffer out-buf
+      (erase-buffer)
+      (pp (delq nil
+                (mapcar (lambda (k)
+                          (let ((val1 (cdr (assoc k vars1)))
+                                (val2 (cdr (assoc k vars2))))
+                            (unless (equal val1 val2)
+                              (list k val1 val2))))
+                        all-keys))
+          out-buf))
+    (pop-to-buffer out-buf)))
 
 
 ;;; HIGHLIGHT
