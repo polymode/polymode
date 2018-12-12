@@ -498,14 +498,18 @@ to indent."
                 ;; On the first line. Indent with respect to header line.
                 (let ((delta (save-excursion
                                (goto-char (nth 1 span))
-                               (if (or (= (point) (point-at-bol))
-                                       (looking-at-p "[ \t]*$"))
-                                   0
-                                 ;; code after header
+                               (cond
+                                ;; empty line
+                                ((looking-at-p "[ \t]*$") 0)
+                                ;; inner span starts at bol; honor +-indent cookie
+                                ((= (point) (point-at-bol))
+                                 (pm--+-indent-offset-on-this-line span))
+                                ;; code after header
+                                (t
                                  (end-of-line)
                                  (skip-chars-forward "\t\n")
                                  (pm--indent-line-raw span)
-                                 (- (point) (point-at-bol))))))
+                                 (- (point) (point-at-bol)))))))
                   (indent-line-to
                    ;; indent with respect to header line
                    (+ delta (pm--head-indent span)))))))))
@@ -544,11 +548,20 @@ to indent."
         (back-to-indentation)
         (- (point) (point-at-bol))))))
 
+(defun pm--+-indent-offset-on-this-line (span)
+  (if (re-search-forward "\\([+-]\\)indent" (point-at-eol) t)
+      (let ((basic-offset (pm--oref-value (nth 3 span) 'indent-offset)))
+        (if (string= (match-string 1) "-")
+            (- basic-offset)
+          basic-offset))
+    0))
+
 (defun pm--reindent-with+-indent (span beg end)
   (save-excursion
     (goto-char beg)
     (let ((basic-offset (pm--oref-value (nth 3 span) 'indent-offset)))
-      (while (re-search-forward "\\([+-]\\)indent" end t)
+      (while (and (< (point) end)
+                  (re-search-forward "\\([+-]\\)indent" end t))
         (let ((offset (if (string= (match-string 1) "-")
                           (- basic-offset)
                         basic-offset)))
