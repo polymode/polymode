@@ -48,6 +48,13 @@
   :group 'poly-hostmodes
   :type 'object)
 
+(defcustom pm-host/emacs-lisp
+  (pm-host-chunkmode :name "elisp"
+                     :mode 'emacs-lisp-mode)
+  "Emacs lisp hostmode."
+  :group 'poly-hostmodes
+  :type 'object)
+
 (defcustom pm-host/fundamental
   (pm-host-chunkmode :name "fundamental"
                      :mode 'fundamental-mode)
