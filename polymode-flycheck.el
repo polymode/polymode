@@ -37,34 +37,64 @@
   "Polymode Tanglers."
   :group 'polymode)
 
+(defun polymode-flycheck--line-number-at-pos (pos cache)
+  "Like `line-number-at-pos' but sped up with a cache.
+Inspired by https://emacs.stackexchange.com/a/3829"
+  (let ((line-num
+         (if (and cache
+                (> (- pos (car cache)) 0))
+             (+ (cdr cache) (count-lines (car cache) pos))
+           (line-number-at-pos pos))))
+    (cons pos line-num)))
 
-(defun polymode-flycheck--collect-bodies-of-mode (mode buffer-name)
-  "Insert into a buffer with name `buffer-name' all spans with a
-major-mode equal to `mode'. Create special text properties to
-remember original positions of spans in a host file. Return
-buffer object."
+
+(defun polymode-flycheck--collect-bodies-of-mode (mode)
+  "Return cons of two lists.
+The first list is text of all spans with a major-mode equal to
+`mode'. The second one is line-offset of the corresponding
+spans."
   (save-excursion
-    (let* ((temp-buffer (get-buffer-create buffer-name))
-           (base (pm-base-buffer))
-           temp-beg temp-end
-           sbeg send sline)
+    (let* (sbeg send
+           line-cache
+           (bodies '())
+           (offsets '()))
       (pm-map-over-spans
        (lambda (span)
          (when (and (eq (car span) 'body)
                   (eq mode major-mode))
            (setq sbeg (nth 1 span)
                  send (nth 2 span)
-                 sline (line-number-at-pos sbeg))
-           (with-current-buffer temp-buffer
-             (setq temp-beg (point)
-                   temp-end (+ temp-beg (- send sbeg)))
-             (insert-buffer-substring-no-properties base sbeg send)
-             ;;save the first line number of the body in host file (sline)
-             ;;and in temp file
-             (set-text-properties temp-beg temp-end
-                                  `(pm-orig-line ,sline
-                                    pm-temp-line ,(line-number-at-pos temp-beg)))))))
-      temp-buffer)))
+                 line-cache (polymode-flycheck--line-number-at-pos sbeg line-cache))
+           (push (buffer-substring-no-properties sbeg send) bodies)
+           (push (cdr line-cache) offsets))))
+      `(,(nreverse bodies) . ,(nreverse offsets)))))
+
+(defun polymode-flycheck--insert-to-buffer (bodies-and-offsets buffer-name)
+  "Take a cons of two lists `bodies-and-offsets' and insert into
+a buffer with name `buffer-name' all text. Create special text
+properties to remember original positions of spans in a host
+file. Return buffer object."
+  (let ((bodies (car bodies-and-offsets))
+        (offsets (cdr bodies-and-offsets))
+        (temp-buffer (get-buffer-create buffer-name))
+        temp-beg temp-end
+        line-cache)
+
+    (with-current-buffer temp-buffer
+      (cl-mapc (lambda (body offset)
+                 (setq temp-beg (point)
+                       temp-end (+ temp-beg (length body))
+                       line-cache (polymode-flycheck--line-number-at-pos temp-beg line-cache))
+                 (insert body)
+                 ;;save the first line number of the body in host file (offset)
+                 ;;and in temp file
+                 (set-text-properties temp-beg temp-end
+                                      `(pm-orig-line ,offset
+                                        pm-temp-line ,(cdr line-cache))))
+
+
+               bodies offsets))
+    temp-buffer))
 
 (defun polymode-flycheck--temp-buffer-name (&optional buffer)
   (concat (buffer-name buffer) "-polymode-flycheck"))
@@ -76,7 +106,9 @@ See `polymode-flycheck--collect-bodies-of-mode'."
          (buffer (get-buffer name)))
     (if buffer
         buffer
-      (polymode-flycheck--collect-bodies-of-mode major-mode name))))
+      (polymode-flycheck--insert-to-buffer
+       (polymode-flycheck--collect-bodies-of-mode major-mode)
+       name))))
 
 (defun polymode-flycheck--get-buffer-transformer ()
   "Return transformer if polymode is on and point is in a
