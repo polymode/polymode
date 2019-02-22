@@ -28,7 +28,7 @@
 (package-initialize)
 (package-refresh-contents)
 
-(dolist (package package-deps)
+(dolist (package (append dev-deps package-deps))
   (if (package-installed-p package)
       (when (package-outdated-p package)
         (package-install-from-archive (cadr (assq package package-archive-contents))))

@@ -11,7 +11,7 @@ LINTELS = $(filter-out __MODULE__-autoloads.el, $(ELS))
 
 # export PM_VERBOSE
 
-.PHONY: test version compile
+.PHONY: all build checkdoc lint clean cleanall melpa elpa start test version
 
 all: build checkdoc test
 
@@ -48,7 +48,7 @@ startvs: version
 		--load targets/local.el \
 		--load tests/*.el --load ~/.eBasic.el
 
-test: version
+test: build version
 	@echo "******************* Testing $(MODULE) ***************************"
 	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
 
