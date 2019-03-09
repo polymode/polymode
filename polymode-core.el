@@ -606,9 +606,9 @@ is one of the following symbols:
 ;;; OBJECT HOOKS
 
 (defun pm--run-derived-mode-hooks (config)
-  ;; Minor modes run-hooks, major-modes run-mode-hooks.
-  ;; Polymodes is a minor mode but with major-mode flavor. We
-  ;; run all parent hooks in reversed order here.
+  ;; Minor modes run-hooks, major-modes run-mode-hooks. Polymodes is a minor
+  ;; mode but with major-mode flavor. We run hooks of all modes stored in
+  ;; '-minor-mode slot of all parent objects in parent-first order.
   (let ((this-mode (eieio-oref config '-minor-mode)))
     (mapc (lambda (mm)
             (let ((old-mm (symbol-value mm)))

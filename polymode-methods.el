@@ -123,7 +123,8 @@ Ran by the polymode mode function."
           (pm--move-vars pm-move-vars-from-base base (current-buffer)))
         (condition-case-unless-debug err
             (funcall mode)
-          (error (message "Polymode error (pm--mode-setup '%s): %s" mode (error-message-string err))))))
+          (error (message "Polymode error (pm--mode-setup '%s): %s"
+                          mode (error-message-string err))))))
     (setq polymode-mode t)
     (current-buffer)))
 
@@ -174,13 +175,17 @@ initialized. Return the buffer."
 
     ;; FONT LOCK (see poly-lock.el)
     (setq-local font-lock-function 'poly-lock-mode)
-    ;; Font lock is initialized in `after-change-major-mode-hook' by means of
-    ;; `run-mode-hooks' and poly-lock won't get installed if polymode is
-    ;; installed as minor mode or interactively. We add font/poly-lock in all
-    ;; buffers because this is how inner buffers are installed, but
-    ;; `poly-lock-allow-fontification' is intended for buffers which don't want
-    ;; font-lock.
+    ;; Font lock is a globalized minor mode and is thus initialized in
+    ;; `after-change-major-mode-hook' within `run-mode-hooks'. As a result
+    ;; poly-lock won't get installed if polymode is installed as a minor mode or
+    ;; interactively. We add font/poly-lock in all buffers (because this is how
+    ;; inner buffers are installed) but use `poly-lock-allow-fontification' to
+    ;; disallow fontification in buffers which don't want font-lock (aka those
+    ;; buffers where `turn-on-font-lock-if-desired' doesn't activate font-lock).
+    (turn-on-font-lock-if-desired) ; <- need this for the sake of poly-minor-modes
     (setq-local poly-lock-allow-fontification font-lock-mode)
+    ;; Make sure to re-install with our font-lock-function as
+    ;; `turn-on-font-lock-if-desired' from above might actually not call it.
     (font-lock-mode t)
     (font-lock-flush)
 
