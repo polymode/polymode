@@ -25,7 +25,8 @@ checkdoc: version
 
 lint: version
 	@$(EMACSBATCH) --load targets/melpa.el --load elisp-lint.el \
-		--funcall elisp-lint-files-batch --no-package-format --no-fill-column $(LINTELS)
+		--funcall elisp-lint-files-batch \
+		--no-fill-column --no-indent-character --no-package-format $(LINTELS)
 
 clean:
 	rm -f $(OBJECTS)
