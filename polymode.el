@@ -620,11 +620,12 @@ most frequently used slots are:
                    (easy-mmode-define-keymap keymap nil nil (list :inherit parent-map)))))
 
          ,@(unless (eq parent config-name)
-             `((defcustom ,config-name nil
+             ;; NB: setting in two steps as defcustom is not re-evaluated on repeated evals
+             `((defvar ,config-name) ; silence byte-compiler
+               (defcustom ,config-name nil
                  ,(format "Configuration object for `%s' polymode." mode)
                  :group 'polymodes
                  :type 'object)
-               ;; setting in two steps as defcustom is not re-evaluated on repeated evals
                (setq ,config-name
                      (if parent-conf-name
                          (clone parent-conf
