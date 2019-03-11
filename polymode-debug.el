@@ -233,6 +233,7 @@ With NO-CACHE prefix, don't use cached values of the span."
   "Fontify current buffer."
   (interactive)
   (let ((poly-lock-allow-fontification t))
+    (font-lock-unfontify-buffer)
     (poly-lock-flush (point-min) (point-max))
     (poly-lock-fontify-now (point-min) (point-max))))
 

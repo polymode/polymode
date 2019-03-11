@@ -25,9 +25,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Commentary
+;;; Commentary:
 ;;
-;;
+;;; Code:
+
 ;; FONT-LOCK COMPONENTS:
 ;;
 ;; All * functions are lazy in poly-lock and jit-lock because they just mark
@@ -68,10 +69,6 @@
 ;;             -> (jit-lock-register #'font-lock-fontify-region)
 ;;               -> (add-hook 'jit-lock-functions #'font-lock-fontify-region nil t)
 ;;               -> jit-lock-mode
-;;
-;;; Commentary:
-;;
-;;; Code:
 
 (require 'jit-lock)
 (require 'polymode-core)
@@ -156,17 +153,20 @@ switched on."
     (remove-hook 'fontification-functions 'poly-lock-function t))
   (current-buffer))
 
+(defvar poly-lock-chunk-size 2500
+  "Poly-lock fontifies chunks of at most this many characters at a time.")
+
 (defun poly-lock-function (start)
   "The only function in `fontification-functions' in polymode buffers.
 This is the entry point called by the display engine. START is
 defined in `fontification-functions'. This function has the same
 scope as `jit-lock-function'."
   (unless pm-initialization-in-progress
-    (if (and poly-lock-mode
-             (not memory-full))
+    (if (and poly-lock-mode (not memory-full))
         (unless (input-pending-p)
-          (let ((end (or (text-property-any start (point-max) 'fontified t)
-                         (point-max))))
+          (let ((end (min (or (text-property-any start (point-max) 'fontified t)
+                              (point-max))
+                          (+ start poly-lock-chunk-size))))
             (when (< start end)
               (poly-lock-fontify-now start end))))
       (with-buffer-prepared-for-poly-lock
@@ -178,6 +178,8 @@ Fontifies chunk-by chunk within the region BEG END."
   (unless (or poly-lock-fontification-in-progress
               pm-initialization-in-progress)
     (let* ((font-lock-dont-widen t)
+           ;; For now we fontify entire chunks at ones. This simplicity is
+           ;; warranted in multi-mode use cases.
            (font-lock-extend-region-functions nil)
            ;; Fontification in one buffer can trigger fontification in another
            ;; buffer. Particularly, this happens when new indirect buffers are
@@ -190,7 +192,12 @@ Fontifies chunk-by chunk within the region BEG END."
            (poly-lock-fontification-in-progress t)
            (fontification-functions nil)
            (protect-host (with-current-buffer (pm-base-buffer)
-                           (eieio-oref pm/chunkmode 'protect-font-lock))))
+                           (eieio-oref pm/chunkmode 'protect-font-lock)))
+           ;; extend to the next span boundary
+           (end (let ((end-range (pm-innermost-range end)))
+                  (if (< (car end-range) end)
+                      (cdr end-range)
+                    end))))
       (save-restriction
         (widen)
         (save-excursion
