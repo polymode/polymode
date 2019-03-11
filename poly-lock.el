@@ -379,10 +379,10 @@ SPAN's chunkmode."
     (when face
       (with-current-buffer (current-buffer)
         (let ((face (or (and (numberp face)
-                             (list (cons 'background-color
+                             (list (list :background
                                          (poly-lock--adjusted-background face))))
                         face)))
-          (font-lock-prepend-text-property
+          (font-lock-append-text-property
            (nth 1 span) (nth 2 span) 'face face))))))
 
 (provide 'poly-lock)
