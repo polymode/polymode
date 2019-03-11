@@ -100,7 +100,7 @@
 (defvar pm-initialization-in-progress nil)
 
 
-;; CUSTOM
+;;; CUSTOM
 
 ;;;###autoload
 (defvar-local polymode-default-inner-mode nil
@@ -492,7 +492,6 @@ region."
   (lambda (ahead)
     (pm--get-property-nearby property accessor ahead)))
 
-
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap)
   "Span detector with head and tail matchers.
 HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
@@ -601,6 +600,31 @@ is one of the following symbols:
       ;;            -----
       ;; host)[head)[body)
       (list 'body (cdr head) (point-max)))))
+
+(defun pm-goto-span-of-type (type N)
+  "Skip to N - 1 spans of TYPE and stop at the start of a span of TYPE.
+TYPE is either a symbol or a list of symbols of span types."
+  (let* ((sofar 0)
+         (types (if (symbolp type)
+                    (list type)
+                  type))
+         (back (< N 0))
+         (N (if back (- N) N))
+         (beg (if back (point-min) (point)))
+         (end (if back (point) (point-max))))
+    (unless (memq (car (pm-innermost-span)) types)
+      (setq sofar 1))
+    (condition-case nil
+        (pm-map-over-spans
+         (lambda (span)
+           (when (memq (car span) types)
+             (goto-char (nth 1 span))
+             (when (>= sofar N)
+               (signal 'quit nil))
+             (setq sofar (1+ sofar))))
+         beg end nil back)
+      (quit nil))
+    sofar))
 
 
 ;;; OBJECT HOOKS
@@ -1011,6 +1035,7 @@ Used in advises."
 
 
 ;;; FILL
+
 ;; FIXME: this is an incomplete heuristic and breaks on adjacent multi-span
 ;; fill-region depending on the mode's fill-forward-paragraph-function. For a
 ;; complete solution one might likely need to define fill-paragraph-function as

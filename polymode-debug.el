@@ -419,8 +419,8 @@ currently traced functions."
 
 (defun pm-debug-diff-local-vars (&optional buffer1 buffer2)
   (interactive)
-  (let* ((buffer1 (read-buffer "Buffer1: " (buffer-name (current-buffer))))
-         (buffer2 (read-buffer "Buffer2: " (buffer-name (nth 2 (buffer-list)))))
+  (let* ((buffer1 (or buffer1 (read-buffer "Buffer1: " (buffer-name (current-buffer)))))
+         (buffer2 (or buffer2 (read-buffer "Buffer2: " (buffer-name (nth 2 (buffer-list))))))
          (vars1 (buffer-local-variables (get-buffer buffer1)))
          (vars2 (buffer-local-variables (get-buffer buffer2)))
          (all-keys (delete-dups (append (mapcar #'car vars1)

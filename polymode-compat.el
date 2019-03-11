@@ -281,7 +281,9 @@ changes."
         (setf (nth 2 out) (buffer-name base))
         out))))
 
-(advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info)
+(declare-function desktop-buffer-info "desktop")
+(with-eval-after-load "desktop"
+  (advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info))
 
 
 ;;; MATLAB #199

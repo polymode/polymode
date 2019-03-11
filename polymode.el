@@ -78,12 +78,13 @@ Not effective after loading the polymode library.")
   "Polymode prefix map.
 Lives on `polymode-prefix-key' in polymode buffers.")
 
+(defvaralias 'polymode-mode-map 'polymode-minor-mode-map)
 (defvar polymode-minor-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (or polymode-prefix-key "\M-n") 'polymode-map)
     map)
   "The minor mode keymap which is inherited by all polymodes.")
-(defvaralias 'polymode-mode-map 'polymode-minor-mode-map)
+
 
 (easy-menu-define polymode-menu polymode-minor-mode-map
   "Menu for polymode."
@@ -103,31 +104,6 @@ Lives on `polymode-prefix-key' in polymode buffers.")
 
 
 ;;; NAVIGATION
-
-(defun pm-goto-span-of-type (type N)
-  "Skip to N - 1 spans of TYPE and stop at the start of a span of TYPE.
-TYPE is either a symbol or a list of symbols of span types."
-  (let* ((sofar 0)
-         (types (if (symbolp type)
-                    (list type)
-                  type))
-         (back (< N 0))
-         (N (if back (- N) N))
-         (beg (if back (point-min) (point)))
-         (end (if back (point) (point-max))))
-    (unless (memq (car (pm-innermost-span)) types)
-      (setq sofar 1))
-    (condition-case nil
-        (pm-map-over-spans
-         (lambda (span)
-           (when (memq (car span) types)
-             (goto-char (nth 1 span))
-             (when (>= sofar N)
-               (signal 'quit nil))
-             (setq sofar (1+ sofar))))
-         beg end nil back)
-      (quit nil))
-    sofar))
 
 (defun polymode-next-chunk (&optional N)
   "Go N chunks forwards.
@@ -247,8 +223,7 @@ Return the number of chunks of the same type moved over."
   (setq pos (or pos (point)))
   (let ((span (pm-innermost-span pos))
         (pmin (point-min))
-        (pmax (point-max))
-        beg end)
+        (pmax (point-max)))
     (cl-case (car span)
       ((nil) (pm-span-to-range span))
       (body (cons (if (= pmin (nth 1 span))

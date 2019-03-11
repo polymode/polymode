@@ -381,11 +381,11 @@ in this case."
     (goto-char point)))
 
 (defun pm--indent-line-raw (span)
-  (pm--indent-raw span #'pm--indent-line-function-original)
+  (pm--indent-raw span 'pm--indent-line-function-original)
   (pm--reindent-with+-indent span (point-at-bol) (point-at-eol)))
 
 (defun pm--indent-region-raw (span beg end)
-  (pm--indent-raw span #'pm--indent-region-function-original beg end)
+  (pm--indent-raw span 'pm--indent-region-function-original beg end)
   (pm--reindent-with+-indent span beg end))
 
 (defun pm-indent-region (beg end)
@@ -431,7 +431,7 @@ Value of `indent-line-function' in polymode buffers."
 Protect and call original indentation function associated with
 the chunkmode.")
 
-(cl-defmethod pm-indent-line ((chunkmode pm-chunkmode) span)
+(cl-defmethod pm-indent-line ((_chunkmode pm-chunkmode) span)
   (let ((pos (point))
         (delta))
     (back-to-indentation)
@@ -452,7 +452,7 @@ the chunkmode.")
     (when (and delta (> delta 0))
       (goto-char (+ (point) delta)))))
 
-(cl-defmethod pm-indent-line ((chunkmode pm-inner-chunkmode) span)
+(cl-defmethod pm-indent-line ((_chunkmode pm-inner-chunkmode) span)
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
@@ -596,8 +596,6 @@ to indent."
          (or (eieio-oref chunkmode 'tail-adjust-face)
              (eieio-oref chunkmode 'head-adjust-face)))
         (t (eieio-oref chunkmode 'adjust-face))))
-
-(provide 'polymode-methods)
 
 (provide 'polymode-methods)
 
