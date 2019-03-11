@@ -153,6 +153,15 @@ With NO-CACHE prefix, don't use cached values of the span."
       ;; (move-overlay pm--highlight-overlay (nth 1 span) (nth 2 span) (current-buffer))
       (pm-debug-flick-region (nth 1 span) (nth 2 span)))))
 
+(defun pm-debug-report-points (&optional where)
+  (when polymode-mode
+    (let* ((bufs (eieio-oref pm/polymode '-buffers))
+           (poses (mapcar (lambda (b)
+                            (format "%s:%d" b (with-current-buffer b (point))))
+                          bufs)))
+      (message "<%s> cb:%s %s" (or where "") (current-buffer) poses)))
+  nil)
+
 
 ;;; TOGGLING
 
@@ -378,7 +387,10 @@ currently traced functions."
              before-revert-hook
              after-revert-hook)
     :save (after-save-hook
-           before-save-hook)
+           before-save-hook
+           write-contents-functions
+           local-write-file-hooks
+           write-file-functions)
     :syntax (syntax-propertize-function
              syntax-propertize-extend-region-functions
              pm--syntax-propertize-function-original)))

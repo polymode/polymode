@@ -228,9 +228,13 @@ changes."
 
 ;;; Editing
 
-
 ;; (pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
 ;; (advice-remove 'fill-paragraph #'pm-execute-narrowed-to-span)
+
+
+;; Synchronization of points does not work always as expected because some low
+;; level functions move indirect buffers' points when operate in the base
+;; buffer. See comment in `polymode-with-current-base-buffer'.
 
 ;; (defun polymode-with-save-excursion (orig-fun &rest args)
 ;;   "Execute ORIG-FUN surrounded with `save-excursion'.
@@ -242,9 +246,6 @@ changes."
 ;;       (save-excursion
 ;;         (apply orig-fun args))
 ;;     (apply orig-fun args)))
-
-;; We are synchronizing point in pre-command-hook so the following hack is no
-;; longer needed. Leaving here as a reference for the time being.
 ;;
 ;; `save-buffer` misbehaves because after each replacement modification hooks
 ;; are triggered and poly buffer is switched in unpredictable fashion (#93).

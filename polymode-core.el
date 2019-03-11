@@ -982,20 +982,30 @@ Used in advises."
   (if (and polymode-mode pm/polymode
            (not pm--killed)
            (buffer-live-p (buffer-base-buffer)))
-      (let ((pm-initialization-in-progress t) ; just in case
+      (let (;; (pm-initialization-in-progress t) ; just in case
             (cur-buf (current-buffer))
             (base (buffer-base-buffer))
             (first-arg (car-safe args)))
-        (with-current-buffer base
-          (if (or (eq first-arg cur-buf)
-                  (equal first-arg (buffer-name cur-buf)))
-              (apply orig-fun base (cdr args))
-            (apply orig-fun args))))
+        (prog1 (with-current-buffer base
+                 (if (or (eq first-arg cur-buf)
+                         (equal first-arg (buffer-name cur-buf)))
+                     (apply orig-fun base (cdr args))
+                   (apply orig-fun args)))
+          ;; The sync of points doesn't work as expected in the following corner
+          ;; case: if current buffer is an indirect one and a function operates
+          ;; on the base buffer (like save-buffer) and somehow inadvertently
+          ;; moves points in the indirect buffer then we synchronize wrong point
+          ;; (from the current indirect buffer). For unclear reasons the very
+          ;; low level scan-lists moves points in indirect buffers (FIXME: EMACS
+          ;; bug, report ASAP). Unfortunately save-excursion protects only from
+          ;; point moves in the current buffer.
+          (pm--synchronize-points base)))
     (apply orig-fun args)))
 
 (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
 (pm-around-advice #'write-file #'polymode-with-current-base-buffer)
+(pm-around-advice #'basic-save-buffer #'polymode-with-current-base-buffer)
 ;; (advice-remove #'kill-buffer #'polymode-with-current-base-buffer)
 ;; (advice-remove #'find-alternate-file #'polymode-with-current-base-buffer)
 
@@ -1309,17 +1319,18 @@ Elements of LIST can be either strings or symbols."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-(defun pm--synchronize-points (&optional buffer)
-  "Synchronize the point in polymode buffers with the point in BUFFER.
-By default BUFFER is the buffer where `pm/current' is t."
-  (when polymode-mode
+(defun pm--synchronize-points (buffer)
+  "Synchronize the point in polymode buffers with the point in BUFFER."
+  ;; By default BUFFER is the buffer where `pm/current' is t.
+  (when (and polymode-mode
+             (buffer-live-p buffer))
     (let* ((bufs (eieio-oref pm/polymode '-buffers))
-           (buffer (or buffer
-                       (cl-loop for b in bufs
-                                if (and (buffer-live-p b)
-                                        (buffer-local-value 'pm/current b))
-                                return b)
-                       (current-buffer)))
+           ;; (buffer (or buffer
+           ;;             (cl-loop for b in bufs
+           ;;                      if (and (buffer-live-p b)
+           ;;                              (buffer-local-value 'pm/current b))
+           ;;                      return b)
+           ;;             (current-buffer)))
            (pos (with-current-buffer buffer (point))))
       (dolist (b bufs)
         (when (buffer-live-p b)
