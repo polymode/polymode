@@ -527,26 +527,25 @@ most frequently used slots are:
                    [&rest [keywordp sexp]]
                    def-body)))
 
-  (if (keywordp parent)
-      (progn
-        (push doc body)
-        (push parent body)
-        (setq doc nil
-              parent nil))
-    (when (keywordp doc)
-      (progn
-        (push doc body)
-        (setq doc nil))))
-
-  (unless (symbolp parent)
-    (error "PARENT must be a name of a `pm-polymode' config or a polymode mode function"))
-
   (let* ((last-message (make-symbol "last-message"))
          (mode-name (symbol-name mode))
          (config-name (pm--config-name mode))
          (root-name (replace-regexp-in-string "poly-\\|-mode" "" mode-name))
          (keymap-name (intern (concat mode-name "-map")))
          keymap slots after-hook keyw lighter)
+
+    (if (keywordp parent)
+        (progn
+          (push doc body)
+          (push parent body)
+          (setq doc nil
+                parent nil))
+      (unless (stringp doc)
+        (push doc body)
+        (setq doc (format "Polymode for %s." root-name))))
+
+    (unless (symbolp parent)
+      (error "PARENT must be a name of a `pm-polymode' config or a polymode mode function"))
 
     ;; Check keys
     (while (keywordp (setq keyw (car body)))
@@ -614,8 +613,7 @@ most frequently used slots are:
            ,(format "%s\n\n\\{%s}"
                     ;; fixme: add inheretance info here and warning if body is
                     ;; non-nil (like in define-mirror-mode)
-                    (or doc (format "Polymode %s." root-name))
-                    keymap-name)
+                    doc keymap-name)
            (interactive)
            (let ((,last-message (current-message))
                  (state (cond
