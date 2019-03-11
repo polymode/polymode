@@ -38,7 +38,7 @@
   "Polymode Exporters"
   :group 'polymode)
 
-(defcustom polymode-exporter-output-file-format "%s[exported]"
+(defcustom polymode-exporter-output-file-format "%s-exported"
   "Format of the exported files.
 %s is substituted with the current file name sans extension."
   :group 'polymode-export

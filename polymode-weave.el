@@ -37,7 +37,7 @@
   :group 'polymode)
 
 (define-obsolete-variable-alias 'polymode-weave-output-file-format 'polymode-weaver-output-file-format "2018-08")
-(defcustom polymode-weaver-output-file-format "%s[woven]"
+(defcustom polymode-weaver-output-file-format "%s-woven"
   "Format of the weaved files.
 %s is substituted with the current file name sans extension."
   :group 'polymode-weave
