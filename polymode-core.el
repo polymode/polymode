@@ -1398,6 +1398,7 @@ Elements of LIST can be either strings or symbols."
         (exporter (symbol-value (eieio-oref pm/polymode 'exporter)))
         (obuffer (current-buffer)))
     (if pm--export-spec
+        ;; 2-stage weaver->exporter
         (let ((espec pm--export-spec))
           (lambda (&rest args)
             (with-current-buffer obuffer
@@ -1607,13 +1608,18 @@ Elements of LIST can be either strings or symbols."
                              (pm--file-mod-time pm--output-file)))
                    (imt (and omt (pm--file-mod-time pm--input-file)))
                    (ofile (or (and imt (time-less-p imt omt) pm--output-file)
-                              (let ((fun (with-no-warnings
-                                           (eieio-oref processor 'function)))
-                                    (args (delq nil (list callback from to))))
-                                (apply fun (car comm.ofile) args)))))
-              ;; ofile is non-nil in two cases:
-              ;;  -- synchronous back-ends (very uncommon)
-              ;;  -- when output is transitional (not real) and mod time of input < output
+                              (let ((fn (with-no-warnings
+                                          (eieio-oref processor 'function)))
+                                    ;; `to` is nil for weavers
+                                    (args (delq nil (list from to)))
+                                    (comm (car comm.ofile)))
+                                (if callback
+                                    ;; the display is handled within the
+                                    ;; callback and return value of :function
+                                    ;; slot is ignored
+                                    (progn (apply fn comm callback args)
+                                           nil)
+                                  (apply fn comm args))))))
               (when ofile
                 (if pm--export-spec
                     ;; same logic as in pm--wrap-callback

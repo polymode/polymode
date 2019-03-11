@@ -149,9 +149,10 @@
     :type (or symbol function)
     :documentation
     "Function to process the commmand. Must take 3 arguments
-     COMMAND, FROM-ID and TO-ID. COMMAND is the 4th argument
-     of :from spec with all the formats substituted. FROM-ID is
-     the id of requested :from spec, TO-ID is the id of the :to
+     COMMAND, FROM-ID and TO-ID and return an output file name or
+     a list of output file names. COMMAND is the 4th argument of
+     :from spec with all the formats substituted. FROM-ID is the
+     id of requested :from spec, TO-ID is the id of the :to
      spec."))
   "Root exporter class.")
 
@@ -161,10 +162,12 @@
     :initform nil
     :type (or symbol function)
     :documentation
-    "Callback function to be called by :function. There is no
-     default callback. Callback must return the output file
-     name."))
-  "Class to represent asynchronous exporters.")
+    "Callback function to be called by function in :function
+     slot. Callback must return an output file name or a list of
+     output file-names. There is no default callback."))
+  "Class to represent asynchronous exporters.
+:function slot must be a function with 4 arguments COMMAND,
+CALLBACK, FROM-ID and TO-ID.")
 
 (defclass pm-shell-exporter (pm-exporter)
   ((function
