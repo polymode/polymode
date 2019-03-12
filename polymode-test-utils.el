@@ -271,6 +271,7 @@ Needed because redisplay is not triggered in batch mode."
         (let (pos)
           (while (setq pos (text-property-any (point-min) (point-max) 'fontified nil))
             (let ((inhibit-modification-hooks t)
+                  (poly-lock-defer-after-change nil)
                   (inhibit-redisplay t))
               (when pm-verbose
                 (message "after change fontification-functions (%s)" pos))
@@ -290,7 +291,8 @@ execution undo is called once. After each change-set
     (pm-test-run-on-file ,mode ,file
       ;; (pm-test-spans)
       (dolist (cset ',change-sets)
-        (let ((pm-test-current-change-set (caar cset)))
+        (let ((poly-lock-defer-after-change nil)
+              (pm-test-current-change-set (caar cset)))
           (setq pm-extra-span-info (caar cset))
           (undo-boundary)
           (pm-test-goto-loc (nth 1 (car cset)))

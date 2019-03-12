@@ -76,6 +76,7 @@
 (defvar poly-lock-allow-fontification t)
 (defvar poly-lock-allow-background-adjustment t)
 (defvar poly-lock-fontification-in-progress nil)
+(defvar poly-lock-defer-after-change t)
 (defvar-local poly-lock-mode nil)
 
 (eval-when-compile
@@ -338,6 +339,27 @@ OLD-LEN is passed to the extension function."
                 jit-lock-end (max end (min jit-lock-end send))))
         (cons jit-lock-start jit-lock-end)))))
 
+(defvar-local poly-lock--timer nil)
+(defun poly-lock--after-change-deferred (buffer beg end old-len)
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq poly-lock--timer nil)
+      (save-match-data
+        (with-buffer-prepared-for-poly-lock
+         (save-excursion
+           (save-restriction
+             (widen)
+             (poly-lock--extend-region beg end)
+             ;; no need for 'no-cache; poly-lock--extend-region re-computed the spans
+             (let ((bspan (pm-innermost-span jit-lock-start)))
+               (poly-lock--extend-region-span bspan old-len)
+               (when (< (nth 2 bspan) jit-lock-end)
+                 (let ((espan (pm-innermost-span jit-lock-end)))
+                   (poly-lock--extend-region-span espan old-len))))
+             (pm-flush-span-cache jit-lock-start jit-lock-end)
+             (put-text-property jit-lock-start jit-lock-end 'fontified nil)
+             (cons jit-lock-start jit-lock-end))))))))
+
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
 Installed in `after-change-functions' and behaves similarly to
@@ -345,22 +367,18 @@ Installed in `after-change-functions' and behaves similarly to
 `jit-lock-after-change-extend-region-functions' in turn but with
 the buffer narrowed to the relevant spans. BEG, END and OLD-LEN
 are as in `after-change-functions'."
+  ;; Extension is slow but after-change functions can be called in rapid
+  ;; succession (#200). Thus we do that in a timer.
   (when (and poly-lock-mode
              pm-allow-after-change-hook
              (not memory-full))
-    (save-match-data
-      (with-buffer-prepared-for-poly-lock
-       (save-excursion
-         (save-restriction
-           (widen)
-           (poly-lock--extend-region beg end)
-           (pm-flush-span-cache beg end)
-           (pm-map-over-spans
-            (lambda (span) (poly-lock--extend-region-span span old-len))
-            ;; fixme: no-cache is no longer necessary, we flush the region
-            beg end nil nil nil 'no-cache)
-           (put-text-property jit-lock-start jit-lock-end 'fontified nil)
-           (cons jit-lock-start jit-lock-end)))))))
+    (when (timerp poly-lock--timer)
+      (cancel-timer poly-lock--timer))
+    (if poly-lock-defer-after-change
+        (setq-local poly-lock--timer
+                    (run-at-time 0.05 nil #'poly-lock--after-change-deferred
+                                 (current-buffer) beg end old-len))
+      (poly-lock--after-change-deferred (current-buffer) beg end old-len))))
 
 (defun poly-lock--adjusted-background (prop)
   ;; if > lighten on dark backgroun. Oposite on light.
