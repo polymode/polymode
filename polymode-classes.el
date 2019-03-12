@@ -315,7 +315,7 @@ buffer.")
     :type boolean
     :custom boolean
     :documentation
-    "Non-nil if this chunk can nest within other inner modes.
+    "Non-nil if this inner-mode can nest within other inner-modes.
 All chunks can nest within the host-mode.")
    (can-overlap
     :initarg :can-overlap

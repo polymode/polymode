@@ -283,54 +283,55 @@ case TYPE is ignored."
   (let* ((start (point-min))
          (end (point-max))
          (pos (or pos (point)))
-         (span (list nil start end nil))
-         (chunk-modes (cons (oref config -hostmode)
-                            (oref config -innermodes)))
-         val)
-    (dolist (im chunk-modes)
+         (hostmode (oref config -hostmode))
+         (chunkmodes (cons hostmode (oref config -innermodes)))
+         (thespan (list nil start end hostmode))
+         span)
+    (dolist (cm chunkmodes)
       ;; Optimization opportunity: this searches till the end of buffer but the
       ;; outermost pm-get-span caller has computed a few span already so we can
       ;; pass limits or narrow to pre-computed span.
-      (setq val (pm-get-span im pos))
-      ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info im))
-      (when val
+      (setq span (pm-get-span cm pos))
+      ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info cm))
+      (when span
         (cond
-         ;; 1. ;; nil car means host and it can be an intersection of spans returned
-         ;; by 2 different neighbour inner chunkmodes
-         ((null (car val))
-          (setq start (max (nth 1 val)
-                           (nth 1 span))
-                end (min (nth 2 val)
-                         (nth 2 span)))
-          (setcar (cdr span) start)
-          (setcar (cddr span) end))
+         ;; 1. nil means host and it can be an intersection of spans returned by
+         ;; two neighboring inner chunkmodes
+         ((null (car span))
+          ;; when span is already an inner span, new host spans are irrelevant
+          (unless (car thespan)
+            (setq start (max (nth 1 span)
+                             (nth 1 thespan))
+                  end (min (nth 2 span)
+                           (nth 2 thespan)))
+            (setcar (cdr thespan) start)
+            (setcar (cddr thespan) end)))
          ;; 2. Inner span
-         ((or (> (nth 1 val) start)
-              (< (nth 2 val) end))
-          (when (or (null (car span))
-                    (eieio-oref (nth 3 val) 'can-nest))
-            (setq span val
-                  start (nth 1 val)
-                  end (nth 2 val))))
+         ((or (> (nth 1 span) start)
+              (< (nth 2 span) end))
+          ;; NB: no check if boundaries of two inner spans crossing; assume
+          ;; correct matchers
+          (when (or (null (car thespan))
+                    (eieio-oref (nth 3 span) 'can-nest))
+            (setq thespan span
+                  start (nth 1 span)
+                  end (nth 2 span))))
          ;; 3. Outer span; overwrite previous span if nesting is not allowed.
          ;; This case can probably result in unexpected outcome when there are 3
          ;; levels of nesting with inter-changeable :can-nest property.
-         ((and (car span)
-               (not (eieio-oref (nth 3 span) 'can-nest)))
-          (setq span val
-                start (nth 1 val)
-                end (nth 2 val))))))
+         ((and (car thespan)
+               (not (eieio-oref (nth 3 thespan) 'can-nest)))
+          (setq thespan span
+                start (nth 1 span)
+                end (nth 2 span))))))
 
     (unless (and (<= start end) (<= pos end) (>= pos start))
       (error "Bad polymode selection: span:%s pos:%s"
              (list start end) pos))
 
-    (when (null (car span)) ; chunkmodes can compute the host span by returning nil span type
-      (setcar (last span) (oref config -hostmode)))
+    (pm-cache-span thespan)
 
-    (pm-cache-span span)
-
-    span))
+    thespan))
 
 (defun pm--chop-span (span beg end)
   ;; destructive!
