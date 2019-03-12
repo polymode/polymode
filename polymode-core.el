@@ -849,12 +849,15 @@ transport) are performed."
 (defun pm-map-over-spans (fun &optional beg end count backwardp visibly no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of one argument a span object (also available
-in a dynamic variable *span*). It is executed with point at the
-beginning of the span. Buffer is *not* narrowed to the span. If
-COUNT is non-nil, jump at most that many times. If BACKWARDP is
-non-nil, map backwards."
-  ;; Important! Don't forget to save-excursion when calling map-overs-spans.
-  ;; Mapping can end in different buffer and invalidate the caller assumptions.
+in a dynamic variable *span*). Buffer is *not* narrowed to the
+span, nor point is moved. If COUNT is non-nil, jump at most that
+many times. If BACKWARDP is non-nil, map backwards. Point
+synchronization across indirect buffers is not taken care of.
+Modification of the buffer during mapping is an undefined
+behavior."
+  ;; Important! Don't forget to save-excursion when calling map-overs-spans and
+  ;; synchronize points if needed. Mapping can end in different buffer and
+  ;; invalidate the caller assumptions.
   (save-restriction
     (widen)
     (setq beg (or beg (point-min))
@@ -872,19 +875,18 @@ non-nil, map backwards."
         ;; FUN might change buffer and invalidate our *span*. Should we care or
         ;; reserve pm-map-over-spans for "read-only" actions only? Does
         ;; after-change run immediately or after this function ends?
-        (goto-char (nth 1 *span*))
-        (save-excursion
-          (funcall fun *span*))
+        (funcall fun *span*)
         ;; enter previous/next chunk
-        (if backwardp
-            (goto-char (max 1 (1- (nth 1 *span*))))
-          (goto-char (min (point-max) (nth 2 *span*))))
+        (setq pos
+              (if backwardp
+                  (max 1 (1- (nth 1 *span*)))
+                (min (point-max) (nth 2 *span*))))
         (setq *span*
               (and (if backwardp
-                       (> (point) beg)
-                     (< (point) end))
+                       (> pos beg)
+                     (< pos end))
                    (< nr count)
-                   (pm-innermost-span (point) no-cache)))))))
+                   (pm-innermost-span pos no-cache)))))))
 
 (defun pm-map-over-modes (fun &optional beg end)
   "Execute FUN on regions of the same `major-mode' between BEG and END.
@@ -1345,9 +1347,9 @@ Elements of LIST can be either strings or symbols."
         ;; (remove-text-properties end (1- end) props)
         ))))
 
-(defun pm--synchronize-points (buffer)
+(defun pm--synchronize-points (&optional buffer)
   "Synchronize the point in polymode buffers with the point in BUFFER."
-  ;; By default BUFFER is the buffer where `pm/current' is t.
+  (setq buffer (current-buffer))
   (when (and polymode-mode
              (buffer-live-p buffer))
     (let* ((bufs (eieio-oref pm/polymode '-buffers))
