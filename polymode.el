@@ -85,7 +85,6 @@ Lives on `polymode-prefix-key' in polymode buffers.")
     map)
   "The minor mode keymap which is inherited by all polymodes.")
 
-
 (easy-menu-define polymode-menu polymode-minor-mode-map
   "Menu for polymode."
   '("Polymode"
@@ -141,6 +140,7 @@ C-M-p will move forward twice and backwards once."
          (beg (if back (point-min) (point)))
          (end (if back (point) (point-max)))
          (N (if back (- N) N))
+         (orig-pos (point))
          (pos (point))
          this-type this-name)
     (condition-case-unless-debug nil
@@ -148,22 +148,22 @@ C-M-p will move forward twice and backwards once."
          (lambda (span)
            (unless (memq (car span) '(head tail))
              (when (and (equal this-name
-                               (eieio-object-name-string (car (last span))))
+                               (eieio-object-name-string (nth 3 span)))
                         (eq this-type (car span)))
-               (setq pos (point))
+               (setq pos (nth 1 span))
                (setq sofar (1+ sofar)))
              (unless this-name
-               (setq this-name (eieio-object-name-string (car (last span)))
+               (setq this-name (eieio-object-name-string (nth 3 span))
                      this-type (car span)))
              (when (>= sofar N)
                (signal 'quit nil))))
          beg end nil back)
       (quit (when (looking-at "\\s *$")
               (forward-line))))
-    (when (or (eobp) (bobp))
+    (goto-char pos)
+    (when (or (eobp) (bobp) (eq pos orig-pos))
       (message "No more chunks of type %s" this-name)
-      (ding)
-      (goto-char pos))
+      (ding))
     (pm--set-transient-map (list #'polymode-previous-chunk-same-type
                                  #'polymode-next-chunk-same-type))
     sofar))
