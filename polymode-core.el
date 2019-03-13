@@ -692,7 +692,11 @@ Parents' hooks are run first."
 
 ;; Transfer of the buffer-undo-list is managed internally by emacs
 (define-obsolete-variable-alias 'pm-move-vars-from-base 'polymode-move-these-vars-from-base-buffer "v0.1.6")
-(defvar polymode-move-these-vars-from-base-buffer '(buffer-file-name outline-regexp outline-level)
+(defvar polymode-move-these-vars-from-base-buffer
+  '(buffer-file-name
+    outline-regexp
+    outline-level
+    tab-width)
   "Variables transferred from base buffer on buffer switch.")
 
 (define-obsolete-variable-alias 'pm-move-vars-from-old-buffer 'polymode-move-these-vars-from-old-buffer "v0.1.6")
