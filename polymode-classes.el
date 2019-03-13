@@ -56,11 +56,6 @@
     :custom string
     :documentation
     "Name of the object used to for display and info.")
-   (-id
-    :initform 0
-    :type number
-    :documentation
-    "[Internal] Numeric id to track objects. Every object has an id.")
    (-props
     :initform '()
     :type list
@@ -181,10 +176,6 @@ and should not be used in `define-polymode'.")
   "Polymode Configuration object.
 Each polymode buffer holds a local variable `pm/polymode'
 instantiated from this class or a subclass of this class.")
-
-(defvar pm--polymode-slots
-  (mapcar #'cl--slot-descriptor-name
-          (eieio-class-slots 'pm-polymode)))
 
 (defclass pm-chunkmode (pm-root)
   ((mode
