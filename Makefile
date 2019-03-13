@@ -51,6 +51,7 @@ start: version melpa
 
 startvs: version
 	$(EMACSRUN) -L . \
+		--load targets/melpa-init.el \
 		--load targets/local.el \
 		--load tests/*.el --load ~/.eBasic.el
 

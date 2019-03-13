@@ -70,10 +70,19 @@ into this list."))
 
 (cl-defmethod clone ((obj pm-root) &rest params)
   (let ((old-name (eieio-oref obj 'name))
-        (new-obj (apply #'cl-call-next-method obj params)))
+        (new-obj (cl-call-next-method obj)))
     (when (equal old-name (eieio-oref new-obj 'name))
       (let ((new-name (concat old-name ":")))
         (eieio-oset new-obj 'name new-name)))
+    ;; Emacs clone method for eieio-instance-inheritor instantiates all slots
+    ;; for cloned objects. We want them unbound to allow for the healthy
+    ;; inheritance.
+    (dolist (descriptor (eieio-class-slots (class-of new-obj)))
+      (let ((slot (eieio-slot-descriptor-name descriptor)))
+        (unless (memq slot '(parent-instance name))
+          (slot-makeunbound new-obj slot))))
+    (when params
+      (shared-initialize new-obj params))
     new-obj))
 
 (defclass pm-polymode (pm-root)
@@ -192,8 +201,8 @@ chunk.")
    (indent-offset
     :initarg :indent-offset
     :initform 2
-    :type (or integer symbol)
-    :custom (or integer symbol)
+    :type (or number symbol)
+    :custom (choice number symbol)
     :documentation
     "Indentation offset for this mode.
 Currently this is only used in +indent and -indent cookies which
