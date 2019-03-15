@@ -287,10 +287,17 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
             (setq jit-lock-start old-beg)))
       ;; refontify the entire new span
       (setq jit-lock-start sbeg))
+
+    ;; always include head
+    (when (and (eq (car beg-span) 'body)
+               (> jit-lock-start (point-min)))
+      (setq jit-lock-start (nth 1 (pm-innermost-span (1- jit-lock-start)))))
+
     ;; I think it's not possible to do better than this. When region is shrunk,
     ;; previous region could be incorrectly fontified even if the mode is
     ;; preserved due to wrong ppss
     (setq jit-lock-end (max send old-end))
+
     ;; (if (> old-end send)
     ;;     (let ((new-end-span (pm-innermost-span (max (1- old-end) end))))
     ;;       (if (eq old-end-obj (nth 3 new-end-span))
@@ -311,7 +318,14 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
               (nspan (pm-innermost-span jit-lock-end 'no-cache)))
           (if (eq (nth 3 nspan) (nth 3 ospan))
               (setq go-on nil)
-            (setq jit-lock-end (nth 2 nspan))))))
+            (setq jit-lock-end (nth 2 nspan)
+                  end-span nspan)))))
+
+    ;; always include tail
+    (when (and (eq (car end-span) 'body)
+               (< jit-lock-end (point-max)))
+      (setq jit-lock-end (nth 2 (pm-innermost-span jit-lock-end))))
+
     (cons jit-lock-start jit-lock-end)))
 
 (defun poly-lock--extend-region-span (span old-len)
@@ -378,6 +392,7 @@ are as in `after-change-functions'."
         (setq-local poly-lock--timer
                     (run-at-time 0.05 nil #'poly-lock--after-change-deferred
                                  (current-buffer) beg end old-len))
+      ;; !!! FIXME: take min-beg and max-beg across all changes so far !!!
       (poly-lock--after-change-deferred (current-buffer) beg end old-len))))
 
 (defun poly-lock--adjusted-background (prop)
