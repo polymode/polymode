@@ -201,6 +201,11 @@ Fontifies chunk-by chunk within the region BEG END."
                     end))))
       (save-restriction
         (widen)
+        ;; FIXME: syntax flushing and propertization is not called at right
+        ;; times (comment/un-comment in jump.Rmd to reproduce)
+        (with-current-buffer (pm-base-buffer)
+          (when pm--syntax-propertize-function-original
+            (pm--call-syntax-propertize-original beg end)))
         (save-excursion
           ;; fontify the whole region in host first. It's ok for modes like
           ;; markdown, org and slim which understand inner modes in a limited way.

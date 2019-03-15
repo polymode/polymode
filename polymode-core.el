@@ -1074,8 +1074,7 @@ ARG is the same as in `forward-paragraph'"
 
 (defun pm--call-syntax-propertize-original (start end)
   (condition-case err
-      (dbg (list start end (point-max)))
-    (funcall pm--syntax-propertize-function-original start end)
+      (funcall pm--syntax-propertize-function-original start end)
     (error
      (message "ERROR: (%s %d %d) -> %s"
               (if (symbolp pm--syntax-propertize-function-original)
