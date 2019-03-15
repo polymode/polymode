@@ -178,11 +178,19 @@ With NO-CACHE prefix, don't use cached values of the span."
   (if poly-lock-allow-fontification
       (progn
         (message "fontificaiton disabled")
-        (setq poly-lock-allow-fontification nil
-              font-lock-mode nil))
+        (dolist (b (buffer-list))
+          (with-current-buffer b
+            (when polymode-mode
+              (setq poly-lock-allow-fontification nil
+                    font-lock-mode nil
+                    fontification-functions nil)))))
     (message "fontificaiton enabled")
-    (setq poly-lock-allow-fontification t
-          font-lock-mode t)))
+    (dolist (b (buffer-list))
+      (with-current-buffer b
+        (when polymode-mode
+          (setq poly-lock-allow-fontification t
+                font-lock-mode t
+                fontification-functions '(poly-lock-function)))))))
 
 (defun pm-debug-toggle-after-change ()
   "Allow or disallow polymode actions in `after-change-functions'."
@@ -264,13 +272,20 @@ With NO-CACHE prefix, don't use cached values of the span."
         font-lock-default-fontify-region
         ;; poly-lock-adjust-span-face
         poly-lock-after-change
+        poly-lock--after-change-internal
         poly-lock--extend-region-span
         poly-lock--extend-region))
     ;; syntax
     (4 (pm--call-syntax-propertize-original
         polymode-syntax-propertize
         polymode-restrict-syntax-propertize-extension
-        pm--reset-ppss-cache))))
+        pm--reset-ppss-cache))
+    ;; core functions
+    (5 (pm-select-buffer
+        pm-map-over-spans
+        pm--intersect-spans
+        pm--cached-span))
+    ))
 
 (defvar pm--do-trace nil)
 ;;;###autoload
@@ -374,7 +389,8 @@ currently traced functions."
                 font-lock-unfontify-region-function
                 font-lock-unfontify-buffer-function
                 jit-lock-after-change-extend-region-functions
-                jit-lock-functions)
+                jit-lock-functions
+                poly-lock-defer-after-change)
     ;; If any of these are reset by host mode it can create issues with
     ;; font-lock and syntax (e.g. scala-mode in #195)
     :search (parse-sexp-lookup-properties

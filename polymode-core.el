@@ -385,8 +385,10 @@ case TYPE is ignored."
         (save-restriction
           (widen)
           (let* ((beg (nth 1 span))
-                 (end (max beg (1- (nth 2 span)))))
+                 (end (1- (nth 2 span))))
             (when (and (< end (point-max)) ; buffer size might have changed
+                       (<= pos end)
+                       (<= beg pos)
                        (eq span (get-text-property beg :pm-span))
                        (eq span (get-text-property end :pm-span))
                        (not (eq span (get-text-property (1+ end) :pm-span)))
@@ -740,7 +742,6 @@ VISIBLY is non-nil perform extra adjustment for \"visual\" buffer
 switch."
   (let ((buffer (pm-span-buffer span)))
     (with-current-buffer buffer
-      ;; (message (pm--debug-info span))
       (pm--reset-ppss-cache span))
     (when visibly
       ;; always sync to avoid issues with tooling working in different buffers
@@ -1073,7 +1074,8 @@ ARG is the same as in `forward-paragraph'"
 
 (defun pm--call-syntax-propertize-original (start end)
   (condition-case err
-      (funcall pm--syntax-propertize-function-original start end)
+      (dbg (list start end (point-max)))
+    (funcall pm--syntax-propertize-function-original start end)
     (error
      (message "ERROR: (%s %d %d) -> %s"
               (if (symbolp pm--syntax-propertize-function-original)
@@ -1159,7 +1161,7 @@ ARG is the same as in `forward-paragraph'"
 (defun polymode-reset-ppss-cache (&optional pos)
   "Reset syntax-ppss cache in polymode buffers.
 Used in :before advice of `syntax-ppss'."
-  (when (and polymode-mode pm/polymode)
+  (when polymode-mode
     (pm--reset-ppss-cache (pm-innermost-span pos))))
 
 ;; (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache)
