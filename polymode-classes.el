@@ -194,10 +194,10 @@ instantiated from this class or a subclass of this class.")
     :custom symbol
     :documentation
     "Emacs major mode for the chunk's body.
-When nil the value of `polymode-default-inner-mode' is used when set;
-otherwise `poly-fallback-mode' is used. A special value 'host
-means to use the host mode as a fallback in the body of this
-chunk.")
+If :mode slot is nil (anonymous chunkmodes), use the value of
+`polymode-default-inner-mode' is when set, or use
+`poly-fallback-mode' otherwise. A special value 'host means to
+use the host mode as a fallback in the body of this chunk.")
    (indent-offset
     :initarg :indent-offset
     :initform 2
@@ -403,7 +403,9 @@ latter case, heads or tails have zero length and are not
 physically present in the buffer.")
 
 (defclass pm-inner-auto-chunkmode (pm-inner-chunkmode)
-  ((mode-matcher
+  ((mode
+    :initform 'host)
+   (mode-matcher
     :initarg :mode-matcher
     :type (or string cons function)
     :custom (choice string (cons string integer) function)

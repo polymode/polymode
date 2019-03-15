@@ -105,7 +105,8 @@
 ;;;###autoload
 (defvar-local polymode-default-inner-mode nil
   "Inner mode for chunks with unspecified modes.
-Intended to be used as local variable in polymode buffers.")
+Intended to be used as local variable in polymode buffers. A
+special value 'host means use the host mode.")
 ;;;###autoload
 (put 'polymode-default-inner-mode 'safe-local-variable 'symbolp)
 
@@ -217,6 +218,7 @@ objects provides same functionality for narrower scope. See also
          (type (pm-true-span-type span)))
     (if type
         (pm-get-buffer-create chunkmode type)
+      ;; ignore span's chunkmode as inner spans can request host span
       (pm-get-buffer-create (oref pm/polymode -hostmode)))))
 
 (defun pm-span-mode (&optional span)
@@ -227,7 +229,7 @@ objects provides same functionality for narrower scope. See also
 (defun pm-true-span-type (chunkmode &optional type)
   "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
 `pm-innermost-span' returns a raw type (head, body or tail) but
-the actual type installed depends on the values of :host-mode ant
+the actual type installed depends on the values of :host-mode and
 :tail-mode of the CHUNKMODE object. Always return nil if TYPE is
 nil (aka a host span). CHUNKMODE could also be a span, in which
 case TYPE is ignored."
@@ -236,33 +238,34 @@ case TYPE is ignored."
     ;; a span
     (setq type (car chunkmode)
           chunkmode (nth 3 chunkmode)))
-  (unless (or (null type) (eq type 'host))
-    (with-slots (mode head-mode tail-mode) chunkmode
-      (cond ((and (eq type 'body)
-                  (eq mode 'host))
-             nil)
-            ((or (eq type 'body)
-                 (and (eq type 'head)
-                      (eq head-mode 'body))
-                 (and (eq type 'tail)
-                      (or (eq tail-mode 'body)
-                          (and (null tail-mode)
-                               (eq head-mode 'body)))))
-             'body)
-            ((or (and (eq type 'head)
-                      (eq head-mode 'host))
-                 (and (eq type 'tail)
-                      (or (eq tail-mode 'host)
-                          (and (null tail-mode)
-                               (eq head-mode 'host)))))
-             nil)
-            ((eq type 'head)
-             'head)
-            ((eq type 'tail)
-             (if tail-mode
-                 'tail
-               'head))
-            (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body"))))))
+  (when (object-of-class-p chunkmode 'pm-inner-chunkmode)
+    (unless (or (null type) (eq type 'host))
+      (with-slots (mode head-mode tail-mode) chunkmode
+        (cond ((and (eq type 'body)
+                    (eq mode 'host))
+               nil)
+              ((or (eq type 'body)
+                   (and (eq type 'head)
+                        (eq head-mode 'body))
+                   (and (eq type 'tail)
+                        (or (eq tail-mode 'body)
+                            (and (null tail-mode)
+                                 (eq head-mode 'body)))))
+               'body)
+              ((or (and (eq type 'head)
+                        (eq head-mode 'host))
+                   (and (eq type 'tail)
+                        (or (eq tail-mode 'host)
+                            (and (null tail-mode)
+                                 (eq head-mode 'host)))))
+               nil)
+              ((eq type 'head)
+               'head)
+              ((eq type 'tail)
+               (if tail-mode
+                   'tail
+                 'head))
+              (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body")))))))
 
 (defun pm-cache-span (span)
   ;; cache span
@@ -698,6 +701,7 @@ Parents' hooks are run first."
   '(buffer-file-name
     outline-regexp
     outline-level
+    polymode-default-inner-mode
     tab-width)
   "Variables transferred from base buffer on buffer switch.")
 
@@ -1281,9 +1285,9 @@ Return FALLBACK if non-nil, otherwise the value of
                   if (and (string-match-p k dummy-file)
                           (not (string-match-p "^poly-" (symbol-name v))))
                   return v))
-       ;; default-inner-mode is for anonymous chunks only
-       ;; (when (fboundp polymode-default-inner-mode)
-       ;;   polymode-default-inner-mode)
+       (when (or (eq polymode-default-inner-mode 'host)
+                 (fboundp polymode-default-inner-mode))
+         polymode-default-inner-mode)
        fallback
        'poly-fallback-mode)))))
 

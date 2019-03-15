@@ -316,7 +316,8 @@ in this case."
                             (funcall matcher)))))
              (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'mode))))
         (if (eq mode 'host)
-            span
+            (progn (setcar (last span) (oref pm/polymode -hostmode))
+                   span)
           ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
           ;; Head/tail/body indirect buffers are shared across chunkmodes and span
           ;; types.
