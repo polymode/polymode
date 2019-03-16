@@ -148,22 +148,6 @@ initialized. Return the buffer."
                   indent-region-function))
     (setq-local indent-region-function #'pm-indent-region)
 
-    ;; SYNTAX
-    ;; Ideally this should be called in some hook to avoid minor-modes messing
-    ;; it up Setting even if syntax-propertize-function is nil to have more
-    ;; control over syntax-propertize--done.
-    (unless (eq syntax-propertize-function #'polymode-syntax-propertize)
-      (setq-local pm--syntax-propertize-function-original syntax-propertize-function)
-      (setq-local syntax-propertize-function #'polymode-syntax-propertize))
-
-    (with-no-warnings
-      ;; [OBSOLETE as of 25.1 but we still protect it]
-      (pm-around-advice syntax-begin-function 'pm-override-output-position))
-
-    ;; flush ppss in all buffers and hook checks
-    (add-hook 'before-change-functions 'polymode-before-change-setup t t)
-    (setq-local syntax-ppss-wide (cons nil nil))
-
     ;; FILL
     (setq-local pm--fill-forward-paragraph-original fill-forward-paragraph-function)
     (setq-local fill-forward-paragraph-function #'polymode-fill-forward-paragraph)
@@ -183,11 +167,29 @@ initialized. Return the buffer."
     ;; disallow fontification in buffers which don't want font-lock (aka those
     ;; buffers where `turn-on-font-lock-if-desired' doesn't activate font-lock).
     (turn-on-font-lock-if-desired) ; <- need this for the sake of poly-minor-modes
+    ;; FIXME: can poly-lock-mode be used here instead?
     (setq-local poly-lock-allow-fontification font-lock-mode)
     ;; Make sure to re-install with our font-lock-function as
     ;; `turn-on-font-lock-if-desired' from above might actually not call it.
     (font-lock-mode t)
     (font-lock-flush)
+
+    ;; SYNTAX (must be done after font-lock for after-change order)
+    ;; Ideally this should be called in some hook to avoid minor-modes messing
+    ;; it up. Setting it up even if syntax-propertize-function is nil to have
+    ;; more control over syntax-propertize--done.
+    (with-no-warnings
+      ;; [OBSOLETE as of 25.1 but we still protect it]
+      (pm-around-advice syntax-begin-function 'pm-override-output-position))
+    (unless (eq syntax-propertize-function #'polymode-syntax-propertize)
+      (setq-local pm--syntax-propertize-function-original syntax-propertize-function)
+      (setq-local syntax-propertize-function #'polymode-syntax-propertize))
+    (setq-local syntax-ppss-wide (cons nil nil))
+    ;; Flush ppss in all buffers. Must be done in first after-change (see
+    ;; https://lists.gnu.org/archive/html/emacs-devel/2019-03/msg00500.html)
+    ;; TODO: Consider just advising syntax-ppss-flush-cache once the above is
+    ;; fixed in emacs.
+    (add-hook 'after-change-functions 'polymode-flush-syntax-ppss-cache nil t)
 
     (current-buffer)))
 

@@ -945,6 +945,32 @@ region. Buffer is *not* narrowed to the region."
 ;;; HOOKS
 ;; There is also `poly-lock-after-change' in poly-lock.el
 
+(defun polymode-flush-syntax-ppss-cache (beg end _)
+  "Run `syntax-ppss-flush-cache' from BEG to END in all polymode buffers."
+  ;; Modification hooks are run only in current buffer and not in other (base or
+  ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
+  ;; care explicitly. We run some safety hooks checks here as well.
+  (dolist (buff (oref pm/polymode -buffers))
+    (when (buffer-live-p buff)
+      (with-current-buffer buff
+        ;; micro-optimization to avoid calling the flush twice
+        (when (memq 'syntax-ppss-flush-cache before-change-functions)
+          (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
+        ;; need to be the first to avoid breaking preceding hooks
+        (unless (eq (car after-change-functions)
+                    'polymode-flush-syntax-ppss-cache)
+          (delq 'polymode-flush-syntax-ppss-cache after-change-functions)
+          (add-hook 'after-change-functions 'polymode-flush-syntax-ppss-cache nil t))
+        (syntax-ppss-flush-cache beg end)
+        ;; Check if something has changed our hooks. (Am I theoretically paranoid or
+        ;; this is indeed needed?) `fontification-functions' (and others?) should be
+        ;; checked as well I guess.
+        ;; (when (memq 'font-lock-after-change-function after-change-functions)
+        ;;   (remove-hook 'after-change-functions 'font-lock-after-change-function t))
+        ;; (when (memq 'jit-lock-after-change after-change-functions)
+        ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
+        ))))
+
 (defun polymode-pre-command-synchronize-state ()
   "Synchronize state between buffers.
 Currently synchronize points only. Runs in local `pre-command-hook'."
@@ -960,28 +986,6 @@ This funciton is placed in local `post-command-hook'."
         (pm-switch-to-buffer)
       (error (message "(pm-switch-to-buffer %s): %s"
                       (point) (error-message-string err))))))
-
-(defun polymode-before-change-setup (beg end)
-  "Run `syntax-ppss-flush-cache' from BEG to END in all polymode buffers.
-This function is placed in `before-change-functions' hook."
-  ;; Modification hooks are run only in current buffer and not in other (base or
-  ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
-  ;; care explicitly. We run some safety hooks checks here as well.
-  (dolist (buff (oref pm/polymode -buffers))
-    (when (buffer-live-p buff)
-      (with-current-buffer buff
-        ;; micro-optimization to avoid calling the flush twice
-        (when (memq 'syntax-ppss-flush-cache before-change-functions)
-          (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
-        (syntax-ppss-flush-cache beg end)
-        ;; Check if something has changed our hooks. (Am I theoretically paranoid or
-        ;; this is indeed needed?) `fontification-functions' (and others?) should be
-        ;; checked as well I guess.
-        ;; (when (memq 'font-lock-after-change-function after-change-functions)
-        ;;   (remove-hook 'after-change-functions 'font-lock-after-change-function t))
-        ;; (when (memq 'jit-lock-after-change after-change-functions)
-        ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
-        ))))
 
 (defvar-local pm--killed nil)
 (defun polymode-after-kill-fixes ()

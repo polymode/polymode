@@ -256,29 +256,33 @@ With NO-CACHE prefix, don't use cached values of the span."
         pm--mode-setup))
     ;; core hooks
     (1 (polymode-post-command-select-buffer
-        polymode-before-change-setup
-        polymode-after-kill-fixes))
+        polymode-after-kill-fixes
+        ;; this one indicates the start of a sequence
+        poly-lock-after-change))
     ;; advises
     (2 (pm-override-output-cons
         pm-around-advice
         polymode-with-current-base-buffer))
     ;; font-lock
-    (3 (poly-lock-function
-        poly-lock-fontify-now
-        poly-lock-flush
-        jit-lock-fontify-now
-        jit-lock--run-functions
+    (3 (font-lock-default-fontify-region
+        font-lock-fontify-keywords-region
         font-lock-fontify-region
-        font-lock-default-fontify-region
-        ;; poly-lock-adjust-span-face
-        poly-lock-after-change
+        font-lock-fontify-syntactically-region
+        font-lock-unfontify-region
+        jit-lock--run-functions
+        jit-lock-fontify-now
         poly-lock--after-change-internal
+        poly-lock--extend-region
         poly-lock--extend-region-span
-        poly-lock--extend-region))
+        poly-lock-after-change
+        poly-lock-flush
+        poly-lock-fontify-now
+        poly-lock-function))
     ;; syntax
     (4 (pm--call-syntax-propertize-original
         polymode-syntax-propertize
         polymode-restrict-syntax-propertize-extension
+        pm-flush-syntax-ppss-cache
         pm--reset-ppss-cache))
     ;; core functions
     (5 (pm-select-buffer
@@ -318,7 +322,7 @@ currently traced functions."
      (let ((advice (trace-make-advice
                     fn buff 'background #'pm-trace--tracing-context)))
        (lambda (body &rest args)
-         (when (eq fn 'polymode-before-change-setup)
+         (when (eq fn 'polymode-flush-syntax-ppss-cache)
            (with-current-buffer buff
              (save-excursion
                (goto-char (point-max))
