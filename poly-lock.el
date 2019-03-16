@@ -201,14 +201,9 @@ Fontifies chunk-by chunk within the region BEG END."
                     end))))
       (save-restriction
         (widen)
-        ;; FIXME: syntax flushing and propertization is not called at right
-        ;; times (comment/un-comment in jump.Rmd to reproduce)
-        (with-current-buffer (pm-base-buffer)
-          (when pm--syntax-propertize-function-original
-            (pm--call-syntax-propertize-original beg end)))
         (save-excursion
-          ;; fontify the whole region in host first. It's ok for modes like
-          ;; markdown, org and slim which understand inner modes in a limited way.
+          ;; Fontify the whole region in host first. It's ok for modes like
+          ;; markdown, org and slim which understand inner mode chunks.
           (unless protect-host
             (let ((span (pm-innermost-span beg)))
               (when (or (null (pm-true-span-type span))
@@ -217,7 +212,14 @@ Fontifies chunk-by chunk within the region BEG END."
                 (with-current-buffer (pm-base-buffer)
                   (with-buffer-prepared-for-poly-lock
                    (when poly-lock-allow-fontification
-                     (jit-lock-fontify-now beg end))
+                     (put-text-property beg end 'fontified nil) ; just in case
+                     (condition-case-unless-debug err
+                         (save-restriction
+                           (widen)
+                           (jit-lock--run-functions beg end))
+                       (error
+                        (message "(jit-lock--run-functions %s %s) [UNPR HOST %s]: %s"
+                                 beg end (current-buffer) (error-message-string err)))))
                    (put-text-property beg end 'fontified t))))))
           (pm-map-over-spans
            (lambda (span)
@@ -237,12 +239,12 @@ Fontifies chunk-by chunk within the region BEG END."
                         (condition-case-unless-debug err
                             (if (eieio-oref pm/chunkmode 'protect-font-lock)
                                 (pm-with-narrowed-to-span span
-                                  (jit-lock-fontify-now new-beg new-end))
-                              (jit-lock-fontify-now new-beg new-end))
+                                  (jit-lock--run-functions new-beg new-end))
+                              (jit-lock--run-functions new-beg new-end))
                           (error
-                           (message "(poly-lock-fontify-now %s %s [span %d %d %s]) -> (%s %s %s): %s"
-                                    beg end sbeg send (current-buffer)
-                                    font-lock-fontify-region-function new-beg new-end
+                           (message "(jit-lock--run-functions %s %s) [span %d %d %s] -> (%s %s %s): %s"
+                                    new-beg new-end sbeg send (current-buffer)
+                                    font-lock-default-fontify-region new-beg new-end
                                     (error-message-string err))))
                         ;; even if failed set to t
                         (put-text-property new-beg new-end 'fontified t)))
