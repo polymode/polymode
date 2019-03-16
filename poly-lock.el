@@ -345,6 +345,8 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
   "Call `jit-lock-after-change-extend-region-functions' protected to SPAN.
 Extend `jit-lock-start' and `jit-lock-end' by side effect.
 OLD-LEN is passed to the extension function."
+  ;; FIXME: for multi-span regions this function seems to reset
+  ;; jit-lock-start/end to spans limits
   (let ((beg jit-lock-start)
         (end jit-lock-end))
     (let ((sbeg (nth 1 span))
@@ -362,6 +364,8 @@ OLD-LEN is passed to the extension function."
             (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
                             jit-lock-start jit-lock-end old-len
                             (error-message-string err))))
+          ;; FIXME: this is not in the right buffer, we need to do it in the
+          ;; original buffer.
           (setq jit-lock-start (min beg (max jit-lock-start sbeg))
                 jit-lock-end (max end (min jit-lock-end send))))
         (cons jit-lock-start jit-lock-end)))))
@@ -390,56 +394,57 @@ OLD-LEN is passed to the extension function."
                  ;; FIXME: currently poly-lock--extend-region extends to whole
                  ;; spans, which could get crazy for very large chunks, but
                  ;; seems to work really well with the deferred after-change
-                 ;; hook. So this jit-lock extension is not needed and probably
-                 ;; even harms.
+                 ;; hook. So the following jit-lock extensions are not needed
+                 ;; and probably even harm.
 
                  ;; This extension hooks are run for major-mode's syntactic
                  ;; hacks mostly and not that much for actual extension. For
-                 ;; example, markdown syntactically propertizes in this hook
+                 ;; example, markdown can syntactically propertize in this hook
                  ;; markdown-font-lock-extend-region-function. Call on the
                  ;; entire region host hooks to account for such patterns.
-                 (let ((hostmode (oref pm/polymode -hostmode)))
-                   (unless (eieio-oref hostmode 'protect-font-lock)
-                     (with-current-buffer (pm-base-buffer)
-                       (run-hook-with-args 'jit-lock-after-change-extend-region-functions
-                                           beg end old-len)
-                       (setq beg jit-lock-start
-                             end jit-lock-end)))
-                   (let ((bspan (pm-innermost-span jit-lock-start)))
-                     ;; FIXME: these are currently always protected and set
-                     ;; jit-lock-end/start in their own buffers, not the buffer
-                     ;; which invoked the after-change-hook
-                     (unless (eq (nth 3 bspan) hostmode)
-                       (poly-lock--jit-lock-extend-region-span bspan old-len))
-                     (when (< (nth 2 bspan) jit-lock-end)
-                       (let ((espan (pm-innermost-span jit-lock-end)))
-                         (unless (eq (nth 3 espan) hostmode)
-                           (poly-lock--jit-lock-extend-region-span espan old-len))))))
+                 ;; (let ((hostmode (oref pm/polymode -hostmode)))
+                 ;;   (unless (eieio-oref hostmode 'protect-font-lock)
+                 ;;     (with-current-buffer (pm-base-buffer)
+                 ;;       (run-hook-with-args 'jit-lock-after-change-extend-region-functions
+                 ;;                           beg end old-len)
+                 ;;       (setq beg jit-lock-start
+                 ;;             end jit-lock-end)))
+                 ;;   (let ((bspan (pm-innermost-span jit-lock-start)))
+                 ;;     ;; FIXME: these are currently always protected and set
+                 ;;     ;; jit-lock-end/start in their own buffers, not the buffer
+                 ;;     ;; which invoked the after-change-hook
+                 ;;     (unless (eq (nth 3 bspan) hostmode)
+                 ;;       (poly-lock--jit-lock-extend-region-span bspan old-len))
+                 ;;     (when (< (nth 2 bspan) jit-lock-end)
+                 ;;       (let ((espan (pm-innermost-span jit-lock-end)))
+                 ;;         (unless (eq (nth 3 espan) hostmode)
+                 ;;           (poly-lock--jit-lock-extend-region-span espan old-len)))))
+                 ;;   )
+
                  ;; ;; Why is this still needed? poly-lock--extend-region re-computes the spans
                  ;; (pm-flush-span-cache jit-lock-start jit-lock-end)
-                 ;; (dbg (cons jit-lock-start jit-lock-end))
+                 ;; (dbg (cb) jit-lock-start jit-lock-end)
                  (put-text-property jit-lock-start jit-lock-end 'fontified nil))))))))))
 
 (defun poly-lock-after-change (beg end old-len)
   "Mark changed region with 'fontified nil.
-Installed in `after-change-functions' and behaves similarly to
-`jit-lock-after-change' in what it calls
-`jit-lock-after-change-extend-region-functions' in turn but with
-the buffer narrowed to the relevant spans. BEG, END and OLD-LEN
-are as in `after-change-functions'."
-  ;; Extension is slow but after-change functions can be called in rapid
-  ;; succession (#200). Thus we do that in a timer.
+Extend the region to spans which need to be updated. BEG, END and
+OLD-LEN are as in `after-change-functions'. When
+`poly-lock-defer-after-change' is non-nil (the default), run fontification"
   (when (and poly-lock-mode
              pm-allow-after-change-hook
              (not memory-full))
+    ;; Extension is slow but after-change functions can be called in rapid
+    ;; succession (#200). Thus we do that in a timer.
     ;; FIXME: Instead of local timer, make a global one iterating over relevant
     ;; buffers
     (when (timerp poly-lock--timer)
       (cancel-timer poly-lock--timer))
-    ;; don't re-fontify before we extend
-    (put-text-property beg end 'fontified t)
     (if poly-lock-defer-after-change
         (progn
+          ;; don't re-fontify before we extend
+          (with-buffer-prepared-for-poly-lock
+           (put-text-property beg end 'fontified t))
           (setq poly-lock--beg-change (min beg end poly-lock--beg-change)
                 poly-lock--end-change (max beg end poly-lock--end-change))
           (setq-local poly-lock--timer
