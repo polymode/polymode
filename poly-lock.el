@@ -324,7 +324,12 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
                   go-on)
         (let ((ospan (get-text-property jit-lock-end :pm-span))
               (nspan (pm-innermost-span jit-lock-end 'no-cache)))
-          (if (eq (nth 3 nspan) (nth 3 ospan))
+          ;; (dbg "N" (pm-format-span nspan))
+          ;; (dbg "O" (pm-format-span ospan))
+          ;; if spans have just been moved by buffer modification, stop
+          (if (and (eq (nth 3 nspan) (nth 3 ospan))
+                   (= (- (nth 2 nspan) (nth 1 nspan))
+                      (- (nth 2 ospan) (nth 1 ospan))))
               (setq go-on nil)
             (setq jit-lock-end (nth 2 nspan)
                   end-span nspan)))))
