@@ -265,17 +265,18 @@ LOC is as in `pm-test-goto-loc'."
   "Mimic calls to fontification functions by redisplay.
 Needed because redisplay is not triggered in batch mode."
   (when fontification-functions
-    (save-restriction
-      (widen)
-      (save-excursion
-        (let (pos)
-          (while (setq pos (text-property-any (point-min) (point-max) 'fontified nil))
-            (let ((inhibit-modification-hooks t)
-                  (poly-lock-defer-after-change nil)
-                  (inhibit-redisplay t))
-              (when pm-verbose
-                (message "after change fontification-functions (%s)" pos))
-              (run-hook-with-args 'fontification-functions pos))))))))
+    (save-match-data
+      (save-restriction
+        (widen)
+        (save-excursion
+          (let (pos)
+            (while (setq pos (text-property-any (point-min) (point-max) 'fontified nil))
+              (let ((inhibit-modification-hooks t)
+                    (poly-lock-defer-after-change nil)
+                    (inhibit-redisplay t))
+                (when pm-verbose
+                  (message "after change fontification-functions (%s)" pos))
+                (run-hook-with-args 'fontification-functions pos)))))))))
 
 (defmacro pm-test-poly-lock (mode file &rest change-sets)
   "Test font-lock for MODE and FILE.
