@@ -427,7 +427,7 @@ case TYPE is ignored."
                 ;; pm--intersect-spans is done on a widened buffer.
                 (setq span (pm--intersect-spans config (1- pos))))
             (when (= pos (nth 2 span))
-              (error "Span ends at %d in (pm-inermost-span %d) %s"
+              (error "Span ends at %d in (pm--inermost-span %d) %s"
                      pos pos (pm-format-span span))))
           (pm--chop-span span omin omax))))))
 

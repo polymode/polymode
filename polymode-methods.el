@@ -301,13 +301,15 @@ in this case."
 ;; fixme: cache somehow?
 (defun pm--get-auto-span (span)
   (let* ((proto (nth 3 span))
-         (type (car span)))
+         (type (car span))
+         (sbeg (nth 1 span)))
     (save-excursion
-      (goto-char (nth 1 span))
+      (goto-char sbeg)
       (unless (eq type 'head)
         (goto-char (nth 2 span)) ; fixme: add multiline matchers to micro-optimize this
         (let ((matcher (pm-fun-matcher (eieio-oref proto 'head-matcher))))
-          (goto-char (car (funcall matcher -1)))))
+          ;; can be multiple incomplete spans within a span
+          (while (< sbeg (goto-char (car (funcall matcher -1)))))))
       (let* ((str (let ((matcher (eieio-oref proto 'mode-matcher)))
                     (when (stringp matcher)
                       (setq matcher (cons matcher 0)))
@@ -318,7 +320,7 @@ in this case."
                             (funcall matcher)))))
              (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'mode))))
         (if (eq mode 'host)
-            (progn (setcar (last span) (oref pm/polymode -hostmode))
+            (progn (setf (nth 3 span) (oref pm/polymode -hostmode))
                    span)
           ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
           ;; Head/tail/body indirect buffers are shared across chunkmodes and span
