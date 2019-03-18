@@ -260,8 +260,8 @@ objects provides same functionality for narrower scope. See also
                     (format (if prefixp "%s " " (%s)") pm-extra-span-info)
                   "")))
     (if prefixp
-        (format "%s[%s %d-%d %s]" extra type beg end oname)
-      (format "[%s %d-%d %s]%s" type beg end oname extra))))
+        (format "%s[%s %s-%s %s]" extra type beg end oname)
+      (format "[%s %s-%s %s]%s" type beg end oname extra))))
 
 
 ;;; SPANS
