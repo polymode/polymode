@@ -643,7 +643,9 @@ most frequently used slots are:
                                           (current-message)))))
                  (message ,(format "%s enabled" (concat root-name " polymode")))))
              (force-mode-line-update)
-             (pm--run-derived-mode-hooks ,config-name)
+             (let ((obj (clone ,config-name)))
+               (eieio-oset obj '-minor-mode ',mode)
+               (pm--run-derived-mode-hooks obj))
              ,@(when after-hook `(,after-hook)))
            ;; Return the new state
            ,mode)
