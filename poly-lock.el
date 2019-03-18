@@ -214,6 +214,10 @@ Fontifies chunk-by chunk within the region BEG END."
                    (when poly-lock-allow-fontification
                      (put-text-property beg end 'fontified nil) ; just in case
                      (condition-case-unless-debug err
+                         ;; NB: Some modes fontify beyond the limits (org-mode).
+                         ;; We need a reliably way to detect the actual limit of
+                         ;; the fontification. For now marking with
+                         ;; :pm-fontified-as property.
                          (save-restriction
                            (widen)
                            (jit-lock--run-functions beg end))
@@ -225,10 +229,10 @@ Fontifies chunk-by chunk within the region BEG END."
            (lambda (span)
              (when (or (pm-true-span-type span)
                        protect-host)
-               (with-buffer-prepared-for-poly-lock
-                (let ((sbeg (nth 1 span))
-                      (send (nth 2 span)))
-                  ;; skip empty spans
+               (let ((sbeg (nth 1 span))
+                     (send (nth 2 span)))
+                 ;; skip empty spans
+                 (with-buffer-prepared-for-poly-lock
                   (when (> send sbeg)
                     (if (not (and poly-lock-allow-fontification
                                   poly-lock-mode))
@@ -271,8 +275,15 @@ placed in `font-lock-flush-function''"
 (defun poly-lock--extend-region (beg end)
   "Our own extension function which runs first on BEG END change.
 Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
+  ;; NB: Debug this with (with-silent-modifications (insert "`") (poly-lock-after-change 65 66 0))
+
   ;; FIXME: this one extends to whole spans; not good.
   ;; old span can disappear, shrunk, extend etc
+
+  ;; TOTHINK: With differed after change, any function calling pm-innermost-span
+  ;; (syntax-propertize most likely) will reset the spans, so this extension
+  ;; will not work. For now we set 'fontified property in pm--innermost-span
+  ;; directly.
   (let* ((old-beg (or (previous-single-property-change end :pm-span)
                       (point-min)))
          (old-end (or (next-single-property-change end :pm-span)
