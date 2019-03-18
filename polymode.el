@@ -415,17 +415,20 @@ non-nil, don't throw if `polymode-eval-region-function' is nil."
 ;;; DEFINE
 
 (defun pm--config-name (symbol &optional must-exist)
-  (let ((config-name
-         (if (and (boundp symbol)
-                  (symbol-value symbol)
-                  (object-of-class-p (symbol-value symbol) 'pm-polymode))
-             symbol
-           (let ((poly-name (replace-regexp-in-string "pm-poly/\\|poly-\\|-mode\\|-minor-mode" ""
-                                                      (symbol-name symbol))))
-             (intern (concat "pm-poly/" poly-name))))))
+  (let* ((poly-name (replace-regexp-in-string "pm-poly/\\|poly-\\|-mode\\|-polymode\\|-minor-mode" ""
+                                              (symbol-name symbol)))
+         (config-name
+          (if (and (boundp symbol)
+                   (symbol-value symbol)
+                   (object-of-class-p (symbol-value symbol) 'pm-polymode))
+              symbol
+            (intern (concat "poly-" poly-name "-polymode")))))
     (when must-exist
       (unless (boundp config-name)
-        (error "No pm-polymode config object with name `%s'" config-name))
+        (let ((old-config-name (intern (concat "pm-poly/" poly-name))))
+          (if (boundp old-config-name)
+              (setq config-name old-config-name)
+            (error "No pm-polymode config object with name `%s'" config-name))))
       (unless (object-of-class-p (symbol-value config-name) 'pm-polymode)
         (error "`%s' is not a `pm-polymode' config object" config-name)))
     config-name))
@@ -468,9 +471,9 @@ Standard hook MODE-hook is run at the end of the initialization
 of each polymode buffer (both indirect and base buffers).
 
 This macro also defines the MODE-map keymap from the :keymap
-argument and PARENT-map (see below) and pm-poly/[MODE-NAME]
-custom variable which holds a `pm-polymode' configuration object
-for this polymode.
+argument and PARENT-map (see below) and poly-[MODE-NAME]-polymode
+variable which holds an object of class `pm-polymode' which holds
+the entire configuration for this polymode.
 
 PARENT is either the polymode configuration object or a polymode
 mode (there is 1-to-1 correspondence between config
@@ -532,7 +535,7 @@ most frequently used slots are:
          (config-name (pm--config-name mode))
          (root-name (replace-regexp-in-string "poly-\\|-mode" "" mode-name))
          (keymap-name (intern (concat mode-name "-map")))
-         keymap slots after-hook keyw lighter)
+         keymap keylist slots after-hook keyw lighter)
 
     (if (keywordp parent)
         (progn
@@ -554,7 +557,7 @@ most frequently used slots are:
         (`:lighter (setq lighter (purecopy (pop body))))
         (`:keymap (setq keymap (pop body)))
         (`:after-hook (setq after-hook (pop body)))
-        (`:keylist (error ":keylist is not allowed in `define-polymode'"))
+        (`:keylist (setq keylist (pop body)))
         (_ (push (pop body) slots) (push keyw slots))))
 
 
@@ -565,6 +568,7 @@ most frequently used slots are:
 
        (let* ((parent ',parent)
               (keymap ,keymap)
+              (keylist ,keylist)
               (parent-conf-name (and parent (pm--config-name parent 'must-exist)))
               (parent-conf (and parent-conf-name (symbol-value parent-conf-name))))
 
@@ -581,7 +585,7 @@ most frequently used slots are:
                                       ((eieio-object-p parent-conf)
                                        (let ((klist.kmap (pm--get-keylist.keymap-from-parent
                                                           keymap (symbol-value parent))))
-                                         (setq keymap (car klist.kmap))
+                                         (setq keymap (append keylist (car klist.kmap)))
                                          (cdr klist.kmap)))
                                       ;; 2. If parent is polymode function, take the
                                       ;; minor-mode from the parent config
