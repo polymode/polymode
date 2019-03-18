@@ -453,50 +453,6 @@ non-nil, don't throw if `polymode-eval-region-function' is nil."
     (cons (reverse keylist)
           (or parent-map polymode-minor-mode-map))))
 
-(defun polymode--define-chunkmode (constructor name parent doc key-args)
-  (let* ((type (format "%smode"
-                       (replace-regexp-in-string
-                        "-.*$" "" (replace-regexp-in-string "^pm-" "" (symbol-name constructor)))))
-         (sname (symbol-name name))
-         (root-name (replace-regexp-in-string (format "poly-\\|-%s" type) "" sname)))
-    (if (keywordp parent)
-        (progn
-          (push doc key-args)
-          (push parent key-args)
-          (setq doc nil parent nil))
-      (unless (stringp doc)
-        (push doc body)
-        (setq doc (format "%s for %s chunks." (capitalize type) root-name))))
-
-    (unless (string-match-p (format "-%s$" type) sname)
-      (error "%s must end in '-%s'" (capitalize type) type))
-    (unless (symbolp parent)
-      ;; fixme: check inheritance
-      (error "PARENT must be a name of an `%s'" type))
-
-    `(progn
-       (defvar ,name)
-       (defcustom ,name nil
-         ,doc
-         :group ',(intern (format "poly-%ss" type))
-         :type 'object)
-       (setq ,name
-             ,(if parent
-                  `(clone ,parent :name ,root-name ,@key-args)
-                `(,constructor :name ,root-name ,@key-args))))))
-
- ;;;###autoload
-(defmacro define-hostmode (name &optional parent doc &rest key-args)
-  (polymode--define-chunkmode 'pm-host-chunkmode name parent doc key-args))
-
-;;;###autoload
-(defmacro define-innermode (name &optional parent doc &rest key-args)
-  (polymode--define-chunkmode 'pm-inner-chunkmode name parent doc key-args))
-
- ;;;###autoload
-(defmacro define-auto-innermode (name &optional parent doc &rest key-args)
-  (polymode--define-chunkmode 'pm-inner-auto-chunkmode name parent doc key-args))
-
 ;;;###autoload
 (defmacro define-polymode (mode &optional parent doc &rest body)
   "Define a new polymode MODE.

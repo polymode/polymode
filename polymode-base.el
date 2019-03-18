@@ -29,126 +29,62 @@
 ;;
 ;;; Code:
 
-(require 'polymode-classes)
+(require 'polymode-core)
 
 
 ;; HOST MODES
 
-(defcustom pm-host/ada
-  (pm-host-chunkmode :name "ada"
-                     :mode 'ada-mode)
-  "Ada hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/ada 'poly-ada-hostmode "v0.2")
+(define-hostmode poly-ada-hostmode :mode 'ada-mode)
 
-(defcustom pm-host/coffee
-  (pm-host-chunkmode :name "coffee"
-                     :mode 'coffee-mode)
-  "Coffee hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/coffee 'poly-coffee-hostmode "v0.2")
+(define-hostmode poly-coffee-hostmode :mode 'coffee-mode)
 
-(defcustom pm-host/emacs-lisp
-  (pm-host-chunkmode :name "elisp"
-                     :mode 'emacs-lisp-mode)
-  "Emacs lisp hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/emacs-lisp 'poly-emacs-lisp-hostmode "v0.2")
+(define-hostmode poly-emacs-lisp-hostmode :mode 'emacs-lisp-mode)
 
-(defcustom pm-host/fundamental
-  (pm-host-chunkmode :name "fundamental"
-                     :mode 'fundamental-mode)
-  "Fundamental host mode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/fundamental 'poly-fundamental-hostmode "v0.2")
+(define-hostmode poly-fundamental-hostmode :mode 'fundamental-mode)
 
-(defcustom pm-host/java
-  (pm-host-chunkmode :name "js"
-                     :mode 'java-mode)
-  "Java hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/java 'poly-java-hostmode "v0.2")
+(define-hostmode poly-java-hostmode :mode 'java-mode)
 
-(defcustom pm-host/js
-  (pm-host-chunkmode :name "js"
-                     :mode 'js-mode)
-  "Javascript hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/js 'poly-js-hostmode "v0.2")
+(define-hostmode poly-js-hostmode :mode 'js-mode)
 
-(defcustom pm-host/latex
-  (pm-host-chunkmode :name "latex"
-                     :mode 'latex-mode)
-  "Latex hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/latex 'poly-latex-hostmode "v0.2")
+(define-hostmode poly-latex-hostmode :mode 'latex-mode)
 
-(defcustom pm-host/html
-  (pm-host-chunkmode :name "html"
-                     :mode 'html-mode
-                     :indent-offset 'sgml-basic-offset
-                     :protect-font-lock nil
-                     :protect-syntax t)
-  "HTML hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/html 'poly-html-hostmode "v0.2")
+(define-hostmode poly-html-hostmode
+  :mode 'html-mode
+  :indent-offset 'sgml-basic-offset
+  :protect-font-lock nil
+  :protect-syntax t)
 
-(defcustom pm-host/R
-  (pm-host-chunkmode :name "R"
-                     :mode 'r-mode)
-  "R hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/R 'poly-R-hostmode "v0.2")
+(define-hostmode poly-R-hostmode :mode 'R-mode)
 
-(defcustom pm-host/perl
-  (pm-host-chunkmode :name "perl"
-                     :mode 'perl-mode)
-  "Perl hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/perl 'poly-perl-hostmode "v0.2")
+(define-hostmode poly-perl-hostmode :mode 'perl-mode)
 
-(defcustom pm-host/ruby
-  (pm-host-chunkmode :name "ruby"
-                     :mode 'ruby-mode)
-  "Ruby hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/ruby 'poly-ruby-hostmode "v0.2")
+(define-hostmode poly-ruby-hostmode :mode 'ruby-mode)
 
-(defcustom pm-host/pascal
-  (pm-host-chunkmode :name "pascal"
-                     :mode 'pascal-mode)
-  "Pascal hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/pascal 'poly-pascal-hostmode "v0.2")
+(define-hostmode poly-pascal-hostmode :mode 'pascal-mode)
 
-(defcustom pm-host/C++
-  (pm-host-chunkmode :name "C++"
-                     :mode 'c++-mode
-                     :protect-font-lock nil)
-  "C++ hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/C++ 'poly-c++-hostmode "v0.2")
+(define-hostmode poly-c++-hostmode :mode 'C++-mode :protect-font-lock nil)
 
-(defcustom pm-host/sgml
-  (pm-host-chunkmode :name "sgml"
-                     :mode 'sgml-mode)
-  "SGML hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/sgml 'poly-sgml-hostmode "v0.2")
+(define-hostmode poly-sgml-hostmode :mode 'sgml-mode)
 
-(defcustom pm-host/text
-  (pm-host-chunkmode :name "text"
-                     :mode 'text-mode)
-  "Text hostmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/text 'poly-text-hostmode "v0.2")
+(define-hostmode poly-text-hostmode :mode 'text-mode)
 
-(defcustom pm-host/yaml
-  (pm-host-chunkmode :name "YAML"
-                     :mode 'yaml-mode)
-  "YAML chunkmode."
-  :group 'poly-hostmodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-host/yaml 'poly-yaml-hostmode "v0.2")
+(define-hostmode poly-yaml-hostmode :mode 'yaml-mode)
 
 
 ;;; ROOT POLYMODES
@@ -156,33 +92,33 @@
 ;; These are simple generic configuration objects. More specialized polymodes
 ;; should clone these.
 
-(defcustom pm-poly/brew
-  (pm-polymode :name "brew"
-               :hostmode 'pm-host/text)
-  "Brew configuration."
-  :group 'polymodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-poly/brew 'poly-brew-root-polymode "v0.2")
+(defvar poly-brew-root-polymode
+  (pm-polymode :name "brew-root" :hostmode 'poly-text-hostmode)
+  "Brew root configuration.")
 
-(defcustom pm-poly/html
-  (pm-polymode :name "html"
-               :hostmode 'pm-host/html)
-  "HTML configuration."
-  :group 'polymodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-poly/html 'poly-html-root-polymode "v0.2")
+(defvar poly-html-root-polymode
+  (pm-polymode :name "html-root" :hostmode 'poly-html-hostmode)
+  "HTML root configuration.")
 
-(defcustom pm-poly/C++
-  (pm-polymode :name "C++"
-               :hostmode 'pm-host/C++)
-  "C++ configuration."
-  :group 'polymodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-poly/C++ 'poly-c++-root-polymode "v0.2")
+(defvar poly-c++-root-polymode
+  (pm-polymode :name "c++-root" :hostmode 'poly-c++-hostmode)
+  "C++ root configuration.")
 
-(defcustom pm-poly/latex
-  (pm-polymode :name "latex"
-               :hostmode 'pm-host/latex)
-  "LaTeX configuration."
-  :group 'polymodes
-  :type 'object)
+(define-obsolete-variable-alias 'pm-poly/latex 'poly-latex--polymode "v0.2")
+(defvar poly-latex-root-polymode
+  (pm-polymode :name "latex-root" :hostmode 'poly-latex-hostmode)
+  "LaTeX root configuration.")
+
+(defvar poly-js-root-polymode
+  (pm-polymode :name "js-root" :hostmode 'poly-js-hostmode)
+  "JS root polymode.")
+
+(defvar poly-coffee-root-polymode
+  (pm-polymode :name "coffee-root" :hostmode 'poly-coffee-hostmode)
+  "JS root polymode.")
 
 (provide 'polymode-base)
 ;;; polymode-base.el ends here
