@@ -1711,5 +1711,15 @@ Elements of LIST can be either strings or symbols."
                                  ofile))
                   (pm--display-file ofile))))))))))
 
+;; (defun replace-poly-spec ()
+;;   (interactive)
+;;   (when (re-search-forward "defcustom +pm-\\(inner\\|host\\|poly\\)/\\([^ \n]+\\)" nil t)
+;;     (let* ((mode (match-string 2))
+;;            (type (match-string 1))
+;;            (new-name (format "poly-%s-%smode" mode type)))
+;;       (previous-line 1)
+;;       (insert (format "(define-obsolete-variable-alias 'pm-%s/%s '%s \"v0.2\")\n" type mode new-name))
+;;       (insert (format "(define-%smode %s\n)" type new-name)))))
+
 (provide 'polymode-core)
 ;;; polymode-core.el ends here

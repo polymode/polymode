@@ -345,10 +345,20 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
             (setq jit-lock-end (nth 2 nspan)
                   end-span nspan)))))
 
-    ;; always include tail
-    (when (and (eq (car end-span) 'body)
-               (< jit-lock-end (point-max)))
-      (setq jit-lock-end (nth 2 (pm-innermost-span jit-lock-end))))
+    (when (< jit-lock-end (point-max))
+      ;; This extension is needed because some host modes (org) either don't
+      ;; fontify the head correctly when tail is not there or worse, fontify
+      ;; larger spans than asked for. It's mostly for unprotected hosts, but
+      ;; doing it here for all cases to err on the safe side.
+
+      ;; always include body of the head
+      (when (eq (car end-span) 'head)
+        (setq end-span (pm-innermost-span jit-lock-end))
+        (setq jit-lock-end (nth 2 end-span)))
+
+      ;; always include tail
+      (when (eq (car end-span) 'body)
+        (setq jit-lock-end (nth 2 (pm-innermost-span jit-lock-end)))))
 
     (cons jit-lock-start jit-lock-end)))
 
