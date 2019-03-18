@@ -192,8 +192,18 @@ Fontifies chunk-by chunk within the region BEG END."
            ;; guards in pm--mode-setup.
            (poly-lock-fontification-in-progress t)
            (fontification-functions nil)
-           (protect-host (with-current-buffer (pm-base-buffer)
-                           (eieio-oref pm/chunkmode 'protect-font-lock)))
+           (protect-host (or
+                          (with-current-buffer (pm-base-buffer)
+                            (eieio-oref pm/chunkmode 'protect-font-lock))
+                          ;; HACK: Some inner modes use syntax-table text
+                          ;; property. If there is, for example, a comment
+                          ;; syntax somewhere in the innermode havoc is spelled
+                          ;; in font-lock-fontify-syntactically-region which
+                          ;; calls parse-partial-sexp. For example fortran block
+                          ;; in ../poly-markdown/tests/input/markdown.md. We do
+                          ;; our best and protect the host in such cases.
+                          (/= (next-single-property-change beg 'syntax-table nil end)
+                              end)))
            ;; extend to the next span boundary
            (end (let ((end-range (pm-innermost-range end)))
                   (if (< (car end-range) end)
@@ -246,9 +256,8 @@ Fontifies chunk-by chunk within the region BEG END."
                                   (jit-lock--run-functions new-beg new-end))
                               (jit-lock--run-functions new-beg new-end))
                           (error
-                           (message "(jit-lock--run-functions %s %s) [span %d %d %s] -> (%s %s %s): %s"
-                                    new-beg new-end sbeg send (current-buffer)
-                                    font-lock-default-fontify-region new-beg new-end
+                           (message "(jit-lock--run-functions %s %s) [span %d %d %s] -> (font-lock-default-fontify-region %s %s): %s"
+                                    new-beg new-end sbeg send (current-buffer) new-beg new-end
                                     (error-message-string err))))
                         ;; even if failed set to t
                         (put-text-property new-beg new-end 'fontified t)))
