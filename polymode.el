@@ -598,20 +598,29 @@ most frequently used slots are:
                    (easy-mmode-define-keymap keymap nil nil (list :inherit parent-map)))))
 
          ,@(unless (eq parent config-name)
-             ;; NB: setting in two steps as defcustom is not re-evaluated on repeated evals
-             `((defvar ,config-name) ; silence byte-compiler
-               (defcustom ,config-name nil
-                 ,(format "Configuration object for `%s' polymode." mode)
-                 :group 'polymodes
-                 :type 'object)
-               (setq ,config-name
-                     (if parent-conf-name
-                         (clone parent-conf
-                                :name ,(symbol-name config-name)
-                                ,@slots)
-                       (pm-polymode :name ,(symbol-name config-name)
-                                    ,@slots)))))
+             `((defvar ,config-name
+                 (if parent-conf-name
+                     (clone parent-conf
+                            :name ,(symbol-name config-name)
+                            ,@slots)
+                   (pm-polymode :name ,(symbol-name config-name)
+                                ,@slots))
+                 ,(format "Configuration object for `%s' polymode." mode)))
 
+             ;; ;; NB: setting in two steps as defcustom is not re-evaluated on repeated evals
+             ;; `((defvar ,config-name) ; silence byte-compiler
+             ;;   (defcustom ,config-name nil
+             ;;     ,(format "Configuration object for `%s' polymode." mode)
+             ;;     :group 'polymodes
+             ;;     :type 'object)
+             ;;   (setq ,config-name
+             ;;         (if parent-conf-name
+             ;;             (clone parent-conf
+             ;;                    :name ,(symbol-name config-name)
+             ;;                    ,@slots)
+             ;;           (pm-polymode :name ,(symbol-name config-name)
+             ;;                        ,@slots))))
+             )
          ;; The actual mode function:
          (defun ,mode (&optional arg)
            ,(format "%s\n\n\\{%s}"
