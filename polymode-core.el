@@ -1367,14 +1367,20 @@ Return FALLBACK if non-nil, otherwise the value of
                         (eieio-oref object 'parent-instance))))
     VALS))
 
-(defun pm--abrev-names (list abrev-regexp)
+(defun pm--abrev-names (abrev-regexp list)
   "Abbreviate names in LIST by erasing ABREV-REGEXP matches.
 Elements of LIST can be either strings or symbols."
   (mapcar (lambda (nm)
-            (let ((str-nm (if (symbolp nm)
-                              (symbol-name nm)
-                            nm)))
-              (cons (replace-regexp-in-string abrev-regexp "" str-nm)
+            (let* ((str-nm (if (symbolp nm)
+                               (symbol-name nm)
+                             nm))
+                   (prefix (replace-regexp-in-string "^poly-[^-]+\\(.+\\)" "" str-nm nil nil 1))
+                   (is-lib (or (string= prefix "poly-r") ; ugly special case as the library is called poly-R
+                               (featurep (intern prefix)))))
+              (cons (replace-regexp-in-string abrev-regexp ""
+                                              (if is-lib
+                                                  (replace-regexp-in-string "^poly-[^-]+-" "" str-nm)
+                                                str-nm))
                     str-nm)))
           list))
 

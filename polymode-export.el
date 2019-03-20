@@ -355,11 +355,12 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
     (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((weavers (delete-dups (pm--oref-with-parents pm/polymode :weavers)))
          (exporters (pm--abrev-names
+                     "pm-exporter/\\|-exporter"
                      (cl-delete-if-not
                       (lambda (el)
                         (or (pm--matched-selectors el :from)
-                            ;; FIXME: this abomination
-                            ;; match weaver to exporter
+                            ;; FIXME: rewrite this abomination
+                            ;; Match weaver to the exporter.
                             (cl-loop for weaver in weavers
                                      if (cl-loop for w in (eieio-oref (symbol-value weaver) 'from-to)
                                                  ;; weaver input extension matches the filename
@@ -369,8 +370,7 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
                                                                  when (pm--selector-match el (concat "dummy." (nth 2 w)))
                                                                  return t))
                                      return t)))
-                      (delete-dups (pm--oref-with-parents pm/polymode :exporters)))
-                     "pm-exporter/"))
+                      (delete-dups (pm--oref-with-parents pm/polymode :exporters)))))
          (sel (if exporters
                   (if (and no-ask-if-1 (= (length exporters) 1))
                       (car exporters)
@@ -393,7 +393,8 @@ for each polymode in CONFIGS."
 
 
 ;;; GLOBAL EXPORTERS
-(defcustom pm-exporter/pandoc
+(define-obsolete-variable-alias 'pm-exporter/pandoc 'poly-pandoc-exporter "v0.2")
+(defcustom poly-pandoc-exporter
   (pm-shell-exporter
    :name "pandoc"
    :from

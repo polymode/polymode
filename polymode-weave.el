@@ -270,8 +270,8 @@ each polymode in CONFIGS."
   (unless pm/polymode
     (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((weavers (pm--abrev-names
-                   (delete-dups (pm--oref-with-parents pm/polymode :weavers))
-                   "pm-weaver/"))
+                   "pm-weaver/\\|-weaver$"
+                   (delete-dups (pm--oref-with-parents pm/polymode :weavers))))
          (sel (pm--completing-read "Choose weaver: " weavers nil t nil 'pm--weaver-hist))
          (out (intern (cdr sel))))
     (setq pm--weaver-hist (delete-dups pm--weaver-hist))
