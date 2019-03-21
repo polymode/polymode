@@ -8,10 +8,8 @@ Here is how the markdown hostmode is defined:
 
 
 ```el
-
 (define-hostmode poly-markdown-hostmode
   :mode 'markdown-mode)
-
 ```
 
 `define-hostmode` is a macro which, in this case, simply defines an object
@@ -34,14 +32,12 @@ which detects the major mode of the body span on-the-fly.
 Here is an example of the YAML metadata innermode for markdown
 
 ```el
-
 (define-innermode poly-markdown-yaml-metadata-innermode
   :mode 'yaml-mode
   :head-matcher "\`[ \t\n]*---\n"
   :tail-matcher "^---\n"
   :head-mode 'host
   :tail-mode 'host)
-
 ```
 
 and a fenced-code auto innermode
@@ -83,7 +79,7 @@ Finally, use the host and inner modes defined earlier to define the
 (define-polymode poly-markdown-mode
   :hostmode 'pm-host/markdown
   :innermodes '(poly-markdown-yaml-metadata-innermode
-                pm-inner/markdown-fenced-code))
+                poly-markdown-fenced-code-innermode))
 ```
 
 `define-polymode` is similar to the standard Emacs utilities
@@ -119,7 +115,7 @@ completed.
 ### Config Objects as Parents 
 
 On some occasions the creation of polymode functions for parent objects has
-little or no sense. For example `poly-latex-root-polymode` is as parent of
+little or no sense. For example `poly-latex-root-polymode` is a parent of the
 `poly-noweb-polymode` but having a dedicated `poly-latex-mode` polymode has not
 much sense. For such cases `PARENT` argument of `define-polymode` can also be a
 configuration object.
@@ -142,8 +138,9 @@ is performed, as that wouldn't make sense). Therefore, the above definition of
 
 ```el
 (defvar poly-noweb-polymode
-  (clone pm-poly/latex "noweb"
-         :innermodes '(pm-inner/noweb)
+  (clone poly-latex-root-polymode
+         :name "noweb"
+         :innermodes '(poly-noweb-innermode)
          :keylist '(("<" . poly-noweb-electric-<)))
   "Noweb polymode configuration.")
 

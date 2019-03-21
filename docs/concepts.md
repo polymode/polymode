@@ -26,18 +26,17 @@ current buffer.
 
  - _**polymode**_ means one of the following:
 
-    1. _generic_ collection of related functionality that is available in emacs
-      buffers
+    1. a _sum_ of related functionality available in emacs buffers
     2. _function_ which installs a bunch of functionality into emacs
-      buffers. Polymodes can be used like any other emacs major mode (for
-      example place in `auto-mode-alist`), or like a minor mode to install
-      functionality on top of existing mode.<br>
+      buffers. <br> Polymodes can be used like any other emacs major mode (for
+      example placed in `auto-mode-alist`), or like a minor mode in order to
+      install functionality on top of an existing emacs mode.<br>
     3. an _object_ of class `pm-polymode` which holds the configuration for the
        polymode.
 
  - _**chunkmode**_, and the more specific _**hostmode**_ and _**innermode**_ mean either:
 
-    1. _generic_ collection of related functionality of host and inner chunks
+    1. a _sum_  of related functionality in host and inner chunks
     2. configuration _objects_ derived from `pm-chunkmode` class
        (`pm-host-hostmode`, `pm-inner-innermode`, `pm-inner-auto-chunkmode`).
 
@@ -58,7 +57,7 @@ polymode function `poly-NAME-mode`. During initialization of the polymodes the
 `Chunks` and `chunkmodes` are different concepts. Chunk is a fragments of text
 and there might be multiple chunks of the same mode within a buffer. In
 contrast, there is only one chunkmode of some type per buffer and the "behavior"
-of the individual chunks is determined by this chunkmode.
+in each chunk is determined by the chunkmode.
 
 
 ## Class Hierarchy
