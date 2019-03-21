@@ -225,16 +225,34 @@ objects provides same functionality for narrower scope. See also
 
 ;;;###autoload
 (defmacro define-hostmode (name &optional parent doc &rest key-args)
+  "Define a hostmode with name NAME.
+Optional PARENT is a name of a hostmode to be derived (cloned)
+from. If missing, the optional documentation string DOC is
+generated automatically. KEY-ARGS is a list of key-value pairs.
+See the documentation of the class `pm-host-chunkmode' for
+possible values."
   (declare (doc-string 3))
   (polymode--define-chunkmode 'pm-host-chunkmode name parent doc key-args))
 
 ;;;###autoload
 (defmacro define-innermode (name &optional parent doc &rest key-args)
+  "Ddefine an innermode with name NAME.
+Optional PARENT is a name of a innermode to be derived (cloned)
+from. If missing the optional documentation string DOC is
+generated automatically. KEY-ARGS is a list of key-value pairs.
+See the documentation of the class `pm-inner-chunkmode' for
+possible values."
   (declare (doc-string 3))
   (polymode--define-chunkmode 'pm-inner-chunkmode name parent doc key-args))
 
 ;;;###autoload
 (defmacro define-auto-innermode (name &optional parent doc &rest key-args)
+  "Ddefine an auto innermode with name NAME.
+Optional PARENT is a name of an auto innermode to be
+derived (cloned) from. If missing the optional documentation
+string DOC is generated automatically. KEY-ARGS is a list of
+key-value pairs. See the documentation of the class
+`pm-inner-auto-chunkmode' for possible values."
   (declare (doc-string 3))
   (polymode--define-chunkmode 'pm-inner-auto-chunkmode name parent doc key-args))
 
