@@ -159,6 +159,7 @@ and should not be used in `define-polymode'.")
 
    (-minor-mode
     :initform 'polymode-minor-mode
+    :initarg -minor-mode
     :type symbol
     :documentation
     "[Internal] Symbol pointing to minor-mode function.")

@@ -713,25 +713,26 @@ TYPE is either a symbol or a list of symbols of span types."
 
 ;;; OBJECT HOOKS
 
-(defun pm--run-derived-mode-hooks (config)
+(defun pm--run-derived-mode-hooks ()
   ;; Minor modes run-hooks, major-modes run-mode-hooks. Polymodes is a minor
   ;; mode but with major-mode flavor. We run hooks of all modes stored in
   ;; '-minor-mode slot of all parent objects in parent-first order.
-  (let ((this-mode (eieio-oref config '-minor-mode)))
+  (let* ((this-mode (eieio-oref pm/polymode '-minor-mode))
+         (this-state (symbol-value this-mode)))
     (mapc (lambda (mm)
-            (let ((old-mm (symbol-value mm)))
+            (let ((old-state (symbol-value mm)))
               (unwind-protect
                   (progn
-                    (set mm (symbol-value this-mode))
+                    (set mm this-state)
                     (run-hooks (derived-mode-hook-name mm)))
-                (set mm old-mm))))
-          (pm--collect-parent-slots config '-minor-mode))))
+                (set mm old-state))))
+          (pm--collect-parent-slots pm/polymode '-minor-mode))))
 
 (defun pm--run-init-hooks (object type &optional emacs-hook)
   (unless pm-initialization-in-progress
-    (pm--run-hooks object :init-functions (or type 'host))
     (when emacs-hook
-      (run-hooks emacs-hook))))
+      (run-hooks emacs-hook))
+    (pm--run-hooks object :init-functions (or type 'host))))
 
 (defun pm--collect-parent-slots (object slot &optional do-when inclusive)
   "Descend into parents of OBJECT and return a list of SLOT values.

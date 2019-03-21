@@ -602,8 +602,10 @@ most frequently used slots are:
                  (if parent-conf-name
                      (clone parent-conf
                             :name ,(symbol-name config-name)
+                            '-minor-mode ',mode
                             ,@slots)
                    (pm-polymode :name ,(symbol-name config-name)
+                                '-minor-mode ',mode
                                 ,@slots))
                  ,(format "Configuration object for `%s' polymode." mode)))
 
@@ -634,19 +636,21 @@ most frequently used slots are:
                          (arg t)
                          ((not ,mode)))))
              (setq ,mode state)
-             ;; The 'unless' is needed because inner modes during
-             ;; initialization call the same polymode minor-mode which
-             ;; triggers this `pm-initialize'.
              (unless (buffer-base-buffer)
+               ;; Call in indirect buffers only because inner modes during
+               ;; initialization call the same polymode minor-mode which
+               ;; triggers this `pm-initialize'.
                (when ,mode
                  (let ((obj (clone ,config-name)))
-                   (eieio-oset obj '-minor-mode ',mode)
+                   ;; (eieio-oset obj '-minor-mode ',mode)
                    (pm-initialize obj))
-                 ;; when host mode is reset in pm-initialize we end up with now
+                 ;; when host mode is reset in pm-initialize we end up with new
                  ;; minor mode in hosts
                  (setq ,mode t)))
-             ;; body and hooks are executed in all buffers!
+             ;; `body` and `hooks` are executed in all buffers; pm/polymode has been set
              ,@body
+             (pm--run-derived-mode-hooks)
+             ,@(when after-hook `(,after-hook))
              (unless (buffer-base-buffer)
                ;; Avoid overwriting a message shown by the body,
                ;; but do overwrite previous messages.
@@ -655,9 +659,7 @@ most frequently used slots are:
                               (not (equal ,last-message
                                           (current-message)))))
                  (message ,(format "%s enabled" (concat root-name " polymode")))))
-             (force-mode-line-update)
-             (pm--run-derived-mode-hooks ,config-name)
-             ,@(when after-hook `(,after-hook)))
+             (force-mode-line-update))
            ;; Return the new state
            ,mode)
 
@@ -694,7 +696,6 @@ globalized minor modes and can run user hooks.")
    '(("(\\(define-polymode\\)\\s +\\(\\(\\w\\|\\s_\\)+\\)"
       (1 font-lock-keyword-face)
       (2 font-lock-variable-name-face)))))
-
 
 (provide 'polymode)
 ;;; polymode.el ends here
