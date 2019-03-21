@@ -88,7 +88,6 @@ globalized pm-debug minor mode with <kbd>M-x pm-debug-mode</kbd>. When
 
 <img src="../img/debug.png"/>
 
-
 Some useful commands defined in `pm-debug-mode-map`:
 
 Shortcut | Description
@@ -102,8 +101,9 @@ Shortcut | Description
 <kbd>M-n M-t p</kbd> | Toggle post-command hook (`pm-debug-toggle-post-command`)
 <kbd>M-n M-t c</kbd> | Toggle after-change hook (`pm-debug-toggle-after-change`)
 <kbd>M-n M-t a</kbd> | Toggle all (`pm-debug-toggle-all`)
+<kbd>M-n M-t t</kbd> | Toggle tracing (`pm-toggle-tracing`)
 <kbd>M-n M-t v</kbd> | Toggle verbose messages from polymode (`pm-debug-toggle-verbose`)
 <kbd>M-n M-f s</kbd> |  Fontify current span (useful for font-lock debugging when font-lock is off) (`pm-debug-fontify-current-span`)
 <kbd>M-n M-f b</kbd> |  Fontify current buffer (`pm-debug-fontify-current-buffer`)
 
-
+`pm-toggle-tracing` and `pm-trace` are particularly useful to debug syntax and font-lock calls.

@@ -11,58 +11,69 @@ current buffer.
 
 ## Terminology
 
-  - _**span**_ is a contiguous and functionally homogeneous region of text of the
-   same Emacs major mode. On functional grounds, there are 4 types of spans:
-   head, body, tail and host. In the above example there are 5 spans - org host,
-   elisp org header, elisp body, elisp org tail and org host.<br> All spans are
-   closed on the left and open on the right. For example, a span spanning [3, 5)
-   contains character at position 3 but not at position 5. This is consisten
-   with how emacs' functions dealing with text properties work.
+  - _**span**_ is a contiguous and homogeneous region of text of the same Emacs
+   major mode. There are 4 types of spans: head, body, tail and host. <br> All
+   spans are closed on the left and open on the right. For example, a span
+   spanning [3, 5) contains character at position 3 but not at position 5. This
+   is consistent with how emacs' functions deal with text properties.
 
  - _**chunk**_ is a contiguous region that consists of one or more _spans_. There
    are two major types of chunks:
-    - _**host chunks**_ which contain only one span - host mode, and 
-    - _**inner chunks**_ which commonly consists of head, body and tail, where body
-      is of some other mode than host.<br>
-   
- - _**polymode**_, just like an emacs standard mode, means one of the following:
- 
-    1. an _generic term_ for a collection of related functionality that is
-      available in emacs buffers
-    2. _function_ which installs a bunch of functionality into emacs buffers.
-      Therefore, you can use polymodes just as any other emacs mode.<br>
+
+    - _**host chunks**_ which contain only one span in the host major mode.
+    - _**inner chunks**_ which commonly consists of head, body and tail, where
+      body is of some other mode than host.<br>
+
+ - _**polymode**_ means one of the following:
+
+    1. _generic_ collection of related functionality that is available in emacs
+      buffers
+    2. _function_ which installs a bunch of functionality into emacs
+      buffers. Polymodes can be used like any other emacs major mode (for
+      example place in `auto-mode-alist`), or like a minor mode to install
+      functionality on top of existing mode.<br>
+    3. an _object_ of class `pm-polymode` which holds the configuration for the
+       polymode.
+
+ - _**chunkmode**_, and the more specific _**hostmode**_ and _**innermode**_ mean either:
+
+    1. _generic_ collection of related functionality of host and inner chunks
+    2. configuration _objects_ derived from `pm-chunkmode` class
+       (`pm-host-hostmode`, `pm-inner-innermode`, `pm-inner-auto-chunkmode`).
 
 
 ## Configuration
 
 Host and inner chunks are configured through _objects_ derived from
 `pm-chunkmode` class and are generically referred to as "chunkmodes". These
-objects have named of the form `pm-host/NAME` and `pm-inner/NAME` and are
-collectively called `hostmodes` and `innermodes` respectively. These objects are
-configurable through the custom interface in `poly-hostmodes` and
-`poly-innermodes` customization groups.
+objects have named of the form `poly-NAME-hostmode` and `poly-NAME-innermode`
+and are refereed to as `hostmodes` and `innermodes` respectively.
 
 Polymodes are configured through _objects_ of class `pm-polymode` which are
-named with `pm-poly/NAME` scheme where `NAME` is the same as in the polymode
-function `poly-NAME-mode`. During initialization of the polymodes the
-`pm-poly/NAME` object is cloned and stored in a buffer-local variable
-`pm/polymode`. This object is shared common across all sibling buffers.
+named with `poly-NAME-polymode` scheme where `NAME` is the same as in the
+polymode function `poly-NAME-mode`. During initialization of the polymodes the
+`poly-NAME-polymode` object is cloned and stored in a buffer-local variable
+`pm/polymode`. This object is shared across all sibling buffers.
 
-It is worth pointing out the difference between `chunks` and `chunkmodes`.
-Chunks are fragments of text and there might be multiple chunks of the same mode
-within a buffer. In contrast, there is only one chunkmode of some type per
-buffer and all its chunks "share" this chunkmode.
+`Chunks` and `chunkmodes` are different concepts. Chunk is a fragments of text
+and there might be multiple chunks of the same mode within a buffer. In
+contrast, there is only one chunkmode of some type per buffer and the "behavior"
+of the individual chunks is determined by this chunkmode.
 
- 
+
 ## Class Hierarchy
 
 Polymode package uses `eieio` to represent its objects. The root class for all
 polymode classes is `eieio-instance-inheritor` which provides prototype based
 inheritance. This means that objects instantiated from polymode classes can be
-cloned in order to dynamically create a hierarchy of customizable objects. There
-are a bunch of such objects already defined, you can check those in `polymodes`,
-`poly-hostmodes` and `poly-innermodes` customization groups. 
+cloned in order to dynamically create a hierarchy of customizable objects.
 
+Instance inheritance (or prototype inheritance) means that if you change a slot
+of a parent object, all of the children and grand-children of the object will
+inherit the new value unless they explicitly overwrite that slot.
+
+There are a bunch of such objects already defined, you can check those in
+`polymodes`, `poly-hostmodes` and `poly-innermodes` customization groups.
 
 Polymode class hierarchy:
 
@@ -85,9 +96,10 @@ Polymode class hierarchy:
 *Using Help with EIEIO:* Each `eieio` class has a corresponding constructor
 whose docstring contains a complete description of the class.
 
-## Naming Conventions
+## General Naming Conventions
 
 User facing functionality is named with `polymode-` prefix. Polymodes are named
 with `poly-NAME-mode` convention. Host, inner and polymode configuration objects
-start with `pm-host/`, `pm-inner/` and `pm-poly/` prefixes
-respectively. Classes, methods and development API have `pm-` prefix.
+are named `poly-NAME-hostmode`, `poly-NAME-innermode` and
+`poly-name-polymode`. Classes, methods and developer-oriented API have `pm-`
+prefix.
