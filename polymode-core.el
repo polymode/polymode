@@ -782,6 +782,7 @@ Parents' hooks are run first."
     truncate-lines
     truncate-partial-width-windows
     buffer-undo-list
+    buffer-undo-tree
     word-wrap)
   "Variables transferred from old buffer on buffer switch.")
 
