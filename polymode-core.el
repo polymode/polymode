@@ -205,12 +205,13 @@ objects provides same functionality for narrower scope. See also
       ;; fixme: check inheritance
       (error "PARENT must be a name of an `%s'" type))
 
-    `(setq ,name
-           ,(if parent
-                `(clone ,parent :name ,root-name ,@key-args)
-              `(,constructor :name ,root-name ,@key-args))
-           ;; ,doc
-           )
+    `(progn
+       (makunbound ',name)
+       (defvar ,name
+         ,(if parent
+              `(clone ,parent :name ,root-name ,@key-args)
+            `(,constructor :name ,root-name ,@key-args))
+         ,doc))
     ;; `(progn
     ;;    (defvar ,name)
     ;;    (defcustom ,name nil

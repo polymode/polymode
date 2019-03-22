@@ -598,7 +598,8 @@ most frequently used slots are:
                    (easy-mmode-define-keymap keymap nil nil (list :inherit parent-map)))))
 
          ,@(unless (eq parent config-name)
-             `((defvar ,config-name
+             `((makunbound ',config-name)
+               (defvar ,config-name
                  (if parent-conf-name
                      (clone parent-conf
                             :name ,(symbol-name config-name)
