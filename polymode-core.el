@@ -1709,8 +1709,6 @@ Elements of LIST can be either strings or symbols."
           ;; FIXME: could be deleted buffer in weaver->exporter pipeline?
           (save-buffer)
           (let ((comm.ofile (pm--output-command.file output-format sfrom sto quote)))
-            (message "%s '%s' with '%s' ..." (if is-exporter "Exporting" "Weaving")
-                     (file-name-nondirectory ifile) (eieio-object-name processor))
             (let* ((pm--output-file (cdr comm.ofile))
                    (pm--input-file ifile)
                    ;; skip weaving step if possible
@@ -1720,19 +1718,28 @@ Elements of LIST can be either strings or symbols."
                              (stringp pm--output-file)
                              (pm--file-mod-time pm--output-file)))
                    (imt (and omt (pm--file-mod-time pm--input-file)))
-                   (ofile (or (and imt (time-less-p imt omt) pm--output-file)
-                              (let ((fn (with-no-warnings
-                                          (eieio-oref processor 'function)))
-                                    ;; `to` is nil for weavers
-                                    (args (delq nil (list from to)))
-                                    (comm (car comm.ofile)))
-                                (if callback
-                                    ;; the display is handled within the
-                                    ;; callback and return value of :function
-                                    ;; slot is ignored
-                                    (progn (apply fn comm callback args)
-                                           nil)
-                                  (apply fn comm args))))))
+                   (action (if is-exporter "exporting" "weaving"))
+                   (ofile (if (and imt (time-less-p imt omt))
+                              (progn
+                                (message "Not re-%s as input file '%s' hasn't changed"
+                                         (file-name-nondirectory ifile) action)
+                                pm--output-file)
+                            (message "%s '%s' with '%s' ..."
+                                     (capitalize action)
+                                     (file-name-nondirectory ifile)
+                                     (eieio-object-name processor))
+                            (let ((fn (with-no-warnings
+                                        (eieio-oref processor 'function)))
+                                  ;; `to` is nil for weavers
+                                  (args (delq nil (list from to)))
+                                  (comm (car comm.ofile)))
+                              (if callback
+                                  ;; the display is handled within the
+                                  ;; callback and return value of :function
+                                  ;; slot is ignored
+                                  (progn (apply fn comm callback args)
+                                         nil)
+                                (apply fn comm args))))))
               (when ofile
                 (if pm--export-spec
                     ;; same logic as in pm--wrap-callback
