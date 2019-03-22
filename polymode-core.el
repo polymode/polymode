@@ -127,6 +127,17 @@ special value 'host means use the host mode.")
   "Polymode Chunkmode Objects"
   :group 'polymode)
 
+(defcustom polymode-display-output-file t
+  "Whether to display woven and exported output buffers.
+When non-nil automatically visit and call `display-buffer' on
+output files from processor engines (e.g. weavers and exporters).
+Can also be a function, in which case it is called with the
+output file name as the only argument. If this function returns
+non-nil, the file is visited and displayed with `display-buffer'.
+See `display-buffer-alist' for how to customize the display."
+  :group 'polymode
+  :type '(choice (const t) (const nil) function))
+
 (defcustom polymode-display-process-buffers t
   "When non-nil, display weaving and exporting process buffers."
   :group 'polymode
@@ -1286,11 +1297,6 @@ for \"cycling\" commands."
           commands)
     (set-transient-map map)))
 
-(defvar polymode-display-output-file t
-  "When non-nil automatically display output file in Emacs.
-This is temporary variable, it might be changed or removed in the
-near future.")
-
 (defun pm--display-file (ofile)
   (when ofile
     ;; errors might occur (most notably with open-with package errors are intentional)
@@ -1303,7 +1309,9 @@ near future.")
                 ;; FIXME: something is not right with pdflatex export with
                 ;; pdf-tools viewer within emacs
                 (revert-buffer t t))))
-          (when polymode-display-output-file
+          (when (if (functionp polymode-display-output-file)
+                    (funcall polymode-display-output-file ofile)
+                  polymode-display-output-file)
             (if (string-match-p "html\\|htm$" ofile)
                 (browse-url ofile)
               (display-buffer (find-file-noselect ofile 'nowarn)))))
