@@ -349,8 +349,7 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
               (if (and (eq (nth 3 nspan) (nth 3 ospan))
                        (= (- (nth 2 nspan) (nth 1 nspan))
                           (- (nth 2 ospan) (nth 1 ospan))))
-                  (setq go-on nil
-                        jit-lock-end (nth 2 nspan))
+                  (setq go-on nil)
                 (setq jit-lock-end (nth 2 nspan)
                       end-span nspan))
             (setq go-on nil
