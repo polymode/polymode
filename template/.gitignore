@@ -13,3 +13,5 @@ tmp*
 site/
 *autoloads.el
 *.elc
+*.html
+*.pdf

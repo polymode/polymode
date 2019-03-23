@@ -61,6 +61,7 @@ test: version
 
 version:
 	@echo "EMACS VERSION: $(EMACS_VERSION)"
+	@echo "GIT HEAD: $(shell git rev-parse --short HEAD)"
 
 template../%:
 	@echo $@
