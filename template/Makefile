@@ -17,16 +17,14 @@ all: build checkdoc test
 
 build: version clean
 	@echo "******************* BUILDING $(MODULE) *************************"
-	$(EMACSBATCH) --load targets/melpa.el --funcall batch-byte-compile *.el
+	$(EMACSBATCH) --load targets/melpa-init.el --funcall batch-byte-compile *.el
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
 	$(EMACSBATCH) --load targets/checkdoc.el
 
 lint: version
-	@$(EMACSBATCH) --load targets/melpa.el --load elisp-lint.el \
-		--funcall elisp-lint-files-batch \
-		--no-fill-column --no-indent-character --no-package-format $(LINTELS)
+	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/lint.el $(LINTELS)
 
 clean:
 	rm -f $(OBJECTS)

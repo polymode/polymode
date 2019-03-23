@@ -36,8 +36,7 @@ deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
 
 lint: version
-	@$(EMACSBATCH) --load targets/melpa.el --load elisp-lint.el \
-		--funcall elisp-lint-files-batch --no-package-format --no-fill-column $(LINTELS)
+	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/lint.el $(LINTELS)
 
 melpa: version
 	@$(EMACSBATCH) --load targets/melpa.el
