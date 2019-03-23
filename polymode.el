@@ -131,9 +131,8 @@ number of chunks jumped over."
   "Go to next N chunk.
 Return the number of chunks of the same type moved over. This
 command is a \"cycling\" command in the sense that you can repeat
-the basic key of the command to invoke it multiple times. For
-example, with the default polymode bindings, M-n C-M-n C-M-n
-C-M-p will move forward twice and backwards once."
+the basic key without the prefix multiple times to invoke the
+command multiple times."
   (interactive "p")
   (let* ((sofar 0)
          (back (< N 0))
@@ -246,12 +245,12 @@ chunk or the whole chunk if in head or tail. On repeated
 invocation extend the region either forward or backward. You need
 not use the prefix key on repeated invocation. For example
 assuming we are in the body of the inner chunk and this command
-is bound on \"M-n M-m\" (the default)
+is bound on M\\=-n M\\=-m (the default)
 
-  [M-n M-m M-m M-m] selects body, expand selection to chunk then
+  [M\\=-n M\\=-m M\\=-m M\\=-m] selects body, expand selection to chunk then
                     expand selection to previous chunk
 
-  [M-n M-m C-x C-x M-m] selects body, expand selection to chunk,
+  [M\\=-n M\\=-m C\\=-x C\\=-x M\\=-m] selects body, expand selection to chunk,
                     then reverse point and mark, then extend the
                     selection to the following chunk"
   (interactive)

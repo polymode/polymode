@@ -378,4 +378,4 @@ points."
                                     (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))))))
 
 (provide 'polymode-test-utils)
-;;; polymode-test.el ends here
+;;; polymode-test-utils.el ends here

@@ -379,9 +379,8 @@ currently traced functions."
 ;;; RELEVANT VARIABLES
 
 (defvar pm-debug-relevant-variables
-  '(
-    :change (before-change-functions
-             after-change-functions)
+  `(:change
+    (before-change-functions after-change-functions)
     :command (pre-command-hook
               post-command-hook)
     :font-lock (fontification-functions
@@ -439,6 +438,7 @@ currently traced functions."
     (display-buffer buff)))
 
 (defun pm-debug-diff-local-vars (&optional buffer1 buffer2)
+  "Print different local values between BUFFER1 and BUFFER2."
   (interactive)
   (let* ((buffer1 (or buffer1 (read-buffer "Buffer1: " (buffer-name (current-buffer)))))
          (buffer2 (or buffer2 (read-buffer "Buffer2: " (buffer-name (nth 2 (buffer-list))))))

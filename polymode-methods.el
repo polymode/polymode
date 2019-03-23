@@ -120,7 +120,7 @@ Ran by the polymode mode function."
             (poly-lock-allow-fontification nil))
         ;; run-mode-hooks needs buffer-file-name
         (when base
-          (pm--move-vars pm-move-vars-from-base base (current-buffer)))
+          (pm--move-vars polymode-move-these-vars-from-base-buffer base (current-buffer)))
         (condition-case-unless-debug err
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s"
@@ -361,13 +361,13 @@ in this case."
   "Used as `indent-line-function' for modes with tab indent."
   ;; adapted from indent-according-to-mode
   (let ((column (save-excursion
-		          (beginning-of-line)
-		          (if (bobp) 0
+                  (beginning-of-line)
+                  (if (bobp) 0
                     (beginning-of-line 0)
                     (if (looking-at "[ \t]*$") 0 (current-indentation))))))
-	(if (<= (current-column) (current-indentation))
-	    (indent-line-to column)
-	  (save-excursion (indent-line-to column)))))
+    (if (<= (current-column) (current-indentation))
+        (indent-line-to column)
+      (save-excursion (indent-line-to column)))))
 
 (defun pm--indent-raw (span fn-sym &rest args)
   ;; fixme: do save-excursion instead of this?

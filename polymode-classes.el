@@ -77,7 +77,7 @@ into this list."))
     ;; Emacs clone method for eieio-instance-inheritor instantiates all slots
     ;; for cloned objects. We want them unbound to allow for the healthy
     ;; inheritance.
-    (dolist (descriptor (eieio-class-slots (class-of new-obj)))
+    (dolist (descriptor (eieio-class-slots (eieio-object-class new-obj)))
       (let ((slot (eieio-slot-descriptor-name descriptor)))
         (unless (memq slot '(parent-instance name))
           (slot-makeunbound new-obj slot))))

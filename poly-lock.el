@@ -373,39 +373,38 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
 
     (cons jit-lock-start jit-lock-end)))
 
-(defun poly-lock--jit-lock-extend-region-span (span old-len)
-  "Call `jit-lock-after-change-extend-region-functions' protected to SPAN.
-Extend `jit-lock-start' and `jit-lock-end' by side effect.
-OLD-LEN is passed to the extension function."
-  ;; FIXME: for multi-span regions this function seems to reset
-  ;; jit-lock-start/end to spans limits
-  (let ((beg jit-lock-start)
-        (end jit-lock-end))
-    (let ((sbeg (nth 1 span))
-          (send (nth 2 span))
-          (chunk (nth 3 span)))
-      (when (or (> beg sbeg) (< end send))
-        (pm-with-narrowed-to-span span
-          (setq jit-lock-start (max beg sbeg)
-                jit-lock-end   (min end send))
-          (condition-case err
-              (progn
-                ;; set jit-lock-start and jit-lock-end by side effect
-                (run-hook-with-args 'jit-lock-after-change-extend-region-functions
-                                    jit-lock-start jit-lock-end old-len))
-            (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
-                            jit-lock-start jit-lock-end old-len
-                            (error-message-string err))))
-          ;; FIXME: this is not in the right buffer, we need to do it in the
-          ;; original buffer.
-          (setq jit-lock-start (min beg (max jit-lock-start sbeg))
-                jit-lock-end (max end (min jit-lock-end send))))
-        (cons jit-lock-start jit-lock-end)))))
+;; (defun poly-lock--jit-lock-extend-region-span (span old-len)
+;;   "Call `jit-lock-after-change-extend-region-functions' protected to SPAN.
+;; Extend `jit-lock-start' and `jit-lock-end' by side effect.
+;; OLD-LEN is passed to the extension function."
+;;   ;; FIXME: for multi-span regions this function seems to reset
+;;   ;; jit-lock-start/end to spans limits
+;;   (let ((beg jit-lock-start)
+;;         (end jit-lock-end))
+;;     (let ((sbeg (nth 1 span))
+;;           (send (nth 2 span)))
+;;       (when (or (> beg sbeg) (< end send))
+;;         (pm-with-narrowed-to-span span
+;;           (setq jit-lock-start (max beg sbeg)
+;;                 jit-lock-end   (min end send))
+;;           (condition-case err
+;;               (progn
+;;                 ;; set jit-lock-start and jit-lock-end by side effect
+;;                 (run-hook-with-args 'jit-lock-after-change-extend-region-functions
+;;                                     jit-lock-start jit-lock-end old-len))
+;;             (error (message "(after-change-extend-region-functions %s %s %s) -> %s"
+;;                             jit-lock-start jit-lock-end old-len
+;;                             (error-message-string err))))
+;;           ;; FIXME: this is not in the right buffer, we need to do it in the
+;;           ;; original buffer.
+;;           (setq jit-lock-start (min beg (max jit-lock-start sbeg))
+;;                 jit-lock-end (max end (min jit-lock-end send))))
+;;         (cons jit-lock-start jit-lock-end)))))
 
 (defvar-local poly-lock--timer nil)
 (defvar-local poly-lock--beg-change most-positive-fixnum)
 (defvar-local poly-lock--end-change most-negative-fixnum)
-(defun poly-lock--after-change-internal (buffer old-len)
+(defun poly-lock--after-change-internal (buffer _old-len)
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (setq poly-lock--timer nil)

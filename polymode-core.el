@@ -1254,7 +1254,7 @@ ARG is the same as in `forward-paragraph'"
 
 
 (defun polymode-reset-ppss-cache (&optional pos)
-  "Reset syntax-ppss cache in polymode buffers.
+  "Reset `syntax-ppss' cache to POS in polymode buffers.
 Used in :before advice of `syntax-ppss'."
   (when polymode-mode
     (pm--reset-ppss-cache (pm-innermost-span pos))))
