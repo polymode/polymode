@@ -107,7 +107,7 @@
   (pm-polymode :name "c++-root" :hostmode 'poly-c++-hostmode)
   "C++ root configuration.")
 
-(define-obsolete-variable-alias 'pm-poly/latex 'poly-latex--polymode "v0.2")
+(define-obsolete-variable-alias 'pm-poly/latex 'poly-latex-root-polymode "v0.2")
 (defvar poly-latex-root-polymode
   (pm-polymode :name "latex-root" :hostmode 'poly-latex-hostmode)
   "LaTeX root configuration.")
