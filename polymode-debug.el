@@ -438,7 +438,7 @@ currently traced functions."
     (display-buffer buff)))
 
 (defun pm-debug-diff-local-vars (&optional buffer1 buffer2)
-  "Print different local values between BUFFER1 and BUFFER2."
+  "Print differences between local variables in BUFFER1 and BUFFER2."
   (interactive)
   (let* ((buffer1 (or buffer1 (read-buffer "Buffer1: " (buffer-name (current-buffer)))))
          (buffer2 (or buffer2 (read-buffer "Buffer2: " (buffer-name (nth 2 (buffer-list))))))

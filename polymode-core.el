@@ -867,13 +867,10 @@ switch."
         (window-start (window-start))
         (visible (pos-visible-in-window-p))
         (ractive (region-active-p))
-        (hl-line (and (boundp 'hl-line-mode) hl-line-mode))
         (mkt (mark t))
         (bro buffer-read-only))
 
     (setq pm/current nil)
-    (when hl-line
-      (hl-line-mode -1))
 
     (pm--move-minor-modes polymode-move-these-minor-modes-from-base-buffer
                           (pm-base-buffer) new-buffer)
@@ -902,10 +899,7 @@ switch."
     (when visible
       (set-window-start (get-buffer-window new-buffer t) window-start))
 
-    (when hl-line
-      (hl-line-mode 1))
-
-    (run-hook-with-args 'polymode-switch-buffer-hook old-buffer new-buffer)
+    (run-hook-with-args 'polymode-after-switch-buffer-hook old-buffer new-buffer)
     (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
     (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
 

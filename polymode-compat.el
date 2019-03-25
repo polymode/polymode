@@ -308,7 +308,25 @@ changes."
           (evil-change-state old-state))))))
 
 (eval-after-load 'evil-core
-  '(add-hook 'polymode-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
+  '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
+
+
+;;; HL line
+
+(defvar hl-line-mode)
+(defvar global-hl-line-mode)
+(declare-function hl-line-unhighlight "hl-line")
+(declare-function global-hl-line-unhighlight "hl-line")
+(add-to-list 'polymode-move-these-minor-modes-from-old-buffer 'hl-line-mode)
+(defun polymode-switch-buffer-hl-unhighlight (old-buffer _new-buffer)
+  (with-current-buffer old-buffer
+    ;; We are moving hl-line-mode already
+    (when hl-line-mode
+      (hl-line-unhighlight))
+    (when global-hl-line-mode
+      (global-hl-line-unhighlight))))
+(eval-after-load 'hl-line
+  '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-hl-unhighlight))
 
 
 ;;; YAS
