@@ -166,12 +166,19 @@ will cause installation of `ess-julia-mode' in markdown ```julia chunks."
   :group 'polymode
   :type 'alist)
 
-(defvar polymode-switch-buffer-hook nil
-  "Hook run on switching to a different buffer.
+(defvar polymode-before-switch-buffer-hook nil
+  "Hook run just before switching to a different polymode buffer.
 Each function is run with two arguments `old-buffer' and
 `new-buffer'. This hook is commonly used to transfer state
-between buffers. The hook is run in a new buffer, but you should
-not rely on that. Slot :switch-buffer-functions in `pm-polymode'
+between buffers. Hook is run before transfer of variables, modes
+and overlays.")
+
+(define-obsolete-variable-alias 'polymode-switch-buffer-hook 'polymode-after-switch-buffer-hook "v0.2")
+(defvar polymode-after-switch-buffer-hook nil
+  "Hook run after switching to a different polymode buffer.
+Each function is run with two arguments `old-buffer' and
+`new-buffer'. This hook is commonly used to transfer state
+between buffers. Slot :switch-buffer-functions in `pm-polymode'
 and `pm-chunkmode' objects provides same functionality for
 narrower scope.")
 
@@ -841,6 +848,8 @@ switch."
     ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
     ;; no further action if BUFFER is already the current buffer
     (unless (eq buffer (current-buffer))
+      (when visibly
+        (run-hook-with-args 'polymode-before-switch-buffer-hook (current-buffer) buffer))
       (pm--move-vars polymode-move-these-vars-from-base-buffer
                      (pm-base-buffer) buffer)
       (pm--move-vars polymode-move-these-vars-from-old-buffer
