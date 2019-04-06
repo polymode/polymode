@@ -43,7 +43,7 @@
 (defvar *span* nil)
 (defvar-local pm/polymode nil)
 (defvar-local pm/chunkmode nil)
-(defvar-local pm/current nil)
+(defvar-local pm/current nil) ;; fixme: unused
 (defvar-local pm/type nil) ;; fixme: remove this
 (defvar-local polymode-mode nil
   "Non-nil if current \"mode\" is a polymode.")
