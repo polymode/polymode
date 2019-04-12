@@ -91,10 +91,10 @@ Look into tests/input directory then in samples directory."
   "Run BODY in a temporary buffer containing STRING in MODE.
 MODE is a quoted symbol."
   (declare (indent 1) (debug (form form body)))
-  `(let ((buf "*pm-test-string-buffer*"))
-     (when (get-buffer buf)
-       (kill-buffer buf))
-     (with-current-buffer (get-buffer-create buf)
+  `(let ((*buf* "*pm-test-string-buffer*"))
+     (when (get-buffer *buf*)
+       (kill-buffer *buf*))
+     (with-current-buffer (get-buffer-create *buf*)
        (insert (substring-no-properties ,string))
        (funcall ,mode)
        (setq-default indent-tabs-mode nil)
@@ -102,6 +102,23 @@ MODE is a quoted symbol."
        (font-lock-ensure)
        ,@body
        (current-buffer))))
+
+(defun pm-test-spans (mode string)
+  (declare (indent 1))
+  (pm-test-run-on-string mode
+    string
+    (pm-map-over-spans
+     (lambda (span)
+       (let ((range0 (pm-span-to-range span)))
+         (goto-char (car range0))
+         (while (< (point) (cdr range0))
+           (let ((range-pos (pm-innermost-range (point) 'no-cache)))
+             (unless (equal range0 range-pos)
+               (switch-to-buffer (current-buffer))
+               (ert-fail (list :pos (point)
+                               :range0 range0
+                               :range-pos range-pos))))
+           (forward-char)))))))
 
 (defmacro pm-test-run-on-file (mode file-name &rest body)
   "Run BODY in a buffer with the content of FILE-NAME in MODE."
@@ -150,7 +167,7 @@ MODE is a quoted symbol."
          ,@body
          (current-buffer)))))
 
-(defun pm-test-span (span &optional allow-failed-faces)
+(defun pm-test-span-faces (span &optional allow-failed-faces)
   ;; head/tail is usually highlighted incorrectly by host modes when only head
   ;; is in the buffer, so we just skip those head-tails which have
   ;; :head/tail-mode 'host
@@ -198,13 +215,13 @@ MODE is a quoted symbol."
               (ert-fail data)))
           (setq opos (next-single-property-change opos 'face obuf)))))))
 
-(defun pm-test-spans (&optional allow-failed-faces)
-  "Execute `pm-test-span' for every span in the buffer.
+(defun pm-test-faces (&optional allow-failed-faces)
+  "Execute `pm-test-span-faces' for every span in the buffer.
 ALLOW-FAILED-FACES should be a list of faces on which failures
 are OK."
   (save-excursion
     (pm-map-over-spans
-     (lambda (span) (pm-test-span span allow-failed-faces)))))
+     (lambda (span) (pm-test-span-faces span allow-failed-faces)))))
 
 (defun pm-test-goto-loc (loc)
   "Go to LOC and switch to polymode indirect buffer.
@@ -285,12 +302,11 @@ BODY). NAME-LOC is a list of the form (NAME LOCK) where NAME is a
 symbol, LOC is the location as in `pm-test-goto-loc'. Before and
 after execution of the BODY ‘undo-boundary’ is set and after the
 execution undo is called once. After each change-set
-`pm-test-span' on the whole file is run."
+`pm-test-span-faces' on the whole file is run."
   (declare (indent 2)
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
-      ;; (pm-test-spans)
       (dolist (cset ',change-sets)
         (let ((poly-lock-defer-after-change nil)
               (pm-test-current-change-set (caar cset)))
@@ -299,7 +315,7 @@ execution undo is called once. After each change-set
           (pm-test-goto-loc (nth 1 (car cset)))
           (eval (cons 'progn (cdr cset)))
           (undo-boundary)
-          (pm-test-spans)
+          (pm-test-faces)
           (let ((inhibit-message (not pm-verbose)))
             (undo)))))))
 
