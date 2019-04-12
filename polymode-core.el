@@ -1552,10 +1552,10 @@ Elements of LIST can be either strings or symbols."
          ;; weave/export buffers are re-usable; need to transfer some vars
          (dd default-directory)
          ;; (command (shell-quote-argument command))
-         )
+         (inhibit-read-only t))
     (with-current-buffer buffer
       (setq-local default-directory dd)
-      (read-only-mode -1)
+      (setq buffer-read-only nil)
       (erase-buffer)
       (insert message)
       (comint-exec buffer buff-name shell-file-name nil
