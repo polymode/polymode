@@ -310,6 +310,14 @@ buffer.")
     :initform t)
    (protect-indent
     :initform t)
+   (allow-nested
+    :initarg :allow-nested
+    :initform t
+    :type boolean
+    :custom boolean
+    :documentation
+    "Non-nil if other inner-modes are allowed to nest within this
+inner-mode.")
    (can-nest
     :initarg :can-nest
     :initform nil

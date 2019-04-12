@@ -378,6 +378,43 @@ case TYPE is ignored."
   (with-silent-modifications
     (remove-list-of-text-properties beg end '(:pm-span) buffer)))
 
+(defun pm--outspan-p (span thespan)
+  "Non-nil if SPAN outspans THESPAN.
+Return non-nil if SPAN contains THESPAN's chunk (strictly from
+the front)."
+  (let ((type (car thespan))
+        (beg (nth 1 thespan))
+        (end (nth 2 thespan))
+        (sbeg (nth 1 span))
+        (send (nth 2 span)))
+    ;; The following check is to ensure that the outer span really
+    ;; spans outside of the entire thespan's chunk (poly-markdown#6)
+    (and
+     (< sbeg beg)
+     (cond
+      ((eq type 'body)
+       (and (let ((hspan (pm-get-span (nth 3 thespan) (1- beg))))
+              (< sbeg (nth 1 hspan)))
+            ;; Ends might coincide due to eob
+            (if (< end send)
+                (let ((tspan (pm-get-span (nth 3 thespan) (1+ end))))
+                  (<= (nth 2 tspan) send))
+              (= end send))))
+      ((eq type 'tail)
+       (let ((bspan (pm-get-span (nth 3 thespan) (1- beg))))
+         (when (< sbeg (nth 1 bspan))
+           (let ((hspan (pm-get-span (nth 3 thespan) (1- (nth 1 bspan)))))
+             (< sbeg (nth 1 hspan))))))
+      ;; Ends might coincide due to eob
+      ((eq type 'head)
+       (if (< end send)
+           (let ((bspan (pm-get-span (nth 3 thespan) (1+ end))))
+             (if (< (nth 2 bspan) send)
+                 (let ((tspan (pm-get-span (nth 3 thespan) (1+ (nth 2 bspan)))))
+                   (<= (nth 2 tspan) send))
+               (= (nth 2 bspan) send)))
+         (= end send)))))))
+
 (defun pm--intersect-spans (config &optional pos)
   ;; fixme: host should be last, to take advantage of the chunkmodes computation?
   (let* ((start (point-min))
@@ -391,9 +428,8 @@ case TYPE is ignored."
       ;; Optimization opportunity: this searches till the end of buffer but the
       ;; outermost pm-get-span caller has computed a few span already so we can
       ;; pass limits or narrow to pre-computed span.
-      (setq span (pm-get-span cm pos))
-      ;; (message "[%d] span: %S imode: %s" (point) (pm-span-to-range span) (pm-debug-info cm))
-      (when span
+      (when (setq span (pm-get-span cm pos))
+
         (cond
          ;; 1. nil means host and it can be an intersection of spans returned by
          ;; two neighboring inner chunkmodes
@@ -410,17 +446,24 @@ case TYPE is ignored."
          ((or (> (nth 1 span) start)
               (< (nth 2 span) end))
           ;; NB: no check if boundaries of two inner spans crossing; assume
-          ;; correct matchers
+          ;; correct matchers. In case of crossing, if 'can-nest is t then later
+          ;; chunkmode wins otherwise the former one.
           (when (or (null (car thespan))
                     (eieio-oref (nth 3 span) 'can-nest))
             (setq thespan span
                   start (nth 1 span)
                   end (nth 2 span))))
          ;; 3. Outer span; overwrite previous span if nesting is not allowed.
-         ;; This case can probably result in unexpected outcome when there are 3
-         ;; levels of nesting with inter-changeable :can-nest property.
-         ((and (car thespan)
-               (not (eieio-oref (nth 3 thespan) 'can-nest)))
+         ;; This case is very hard because it can result in big invalid span
+         ;; when a head occurs within a inner-chunk. For example $ for inline
+         ;; latex can occur within R or python. The hard way to fix this would
+         ;; require non-local information (e.g. checking if outer span's
+         ;; extremities are within a host span) and still might not be the full
+         ;; proof solution. Instead, make use of 'allow-nested property.
+         ((and (eieio-oref (nth 3 span) 'allow-nested) ; span is an inner span
+               (car thespan)
+               (not (eieio-oref (nth 3 thespan) 'can-nest))
+               (pm--outspan-p span thespan))
           (setq thespan span
                 start (nth 1 span)
                 end (nth 2 span))))))
@@ -428,9 +471,7 @@ case TYPE is ignored."
     (unless (and (<= start end) (<= pos end) (>= pos start))
       (error "Bad polymode selection: span:%s pos:%s"
              (list start end) pos))
-
     (pm-cache-span thespan)
-
     thespan))
 
 (defun pm--chop-span (span beg end)
