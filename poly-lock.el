@@ -517,14 +517,14 @@ How adjustment is made is defined in :adjust-face slot of the
 SPAN's chunkmode."
   (interactive "r")
   (let ((face (pm-get-adjust-face (nth 3 span) (car span))))
-    (when face
-      (with-current-buffer (current-buffer)
-        (let ((face (or (and (numberp face)
-                             (list (list :background
-                                         (poly-lock--adjusted-background face))))
-                        face)))
-          (font-lock-append-text-property
-           (nth 1 span) (nth 2 span) 'face face))))))
+    (let ((face (if (numberp face)
+                    (unless (= face 0)
+                      (list (list :background
+                                  (poly-lock--adjusted-background face))))
+                  face)))
+      (when face
+        (font-lock-append-text-property
+         (nth 1 span) (nth 2 span) 'face face)))))
 
 (provide 'poly-lock)
 ;;; poly-lock.el ends here

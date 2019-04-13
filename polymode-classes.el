@@ -267,15 +267,15 @@ the trailing white spaces if any.")
     "Whether to narrow to span when calling `syntax-propertize-function'.")
    (adjust-face
     :initarg :adjust-face
-    :initform '()
+    :initform nil
     :type (or number face list)
     :custom (choice number face sexp)
     :documentation
     "Fontification adjustment for the body of the chunk.
 It should be either, nil, number, face or a list of text
-properties as in `put-text-property' specification. If nil no
-highlighting occurs. If a face, use that face. If a number, it is
-a percentage by which to lighten/darken the default chunk
+properties as in `put-text-property' specification. If nil or 0
+no highlighting occurs. If a face, use that face. If a number, it
+is a percentage by which to lighten/darken the default chunk
 background. If positive - lighten the background on dark themes
 and darken on light thems. If negative - darken in dark thems and
 lighten in light thems.")
