@@ -862,6 +862,7 @@ Parents' hooks are run first."
     buffer-face-mode-remapping
     buffer-invisibility-spec
     buffer-read-only
+    display-line-numbers
     face-remapping-alist
     line-move-visual
     overwrite-mode
