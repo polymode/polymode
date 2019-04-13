@@ -861,6 +861,7 @@ Parents' hooks are run first."
     buffer-face-mode-face
     buffer-face-mode-remapping
     buffer-invisibility-spec
+    buffer-read-only
     face-remapping-alist
     line-move-visual
     overwrite-mode
@@ -927,8 +928,7 @@ switch."
         (window-start (window-start))
         (visible (pos-visible-in-window-p))
         (ractive (region-active-p))
-        (mkt (mark t))
-        (bro buffer-read-only))
+        (mkt (mark t)))
 
     (setq pm/current nil)
 
@@ -944,9 +944,6 @@ switch."
     (set-window-prev-buffers nil (assq-delete-all old-buffer (window-prev-buffers nil)))
 
     (setq pm/current t)
-
-    (unless (eq bro buffer-read-only)
-      (read-only-mode (if bro 1 -1)))
 
     ;; fixme: what is the right way to do this ... activate-mark-hook?
     (if (not ractive)
@@ -1431,7 +1428,7 @@ Return FALLBACK if non-nil, otherwise the value of
    ;; compute from name
    ((let* ((str (pm--symbol-name
                  (or (cdr (assq (intern (pm--symbol-name name))
-                                polymode-mode-name-override-alist))
+                                polymode-mode-name-aliases))
                      name)))
            (mname (concat str "-mode")))
       (or
