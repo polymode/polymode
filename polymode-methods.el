@@ -220,14 +220,30 @@ Create and initialize the buffer if does not exist yet.")
       (let ((new-buff (pm--get-innermode-buffer-create chunkmode type)))
         (pm--set-innermode-buffer chunkmode type new-buff)))))
 
-(defun pm--get-innermode-buffer-create (chunkmode type)
-  (let ((mode (pm--get-innermode-mode chunkmode type)))
+(defun pm-get-buffer-of-mode (mode)
+  (let ((mode (pm--true-mode-symbol mode)))
     (or
-     ;; 1. look through existent buffer list
+     ;; 1. search through the existing buffer list
      (cl-loop for bf in (eieio-oref pm/polymode '-buffers)
               when (and (buffer-live-p bf)
                         (eq mode (buffer-local-value 'major-mode bf)))
               return bf)
+     ;; 2. create new if body mode matched
+     (cl-loop for imode in (eieio-oref pm/polymode '-innermodes)
+              when (eq mode (eieio-oref imode 'mode))
+              return (pm--get-innermode-buffer-create imode 'body 'force)))))
+
+(defun pm--get-innermode-buffer-create (chunkmode type &optional force-new)
+  (let ((mode (pm--true-mode-symbol
+               (pm--get-innermode-mode chunkmode type))))
+    (or
+     ;; 1. search through the existing buffer list
+     (unless force-new
+       (cl-loop for bf in (eieio-oref pm/polymode '-buffers)
+                when (let ((out (and (buffer-live-p bf)
+                                     (eq mode (buffer-local-value 'major-mode bf)))))
+                       out)
+                return bf))
      ;; 2. create new
      (with-current-buffer (pm-base-buffer)
        (let* ((new-name (generate-new-buffer-name (buffer-name)))

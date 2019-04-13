@@ -156,6 +156,19 @@ NEW-BUFFER.")
     "A list of elements of the form (KEY . BINDING).
 This slot is reserved for building hierarchies through cloning
 and should not be used in `define-polymode'.")
+   (keep-in-mode
+    :initarg :keep-in-mode
+    :initform nil
+    :type symbol
+    :custom symbol
+    :documentation
+    ;; NB: Using major-modes instead of innermode symbols for the sake of
+    ;; simplicity of the implementation and to allow for auto-modes.
+    "Major mode to keep in when polymode switches implementation buffers.
+When a special symbol 'host, keep in hostmode. The buffer with
+this major mode must be installed by one of the innermodes or the
+hostmode. If multiple innermodes installed buffers of this mode,
+the first buffer is used.")
 
    (-minor-mode
     :initform 'polymode-minor-mode
@@ -289,6 +302,17 @@ Each function is run with two arguments, OLD-BUFFER and
 NEW-BUFFER. In contrast to identically named slot in
 `pm-polymode' class, these functions are run only when NEW-BUFFER
 is of this chunkmode.")
+   (keep-in-mode
+    :initarg :keep-in-mode
+    :initform nil
+    :type symbol
+    :custom symbol
+    :documentation
+    "Major mode to keep in when polymode switches implementation buffers.
+When a special symbol 'host, keep in hostmode. The buffer with
+this major mode must be installed by one of the innermodes or the
+hostmode. If multiple innermodes installed buffers of this mode,
+the first buffer is used.")
 
    (-buffer
     :type (or null buffer)
@@ -359,10 +383,12 @@ nil, pick the mode from :head-mode slot.")
     :documentation
     "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
 When a function, the matcher must accept one argument that can
-take either values 1 (forwards search) or -1 (backward search).
-This function must return either nil (no match) or a (cons BEG
-END) representing the span of the head or tail respectively. See
-the code of `pm-fun-matcher' for a simple example.")
+take either values 1 (forwards search) or -1 (backward search)
+and behave similarly to how search is performed by
+`re-search-forward' function. This function must return either
+nil (no match) or a (cons BEG END) representing the span of the
+head or tail respectively. See the code of `pm-fun-matcher' for a
+simple example.")
    (tail-matcher
     :initarg :tail-matcher
     :type (or string cons function)

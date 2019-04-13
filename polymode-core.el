@@ -65,6 +65,7 @@
 
 ;; methods api from polymode-methods.el
 (declare-function pm-initialize "polymode-methods")
+(declare-function pm-get-buffer-of-mode "polymode-methods")
 (declare-function pm-get-buffer-create "polymode-methods")
 (declare-function pm-get-adjust-face "polymode-methods")
 (declare-function pm-get-span "polymode-methods")
@@ -885,7 +886,17 @@ switch."
       (pm--reset-ppss-cache span))
     (when visibly
       ;; always sync to avoid issues with tooling working in different buffers
-      (pm--synchronize-points (current-buffer)))
+      (pm--synchronize-points (current-buffer))
+      (let ((mode (or (eieio-oref (nth 3 span) 'keep-in-mode)
+                      (eieio-oref pm/polymode 'keep-in-mode))))
+        (setq buffer (cond
+                      ((null mode) buffer)
+                      ((eq mode 'host) (pm-base-buffer))
+                      (mode (or (pm-get-buffer-of-mode mode)
+                                ;; not throwing because in auto-modes mode might not
+                                ;; be installed yet and there is no way install it
+                                ;; from here
+                                buffer))))))
     ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
     ;; no further action if BUFFER is already the current buffer
     (unless (eq buffer (current-buffer))
@@ -1157,7 +1168,7 @@ If FUN is a list, apply ADVICE to each element of it."
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.
 Used in advises."
-  (if (and polymode-mode pm/polymode
+  (if (and polymode-mode
            (not pm--killed)
            (buffer-live-p (buffer-base-buffer)))
       (let (;; (pm-initialization-in-progress t) ; just in case
@@ -1177,7 +1188,8 @@ Used in advises."
           ;; low level scan-lists moves points in indirect buffers (FIXME: EMACS
           ;; bug, report ASAP). Unfortunately save-excursion protects only from
           ;; point moves in the current buffer.
-          (pm--synchronize-points base)))
+          (when pm/polymode
+            (pm--synchronize-points base))))
     (apply orig-fun args)))
 
 (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
