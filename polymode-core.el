@@ -151,9 +151,11 @@ than the input file."
   :group 'polymode
   :type 'boolean)
 
-(define-obsolete-variable-alias 'polymode-mode-name-override-alist 'polymode-mode-name-alias-alist "2018-08")
-(defcustom polymode-mode-name-alias-alist
-  '((elisp . emacs-lisp) (el . emacs-lisp)
+(define-obsolete-variable-alias 'polymode-mode-name-override-alist 'polymode-mode-name-aliases "2018-08")
+(define-obsolete-variable-alias 'polymode-mode-name-alias-alist 'polymode-mode-name-aliases "2019-04")
+(defcustom polymode-mode-name-aliases
+  '((elisp . emacs-lisp)
+    (el . emacs-lisp)
     (bash . sh-mode))
   "An alist of inner mode overrides.
 When inner mode is automatically detected from the header of the
@@ -161,11 +163,17 @@ inner chunk (such as in markdown mode), the detected symbol might
 not correspond to the desired mode. This alist maps discovered
 symbols into desired modes. For example
 
-  (add-to-list 'polymode-mode-name-override-alist '(julia . ess-julia))
+  (add-to-list 'polymode-mode-name-aliases '(julia . ess-julia))
 
 will cause installation of `ess-julia-mode' in markdown ```julia chunks."
   :group 'polymode
   :type 'alist)
+
+(defvar polymode-mode-abbrev-aliases nil
+  "An alist of abbreviation mappings from mode names to their abbreviations.
+Used to compute mode post-fixes in buffer names. Example:
+
+  (add-to-list 'polymode-mode-abbrevs-aliases '(\"ess-r\" . \"R\"))")
 
 (defvar polymode-before-switch-buffer-hook nil
   "Hook run just before switching to a different polymode buffer.
@@ -1379,6 +1387,12 @@ for \"cycling\" commands."
   (if (symbolp str-or-symbol)
       (symbol-name str-or-symbol)
     str-or-symbol))
+
+(defun pm--true-mode-symbol (mode)
+  "Resolve aliases of MODE and return the true MODE name."
+  (while (and mode (symbolp (symbol-function mode)))
+    (setq mode (symbol-function mode)))
+  mode)
 
 (defun pm--get-existing-mode (mode)
   "Return MODE symbol if it's defined and is a valid function.

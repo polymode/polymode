@@ -674,10 +674,7 @@ most frequently used slots are:
 This is better than fundamental-mode because it allows running
 globalized minor modes and can run user hooks.")
 
-
-
-;;; FONT-LOCK
-;; indulge elisp font-lock :)
+;; indulge elisp font-lock (FIXME: check if this is needed; why host/inner defs work?)
 (dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
   (font-lock-add-keywords
    mode

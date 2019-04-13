@@ -80,11 +80,12 @@ Ran by the polymode mode function."
   "Initialization of chunkmode (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-innermode-mode chunkmode type)))
-  (let ((pm-initialization-in-progress t)
-        (new-name  (generate-new-buffer-name
-                    (format "%s[%s]" (buffer-name (pm-base-buffer))
-                            (replace-regexp-in-string "poly-\\|-mode" ""
-                                                      (symbol-name mode))))))
+  (let* ((pm-initialization-in-progress t)
+         (post-fix (replace-regexp-in-string "poly-\\|-mode" "" (symbol-name mode)))
+         (new-name  (generate-new-buffer-name
+                     (format "%s[%s]" (buffer-name (pm-base-buffer))
+                             (or (cdr (assoc post-fix polymode-mode-abbrev-aliases))
+                                 post-fix)))))
     (rename-buffer new-name)
     (pm--mode-setup mode)
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
