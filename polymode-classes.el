@@ -354,8 +354,8 @@ buffer.")
    (allow-nested
     :initarg :allow-nested
     :initform t
-    :type boolean
-    :custom boolean
+    :type symbol
+    :custom symbol
     :documentation
     "Non-nil if other inner-modes are allowed to nest within this
 inner-mode.")

@@ -438,44 +438,48 @@ the front)."
       ;; outermost pm-get-span caller has computed a few span already so we can
       ;; pass limits or narrow to pre-computed span.
       (when (setq span (pm-get-span cm pos))
-
-        (cond
-         ;; 1. nil means host and it can be an intersection of spans returned by
-         ;; two neighboring inner chunkmodes
-         ((null (car span))
-          ;; when span is already an inner span, new host spans are irrelevant
-          (unless (car thespan)
-            (setq start (max (nth 1 span)
-                             (nth 1 thespan))
-                  end (min (nth 2 span)
-                           (nth 2 thespan)))
-            (setcar (cdr thespan) start)
-            (setcar (cddr thespan) end)))
-         ;; 2. Inner span
-         ((or (> (nth 1 span) start)
-              (< (nth 2 span) end))
-          ;; NB: no check if boundaries of two inner spans crossing; assume
-          ;; correct matchers. In case of crossing, if 'can-nest is t then later
-          ;; chunkmode wins otherwise the former one.
-          (when (or (null (car thespan))
-                    (eieio-oref (nth 3 span) 'can-nest))
+        (let ((allow-nested (eieio-oref (nth 3 span) 'allow-nested)))
+          (cond
+           ;; 1. nil means host and it can be an intersection of spans returned
+           ;; by two neighboring inner chunkmodes. When `allow-nested` is
+           ;; 'always the innermode essentially behaves like the host-mode.
+           ((or (null (car span))
+                (eq allow-nested 'always))
+            ;; when span is already an inner span, new host spans are irrelevant
+            (unless (car thespan)
+              (setq start (max (nth 1 span)
+                               (nth 1 thespan))
+                    end (min (nth 2 span)
+                             (nth 2 thespan)))
+              (when (eq allow-nested 'always)
+                (setq thespan span))
+              (setcar (cdr thespan) start)
+              (setcar (cddr thespan) end)))
+           ;; 2. Inner span
+           ((or (> (nth 1 span) start)
+                (< (nth 2 span) end))
+            ;; NB: no check if boundaries of two inner spans crossing; assume
+            ;; correct matchers. In case of crossing, if 'can-nest is t then later
+            ;; chunkmode wins otherwise the former one.
+            (when (or (null (car thespan))
+                      (eieio-oref (nth 3 span) 'can-nest))
+              (setq thespan span
+                    start (nth 1 span)
+                    end (nth 2 span))))
+           ;; 3. Outer span; overwrite previous span if nesting is not allowed.
+           ;; This case is very hard because it can result in big invalid span
+           ;; when a head occurs within a inner-chunk. For example $ for inline
+           ;; latex can occur within R or python. The hard way to fix this would
+           ;; require non-local information (e.g. checking if outer span's
+           ;; extremities are within a host span) and still might not be the full
+           ;; proof solution. Instead, make use of 'allow-nested property.
+           ((and (eq allow-nested t)
+                 (car thespan) ; span is an inner span
+                 (not (eieio-oref (nth 3 thespan) 'can-nest))
+                 (pm--outspan-p span thespan))
             (setq thespan span
                   start (nth 1 span)
-                  end (nth 2 span))))
-         ;; 3. Outer span; overwrite previous span if nesting is not allowed.
-         ;; This case is very hard because it can result in big invalid span
-         ;; when a head occurs within a inner-chunk. For example $ for inline
-         ;; latex can occur within R or python. The hard way to fix this would
-         ;; require non-local information (e.g. checking if outer span's
-         ;; extremities are within a host span) and still might not be the full
-         ;; proof solution. Instead, make use of 'allow-nested property.
-         ((and (eieio-oref (nth 3 span) 'allow-nested) ; span is an inner span
-               (car thespan)
-               (not (eieio-oref (nth 3 thespan) 'can-nest))
-               (pm--outspan-p span thespan))
-          (setq thespan span
-                start (nth 1 span)
-                end (nth 2 span))))))
+                  end (nth 2 span)))))))
 
     (unless (and (<= start end) (<= pos end) (>= pos start))
       (error "Bad polymode selection: span:%s pos:%s"
