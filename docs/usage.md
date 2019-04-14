@@ -36,7 +36,7 @@ Shortcut | Description
 <kbd>W</kbd> | Ask and set the current weaver. (`polymode-set-weaver`)
 <kbd>t</kbd> | ;; not implemented yet (`polymode-tangle`)
 <kbd>T</kbd> | ;; not implemented yet (`polymode-set-tangler`)
-<kbd>$</kbd> | Show the process buffer is something went wrong during the processing. (`polymode-show-process-buffer`)
+<kbd>$</kbd> | Show the process buffer if something went wrong during the processing. (`polymode-show-process-buffer`)
 
 ## Evaluation of Chunks
 
