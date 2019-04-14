@@ -54,7 +54,7 @@ startvs: version
 		--load targets/local.el \
 		--load tests/*.el --load ~/.eBasic.el
 
-test: version
+test: version clean
 	@echo "******************* TESTING $(MODULE) **************************"
 	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
 
