@@ -397,14 +397,13 @@ See noweb for an example.")
 If set to 'host or 'body use host or body's mode respectively.")
    (tail-mode
     :initarg :tail-mode
-    :initform nil
+    :initform 'poly-head-tail-mode
     :type symbol
     :custom (choice (const nil :tag "From Head")
                     function)
     :documentation
     "Chunk's tail mode.
-If set to 'host or 'body use host or body's mode respectively. If
-nil, pick the mode from :head-mode slot.")
+If set to 'host or 'body use host or body's mode respectively.")
    (head-matcher
     :initarg :head-matcher
     :type (or string cons function)
