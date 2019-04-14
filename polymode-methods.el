@@ -226,22 +226,8 @@ Create and initialize the buffer if does not exist yet.")
       (let ((new-buff (pm--get-innermode-buffer-create chunkmode type)))
         (pm--set-innermode-buffer chunkmode type new-buff)))))
 
-(defun pm-get-buffer-of-mode (mode)
-  (let ((mode (pm--true-mode-symbol mode)))
-    (or
-     ;; 1. search through the existing buffer list
-     (cl-loop for bf in (eieio-oref pm/polymode '-buffers)
-              when (and (buffer-live-p bf)
-                        (eq mode (buffer-local-value 'major-mode bf)))
-              return bf)
-     ;; 2. create new if body mode matched
-     (cl-loop for imode in (eieio-oref pm/polymode '-innermodes)
-              when (eq mode (eieio-oref imode 'mode))
-              return (pm--get-innermode-buffer-create imode 'body 'force)))))
-
 (defun pm--get-innermode-buffer-create (chunkmode type &optional force-new)
-  (let ((mode (pm--true-mode-symbol
-               (pm--get-innermode-mode chunkmode type))))
+  (let ((mode (pm--get-innermode-mode chunkmode type)))
     (or
      ;; 1. search through the existing buffer list
      (unless force-new
@@ -257,6 +243,19 @@ Create and initialize the buffer if does not exist yet.")
          (with-current-buffer new-buffer
            (pm-initialize chunkmode type mode))
          new-buffer)))))
+
+(defun pm-get-buffer-of-mode (mode)
+  (let ((mode (pm--true-mode-symbol mode)))
+    (or
+     ;; 1. search through the existing buffer list
+     (cl-loop for bf in (eieio-oref pm/polymode '-buffers)
+              when (and (buffer-live-p bf)
+                        (eq mode (buffer-local-value 'major-mode bf)))
+              return bf)
+     ;; 2. create new if body mode matched
+     (cl-loop for imode in (eieio-oref pm/polymode '-innermodes)
+              when (eq mode (eieio-oref imode 'mode))
+              return (pm--get-innermode-buffer-create imode 'body 'force)))))
 
 (defun pm--set-innermode-buffer (obj type buff)
   "Assign BUFF to OBJ's slot(s) corresponding to TYPE."
@@ -340,7 +339,7 @@ in this case."
                             (match-string-no-properties (cdr matcher)))
                            ((functionp matcher)
                             (funcall matcher)))))
-             (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'mode))))
+             (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'fallback-mode))))
         (if (eq mode 'host)
             (progn (setf (nth 3 span) (oref pm/polymode -hostmode))
                    span)

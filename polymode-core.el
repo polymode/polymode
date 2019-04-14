@@ -317,6 +317,11 @@ key-value pairs. See the documentation of the class
   (or (buffer-base-buffer (current-buffer))
       (current-buffer)))
 
+(defun pm-span-mode (&optional span)
+  "Retrieve the major mode associated with SPAN."
+  (pm--true-mode-symbol
+   (buffer-local-value 'major-mode (pm-span-buffer span))))
+
 (defun pm-span-buffer (&optional span)
   "Retrieve the buffer associated with SPAN."
   (setq span (or span (pm-innermost-span)))
@@ -326,11 +331,6 @@ key-value pairs. See the documentation of the class
         (pm-get-buffer-create chunkmode type)
       ;; ignore span's chunkmode as inner spans can request host span
       (pm-get-buffer-create (oref pm/polymode -hostmode)))))
-
-(defun pm-span-mode (&optional span)
-  "Retrieve the major mode associated with SPAN."
-  (with-current-buffer (pm-span-buffer span)
-    major-mode))
 
 (defun pm-true-span-type (chunkmode &optional type)
   "Retrieve the TYPE of buffer to be installed for CHUNKMODE.
@@ -346,9 +346,14 @@ case TYPE is ignored."
           chunkmode (nth 3 chunkmode)))
   (when (object-of-class-p chunkmode 'pm-inner-chunkmode)
     (unless (or (null type) (eq type 'host))
-      (with-slots (mode head-mode tail-mode) chunkmode
+      (with-slots (mode head-mode tail-mode fallback-mode) chunkmode
         (cond ((and (eq type 'body)
-                    (eq mode 'host))
+                    (or (eq mode 'host)
+                        ;; for efficiency don't check if modes are valid
+                        (and (null mode)
+                             (if polymode-default-inner-mode
+                                 (eq polymode-default-inner-mode 'host)
+                               (eq fallback-mode 'host)))))
                nil)
               ((or (eq type 'body)
                    (and (eq type 'head)
@@ -1397,14 +1402,18 @@ for \"cycling\" commands."
     (setq mode (symbol-function mode)))
   mode)
 
-(defun pm--get-existing-mode (mode)
+(defun pm--get-existing-mode (mode fallback)
   "Return MODE symbol if it's defined and is a valid function.
-If so, return it, otherwise the value of
-`polymode-default-inner-mode' if non-nil and a valid function symbol,
-otherwise `poly-fallback-mode'."
-  (cond ((fboundp mode) mode)
-        ((fboundp polymode-default-inner-mode) polymode-default-inner-mode)
-        (t 'poly-fallback-mode)))
+If so, return it, otherwise check in turn
+`polymode-default-inner-mode', FALBACK and ultimately
+`poly-fallback-mode'."
+  (pm--true-mode-symbol
+   (cond ((fboundp mode) mode)
+         ((eq polymode-default-inner-mode 'host) (buffer-local-value 'major-mode (pm-base-buffer)))
+         ((fboundp polymode-default-inner-mode) polymode-default-inner-mode)
+         ((eq fallback 'host) (buffer-local-value 'major-mode (pm-base-buffer)))
+         ((fboundp fallback) fallback)
+         (t 'poly-fallback-mode))))
 
 (defun pm--get-innermode-mode (chunkmode type)
   "Retrieve the mode name of for inner CHUNKMODE for span of TYPE."
@@ -1413,50 +1422,59 @@ otherwise `poly-fallback-mode'."
      (body (eieio-oref chunkmode 'mode))
      (head (eieio-oref chunkmode 'head-mode))
      (tail (eieio-oref chunkmode 'tail-mode))
-     (t (error "Invalid type (%s); must be one of body, head tail" type)))))
+     (t (error "Invalid type (%s); must be one of body, head tail" type)))
+   (eieio-oref chunkmode 'fallback-mode)))
 
+;; Used in auto innermode detection only and can return symbol 'host as that's
+;; needed in pm--get-auto-span.
 (defun pm-get-mode-symbol-from-name (name &optional fallback)
   "Guess and return mode function from short NAME.
 Return FALLBACK if non-nil, otherwise the value of
-`polymode-default-inner-mode' if non-nil, otherwise
-`poly-fallback-mode'."
-  (cond
-   ;; anonymous chunk
-   ((or (null name)
-        (and (stringp name) (= (length name) 0)))
-    (or
-     (when (fboundp polymode-default-inner-mode)
-       polymode-default-inner-mode)
-     fallback
-     'poly-fallback-mode))
-   ;; proper mode symbol
-   ((and (symbolp name) (fboundp name) name))
-   ;; compute from name
-   ((let* ((str (pm--symbol-name
-                 (or (cdr (assq (intern (pm--symbol-name name))
-                                polymode-mode-name-aliases))
-                     name)))
-           (mname (concat str "-mode")))
-      (or
-       ;; direct search
-       (let ((mode (intern mname)))
-         (when (fboundp mode)
-           mode))
-       ;; downcase
-       (let ((mode (intern (downcase mname))))
-         (when (fboundp mode)
-           mode))
-       ;; auto-mode alist
-       (let ((dummy-file (concat "a." str)))
-         (cl-loop for (k . v) in auto-mode-alist
-                  if (and (string-match-p k dummy-file)
-                          (not (string-match-p "^poly-" (symbol-name v))))
-                  return v))
-       (when (or (eq polymode-default-inner-mode 'host)
-                 (fboundp polymode-default-inner-mode))
-         polymode-default-inner-mode)
-       fallback
-       'poly-fallback-mode)))))
+`polymode-default-inner-mode' if non-nil, otherwise value of slot
+:fallback-mode which globally defaults to `poly-fallback-mode'."
+  (pm--true-mode-symbol
+   (cond
+    ;; anonymous chunk
+    ((or (null name)
+         (and (stringp name) (= (length name) 0)))
+     (or
+      (when (or (eq polymode-default-inner-mode 'host)
+                (fboundp polymode-default-inner-mode))
+        polymode-default-inner-mode)
+      (when (or (eq fallback 'host)
+                (fboundp fallback))
+        fallback)
+      'poly-fallback-mode))
+    ;; proper mode symbol
+    ((and (symbolp name) (fboundp name) name))
+    ;; compute from name
+    ((let* ((str (pm--symbol-name
+                  (or (cdr (assq (intern (pm--symbol-name name))
+                                 polymode-mode-name-aliases))
+                      name)))
+            (mname (concat str "-mode")))
+       (or
+        ;; direct search
+        (let ((mode (intern mname)))
+          (when (fboundp mode)
+            mode))
+        ;; downcase
+        (let ((mode (intern (downcase mname))))
+          (when (fboundp mode)
+            mode))
+        ;; auto-mode alist
+        (let ((dummy-file (concat "a." str)))
+          (cl-loop for (k . v) in auto-mode-alist
+                   if (and (string-match-p k dummy-file)
+                           (not (string-match-p "^poly-" (symbol-name v))))
+                   return v))
+        (when (or (eq polymode-default-inner-mode 'host)
+                  (fboundp polymode-default-inner-mode))
+          polymode-default-inner-mode)
+        (when (or (eq fallback 'host)
+                  (fboundp fallback))
+          fallback)
+        'poly-fallback-mode))))))
 
 (defun pm--oref-with-parents (object slot)
   "Merge slots SLOT from the OBJECT and all its parent instances."

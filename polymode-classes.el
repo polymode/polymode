@@ -225,10 +225,19 @@ instantiated from this class or a subclass of this class.")
     :documentation
     "Emacs major mode for the chunk's body.
 If :mode slot is nil (anonymous chunkmodes), use the value of
-`polymode-default-inner-mode' is when set, or use
-`poly-fallback-mode' otherwise. A special value 'host means to
-use the host mode as a fallback in the body of this chunk (useful
-and makes sense for auto-chunkmodes only).")
+`polymode-default-inner-mode' is when set, or use the value of
+the slot :fallback-mode. A special value 'host means to use the
+host mode (useful auto-chunkmodes only).")
+   (fallback-mode
+    :initarg :fallback-mode
+    :initform 'poly-fallback-mode
+    :type symbol
+    :custom symbol
+    :documentation
+    "Mode to use when mode lookup fails for various reasons. Can
+    take a special value 'host. Note that, when set,
+    `polymode-default-inner-mode' takes precedence over this
+    value.")
    (allow-nested
     :initarg :allow-nested
     :initform t
