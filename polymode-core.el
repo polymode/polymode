@@ -236,7 +236,7 @@ objects provides same functionality for narrower scope. See also
        (makunbound ',name)
        (defvar ,name
          ,(if parent
-              `(clone ,parent :name ,root-name ,@key-args)
+              `(pm--safe-clone ',constructor ,parent :name ,root-name ,@key-args)
             `(,constructor :name ,root-name ,@key-args))
          ,doc))
     ;; `(progn

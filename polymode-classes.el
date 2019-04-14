@@ -69,21 +69,37 @@ into this list."))
   (eieio-oref obj 'name))
 
 (cl-defmethod clone ((obj pm-root) &rest params)
-  (let ((old-name (eieio-oref obj 'name))
-        (new-obj (cl-call-next-method obj)))
+  (let ((new-obj (cl-call-next-method obj)))
+    ;; Emacs bug: clone method for eieio-instance-inheritor instantiates all
+    ;; slots for cloned objects. We want them unbound to allow for the healthy
+    ;; inheritance.
+    (pm--complete-clonned-object new-obj obj params)))
+
+(defun pm--complete-clonned-object (new-obj old-obj params)
+  (let ((old-name (eieio-oref old-obj 'name)))
     (when (equal old-name (eieio-oref new-obj 'name))
       (let ((new-name (concat old-name ":")))
-        (eieio-oset new-obj 'name new-name)))
-    ;; Emacs clone method for eieio-instance-inheritor instantiates all slots
-    ;; for cloned objects. We want them unbound to allow for the healthy
-    ;; inheritance.
-    (dolist (descriptor (eieio-class-slots (eieio-object-class new-obj)))
-      (let ((slot (eieio-slot-descriptor-name descriptor)))
-        (unless (memq slot '(parent-instance name))
-          (slot-makeunbound new-obj slot))))
-    (when params
-      (shared-initialize new-obj params))
-    new-obj))
+        (eieio-oset new-obj 'name new-name))))
+  (dolist (descriptor (eieio-class-slots (eieio-object-class old-obj)))
+    (let ((slot (eieio-slot-descriptor-name descriptor)))
+      (unless (memq slot '(parent-instance name))
+        (slot-makeunbound new-obj slot))))
+  (when params
+    (shared-initialize new-obj params))
+  new-obj)
+
+(defun pm--safe-clone (end-class obj &rest params)
+  "Clone to an object of END-CLASS.
+If END-CLASS is same as class of OBJ then just call `clone'.
+Otherwise do a bit more work by setting extra slots of the
+end-class."
+  (if (eq end-class (eieio-object-class obj))
+      (apply #'clone obj params)
+    (let ((new-obj (pm--complete-clonned-object
+                    (apply end-class params)
+                    obj params)))
+      (eieio-oset new-obj 'parent-instance obj)
+      new-obj)))
 
 (defclass pm-polymode (pm-root)
   ((hostmode
