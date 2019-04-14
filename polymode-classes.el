@@ -92,7 +92,7 @@ into this list."))
   "Clone to an object of END-CLASS.
 If END-CLASS is same as class of OBJ then just call `clone'.
 Otherwise do a bit more work by setting extra slots of the
-end-class."
+end-class. PARAMS are passed to clone or constructor functions."
   (if (eq end-class (eieio-object-class obj))
       (apply #'clone obj params)
     (let ((new-obj (pm--complete-clonned-object
@@ -455,9 +455,7 @@ latter case, heads or tails have zero length and are not
 physically present in the buffer.")
 
 (defclass pm-inner-auto-chunkmode (pm-inner-chunkmode)
-  ((mode
-    :initform 'host)
-   (mode-matcher
+  ((mode-matcher
     :initarg :mode-matcher
     :type (or string cons function)
     :custom (choice string (cons string integer) function)
