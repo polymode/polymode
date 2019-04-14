@@ -61,20 +61,25 @@ Ran by the polymode mode function."
             pm/type nil)
       (pm--common-setup)
       ;; Initialize innermodes
-      (let* ((inner-syms (delete-dups
-                          (delq :inherit
-                                (apply #'append
-                                       (pm--collect-parent-slots
-                                        config 'innermodes
-                                        (lambda (obj) (memq :inherit (eieio-oref obj 'innermodes)))))))))
-        (oset config -innermodes
-              (mapcar (lambda (sub-name)
-                        (clone (symbol-value sub-name)))
-                      inner-syms)))
+      (pm--initialize-innermodes config)
       ;; FIXME: must go into polymode-compat.el
       (add-hook 'flyspell-incorrect-hook
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
     (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)))
+
+(defun pm--initialize-innermodes (config)
+  (let ((inner-syms (delete-dups
+                     (delq :inherit
+                           (apply #'append
+                                  (pm--collect-parent-slots
+                                   config 'innermodes
+                                   (lambda (obj)
+                                     (memq :inherit
+                                           (eieio-oref obj 'innermodes)))))))))
+    (oset config -innermodes
+          (mapcar (lambda (sub-name)
+                    (clone (symbol-value sub-name)))
+                  inner-syms))))
 
 (cl-defmethod pm-initialize ((chunkmode pm-inner-chunkmode) &optional type mode)
   "Initialization of chunkmode (indirect) buffers."

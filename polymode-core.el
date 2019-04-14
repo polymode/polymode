@@ -862,6 +862,8 @@ Parents' hooks are run first."
     buffer-face-mode-remapping
     buffer-invisibility-spec
     buffer-read-only
+    buffer-undo-list
+    buffer-undo-tree
     display-line-numbers
     face-remapping-alist
     line-move-visual
@@ -871,8 +873,6 @@ Parents' hooks are run first."
     text-scale-mode-amount
     truncate-lines
     truncate-partial-width-windows
-    buffer-undo-list
-    buffer-undo-tree
     word-wrap)
   "Variables transferred from old buffer on buffer switch.")
 

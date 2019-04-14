@@ -211,7 +211,8 @@ instantiated from this class or a subclass of this class.")
 If :mode slot is nil (anonymous chunkmodes), use the value of
 `polymode-default-inner-mode' is when set, or use
 `poly-fallback-mode' otherwise. A special value 'host means to
-use the host mode as a fallback in the body of this chunk.")
+use the host mode as a fallback in the body of this chunk (useful
+and makes sense for auto-chunkmodes only).")
    (indent-offset
     :initarg :indent-offset
     :initform 2
