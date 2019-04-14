@@ -120,6 +120,12 @@ MODE is a quoted symbol."
                                :range-pos range-pos))))
            (forward-char)))))))
 
+(defun pm-test-spans-on-file (mode file-name)
+  (let ((file (pm-test-get-file file-name)))
+    (pm-test-spans mode
+      (with-current-buffer (find-file-noselect file)
+        (substring-no-properties (buffer-string))))))
+
 (defmacro pm-test-run-on-file (mode file-name &rest body)
   "Run BODY in a buffer with the content of FILE-NAME in MODE."
   (declare (indent 2) (debug (sexp sexp body)))
