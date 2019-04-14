@@ -229,6 +229,14 @@ If :mode slot is nil (anonymous chunkmodes), use the value of
 `poly-fallback-mode' otherwise. A special value 'host means to
 use the host mode as a fallback in the body of this chunk (useful
 and makes sense for auto-chunkmodes only).")
+   (allow-nested
+    :initarg :allow-nested
+    :initform t
+    :type symbol
+    :custom symbol
+    :documentation
+    "Non-nil if other inner-modes are allowed to nest within this
+inner-mode.")
    (indent-offset
     :initarg :indent-offset
     :initform 2
@@ -339,7 +347,10 @@ Please note that by default :protect-xyz slots are nil in
 hostmodes and t in innermodes.")
 
 (defclass pm-host-chunkmode (pm-chunkmode)
-  ()
+  ((allow-nested
+    ;; currently ignored in code as it doesn't make sense to not allow
+    ;; innermodes in hosts
+    :initform 'always))
   "This chunkmode doesn't know how to compute spans and takes
 over all the other space not claimed by other chunkmodes in the
 buffer.")
@@ -351,14 +362,6 @@ buffer.")
     :initform t)
    (protect-indent
     :initform t)
-   (allow-nested
-    :initarg :allow-nested
-    :initform t
-    :type symbol
-    :custom symbol
-    :documentation
-    "Non-nil if other inner-modes are allowed to nest within this
-inner-mode.")
    (can-nest
     :initarg :can-nest
     :initform nil

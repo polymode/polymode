@@ -438,12 +438,13 @@ the front)."
       ;; outermost pm-get-span caller has computed a few span already so we can
       ;; pass limits or narrow to pre-computed span.
       (when (setq span (pm-get-span cm pos))
-        (let ((allow-nested (eieio-oref (nth 3 span) 'allow-nested)))
+        (let ((allow-nested (eieio-oref (nth 3 span) 'allow-nested))
+              (is-body (null (car span))))
           (cond
            ;; 1. nil means host and it can be an intersection of spans returned
            ;; by two neighboring inner chunkmodes. When `allow-nested` is
            ;; 'always the innermode essentially behaves like the host-mode.
-           ((or (null (car span))
+           ((or is-body
                 (eq allow-nested 'always))
             ;; when span is already an inner span, new host spans are irrelevant
             (unless (car thespan)
@@ -451,7 +452,7 @@ the front)."
                                (nth 1 thespan))
                     end (min (nth 2 span)
                              (nth 2 thespan)))
-              (when (eq allow-nested 'always)
+              (unless is-body
                 (setq thespan span))
               (setcar (cdr thespan) start)
               (setcar (cddr thespan) end)))
