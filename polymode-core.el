@@ -632,15 +632,27 @@ forward."
 
 (defun pm-make-text-property-matcher (property &optional accessor)
   "Return a head or tail matcher for PROPERTY with ACCESSOR.
-ACCESSOR is a function which is applied to the PROPERTY's value
-to retrieve the position of the head in the buffer. It should
-return either a number in which case head has 0 length, a cons of
-the form (BEG . END), or a list (BEG END). When ACCESSOR is
-missing the head span is the region covered by the same value of
-PROPERTY. ACCESSOR is called at the beginning of the PROPERTY
-region."
+ACCESSOR is either a function or a keyword. When a function it is
+applied to the PROPERTY's value to retrieve the position of the
+head in the buffer. It should return either a number in which
+case head has 0 length, a cons of the form (BEG . END), or a
+list (BEG END). ACCESSOR is called at the beginning of the
+PROPERTY region. When ACCESSOR is nil the head span is the region
+covered by the same value of PROPERTY. When ACCESSOR is a keyword
+the property is searched as when ACCESSOR is nil but is adapted
+according to the keyword. Currently :inc-end means increment the
+END of the span, when :dec-beg, decrement the beginning of the
+span."
   (lambda (ahead)
-    (pm--get-property-nearby property accessor ahead)))
+    (if (keywordp accessor)
+        (let ((loc (pm--get-property-nearby property nil ahead)))
+          (when loc
+            (cond
+             ((eq accessor :inc-end) (setcdr loc (1+ (cdr loc))))
+             ((eq accessor :dec-beg) (setcar loc (1- (cdr loc))))
+             (t (error "Invalid ACCESSOR keyword")))
+            loc))
+      (pm--get-property-nearby property accessor ahead))))
 
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap)
   "Span detector with head and tail matchers.
