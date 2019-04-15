@@ -218,6 +218,8 @@ MODE is a quoted symbol."
                               (goto-char opos)
                               (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
                      :mode smode))))
+              ;; for the interactive convenience
+              (switch-to-buffer (current-buffer))
               (ert-fail data)))
           (setq opos (next-single-property-change opos 'face obuf)))))))
 
@@ -308,7 +310,7 @@ BODY). NAME-LOC is a list of the form (NAME LOCK) where NAME is a
 symbol, LOC is the location as in `pm-test-goto-loc'. Before and
 after execution of the BODY ‘undo-boundary’ is set and after the
 execution undo is called once. After each change-set
-`pm-test-span-faces' on the whole file is run."
+`pm-test-faces' on the whole file is run."
   (declare (indent 2)
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer

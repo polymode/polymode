@@ -1270,6 +1270,8 @@ ARG is the same as in `forward-paragraph'"
                                 (eieio-oref pm/chunkmode 'protect-syntax))))
             ;; 1. host if no protection
             (unless protect-host
+              ;; !!Note!! It is essential to run unprotected syntax if some
+              ;; innermodes use text-property head/tail-matchers
               (with-current-buffer (pm-base-buffer)
                 (when pm--syntax-propertize-function-original
                   (pm--call-syntax-propertize-original start end))))
