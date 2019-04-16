@@ -203,15 +203,22 @@ Fontifies chunk-by chunk within the region BEG END."
                           ;; in ../poly-markdown/tests/input/markdown.md. We do
                           ;; our best and protect the host in such cases.
                           (/= (next-single-property-change beg 'syntax-table nil end)
-                              end)))
-           ;; extend to the next span boundary
-           (end (let ((end-range (pm-innermost-range end)))
-                  (if (< (car end-range) end)
-                      (cdr end-range)
-                    end))))
+                              end))))
       (save-restriction
         (widen)
         (save-excursion
+
+          ;; TEMPORARY HACK: extend to the next span boundary in code blocks
+          ;; (needed because re-display fontifies by chunks)
+          (let ((end-span (pm-innermost-span end)))
+            (if (car end-span)
+                (when (< (nth 1 end-span) end)
+                  (setq end (nth 2 end-span)))
+              ;; in host chunks do as in poly-lock--extend-region
+              (goto-char end)
+              (when (search-forward "\n\n" nil t)
+                (setq end (min (1- (point)) (nth 2 end-span))))))
+
           ;; Fontify the whole region in host first. It's ok for modes like
           ;; markdown, org and slim which understand inner mode chunks.
           (unless protect-host
@@ -226,8 +233,7 @@ Fontifies chunk-by chunk within the region BEG END."
                      (condition-case-unless-debug err
                          ;; NB: Some modes fontify beyond the limits (org-mode).
                          ;; We need a reliably way to detect the actual limit of
-                         ;; the fontification. For now marking with
-                         ;; :pm-fontified-as property.
+                         ;; the fontification.
                          (save-restriction
                            (widen)
                            (jit-lock--run-functions beg end))
@@ -363,13 +369,32 @@ Assumes widen buffer. Sets `jit-lock-start' and `jit-lock-end'."
     ;; always include body of the head
     (when (and (eq (car end-span) 'head)
                (< jit-lock-end (point-max)))
-      (setq end-span (pm-innermost-span jit-lock-end))
-      (setq jit-lock-end (nth 2 end-span)))
+      (setq end-span (pm-innermost-span jit-lock-end)
+            jit-lock-end (nth 2 end-span)))
 
     ;; always include tail
     (when (and (eq (car end-span) 'body)
                (< jit-lock-end (point-max)))
-      (setq jit-lock-end (nth 2 (pm-innermost-span jit-lock-end))))
+      (setq jit-lock-end (nth 2 (pm-innermost-span jit-lock-end))
+            end-span (pm-innermost-span jit-lock-end)))
+
+    ;; Temporary hack for large host mode chunks - narrow to empty lines
+    (when (> (* 2 poly-lock-chunk-size)
+             (- jit-lock-end jit-lock-start))
+
+      (when (eq (car beg-span) nil)
+        (let ((tbeg (min beg (nth 2 beg-span))))
+          (when (> (- tbeg jit-lock-start) poly-lock-chunk-size)
+            (goto-char (- tbeg poly-lock-chunk-size))
+            (when (search-backward "\n\n" nil t)
+              (setq jit-lock-start (max jit-lock-start (1+ (point))))))))
+
+      (when (eq (car end-span) nil)
+        (let ((tend (max end (nth 1 end-span))))
+          (when (> (- jit-lock-end tend) poly-lock-chunk-size)
+            (goto-char (+ tend poly-lock-chunk-size))
+            (when (search-forward "\n\n" nil t)
+              (setq jit-lock-end (min jit-lock-end (1- (point)))))))))
 
     (cons jit-lock-start jit-lock-end)))
 
