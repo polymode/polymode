@@ -2,6 +2,7 @@
 ;;
 ;; Copyright (C) 2013-2018, Vitalie Spinu
 ;; Author: Vitalie Spinu
+;; Author: Zubarev Denis
 ;; URL: https://github.com/vspinu/polymode
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -37,6 +38,17 @@
   "Polymode Tanglers."
   :group 'polymode)
 
+(defvar-local polymode-flycheck--check-all-chunks nil
+  "If true all chunks are checked as entire code. Otherwise only
+  the current chunk is checked.")
+
+(defun polymode-flycheck--toggle-check-all-chunks ()
+  "Toggle `polymode-flycheck--check-all-chunks' variable."
+  (interactive)
+  (setq-local polymode-flycheck--check-all-chunks
+              (not polymode-flycheck--check-all-chunks)))
+
+
 (defun polymode-flycheck--line-number-at-pos (pos cache)
   "Like `line-number-at-pos' but sped up with a cache.
 Inspired by https://emacs.stackexchange.com/a/3829"
@@ -68,6 +80,16 @@ spans."
            (push (buffer-substring-no-properties sbeg send) bodies)
            (push (cdr line-cache) offsets))))
       `(,(nreverse bodies) . ,(nreverse offsets)))))
+
+(defun polymode-flycheck--get-current-body ()
+  "Return cons of two lists for compatibility with `polymode-flycheck--collect-bodies-of-mode'."
+  (let* ((range (pm-innermost-range))
+         (sbeg (car range))
+         (send (cdr range))
+         (line-num (line-number-at-pos sbeg)))
+    `((,(buffer-substring-no-properties sbeg send)) .
+      (,line-num))
+   ))
 
 (defun polymode-flycheck--insert-to-buffer (bodies-and-offsets buffer-name)
   "Take a cons of two lists `bodies-and-offsets' and insert into
@@ -107,7 +129,9 @@ See `polymode-flycheck--collect-bodies-of-mode'."
     (if buffer
         buffer
       (polymode-flycheck--insert-to-buffer
-       (polymode-flycheck--collect-bodies-of-mode major-mode)
+       (if polymode-flycheck--check-all-chunks
+           (polymode-flycheck--collect-bodies-of-mode major-mode)
+         (polymode-flycheck--get-current-body))
        name))))
 
 (defun polymode-flycheck--get-buffer-transformer ()
