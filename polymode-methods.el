@@ -115,11 +115,11 @@ Ran by the polymode mode function."
     (unless (eq major-mode mode)
       (let ((polymode-mode t)           ;major-modes might check this
             (base (buffer-base-buffer))
-            ;; (font-lock-fontified t)
-            ;; Modes often call font-lock functions directly. We prevent that.
+            ;; Ill behaved modes often call font-lock functions directly.
             (font-lock-function 'ignore)
             (font-lock-flush-function 'ignore)
             (font-lock-fontify-buffer-function 'ignore)
+            (font-lock-fontify-region-function 'ignore)
             ;; Mode functions can do arbitrary things. We inhibt all PM hooks
             ;; because PM objects have not been setup yet.
             (pm-allow-after-change-hook nil)
