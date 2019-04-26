@@ -115,11 +115,19 @@ Ran by the polymode mode function."
     (unless (eq major-mode mode)
       (let ((polymode-mode t)           ;major-modes might check this
             (base (buffer-base-buffer))
-            ;; Ill behaved modes often call font-lock functions directly.
+            ;; Some modes (or minor-modes which are run in their hooks) call
+            ;; font-lock functions directly on the entire buffer (#212 for
+            ;; example). They were inhibited here before, but these variables
+            ;; are designed to be set by modes, so our setup doesn't have an
+            ;; effect in those cases and we get "Making xyz buffer-local while
+            ;; locally let-bound!" warning which seems to be harmless but
+            ;; annoying. The only solution seems to be to advice those
+            ;; functions, particularly `font-lock-fontify-region`.
+            ;; (font-lock-flush-function 'ignore)
+            ;; (font-lock-ensure-function 'ignore)
+            ;; (font-lock-fontify-buffer-function 'ignore)
+            ;; (font-lock-fontify-region-function 'ignore)
             (font-lock-function 'ignore)
-            (font-lock-flush-function 'ignore)
-            (font-lock-fontify-buffer-function 'ignore)
-            (font-lock-fontify-region-function 'ignore)
             ;; Mode functions can do arbitrary things. We inhibt all PM hooks
             ;; because PM objects have not been setup yet.
             (pm-allow-after-change-hook nil)
@@ -128,6 +136,7 @@ Ran by the polymode mode function."
         (when base
           (pm--move-vars polymode-move-these-vars-from-base-buffer base (current-buffer)))
         (condition-case-unless-debug err
+            ;; !! run-mode-hooks and hack-local-variables run here
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s"
                           mode (error-message-string err))))))

@@ -1234,6 +1234,11 @@ If FUN is a list, apply ADVICE to each element of it."
               (not (advice-member-p advice fun)))
          (advice-add fun :around advice))))
 
+(defun polymode-inhibit-during-initialization (orig-fun &rest args)
+  "Don't run ORIG-FUN (with ARGS) during polymode setup."
+  (unless pm-initialization-in-progress
+    (apply orig-fun args)))
+
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.
 Used in advises."

@@ -96,6 +96,10 @@ When not in polymode buffers apply FUN to ARG."
   (unless polymode-mode
     (funcall fun arg)))
 (pm-around-advice 'jit-lock-mode #'poly-lock-no-jit-lock-in-polymode-buffers)
+;; see the comment in pm--mode-setup for these
+(pm-around-advice 'font-lock-fontify-region #'polymode-inhibit-during-initialization)
+(pm-around-advice 'font-lock-fontify-buffer #'polymode-inhibit-during-initialization)
+(pm-around-advice 'font-lock-ensure #'polymode-inhibit-during-initialization)
 
 (defun poly-lock-mode (arg)
   "This is the value of `font-lock-function' in all polymode buffers.
