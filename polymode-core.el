@@ -1460,7 +1460,7 @@ for \"cycling\" commands."
 (defun pm--get-existing-mode (mode fallback)
   "Return MODE symbol if it's defined and is a valid function.
 If so, return it, otherwise check in turn
-`polymode-default-inner-mode', FALBACK and ultimately
+`polymode-default-inner-mode', the FALLBACK and ultimately
 `poly-fallback-mode'."
   (pm--true-mode-symbol
    (cond ((fboundp mode) mode)
