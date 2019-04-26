@@ -42,6 +42,7 @@
 ;;; ESSENTIAL DECLARATIONS
 (defvar *span* nil)
 (defvar-local pm/polymode nil)
+(put 'pm/polymode 'permanent-local t)
 (defvar-local pm/chunkmode nil)
 (defvar-local pm/current nil) ;; fixme: unused
 (defvar-local pm/type nil) ;; fixme: remove this
@@ -1185,6 +1186,37 @@ This funciton is placed in local `post-command-hook'."
             (setq buffer-file-name nil)
             (setq buffer-file-number nil)
             (setq buffer-file-truename nil)))))))
+
+(defun pm-turn-polymode-off (&optional new-mode)
+  (when pm/polymode
+    (let* ((base (pm-base-buffer))
+           (mmode (buffer-local-value 'major-mode base))
+           (kill-buffer-hook (delete 'polymode-after-kill-fixes (copy-sequence kill-buffer-hook))))
+      (dolist (b (eieio-oref pm/polymode '-buffers))
+        (unless (eq b base)
+          (kill-buffer b)))
+      (with-current-buffer base
+        (setq pm/polymode nil)
+        (when new-mode
+          (if (eq new-mode t)
+              (funcall mmode)
+            (funcall new-mode)))))))
+
+(defun polymode-after-change-cleanup ()
+  "Remove all polymode implementation buffers on mode change."
+  ;; pm/polymode is permanent local. Nil polymode-mode means that the user
+  ;; called another mode on top of polymode.
+  (when (and pm/polymode (not polymode-mode))
+    ;; if another mode was called from an innermode, it was installed in a wrong place
+    (let* ((base (pm-base-buffer))
+           (mmode (unless (eq base (current-buffer))
+                    major-mode)))
+      (unless (eq base (current-buffer))
+        (when (eq (window-buffer) (current-buffer))
+          (switch-to-buffer base)))
+      (pm-turn-polymode-off mmode))))
+
+(add-hook 'after-change-major-mode-hook #'polymode-after-change-cleanup)
 
 
 ;;; CORE ADVICE

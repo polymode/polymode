@@ -624,21 +624,26 @@ most frequently used slots are:
                          (arg t)
                          ((not ,mode)))))
              (setq ,mode state)
-             (unless (buffer-base-buffer)
-               ;; Call in indirect buffers only because inner modes during
-               ;; initialization call the same polymode minor-mode which
-               ;; triggers this `pm-initialize'.
-               (when ,mode
-                 (let ((obj (clone ,config-name)))
-                   ;; (eieio-oset obj '-minor-mode ',mode)
-                   (pm-initialize obj))
-                 ;; when host mode is reset in pm-initialize we end up with new
-                 ;; minor mode in hosts
-                 (setq ,mode t)))
+             (if state
+                 (unless (buffer-base-buffer)
+                   ;; Call in indirect buffers only. Inner modes during
+                   ;; initialization call this polymode minor-mode which triggers
+                   ;; this `pm-initialize'.
+                   (when ,mode
+                     (let ((obj (clone ,config-name)))
+                       ;; (eieio-oset obj '-minor-mode ',mode)
+                       (pm-initialize obj))
+                     ;; when host mode is reset in pm-initialize we end up with new
+                     ;; minor mode in hosts
+                     (setq ,mode t)))
+               (let ((base (pm-base-buffer)))
+                 (pm-turn-polymode-off t)
+                 (switch-to-buffer base)))
              ;; `body` and `hooks` are executed in all buffers; pm/polymode has been set
              ,@body
-             (pm--run-derived-mode-hooks)
-             ,@(when after-hook `(,after-hook))
+             (when state
+               (pm--run-derived-mode-hooks)
+               ,@(when after-hook `(,after-hook)))
              (unless (buffer-base-buffer)
                ;; Avoid overwriting a message shown by the body,
                ;; but do overwrite previous messages.

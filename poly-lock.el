@@ -88,10 +88,12 @@ Preserves the `buffer-modified-p' state of the current buffer."
        (with-silent-modifications
          ,@body))))
 
+;; FIXME: Can this hack be avoided if poly-lock is registered in
+;; `font-lock-support-mode'?
 (defun poly-lock-no-jit-lock-in-polymode-buffers (fun arg)
   "Don't activate FUN in `polymode' buffers.
 When not in polymode buffers apply FUN to ARG."
-  (unless (or polymode-mode pm/polymode)
+  (unless polymode-mode
     (funcall fun arg)))
 (pm-around-advice 'jit-lock-mode #'poly-lock-no-jit-lock-in-polymode-buffers)
 
