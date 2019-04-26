@@ -96,21 +96,22 @@ Most polymodes are designed to be used as major modes (i.e. in `auto-mode-alist`
 or buffer-local `mode:` cookie). Some polymodes (those with host's `:mode` slot
 set to `nil`) are explicitly designed to be used as minor modes.
 
-Internally, all polymode functions are in fact minor-modes. Every polymode
-buffer (base or indirect) will have `poly-NAME-mode` minor mode activated in
-order to provide the "glue" interface between different chunks. If you want your
-commands to be available in all chunks bind them in `poly-NAME-mode-map` or
-directly in `poly-mode-map` which is the root map of all polymode maps.
+Internally, all polymode functions are in fact minor-modes. Thus, you can, for
+example, toggle them with `M-x poly-XYZ-mode`. Every polymode buffer (base or
+indirect) will have this `poly-XYZ-mode` minor mode activated in order to
+provide the "glue" interface between different chunks. If you want your commands
+to be available in all chunks bind them in `poly-XYZ-mode-map` or directly in
+`poly-mode-map` which is the root map of all polymode maps.
 
 A call to `define-polymode` creates 3 objects in the background:
 
-  - `poly-NAME-mode` function which when can be used as major or minor mode.
-  - `poly-NAME-mode-map` keymap which inherits from `PARENT`'s polymode keymap
+  - `poly-XYZ-mode` function which when can be used as major or minor mode.
+  - `poly-XYZ-mode-map` keymap which inherits from `PARENT`'s polymode keymap
     or `polymode-mode-map` if no `PARENT` has been provided.
-  - `poly-NAME-polymode` configuration object derived (cloned) from `pm-polymode`
+  - `poly-XYZ-polymode` configuration object derived (cloned) from `pm-polymode`
     object or the `PARENT`'s configuration object if `PARENT` has been provided.
     
-`poly-NAME-mode` will also run `poly-NAME-mode-hook` (and all parents' hooks) in
+`poly-XYZ-mode` will also run `poly-XYZ-mode-hook` (and all parents' hooks) in
 every chunkmode buffer after the initialization of the chunkmode has been
 completed.
 

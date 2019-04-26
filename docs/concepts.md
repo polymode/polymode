@@ -45,13 +45,13 @@ current buffer.
 
 Host and inner chunks are configured through _objects_ derived from
 `pm-chunkmode` class and are generically referred to as "chunkmodes". These
-objects have named of the form `poly-NAME-hostmode` and `poly-NAME-innermode`
+objects have named of the form `poly-XYZ-hostmode` and `poly-XYZ-innermode`
 and are refereed to as `hostmodes` and `innermodes` respectively.
 
 Polymodes are configured through _objects_ of class `pm-polymode` which are
-named with `poly-NAME-polymode` scheme where `NAME` is the same as in the
-polymode function `poly-NAME-mode`. During initialization of the polymodes the
-`poly-NAME-polymode` object is cloned and stored in a buffer-local variable
+named with `poly-XYZ-polymode` scheme where `XYZ` is the same as in the
+polymode function `poly-XYZ-mode`. During initialization of the polymodes the
+`poly-XYZ-polymode` object is cloned and stored in a buffer-local variable
 `pm/polymode`. This object is shared across all sibling buffers.
 
 `Chunks` and `chunkmodes` are different concepts. Chunk is a fragments of text
@@ -98,7 +98,7 @@ whose docstring contains a complete description of the class.
 ## General Naming Conventions
 
 User facing functionality is named with `polymode-` prefix. Polymodes are named
-with `poly-NAME-mode` convention. Host, inner and polymode configuration objects
-are named `poly-NAME-hostmode`, `poly-NAME-innermode` and
+with `poly-XYZ-mode` convention. Host, inner and polymode configuration objects
+are named `poly-XYZ-hostmode`, `poly-XYZ-innermode` and
 `poly-name-polymode`. Classes, methods and developer-oriented API have `pm-`
 prefix.
