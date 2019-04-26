@@ -1188,10 +1188,14 @@ This funciton is placed in local `post-command-hook'."
             (setq buffer-file-truename nil)))))))
 
 (defun pm-turn-polymode-off (&optional new-mode)
+  "Remove all polymode indirect buffers and install NEW-MODE if any.
+NEW-MODE can be t in which case mode is picked from the
+`pm/polymode' object."
   (when pm/polymode
     (let* ((base (pm-base-buffer))
            (mmode (buffer-local-value 'major-mode base))
            (kill-buffer-hook (delete 'polymode-after-kill-fixes (copy-sequence kill-buffer-hook))))
+      ;; remove only our own indirect buffers
       (dolist (b (eieio-oref pm/polymode '-buffers))
         (unless (eq b base)
           (kill-buffer b)))
