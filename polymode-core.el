@@ -894,18 +894,30 @@ Parents' hooks are run first."
     writeroom-mode)
   "List of minor modes to move from the old buffer.")
 
+(defun pm-own-buffer-p (&optional buffer)
+  "Return t if BUFFER is owned by polymode.
+Owning a buffer means that the BUFFER is either the base buffer
+or an indirect implementation buffer. If nil, the buffer was
+created outside of polymode with `clone-indirect-buffer'."
+  (when pm/polymode
+    (memq (or buffer (current-buffer))
+          (eieio-oref pm/polymode '-buffers))))
+
 (defun pm-select-buffer (span &optional visibly)
   "Select the buffer associated with SPAN.
 Install a new indirect buffer if it is not already installed.
 Chunkmode's class should define `pm-get-buffer-create' method. If
 VISIBLY is non-nil perform extra adjustment for \"visual\" buffer
 switch."
-  (let ((buffer (pm-span-buffer span)))
+  (let ((buffer (pm-span-buffer span))
+        (own (pm-own-buffer-p))
+        (cbuf (current-buffer)))
+
     (with-current-buffer buffer
       (pm--reset-ppss-cache span))
-    (when visibly
+    (when (and own visibly)
       ;; always sync to avoid issues with tooling working in different buffers
-      (pm--synchronize-points (current-buffer))
+      (pm--synchronize-points cbuf)
       (let ((mode (or (eieio-oref (nth 3 span) 'keep-in-mode)
                       (eieio-oref pm/polymode 'keep-in-mode))))
         (setq buffer (cond
@@ -916,18 +928,20 @@ switch."
                                 ;; be installed yet and there is no way install it
                                 ;; from here
                                 buffer))))))
-    ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) (current-buffer))
+    ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) cbuf)
     ;; no further action if BUFFER is already the current buffer
-    (unless (eq buffer (current-buffer))
-      (when visibly
-        (run-hook-with-args 'polymode-before-switch-buffer-hook (current-buffer) buffer))
+    (unless (eq buffer cbuf)
+      (when (and own visibly)
+        (run-hook-with-args 'polymode-before-switch-buffer-hook
+                            cbuf buffer))
       (pm--move-vars polymode-move-these-vars-from-base-buffer
                      (pm-base-buffer) buffer)
       (pm--move-vars polymode-move-these-vars-from-old-buffer
-                     (current-buffer) buffer)
+                     cbuf buffer)
       (if visibly
-          ;; slow, visual selection
-          (pm--select-existing-buffer-visibly buffer)
+          ;; Slow, visual selection. Don't perform in foreign indirect buffers.
+          (when own
+            (pm--select-existing-buffer-visibly buffer))
         (set-buffer buffer)))))
 
 (defvar text-scale-mode)
@@ -1152,13 +1166,15 @@ This funciton is placed in local `post-command-hook'."
 (defvar-local pm--killed nil)
 (defun polymode-after-kill-fixes ()
   "Various fixes for polymode indirect buffers."
-  (when pm/polymode
+  (when (pm-own-buffer-p)
     (let ((base (pm-base-buffer)))
       (set-buffer-modified-p nil)
-      ;; Prevent various tools like `find-file' to re-find this file. We use
-      ;; buffer-list instead of `-buffers' slot here because on some occasions
-      ;; there are other indirect buffers (e.g. switch from polymode to other
-      ;; mode and then back , or when user creates an indirect buffer manually).
+      ;; Prevent various tools like `find-file' to re-find this file.
+      ;;
+      ;; We use buffer-list instead of `-buffers' slot here because on some
+      ;; occasions there are other indirect buffers (e.g. switch from polymode
+      ;; to other mode and then back, or when user or a tool (e.g. org-capture)
+      ;; creates an indirect buffer manually).
       (dolist (b (buffer-list))
         (when (and (buffer-live-p b)
                    (eq (buffer-base-buffer b) base))
@@ -1207,7 +1223,7 @@ Used in advises."
             (pm--synchronize-points base))))
     (apply orig-fun args)))
 
-(pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
+;; (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
 (pm-around-advice #'write-file #'polymode-with-current-base-buffer)
 (pm-around-advice #'basic-save-buffer #'polymode-with-current-base-buffer)
