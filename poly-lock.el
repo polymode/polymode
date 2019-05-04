@@ -280,8 +280,7 @@ Fontifies chunk-by chunk within the region BEG END."
 
 (defun poly-lock-flush (&optional beg end)
   "Force refontification of the region BEG..END.
-END is extended to the next chunk separator. This function is
-placed in `font-lock-flush-function''"
+This function is placed in `font-lock-flush-function''"
   (unless poly-lock-fontification-in-progress
     (let ((beg (or beg (point-min)))
           (end (or end (point-max))))

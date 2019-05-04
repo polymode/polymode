@@ -878,6 +878,7 @@ Parents' hooks are run first."
     buffer-undo-tree
     display-line-numbers
     face-remapping-alist
+    isearch-mode ; this seems to be enough to avoid isearch glitching
     line-move-visual
     overwrite-mode
     selective-display

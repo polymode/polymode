@@ -116,7 +116,7 @@ Ran by the polymode mode function."
       (let ((polymode-mode t)           ;major-modes might check this
             (base (buffer-base-buffer))
             ;; Some modes (or minor-modes which are run in their hooks) call
-            ;; font-lock functions directly on the entire buffer (#212 for
+            ;; font-lock functions directly on the entire buffer (#212 for an
             ;; example). They were inhibited here before, but these variables
             ;; are designed to be set by modes, so our setup doesn't have an
             ;; effect in those cases and we get "Making xyz buffer-local while
