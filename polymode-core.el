@@ -1207,7 +1207,7 @@ NEW-MODE can be t in which case mode is picked from the
               (funcall mmode)
             (funcall new-mode)))))))
 
-(defun polymode-after-change-cleanup ()
+(defun polymode-after-change-major-mode-cleanup ()
   "Remove all polymode implementation buffers on mode change."
   ;; pm/polymode is permanent local. Nil polymode-mode means that the user
   ;; called another mode on top of polymode.
@@ -1221,7 +1221,7 @@ NEW-MODE can be t in which case mode is picked from the
           (switch-to-buffer base)))
       (pm-turn-polymode-off mmode))))
 
-(add-hook 'after-change-major-mode-hook #'polymode-after-change-cleanup)
+(add-hook 'after-change-major-mode-hook #'polymode-after-change-major-mode-cleanup)
 
 
 ;;; CORE ADVICE
