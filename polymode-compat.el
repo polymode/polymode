@@ -262,6 +262,27 @@ changes."
 ;; following is probably not necessary. (pm-around-advice 'perform-replace
 ;; 'pm-execute-inhibit-modification-hooks)
 
+;; `newline' hacks into post-self-insert-hook and calls self-insert-command but
+;; assumes that the buffer stays the same. This is not true as post-command-hook
+;; is run in between. #226
+;; FIXME: emacs bug
+(defun polymode-newline-remove-hook-in-orig-buffer (fn &rest args)
+  "`newline' temporary sets `post-self-insert-hook' and removes it in wrong buffer.
+This ARGS are passed to `newline'."
+  (if polymode-mode
+      (let* ((cbuf (current-buffer))
+             (old-hook (buffer-local-value 'post-self-insert-hook cbuf)))
+        (prog1 (apply fn args)
+          (unless (eq cbuf (current-buffer))
+            (unless (eq old-hook (buffer-local-value 'post-self-insert-hook cbuf))
+              (with-current-buffer cbuf
+                (if old-hook
+                    (setq post-self-insert-hook old-hook)
+                  (kill-local-variable 'post-self-insert-hook)))))))
+    (apply fn args)))
+
+(pm-around-advice 'newline #'polymode-newline-remove-hook-in-orig-buffer)
+
 
 ;;; DESKTOP SAVE #194
 
