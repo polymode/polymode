@@ -371,6 +371,16 @@ buffer.")
     :initform t)
    (protect-indent
     :initform t)
+   (body-indent-offset
+    :initarg :body-indent-offset
+    :initform 0
+    :type (or number symbol function)
+    :custom (choice number symbol)
+    :documentation
+    "Indentation offset of the body span relative to the head.
+Can be a number, symbol holding a number or a function. When a
+function, it is called with no arguments at the beginning of the
+body span.")
    (can-nest
     :initarg :can-nest
     :initform nil

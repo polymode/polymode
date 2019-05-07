@@ -372,7 +372,7 @@ in this case."
 ;;; INDENT
 
 ;; indent-region-line-by-line for polymode buffers (more efficient, works on
-;; emacs 25, no progress reporter)
+;; emacs 25, but no progress reporter)
 (defun pm--indent-region-line-by-line (start end)
   (save-excursion
     ;; called from pm--indent-raw; so we know we are in the same span with
@@ -538,18 +538,20 @@ to indent."
                 ;; On the first line. Indent with respect to header line.
                 (let ((delta (save-excursion
                                (goto-char (nth 1 span))
-                               (cond
-                                ;; empty line
-                                ((looking-at-p "[ \t]*$") 0)
-                                ;; inner span starts at bol; honor +-indent cookie
-                                ((= (point) (point-at-bol))
-                                 (pm--+-indent-offset-on-this-line span))
-                                ;; code after header
-                                (t
-                                 (end-of-line)
-                                 (skip-chars-forward "\t\n")
-                                 (pm--indent-line-raw span)
-                                 (- (point) (point-at-bol)))))))
+                               (+
+                                (pm--oref-value (nth 3 span) 'body-indent-offset)
+                                (cond
+                                 ;; empty line
+                                 ((looking-at-p "[ \t]*$") 0)
+                                 ;; inner span starts at bol; honor +-indent cookie
+                                 ((= (point) (point-at-bol))
+                                  (pm--+-indent-offset-on-this-line span))
+                                 ;; code after header
+                                 (t
+                                  (end-of-line)
+                                  (skip-chars-forward "\t\n")
+                                  (pm--indent-line-raw span)
+                                  (- (point) (point-at-bol))))))))
                   (indent-line-to
                    ;; indent with respect to header line
                    (+ delta (pm--head-indent span)))))))))
@@ -614,7 +616,7 @@ to indent."
       (let ((pos (nth (if (eq offset-type 'post-indent-offset) 2 1) span)))
         (save-excursion
           (goto-char pos)
-          (setq offset (if (numberp offset) offset (funcall offset))))
+          (setq offset (pm--object-value offset)))
         (indent-line-to (max 0 (+ (current-indentation) offset (or offset2 0))))))))
 
 

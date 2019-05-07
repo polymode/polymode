@@ -231,7 +231,6 @@ changes."
 ;; (pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
 ;; (advice-remove 'fill-paragraph #'pm-execute-narrowed-to-span)
 
-
 ;; Synchronization of points does not work always as expected because some low
 ;; level functions move indirect buffers' points when operate in the base
 ;; buffer. See comment in `polymode-with-current-base-buffer'.
