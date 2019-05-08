@@ -1029,11 +1029,11 @@ comprehensive alternative."
 ;; under any circumstances. Switching should happen only in post-command. For
 ;; example `pm-indent-line-dispatcher' used to switch buffers, but it was called
 ;; from electric-indent-post-self-insert-function in post-self-insert-hook which
-;; was triggered by self-insert-command called from `newline'. `newline' in turn
-;; manipulates post-self-insert-hook and makes an assumption that it stays all
-;; the time in the same buffer. It was moved away from original buffer by
-;; polimode's indentation dispatcher and as a result it's local temporary
-;; post-self-insert-hook stayed permanently in the old buffer (#226).
+;; was triggered by self-insert-command called from `newline'. `newline' sets a
+;; temporary local post-self-insert-hook and makes the assumption that buffer
+;; stays the same. It was moved away from original buffer by polymode's
+;; indentation dispatcher its post-self-insert-hook hanged permanently in the
+;; old buffer (#226).
 (defun pm-switch-to-buffer (&optional pos-or-span)
   "Bring the appropriate polymode buffer to front.
 POS-OR-SPAN can be either a position in a buffer or a span. All
