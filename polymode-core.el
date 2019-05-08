@@ -916,7 +916,6 @@ switch."
   (let ((buffer (pm-span-buffer span))
         (own (pm-own-buffer-p))
         (cbuf (current-buffer)))
-
     (with-current-buffer buffer
       (pm--reset-ppss-cache span))
     (when (and own visibly)
@@ -1026,6 +1025,15 @@ comprehensive alternative."
                 pos-or-span)))
     (pm-select-buffer span)))
 
+;; NB: Polymode functions used in emacs utilities should not switch buffers
+;; under any circumstances. Switching should happen only in post-command. For
+;; example `pm-indent-line-dispatcher' used to switch buffers, but it was called
+;; from electric-indent-post-self-insert-function in post-self-insert-hook which
+;; was triggered by self-insert-command called from `newline'. `newline' in turn
+;; manipulates post-self-insert-hook and makes an assumption that it stays all
+;; the time in the same buffer. It was moved away from original buffer by
+;; polimode's indentation dispatcher and as a result it's local temporary
+;; post-self-insert-hook stayed permanently in the old buffer (#226).
 (defun pm-switch-to-buffer (&optional pos-or-span)
   "Bring the appropriate polymode buffer to front.
 POS-OR-SPAN can be either a position in a buffer or a span. All
@@ -1313,17 +1321,19 @@ ARG is the same as in `forward-paragraph'"
 
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (start end)
-  ;; fixme: not entirely sure if this is really needed
-  (dolist (b (oref pm/polymode -buffers))
-    (when (buffer-live-p b)
-      (with-current-buffer b
-        ;; `setq' doesn't have an effect because the var is let bound; `set' works
-        (set 'syntax-propertize--done end))))
 
   (unless pm-initialization-in-progress
     (save-restriction
       (widen)
       (save-excursion
+
+        ;; fixme: not entirely sure if this is really needed
+        (dolist (b (oref pm/polymode -buffers))
+          (when (buffer-live-p b)
+            (with-current-buffer b
+              ;; `setq' doesn't have an effect because the var is let bound; `set' works
+              (set 'syntax-propertize--done end))))
+
         ;; some modes don't save data in their syntax propertize functions
         (save-match-data
           (let ((protect-host (with-current-buffer (pm-base-buffer)

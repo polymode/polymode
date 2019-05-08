@@ -453,13 +453,12 @@ Function used for `indent-region-function'."
 (defun pm-indent-line-dispatcher (&optional span)
   "Dispatch `pm-indent-line' methods on current SPAN.
 Value of `indent-line-function' in polymode buffers."
+  ;; NB: No buffer switching in indentation functions. See comment at
+  ;; pm-switch-to-buffer.
   (let ((span (or span (pm-innermost-span
                         (save-excursion (back-to-indentation) (point)))))
         (inhibit-read-only t))
-    (pm-indent-line (nth 3 span) span)
-    ;; fixme: remove this
-    ;; pm-indent-line-dispatcher is intended for interactive use
-    (pm-switch-to-buffer)))
+    (pm-indent-line (nth 3 span) span)))
 
 (cl-defgeneric pm-indent-line (chunkmode &optional span)
   "Indent current line.
