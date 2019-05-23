@@ -325,7 +325,8 @@ changes."
           (evil-change-state old-state))))))
 
 (eval-after-load 'evil-core
-  '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
+  '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe)
+  '(add-hook 'polymode-init-inner-hook #'evil-normalize-keymaps))
 
 
 ;;; HL line
