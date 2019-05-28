@@ -312,6 +312,19 @@ changes."
 (add-hook 'matlab-mode-hook (lambda () (font-lock-mode t)))
 
 
+;;; Undo Tree (#230)
+;; Not clear why this fix works, or even why the problem occurs.
+(declare-function make-undo-tree "undo-tree")
+(defun polymode-init-undo-tree-maybe ()
+  (when (and (boundp 'undo-tree-mode)
+             undo-tree-mode
+             (null buffer-undo-tree))
+    (setq buffer-undo-tree (make-undo-tree))))
+
+(eval-after-load 'undo-tree
+  '(add-hook 'polymode-init-inner-hook 'polymode-init-undo-tree-maybe))
+
+
 ;;; EVIL
 
 (declare-function evil-change-state "evil-core")
