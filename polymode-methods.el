@@ -82,7 +82,7 @@ Ran by the polymode mode function."
                   inner-syms))))
 
 (cl-defmethod pm-initialize ((chunkmode pm-inner-chunkmode) &optional type mode)
-  "Initialization of chunkmode (indirect) buffers."
+  "Initialization of the innermodes' (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-innermode-mode chunkmode type)))
   (let* ((pm-initialization-in-progress t)
@@ -103,7 +103,8 @@ Ran by the polymode mode function."
     (funcall (eieio-oref pm/polymode '-minor-mode))
     ;; FIXME: should not be here?
     (vc-refresh-state)
-    (pm--common-setup))
+    (pm--common-setup)
+    (pm--move-vars polymode-move-these-vars-from-base-buffer (pm-base-buffer)))
   (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook))
 
 (defvar poly-lock-allow-fontification)
@@ -132,9 +133,9 @@ Ran by the polymode mode function."
             ;; because PM objects have not been setup yet.
             (pm-allow-after-change-hook nil)
             (poly-lock-allow-fontification nil))
-        ;; run-mode-hooks needs buffer-file-name
+        ;; run-mode-hooks needs buffer-file-name, so we transfer base vars twice
         (when base
-          (pm--move-vars polymode-move-these-vars-from-base-buffer base (current-buffer)))
+          (pm--move-vars polymode-move-these-vars-from-base-buffer base))
         (condition-case-unless-debug err
             ;; !! run-mode-hooks and hack-local-variables run here
             (funcall mode)
