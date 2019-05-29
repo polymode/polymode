@@ -102,6 +102,7 @@ MODE is a quoted symbol."
        (let ((poly-lock-allow-background-adjustment nil))
          (when polymode-mode
            ;; font-lock not activated in batch mode
+           (setq-local poly-lock-allow-fontification t)
            (poly-lock-mode t))
          (font-lock-ensure)
          ,@body)
@@ -166,8 +167,8 @@ MODE is a quoted symbol."
                 ;; initialization. Don't know how to fix this more elegantly.
                 ;; For now our tests are all with font-lock, so we are fine for
                 ;; now.
+                ;; !! Font-lock is not activated in batch mode !!
                 (setq-local poly-lock-allow-fontification t)
-                ;; font-lock is not activated in batch mode
                 (poly-lock-mode t)
                 ;; redisplay is not triggered in batch and often it doesn't trigger
                 ;; fontification in X either (waf?)
