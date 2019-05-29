@@ -99,8 +99,12 @@ MODE is a quoted symbol."
        (funcall ,mode)
        (setq-default indent-tabs-mode nil)
        (goto-char (point-min))
-       (font-lock-ensure)
-       ,@body
+       (let ((poly-lock-allow-background-adjustment nil))
+         (when polymode-mode
+           ;; font-lock not activated in batch mode
+           (poly-lock-mode t))
+         (font-lock-ensure)
+         ,@body)
        (current-buffer))))
 
 (defun pm-test-spans (mode string)
