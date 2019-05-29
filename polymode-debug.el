@@ -303,6 +303,8 @@ universal argument toggles maximum level of tracing (4). Default
 level is 3."
   (interactive "P")
   (setq level (prefix-numeric-value (or level 3)))
+  (with-current-buffer (get-buffer-create "*Messages*")
+    (read-only-mode -1))
   (setq pm--do-trace (not pm--do-trace))
   (if pm--do-trace
       (progn (dolist (kv pm-traced-functions)
