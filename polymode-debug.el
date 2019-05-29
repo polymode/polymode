@@ -279,7 +279,8 @@ With NO-CACHE prefix, don't use cached values of the span."
         poly-lock-fontify-now
         poly-lock-function))
     ;; syntax
-    (4 (pm--call-syntax-propertize-original
+    (4 (syntax-ppss
+        pm--call-syntax-propertize-original
         polymode-syntax-propertize
         polymode-restrict-syntax-propertize-extension
         pm-flush-syntax-ppss-cache
@@ -289,7 +290,9 @@ With NO-CACHE prefix, don't use cached values of the span."
         pm-map-over-spans
         pm--intersect-spans
         pm--cached-span))
-    ))
+    ;; (13 . "^syntax-")
+    (14 . "^polymode-")
+    (15 . "^pm-")))
 
 (defvar pm--do-trace nil)
 ;;;###autoload
@@ -304,11 +307,14 @@ level is 3."
   (if pm--do-trace
       (progn (dolist (kv pm-traced-functions)
                (when (<= (car kv) level)
-                 (dolist (fn (cadr kv))
-                   (pm-trace fn))))
+                 (if (stringp (cdr kv))
+                     (pm-trace-functions-by-regexp (cdr kv))
+                   (dolist (fn (cadr kv))
+                     (pm-trace fn)))))
              (message "Polymode tracing activated"))
     (untrace-all)
     (message "Polymode tracing deactivated")))
+
 
 ;;;###autoload
 (defun pm-trace (fn)
@@ -317,28 +323,36 @@ Use `untrace-function' to untrace or `untrace-all' to untrace all
 currently traced functions."
   (interactive (trace--read-args "Trace: "))
   (let ((buff (get-buffer "*Messages*")))
-    (advice-add
-     fn :around
-     (let ((advice (trace-make-advice
-                    fn buff 'background #'pm-trace--tracing-context)))
-       (lambda (body &rest args)
-         (when (eq fn 'polymode-flush-syntax-ppss-cache)
-           (with-current-buffer buff
-             (save-excursion
-               (goto-char (point-max))
-               (insert "\n"))))
-         (if polymode-mode
-             (apply advice body args)
-           (apply body args))))
-     `((name . ,trace-advice-name) (depth . -100)))))
+    (unless (advice-member-p trace-advice-name fn)
+      (advice-add
+       fn :around
+       (let ((advice (trace-make-advice
+                      fn buff 'background
+                      #'pm-trace--tracing-context)))
+         (lambda (body &rest args)
+           (when (eq fn 'polymode-flush-syntax-ppss-cache)
+             (with-current-buffer buff
+               (save-excursion
+                 (goto-char (point-max))
+                 (insert "\n"))))
+           (if polymode-mode
+               (apply advice body args)
+             (apply body args))))
+       `((name . ,trace-advice-name)
+         (depth . -100))))))
 
 (defun pm-trace-functions-by-regexp (regexp)
   "Trace all functions whose name matched REGEXP."
   (interactive "sRegex: ")
   (cl-loop for sym being the symbols
            when (and (fboundp sym)
-                     (not (eq sym 'pm-trace)))
-           when (string-match regexp (symbol-name sym))
+                     (not (memq sym '(pm-toggle-tracing
+                                      pm-trace--tracing-context
+                                      pm-format-span
+                                      pm-fun-matcher
+                                      pm--find-tail-from-head)))
+                     (not (string-match "^pm-\\(trace\\|debug\\)" (symbol-name sym)))
+                     (string-match regexp (symbol-name sym)))
            do (pm-trace sym)))
 
 (defun pm-trace--tracing-context ()

@@ -1396,11 +1396,11 @@ ARG is the same as in `forward-paragraph'"
     new-ppss))
 
 
-(defun polymode-reset-ppss-cache (&optional pos)
-  "Reset `syntax-ppss' cache to POS in polymode buffers.
-Used in :before advice of `syntax-ppss'."
-  (when polymode-mode
-    (pm--reset-ppss-cache (pm-innermost-span pos))))
+;; (defun polymode-reset-ppss-cache (&optional pos)
+;;   "Reset `syntax-ppss' cache to POS in polymode buffers.
+;; Used in :before advice of `syntax-ppss'."
+;;   (when polymode-mode
+;;     (pm--reset-ppss-cache (pm-innermost-span pos))))
 
 ;; (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache)
 ;; (unless pm--emacs>26

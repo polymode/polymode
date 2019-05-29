@@ -304,7 +304,6 @@ changes."
 
 
 ;;; MATLAB #199
-
 ;; matlab-mode is an old non-standard mode which doesn't trigger
 ;; `after-change-major-mode-hook`. As a result polymode cannot detect that
 ;; font-lock-mode is on and sets the `poly-lock-allow-fontification` to nil.
@@ -326,7 +325,6 @@ changes."
 
 
 ;;; EVIL
-
 (declare-function evil-change-state "evil-core")
 (defun polymode-switch-buffer-keep-evil-state-maybe (old-buffer new-buffer)
   (when (and (boundp 'evil-state)
@@ -342,7 +340,6 @@ changes."
 
 
 ;;; HL line
-
 (defvar hl-line-mode)
 (defvar global-hl-line-mode)
 (declare-function hl-line-unhighlight "hl-line")
