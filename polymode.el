@@ -651,7 +651,8 @@ most frequently used slots are:
                           (or (null (current-message))
                               (not (equal ,last-message
                                           (current-message)))))
-                 (message ,(format "%s enabled" (concat root-name " polymode")))))
+                 (message ,(concat root-name " polymode %s")
+                          (if state "enabled" "disabled"))))
              (force-mode-line-update))
            ;; Return the new state
            ,mode)
