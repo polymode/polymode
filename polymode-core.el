@@ -1553,7 +1553,7 @@ If so, return it, otherwise check in turn
    (eieio-oref chunkmode 'fallback-mode)))
 
 ;; Used in auto innermode detection only and can return symbol 'host as that's
-;; needed in pm--get-auto-span.
+;; needed in pm--get-auto-chunkmode.
 (defun pm-get-mode-symbol-from-name (name &optional fallback)
   "Guess and return mode function from short NAME.
 Return FALLBACK if non-nil, otherwise the value of

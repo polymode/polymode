@@ -308,15 +308,14 @@ use `pm-innermost-span'.")
 
 (cl-defmethod pm-get-span (chunkmode &optional _pos)
   "Return nil.
-Base modes usually do not compute spans."
+Host modes usually do not compute spans."
   (unless chunkmode
     (error "Dispatching `pm-get-span' on a nil object"))
   nil)
 
 (cl-defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
-TYPE can be 'body, 'head or 'tail. SELF is just a chunkmode object
-in this case."
+TYPE can be 'body, 'head or 'tail. SELF is the CHUNKMODE."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
     (let ((span (pm--span-at-point head-matcher tail-matcher pos
                                    (eieio-oref chunkmode 'can-overlap))))
@@ -327,47 +326,79 @@ in this case."
   (let ((span (cl-call-next-method)))
     (if (null (car span))
         span
-      (pm--get-auto-span span))))
+      (setf (nth 3 span) (apply #'pm--get-auto-chunkmode span))
+      span)))
 
-;; fixme: cache somehow?
-(defun pm--get-auto-span (span)
-  (let* ((proto (nth 3 span))
-         (type (car span))
-         (sbeg (nth 1 span)))
-    (save-excursion
-      (goto-char sbeg)
-      (unless (eq type 'head)
-        (goto-char (nth 2 span)) ; fixme: add multiline matchers to micro-optimize this
-        (let ((matcher (pm-fun-matcher (eieio-oref proto 'head-matcher))))
-          ;; can be multiple incomplete spans within a span
-          (while (< sbeg (goto-char (car (funcall matcher -1)))))))
-      (let* ((str (let ((matcher (eieio-oref proto 'mode-matcher)))
-                    (when (stringp matcher)
-                      (setq matcher (cons matcher 0)))
-                    (cond  ((consp matcher)
-                            (re-search-forward (car matcher) (point-at-eol) t)
-                            (match-string-no-properties (cdr matcher)))
-                           ((functionp matcher)
-                            (funcall matcher)))))
-             (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'fallback-mode))))
-        (if (eq mode 'host)
-            (progn (setf (nth 3 span) (oref pm/polymode -hostmode))
-                   span)
-          ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
-          ;; Head/tail/body indirect buffers are shared across chunkmodes and span
-          ;; types.
-          (let* ((name (concat (pm-object-name proto) ":" (symbol-name mode)))
-                 (outchunk (or
-                            ;; a. loop through installed inner modes
-                            (cl-loop for obj in (eieio-oref pm/polymode '-auto-innermodes)
-                                     when (equal name (pm-object-name obj))
-                                     return obj)
-                            ;; b. create new
-                            (let ((innermode (clone proto :name name :mode mode)))
-                              (object-add-to-list pm/polymode '-auto-innermodes innermode)
-                              innermode))))
-            (setf (nth 3 span) outchunk)
-            span))))))
+;; (defun pm-get-chunk (ichunkmode &optional pos)
+;;   (with-slots (head-matcher tail-matcher head-mode tail-mode) ichunkmode
+;;     (pm--span-at-point
+;;      head-matcher tail-matcher (or pos (point))
+;;      (eieio-oref ichunkmode 'can-overlap)
+;;      t)))
+
+
+(cl-defgeneric pm-next-chunk (chunkmode &optional pos)
+  "Ask the CHUNKMODE for the chunk after POS.
+Return a list of three elements (CHUNKMODE HEAD-BEG HEAD-END
+TAIL-BEG TAIL-END).")
+
+(cl-defmethod pm-next-chunk (chunkmode &optional _pos)
+  nil)
+
+(cl-defmethod pm-next-chunk ((chunkmode pm-inner-chunkmode) &optional pos)
+  (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
+    (let ((raw-chunk (pm--next-chunk
+                      head-matcher tail-matcher (or pos (point))
+                      (eieio-oref chunkmode 'can-overlap))))
+      (when raw-chunk
+        (cons chunkmode raw-chunk)))))
+
+(cl-defmethod pm-next-chunk ((chunkmode pm-inner-auto-chunkmode) &optional pos)
+  (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
+    (let ((raw-chunk (pm--next-chunk
+                      head-matcher tail-matcher (or pos (point))
+                      (eieio-oref chunkmode 'can-overlap))))
+      (when raw-chunk
+        (cons (pm--get-auto-chunkmode 'head (car raw-chunk) (cadr raw-chunk) chunkmode)
+              raw-chunk)))))
+
+;; FIXME: cache somehow?
+(defun pm--get-auto-chunkmode (type beg end proto)
+  (save-excursion
+    (goto-char beg)
+    (unless (eq type 'head)
+      (goto-char end)     ; fixme: add multiline matchers to micro-optimize this
+      (let ((matcher (pm-fun-matcher (eieio-oref proto 'head-matcher))))
+        ;; can be multiple incomplete spans within a span
+        (while (< beg (goto-char (car (funcall matcher -1)))))))
+    (let* ((str (let ((matcher (eieio-oref proto 'mode-matcher)))
+                  (when (stringp matcher)
+                    (setq matcher (cons matcher 0)))
+                  (cond  ((consp matcher)
+                          (re-search-forward (car matcher) (point-at-eol) t)
+                          (match-string-no-properties (cdr matcher)))
+                         ((functionp matcher)
+                          (funcall matcher)))))
+           (mode (pm-get-mode-symbol-from-name str (eieio-oref proto 'fallback-mode))))
+      (if (eq mode 'host)
+          (oref pm/polymode -hostmode)
+        ;; chunkname:MODE serves as ID (e.g. `markdown-fenced-code:emacs-lisp-mode`).
+        ;; Head/tail/body indirect buffers are shared across chunkmodes and span
+        ;; types.
+        (let ((automodes (eieio-oref pm/polymode '-auto-innermodes)))
+          (if (memq proto automodes)
+              ;; a. if proto already part of the list return
+              proto
+            (let ((name (concat (pm-object-name proto) ":" (symbol-name mode))))
+              (or
+               ;; b. loop through installed inner modes
+               (cl-loop for obj in automodes
+                        when (equal name (pm-object-name obj))
+                        return obj)
+               ;; c. create new
+               (let ((innermode (clone proto :name name :mode mode)))
+                 (object-add-to-list pm/polymode '-auto-innermodes innermode)
+                 innermode)))))))))
 
 
 ;;; INDENT
