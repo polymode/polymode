@@ -417,63 +417,59 @@ the front)."
                (= (nth 2 bspan) send)))
          (= end send)))))))
 
-(defun pm--intersect-spans (config &optional pos)
+(defun pm--intersect-spans (thespan span)
+  ;; ASSUMPTION: first thespan should be of the form (nil MIN MAX HOSTMODE)
+  (when span
+    (let ((allow-nested (eieio-oref (nth 3 span) 'allow-nested))
+          (is-host (null (car span))))
+      (cond
+       ;; 1. nil means host and it can be an intersection of spans returned
+       ;; by two neighboring inner chunkmodes. When `allow-nested` is
+       ;; 'always the innermode essentially behaves like the host-mode.
+       ((or is-host (eq allow-nested 'always))
+        ;; when span is already an inner span, new host spans are irrelevant
+        (unless (car thespan)
+          (setq thespan
+                (list (unless is-host (car span))
+                      (max (nth 1 span) (nth 1 thespan))
+                      (min (nth 2 span) (nth 2 thespan))
+                      (nth 3 (if is-host thespan span))))))
+       ;; 2. Inner span
+       ((or (> (nth 1 span) (nth 1 thespan))
+            (< (nth 2 span) (nth 2 thespan)))
+        ;; NB: no check if boundaries of two inner spans crossing; assume
+        ;; correct matchers. In case of crossing, if 'can-nest is t then later
+        ;; chunkmode wins otherwise the former one.
+        (when (or (null (car thespan))
+                  (eieio-oref (nth 3 span) 'can-nest))
+          (setq thespan span)))
+       ;; 3. Outer span; overwrite previous span if nesting is not allowed.
+       ;; This case is very hard because it can result in big invalid span
+       ;; when a head occurs within a inner-chunk. For example $ for inline
+       ;; latex can occur within R or python. The hard way to fix this would
+       ;; require non-local information (e.g. checking if outer span's
+       ;; extremities are within a host span) and still might not be the full
+       ;; proof solution. Instead, make use of 'allow-nested property.
+       ((and (eq allow-nested t)
+             (car thespan)              ; span is an inner span
+             (not (eieio-oref (nth 3 thespan) 'can-nest))
+             (pm--outspan-p span thespan))
+        (setq thespan span)))))
+  thespan)
+
+(defun pm--get-intersected-span (config &optional pos)
   ;; fixme: host should be last, to take advantage of the chunkmodes computation?
   (let* ((start (point-min))
          (end (point-max))
          (pos (or pos (point)))
          (hostmode (oref config -hostmode))
          (chunkmodes (cons hostmode (oref config -innermodes)))
-         (thespan (list nil start end hostmode))
-         span)
+         (thespan (list nil start end hostmode)))
     (dolist (cm chunkmodes)
       ;; Optimization opportunity: this searches till the end of buffer but the
-      ;; outermost pm-get-span caller has computed a few span already so we can
+      ;; outermost pm-get-span caller has computed a few spans already so we can
       ;; pass limits or narrow to pre-computed span.
-      (when (setq span (pm-get-span cm pos))
-        (let ((allow-nested (eieio-oref (nth 3 span) 'allow-nested))
-              (is-body (null (car span))))
-          (cond
-           ;; 1. nil means host and it can be an intersection of spans returned
-           ;; by two neighboring inner chunkmodes. When `allow-nested` is
-           ;; 'always the innermode essentially behaves like the host-mode.
-           ((or is-body
-                (eq allow-nested 'always))
-            ;; when span is already an inner span, new host spans are irrelevant
-            (unless (car thespan)
-              (setq start (max (nth 1 span)
-                               (nth 1 thespan))
-                    end (min (nth 2 span)
-                             (nth 2 thespan)))
-              (unless is-body
-                (setq thespan span))
-              (setcar (cdr thespan) start)
-              (setcar (cddr thespan) end)))
-           ;; 2. Inner span
-           ((or (> (nth 1 span) start)
-                (< (nth 2 span) end))
-            ;; NB: no check if boundaries of two inner spans crossing; assume
-            ;; correct matchers. In case of crossing, if 'can-nest is t then later
-            ;; chunkmode wins otherwise the former one.
-            (when (or (null (car thespan))
-                      (eieio-oref (nth 3 span) 'can-nest))
-              (setq thespan span
-                    start (nth 1 span)
-                    end (nth 2 span))))
-           ;; 3. Outer span; overwrite previous span if nesting is not allowed.
-           ;; This case is very hard because it can result in big invalid span
-           ;; when a head occurs within a inner-chunk. For example $ for inline
-           ;; latex can occur within R or python. The hard way to fix this would
-           ;; require non-local information (e.g. checking if outer span's
-           ;; extremities are within a host span) and still might not be the full
-           ;; proof solution. Instead, make use of 'allow-nested property.
-           ((and (eq allow-nested t)
-                 (car thespan) ; span is an inner span
-                 (not (eieio-oref (nth 3 thespan) 'can-nest))
-                 (pm--outspan-p span thespan))
-            (setq thespan span
-                  start (nth 1 span)
-                  end (nth 2 span)))))))
+      (setq thespan (pm--intersect-spans thespan (pm-get-span cm pos))))
 
     (unless (and (<= start end) (<= pos end) (>= pos start))
       (error "Bad polymode selection: span:%s pos:%s"
@@ -503,14 +499,14 @@ the front)."
     (save-excursion
       (save-restriction
         (widen)
-        (let ((span (pm--intersect-spans config pos)))
+        (let ((span (pm--get-intersected-span config pos)))
           (if (= omax pos)
               (when (and (= omax (nth 1 span))
                          (> omax omin))
                 ;; When pos == point-max and it's beg of span, return the
                 ;; previous span. This occurs because the computation of
-                ;; pm--intersect-spans is done on a widened buffer.
-                (setq span (pm--intersect-spans config (1- pos))))
+                ;; pm--get-intersected-span is done on a widened buffer.
+                (setq span (pm--get-intersected-span config (1- pos))))
             (when (= pos (nth 2 span))
               (error "Span ends at %d in (pm--inermost-span %d) %s"
                      pos pos (pm-format-span span))))
