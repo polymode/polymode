@@ -651,7 +651,7 @@ span."
             loc))
       (pm--get-property-nearby property accessor ahead))))
 
-(defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap)
+(defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap do-chunk)
   "Span detector with head and tail matchers.
 HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
 `pm-inner-chunkmode' object. POS defaults to (point). When
@@ -663,7 +663,10 @@ is one of the following symbols:
           tail-matcher and ‘point-max’
   body  - pos is between head-matcher and tail-matcher (exclusively)
   head  - head span
-  tail  - tail span"
+  tail  - tail span
+
+Non-nil DO-CHUNK makes this function return a list of the
+form (TYPE HEAD-START HEAD-END TAIL-START TAIL-END)."
   (setq pos (or pos (point)))
   (save-restriction
     (widen)
@@ -678,10 +681,12 @@ is one of the following symbols:
                     (and at-max (= (cdr head1) pos)))
                 ;;      -----|
                 ;; host)[head)           ; can occur with sub-head == 0 only
-                (list 'head (car head1) (cdr head1))
+                (if do-chunk
+                    (pm--find-tail-from-head pos head1 head-matcher tail-matcher can-overlap 'head)
+                  (list 'head (car head1) (cdr head1)))
               ;;            ------------------------
               ;; host)[head)[body)[tail)[host)[head)[body)
-              (pm--find-tail-from-head pos head1 head-matcher tail-matcher can-overlap))
+              (pm--find-tail-from-head pos head1 head-matcher tail-matcher can-overlap do-chunk))
           ;; ----------
           ;; host)[head)[body)[tail)[host
           (goto-char (point-min))
@@ -690,19 +695,23 @@ is one of the following symbols:
                 (if (< pos (car head2))
                     ;; ----
                     ;; host)[head)[body)[tail)[host
-                    (list nil (point-min) (car head2))
+                    (if do-chunk
+                        (list nil (point-min) (point-min) (car head2) (car head2))
+                      (list nil (point-min) (car head2)))
                   (if (< pos (cdr head2))
                       ;;      -----
                       ;; host)[head)[body)[tail)[host
-                      (list 'head (car head2) (cdr head2))
+                      (if do-chunk
+                          (pm--find-tail-from-head pos head2 head-matcher tail-matcher can-overlap 'head)
+                        (list 'head (car head2) (cdr head2)))
                     ;;            -----------------
                     ;; host)[head)[body)[tail)[host
-                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher can-overlap)))
+                    (pm--find-tail-from-head pos head2 head-matcher tail-matcher can-overlap do-chunk)))
               ;; no span found
               nil)))))))
 
 ;; fixme: find a simpler way with recursion where head-matcher and tail-matcher could be reversed
-(defun pm--find-tail-from-head (pos head head-matcher tail-matcher can-overlap)
+(defun pm--find-tail-from-head (pos head head-matcher tail-matcher can-overlap do-chunk)
   (goto-char (cdr head))
   (let ((tail (funcall tail-matcher 1))
         (at-max (= pos (point-max)))
@@ -720,12 +729,21 @@ is one of the following symbols:
         (if (< pos (car tail))
             ;;            -----
             ;; host)[head)[body)[tail)[host)[head)
-            (list 'body (cdr head) (car tail))
+            (if do-chunk
+                (list (if (eq do-chunk t) 'body do-chunk)
+                      (car head) (cdr head) (car tail) (cdr tail))
+              (list 'body (cdr head) (car tail)))
           (if (or (< pos (cdr tail))
                   (and at-max (= pos (cdr tail))))
               ;;                  -----
               ;; host)[head)[body)[tail)[host)[head)
-              (list type (car tail) (cdr tail))
+              (if do-chunk
+                  (if (eq type 'tail)
+                      (list (if (eq do-chunk t) 'tail do-chunk)
+                            (car head) (cdr head) (car tail) (cdr tail))
+                    ;; can-overlap case
+                    (pm--find-tail-from-head pos tail head-matcher tail-matcher can-overlap do-chunk))
+                (list type (car tail) (cdr tail)))
             (goto-char (cdr tail))
             ;;                        -----------
             ;; host)[head)[body)[tail)[host)[head)
@@ -744,21 +762,63 @@ is one of the following symbols:
                   (if (< pos (car match))
                       ;;                        -----
                       ;; host)[head)[body)[tail)[host)[head)
-                      (list nil (cdr tail) (car match))
+                      (if do-chunk
+                          (list nil (cdr tail) (cdr tail) (car match) (car match))
+                        (list nil (cdr tail) (car match)))
                     (if (or (< pos (cdr match))
                             (and at-max (= pos (cdr match))))
                         ;;                              -----
                         ;; host)[head)[body)[tail)[host)[head)[body
-                        (list type (car match) (cdr match))
+                        (if do-chunk
+                            (if (eq type 'tail)
+                                ;; can-overlap case
+                                (list (if (eq do-chunk t) 'tail do-chunk)
+                                      (car head) (cdr head) (car match) (cdr match))
+                              (pm--find-tail-from-head pos match head-matcher tail-matcher can-overlap 'head))
+                          (list type (car match) (cdr match)))
                       ;;                                    ----
                       ;; host)[head)[body)[tail)[host)[head)[body
-                      (pm--find-tail-from-head pos match head-matcher tail-matcher can-overlap)))
+                      (pm--find-tail-from-head pos match head-matcher tail-matcher can-overlap do-chunk)))
                 ;;                        -----
                 ;; host)[head)[body)[tail)[host)
-                (list nil (cdr tail) (point-max))))))
+                (if do-chunk
+                    (list nil (cdr tail) (cdr tail) (point-max) (point-max))
+                  (list nil (cdr tail) (point-max)))))))
       ;;            -----
       ;; host)[head)[body)
-      (list 'body (cdr head) (point-max)))))
+      (if do-chunk
+          (list (if (eq do-chunk t) 'body do-chunk) (cdr head) (cdr head) (point-max) (point-max))
+        (list 'body (cdr head) (point-max))))))
+
+(defun pm--next-chunk (head-matcher tail-matcher &optional pos can-overlap)
+  "Forward only span detector.
+For HEAD-MATCHER, TAIL-MATCHER, POS and CAN-OVERLAP see
+`pm--span-at-point'. Return a list of the form (HEAD-START
+HEAD-END TAIL-START TAIL-END). Can return nil if there are no
+forward spans from pos."
+  (setq pos (or pos (point)))
+  (save-restriction
+    (widen)
+    (save-excursion
+      (goto-char pos)
+      (let ((parse-sexp-lookup-properties nil)
+            (case-fold-search t)
+            (head-matcher (pm-fun-matcher head-matcher))
+            (tail-matcher (pm-fun-matcher tail-matcher))
+            (head nil))
+        ;; start from bol !! ASSUMPTION !!
+        (forward-line 0)
+        (setq head (funcall head-matcher 1))
+        (while (and head (< (car head) pos))
+          (setq head (funcall head-matcher 1)))
+        ;; FIXME: can-overlap is not used
+        (when head
+          (goto-char (cdr head))
+          (let ((tail (funcall tail-matcher 1)))
+            (list (car head)
+                  (cdr head)
+                  (or (car tail) (point-max))
+                  (or (cdr tail) (point-max)))))))))
 
 (defun pm-goto-span-of-type (type N)
   "Skip to N - 1 spans of TYPE and stop at the start of a span of TYPE.
