@@ -1101,6 +1101,96 @@ transport) are performed."
                 pos-or-span)))
     (pm-select-buffer span 'visibly)))
 
+(defun pm-map-over-modes (fn beg end)
+  (when (< beg end)
+    (save-restriction
+      (widen)
+      (let* ((hostmode (eieio-oref pm/polymode '-hostmode))
+             (span (pm-innermost-span beg))
+             (beg (nth 1 span))
+             (mid (nth 2 span))
+             (ttype (pm-true-span-type span))
+             (nspan nil)
+             (nttype nil))
+        (while (memq (car span) '(head body))
+          (setq nspan (pm-innermost-span (nth 2 span))
+                nttype (pm-true-span-type nspan))
+          (if (eq ttype nttype)
+              (setq mid (nth 2 nspan))
+            (with-current-buffer (pm-span-buffer span)
+              (funcall fn beg mid))
+            (setq beg (nth 1 nspan)
+                  mid (nth 2 nspan)))
+          (setq span nspan
+                ttype nttype))
+        (when (< mid end)
+          (let ((ichunks (cl-loop for im in (eieio-oref pm/polymode '-innermodes)
+                                  collect (cons im nil)))
+                (tichunks nil)
+                (spans nil))
+            (while (< mid end)
+              ;; 1. recompute outdated chunks
+              (setq tichunks nil)
+              (dolist (ichunk ichunks)
+                (if (and (cdr ichunk)
+                         (< mid (nth 5 ichunk)))
+                    (push ichunk tichunks)
+                  (let ((nchunk (pm-next-chunk (car ichunk) mid)))
+                    (when nchunk
+                      (push (cons (car ichunk) nchunk) tichunks)))))
+              (setq ichunks (reverse tichunks))
+              ;; 2. Compute all (next) spans
+              (setq spans nil)
+              (dolist (ichunk ichunks)
+                (let ((chunk (cdr ichunk)))
+                  (let ((span (cond
+                               ((< mid (nth 1 chunk)) (list nil mid (nth 1 chunk) (car chunk)))
+                               ((< mid (nth 2 chunk)) (list 'head (nth 1 chunk) (nth 2 chunk) (car chunk)))
+                               ((< mid (nth 3 chunk)) (list 'body (nth 2 chunk) (nth 3 chunk) (car chunk)))
+                               ((< mid (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk))))))
+                    (push span spans))))
+              (setq spans (nreverse spans))
+              ;; 3. Intersect
+              (setq nspan (list nil mid (point-max) hostmode))
+              (dolist (s spans)
+                (setq nspan (pm--intersect-spans nspan s)))
+              ;; (setq pm--span-counter (1+ pm--span-counter))
+              (pm-cache-span nspan)
+              (setq nttype (pm-true-span-type nspan))
+              ;; 4. funcall on region if type changed
+              (if (eq ttype nttype)
+                  (setq mid (nth 2 nspan))
+                (with-current-buffer (pm-span-buffer span)
+                  (funcall fn beg mid))
+                (setq beg (nth 1 nspan)
+                      mid (nth 2 nspan)))
+              (setq span nspan
+                    ttype nttype))))
+        (with-current-buffer (pm-span-buffer span)
+          (funcall fn beg mid))))))
+
+;; (defvar pm--span-counter 0)
+;; (defvar pm--mode-counter 0)
+;; (defun pm-debug-map-over-modes-test (&optional beg end)
+;;   (interactive)
+;;   (setq pm--span-counter 0)
+;;   (setq pm--mode-counter 0)
+;;   (pm-map-over-modes
+;;    (lambda (beg end)
+;;      (setq pm--mode-counter (1+ pm--mode-counter)))
+;;    (or beg (point-min))
+;;    (or end (point-max)))
+;;   (cons pm--span-counter pm--mode-counter))
+;; (defun pm-debug-map-over-spans-test (&optional beg end)
+;;   (interactive)
+;;   (setq pm--intersect-counter 0)
+;;   (pm-map-over-spans
+;;    (lambda (span)
+;;      (setq pm--intersect-counter (1+ pm--intersect-counter)))
+;;    (or beg (point-min))
+;;    (or end (point-max)))
+;;   pm--span-counter)
+
 (defun pm-map-over-spans (fun &optional beg end count backwardp visibly no-cache)
   "For all spans between BEG and END, execute FUN.
 FUN is a function of one argument a span object (also available
@@ -1142,29 +1232,6 @@ behavior."
                      (< pos end))
                    (< nr count)
                    (pm-innermost-span pos no-cache)))))))
-
-(defun pm-map-over-modes (fun &optional beg end)
-  "Execute FUN on regions of the same `major-mode' between BEG and END.
-FUN is a function of 2 arguments beginning and end of region and
-with the mode's buffer current. Point is at the beginning of the
-region. Buffer is *not* narrowed to the region."
-  (setq beg (or beg (point-min))
-        end (if end
-                (min end (point-max))
-              (point-max)))
-  (save-restriction
-    (widen)
-    (let ((span (pm-innermost-span beg))
-          (end1))
-      ;; ensure that :pm-mode property is correct
-      (while (< (nth 2 span) end)
-        (setq span (pm-innermost-span (nth 2 span))))
-      (while (< beg end)
-        (setq end1 (next-single-property-change beg :pm-mode nil (point-max)))
-        (goto-char beg)
-        (pm-set-buffer beg)
-        (funcall fun beg end1)
-        (setq beg end1)))))
 
 (defun pm-narrow-to-span (&optional span)
   "Narrow to current SPAN."
@@ -1383,7 +1450,6 @@ ARG is the same as in `forward-paragraph'"
       (widen)
       (save-excursion
 
-        ;; fixme: not entirely sure if this is really needed
         (dolist (b (oref pm/polymode -buffers))
           (when (buffer-live-p b)
             (with-current-buffer b
@@ -1394,6 +1460,7 @@ ARG is the same as in `forward-paragraph'"
         (save-match-data
           (let ((protect-host (with-current-buffer (pm-base-buffer)
                                 (eieio-oref pm/chunkmode 'protect-syntax))))
+
             ;; 1. host if no protection
             (unless protect-host
               ;; !!Note!! It is essential to run unprotected syntax if some
@@ -1401,6 +1468,7 @@ ARG is the same as in `forward-paragraph'"
               (with-current-buffer (pm-base-buffer)
                 (when pm--syntax-propertize-function-original
                   (pm--call-syntax-propertize-original start end))))
+
             ;; 2. all others
             (pm-map-over-spans
              (lambda (span)
@@ -1409,8 +1477,7 @@ ARG is the same as in `forward-paragraph'"
                               protect-host))
                  (let ((pos0 (max (nth 1 span) start))
                        (pos1 (min (nth 2 span) end)))
-                   (if (eieio-oref (nth 3 span) 'protect-syntax)
-                       (pm--call-syntax-propertize-original pos0 pos1)))))
+                   (pm--call-syntax-propertize-original pos0 pos1))))
              start end)))))))
 
 (defvar syntax-ppss-wide)

@@ -288,7 +288,7 @@ With NO-CACHE prefix, don't use cached values of the span."
     ;; core functions
     (5 (pm-select-buffer
         pm-map-over-spans
-        pm--intersect-spans
+        pm--get-intersected-span
         pm--cached-span))
     ;; (13 . "^syntax-")
     (14 . "^polymode-")
@@ -504,6 +504,22 @@ currently traced functions."
                          (pm-debug-flick-region start end)
                          (sit-for 1)))
                      (point-min) (point-max) nil nil t))
+
+(defun pm-debug-map-over-modes-and-highlight (&optional beg end)
+  "Map over all spans between BEG and END and highlight modes."
+  (interactive)
+  (let ((cbuf (current-buffer)))
+    (pm-fast-map-over-modes
+     (lambda (beg end)
+       (goto-char beg)
+       ;; (dbg beg end (pm-format-span))
+       (with-current-buffer cbuf
+         (recenter-top-bottom)
+         (pm-debug-flick-region (max beg (point-min))
+                                (min end (point-max))))
+       (sit-for 1))
+     (or beg (point-min))
+     (or end (point-max)))))
 
 (defun pm-debug-run-over-check (no-cache)
   "Map over all spans and report the time taken.
