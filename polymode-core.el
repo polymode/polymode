@@ -1170,8 +1170,7 @@ transport) are performed."
                 (setq ttype nttype
                       beg (nth 1 nspan)))
               (setq span nspan
-                    pos (nth 2 nspan))
-              (goto-char pos))))
+                    pos (nth 2 nspan)))))
         (with-current-buffer (pm-span-buffer span)
           (funcall fn beg pos))))))
 
@@ -1190,10 +1189,10 @@ transport) are performed."
 ;;   (cons pm--span-counter pm--mode-counter))
 ;; (defun pm-debug-map-over-spans-test (&optional beg end)
 ;;   (interactive)
-;;   (setq pm--intersect-counter 0)
+;;   (setq pm--span-counter 0)
 ;;   (pm-map-over-spans
 ;;    (lambda (span)
-;;      (setq pm--intersect-counter (1+ pm--intersect-counter)))
+;;      (setq pm--span-counter (1+ pm--span-counter)))
 ;;    (or beg (point-min))
 ;;    (or end (point-max)))
 ;;   pm--span-counter)
