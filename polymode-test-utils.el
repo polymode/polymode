@@ -406,5 +406,28 @@ points."
                                     (goto-char pos)
                                     (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))))))
 
+(defmacro pm-test-map-over-modes (mode file)
+  `(pm-test-run-on-file ,mode ,file
+     (let ((beg (point-min))
+           (end (point-max)))
+       (with-buffer-prepared-for-poly-lock
+        (remove-text-properties beg end '(:pm-span :pm-face)))
+       (pm-map-over-modes (lambda (b e)) beg end)
+       (while (< beg end)
+         (let ((span (get-text-property beg :pm-span))
+               (mid (next-single-property-change beg :pm-span nil end)))
+           (dolist (pos (list beg
+                              (/ (+ beg mid) 2)
+                              (1- mid)))
+             (let ((ispan (pm-innermost-span pos t)))
+               (unless (equal span ispan)
+                 (let ((span (copy-sequence span))
+                       (ispan (copy-sequence ispan)))
+                   (setf (nth 3 span) (eieio-object-name (nth 3 span)))
+                   (setf (nth 3 ispan) (eieio-object-name (nth 3 ispan)))
+                   (pm-switch-to-buffer pos)
+                   (ert-fail (list :pos pos :mode-span span :innermost-span ispan))))))
+           (setq beg (nth 2 span)))))))
+
 (provide 'polymode-test-utils)
 ;;; polymode-test-utils.el ends here

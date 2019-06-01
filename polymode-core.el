@@ -34,6 +34,7 @@
 (require 'color)
 (require 'polymode-classes)
 (require 'format-spec)
+(require 'subr-x)
 (eval-when-compile
   (require 'cl-lib)
   (require 'derived))
@@ -435,11 +436,10 @@ the front)."
                       (min (nth 2 span) (nth 2 thespan))
                       (nth 3 (if is-host thespan span))))))
        ;; 2. Inner span
-       ((or (> (nth 1 span) (nth 1 thespan))
-            (< (nth 2 span) (nth 2 thespan)))
-        ;; NB: no check if boundaries of two inner spans crossing; assume
-        ;; correct matchers. In case of crossing, if 'can-nest is t then later
-        ;; chunkmode wins otherwise the former one.
+       ((and (>= (nth 1 span) (nth 1 thespan))
+             (<= (nth 2 span) (nth 2 thespan)))
+        ;; Accepted only nested spans. In case of crossing (incorrect spans),
+        ;; first span wins.
         (when (or (null (car thespan))
                   (eieio-oref (nth 3 span) 'can-nest))
           (setq thespan span)))
@@ -811,14 +811,16 @@ forward spans from pos."
         (setq head (funcall head-matcher 1))
         (while (and head (< (car head) pos))
           (setq head (funcall head-matcher 1)))
-        ;; FIXME: can-overlap is not used
         (when head
           (goto-char (cdr head))
-          (let ((tail (funcall tail-matcher 1)))
-            (list (car head)
-                  (cdr head)
-                  (or (car tail) (point-max))
-                  (or (cdr tail) (point-max)))))))))
+          (let ((tail (or (funcall tail-matcher 1)
+                          (cons (point-max) (point-max)))))
+            (when can-overlap
+              (goto-char (cdr head))
+              (when-let ((hbeg (car (funcall head-matcher 1))))
+                (when (< hbeg (car tail))
+                  (setq tail (cons hbeg hbeg)))))
+            (list (car head) (cdr head) (car tail) (cdr tail))))))))
 
 (defun pm-goto-span-of-type (type N)
   "Skip to N - 1 spans of TYPE and stop at the start of a span of TYPE.
@@ -1106,36 +1108,39 @@ transport) are performed."
     (save-restriction
       (widen)
       (let* ((hostmode (eieio-oref pm/polymode '-hostmode))
-             (span (pm-innermost-span beg))
-             (beg (nth 1 span))
-             (mid (nth 2 span))
-             (ttype (pm-true-span-type span))
-             (nspan nil)
-             (nttype nil))
-        (while (memq (car span) '(head body))
-          (setq nspan (pm-innermost-span (nth 2 span))
-                nttype (pm-true-span-type nspan))
-          (if (eq ttype nttype)
-              (setq mid (nth 2 nspan))
-            (with-current-buffer (pm-span-buffer span)
-              (funcall fn beg mid))
-            (setq beg (nth 1 nspan)
-                  mid (nth 2 nspan)))
-          (setq span nspan
-                ttype nttype))
-        (when (< mid end)
+             (pos beg)
+             (ttype 'dummy)
+             span nspan nttype)
+        (when (< (point-min) beg)
+          (setq span (pm-innermost-span beg)
+                beg (nth 1 span)
+                pos (nth 2 span)
+                ttype (pm-true-span-type span))
+          (while (and (memq (car span) '(head body))
+                      (< pos end))
+            (setq nspan (pm-innermost-span (nth 2 span))
+                  nttype (pm-true-span-type nspan))
+            (if (eq ttype nttype)
+                (setq pos (nth 2 nspan))
+              (with-current-buffer (pm-span-buffer span)
+                (funcall fn beg pos))
+              (setq beg (nth 1 nspan)
+                    pos (nth 2 nspan)))
+            (setq span nspan
+                  ttype nttype)))
+        (when (< pos end)
           (let ((ichunks (cl-loop for im in (eieio-oref pm/polymode '-innermodes)
                                   collect (cons im nil)))
                 (tichunks nil)
                 (spans nil))
-            (while (< mid end)
+            (while (< pos end)
               ;; 1. recompute outdated chunks
               (setq tichunks nil)
               (dolist (ichunk ichunks)
                 (if (and (cdr ichunk)
-                         (< mid (nth 5 ichunk)))
+                         (< pos (nth 5 ichunk)))
                     (push ichunk tichunks)
-                  (let ((nchunk (pm-next-chunk (car ichunk) mid)))
+                  (let ((nchunk (pm-next-chunk (car ichunk) pos)))
                     (when nchunk
                       (push (cons (car ichunk) nchunk) tichunks)))))
               (setq ichunks (reverse tichunks))
@@ -1144,31 +1149,33 @@ transport) are performed."
               (dolist (ichunk ichunks)
                 (let ((chunk (cdr ichunk)))
                   (let ((span (cond
-                               ((< mid (nth 1 chunk)) (list nil mid (nth 1 chunk) (car chunk)))
-                               ((< mid (nth 2 chunk)) (list 'head (nth 1 chunk) (nth 2 chunk) (car chunk)))
-                               ((< mid (nth 3 chunk)) (list 'body (nth 2 chunk) (nth 3 chunk) (car chunk)))
-                               ((< mid (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk))))))
+                               ((< pos (nth 1 chunk)) (list nil pos (nth 1 chunk) (car chunk)))
+                               ((< pos (nth 2 chunk)) (list 'head (nth 1 chunk) (nth 2 chunk) (car chunk)))
+                               ((< pos (nth 3 chunk)) (list 'body (nth 2 chunk) (nth 3 chunk) (car chunk)))
+                               ((< pos (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk))))))
                     (push span spans))))
               (setq spans (nreverse spans))
               ;; 3. Intersect
-              (setq nspan (list nil mid (point-max) hostmode))
+              (setq nspan (list nil pos (point-max) hostmode))
               (dolist (s spans)
                 (setq nspan (pm--intersect-spans nspan s)))
-              ;; (setq pm--span-counter (1+ pm--span-counter))
+              ;; (setq pm--span-counter (1+ pm--span-counter)) ;; for debugging
               (pm-cache-span nspan)
               (setq nttype (pm-true-span-type nspan))
               ;; 4. funcall on region if type changed
-              (if (eq ttype nttype)
-                  (setq mid (nth 2 nspan))
-                (with-current-buffer (pm-span-buffer span)
-                  (funcall fn beg mid))
-                (setq beg (nth 1 nspan)
-                      mid (nth 2 nspan)))
+              (unless (eq ttype nttype)
+                (when span
+                  (with-current-buffer (pm-span-buffer span)
+                    (funcall fn beg pos)))
+                (setq ttype nttype
+                      beg (nth 1 nspan)))
               (setq span nspan
-                    ttype nttype))))
+                    pos (nth 2 nspan))
+              (goto-char pos))))
         (with-current-buffer (pm-span-buffer span)
-          (funcall fn beg mid))))))
+          (funcall fn beg pos))))))
 
+;; ;; do not delete: speed and consistency checks
 ;; (defvar pm--span-counter 0)
 ;; (defvar pm--mode-counter 0)
 ;; (defun pm-debug-map-over-modes-test (&optional beg end)
@@ -1442,8 +1449,37 @@ ARG is the same as in `forward-paragraph'"
               ;; (backtrace)
               (error-message-string err)))))
 
+(defun polymode-syntax-propertize-extend-region-in-host (start end)
+  (let ((base (pm-base-buffer))
+        (min (point-min))
+        (max (point-max)))
+    (when base
+      (with-current-buffer base
+        (save-restriction
+          (narrow-to-region min max)
+          ;; Relevant part from syntax-propertize
+          (let ((funs syntax-propertize-extend-region-functions)
+                (extended nil))
+            (while funs
+              (let* ((syntax-propertize--done most-positive-fixnum)
+                     (fn (pop funs))
+                     (new (unless (eq fn 'syntax-propertize-wholelines)
+                            (funcall fn start end))))
+                (when (and new
+                           (or (< (car new) start)
+                               (> (cdr new) end)))
+                  (setq extended t
+                        start (car new)
+                        end (cdr new))
+                  ;; If there's been a change, we should go through the list again
+                  ;; since this new position may warrant a different answer from
+                  ;; one of the funs we've already seen.
+                  (unless (eq funs (cdr syntax-propertize-extend-region-functions))
+                    (setq funs syntax-propertize-extend-region-functions)))))
+            (when extended (cons start end))))))))
+
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
-(defun polymode-syntax-propertize (start end)
+(defun polymode-syntax-propertize (beg end)
 
   (unless pm-initialization-in-progress
     (save-restriction
@@ -1458,27 +1494,30 @@ ARG is the same as in `forward-paragraph'"
 
         ;; some modes don't save data in their syntax propertize functions
         (save-match-data
-          (let ((protect-host (with-current-buffer (pm-base-buffer)
+          (let ((real-end end)
+                (base (pm-base-buffer))
+                (protect-host (with-current-buffer (pm-base-buffer)
                                 (eieio-oref pm/chunkmode 'protect-syntax))))
 
             ;; 1. host if no protection
             (unless protect-host
-              ;; !!Note!! It is essential to run unprotected syntax if some
-              ;; innermodes use text-property head/tail-matchers
-              (with-current-buffer (pm-base-buffer)
+              (with-current-buffer base
                 (when pm--syntax-propertize-function-original
-                  (pm--call-syntax-propertize-original start end))))
+                  ;; For syntax matchers the host mode syntax prioritization
+                  ;; should be smart enough to install relevant elements around
+                  ;; end for the followup map-over-modes to work correctly.
+                  (pm--call-syntax-propertize-original beg end))))
 
             ;; 2. all others
-            (pm-map-over-spans
-             (lambda (span)
+            (pm-map-over-modes
+             (lambda (mbeg mend)
                (when (and pm--syntax-propertize-function-original
-                          (or (pm-true-span-type span)
-                              protect-host))
-                 (let ((pos0 (max (nth 1 span) start))
-                       (pos1 (min (nth 2 span) end)))
-                   (pm--call-syntax-propertize-original pos0 pos1))))
-             start end)))))))
+                          (or protect-host
+                              (not (eq base (current-buffer)))))
+                 (pm--call-syntax-propertize-original (max beg mbeg) mend)
+                 (when (< end mend)
+                   (set 'syntax-propertize--done mend))))
+             beg end)))))))
 
 (defvar syntax-ppss-wide)
 (defvar syntax-ppss-last)

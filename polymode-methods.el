@@ -104,6 +104,9 @@ Ran by the polymode mode function."
     ;; FIXME: should not be here?
     (vc-refresh-state)
     (pm--common-setup)
+    (add-hook 'syntax-propertize-extend-region-functions
+              #'polymode-syntax-propertize-extend-region-in-host
+              -90 t)
     (pm--move-vars polymode-move-these-vars-from-base-buffer (pm-base-buffer)))
   (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook))
 
