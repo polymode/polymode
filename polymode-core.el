@@ -102,6 +102,9 @@
 ;; particularly relevant to font-lock setup and user hooks.
 (defvar pm-initialization-in-progress nil)
 
+(defvar pm-hide-implementation-buffers t)
+(defvar-local pm--core-buffer-name nil)
+
 
 ;;; CUSTOM
 
@@ -1015,6 +1018,9 @@ switch."
         (ractive (region-active-p))
         (mkt (mark t)))
 
+    (when pm-hide-implementation-buffers
+      (rename-buffer (generate-new-buffer-name (concat " " pm--core-buffer-name))))
+
     (setq pm/current nil)
 
     (pm--move-minor-modes polymode-move-these-minor-modes-from-base-buffer
@@ -1035,6 +1041,11 @@ switch."
         (deactivate-mark)
       (set-mark mkt)
       (activate-mark))
+
+    (when pm-hide-implementation-buffers
+      (rename-buffer
+       (generate-new-buffer-name
+        (replace-regexp-in-string "^ +" "" pm--core-buffer-name))))
 
     ;; avoid display jumps
     (goto-char point)
