@@ -200,9 +200,12 @@ initialized. Return the buffer."
     (font-lock-flush)
 
     ;; SYNTAX (must be done after font-lock for after-change order)
+
     (with-no-warnings
       ;; [OBSOLETE as of 25.1 but we still protect it]
       (pm-around-advice syntax-begin-function 'pm-override-output-position))
+    ;; (advice-remove 'c-beginning-of-syntax #'pm-override-output-position)
+
     ;; Ideally this should be called in some hook to avoid minor-modes messing
     ;; it up. Setting even if syntax-propertize-function is nil to have more
     ;; control over syntax-propertize--done.

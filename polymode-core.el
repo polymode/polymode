@@ -977,6 +977,8 @@ switch."
   (let ((buffer (pm-span-buffer span))
         (own (pm-own-buffer-p))
         (cbuf (current-buffer)))
+    ;; FIXME: investigate why this one is still needed.
+    ;; polymode-syntax-propertize should have taken care of it.
     (with-current-buffer buffer
       (pm--reset-ppss-cache span))
     (when (and own visibly)
@@ -1496,12 +1498,6 @@ ARG is the same as in `forward-paragraph'"
       (widen)
       (save-excursion
 
-        (dolist (b (oref pm/polymode -buffers))
-          (when (buffer-live-p b)
-            (with-current-buffer b
-              ;; `setq' doesn't have an effect because the var is let bound; `set' works
-              (set 'syntax-propertize--done end))))
-
         ;; some modes don't save data in their syntax propertize functions
         (save-match-data
           (let ((real-end end)
@@ -1512,6 +1508,7 @@ ARG is the same as in `forward-paragraph'"
             ;; 1. host if no protection
             (unless protect-host
               (with-current-buffer base
+                (set 'syntax-propertize--done end)
                 (when pm--syntax-propertize-function-original
                   ;; For syntax matchers the host mode syntax prioritization
                   ;; should be smart enough to install relevant elements around
@@ -1519,15 +1516,28 @@ ARG is the same as in `forward-paragraph'"
                   (pm--call-syntax-propertize-original beg end))))
 
             ;; 2. all others
-            (pm-map-over-modes
-             (lambda (mbeg mend)
-               (when (and pm--syntax-propertize-function-original
-                          (or protect-host
-                              (not (eq base (current-buffer)))))
-                 (pm--call-syntax-propertize-original (max beg mbeg) mend)
+            (let ((last-ppss nil))
+              (pm-map-over-modes
+               (lambda (mbeg mend)
+                 ;; Cannot set this earlier because some buffers might not be
+                 ;; created when this function is called. One major reason to
+                 ;; set this here is to avoid recurring into syntax-propertize
+                 ;; when propertize functions call syntax-ppss. `setq' doesn't
+                 ;; have an effect because the var is let bound but `set'
+                 ;; works.
+                 (set 'syntax-propertize--done end)
+                 (if (eq base (current-buffer))
+                     (when protect-host
+                       (pm--reset-ppss-cache-0 mbeg last-ppss)
+                       (when pm--syntax-propertize-function-original
+                         (pm--call-syntax-propertize-original (max beg mbeg) mend))
+                       (setq last-ppss (syntax-ppss mend)))
+                   (pm--reset-ppss-cache-0 mbeg)
+                   (when pm--syntax-propertize-function-original
+                     (pm--call-syntax-propertize-original (max beg mbeg) mend)))
                  (when (< end mend)
-                   (set 'syntax-propertize--done mend))))
-             beg end)))))))
+                   (set 'syntax-propertize--done mend)))
+               beg end))))))))
 
 (defvar syntax-ppss-wide)
 (defvar syntax-ppss-last)
@@ -1548,24 +1558,29 @@ ARG is the same as in `forward-paragraph'"
                         (not (= pos (point-min))))
               (let ((prev-span (pm-innermost-span (1- pos))))
                 (if (null (car prev-span))
-                    (setq new-ppss (cons sbeg (syntax-ppss (1- pos))))
+                    (setq new-ppss (syntax-ppss pos))
                   (setq pos (nth 1 prev-span)))))))))
-    (unless new-ppss
-      (setq new-ppss (list sbeg 0 nil sbeg nil nil nil 0 nil nil nil nil)))
-    ;; in emacs 26 there are two caches syntax-ppss-wide and
-    ;; syntax-ppss-narrow. The latter is reset automatically each time a
-    ;; different narrowing is in place so we don't deal with it for now.
-    (let ((cache (if pm--emacs>26
-                     (cdr syntax-ppss-wide)
-                   syntax-ppss-cache)))
-      (while (and cache (>= (caar cache) sbeg))
-        (setq cache (cdr cache)))
-      (setq cache (cons new-ppss cache))
-      (if pm--emacs>26
-          (setq syntax-ppss-wide (cons new-ppss cache))
-        (setq syntax-ppss-cache cache)
-        (setq syntax-ppss-last new-ppss)))
-    new-ppss))
+    (pm--reset-ppss-cache-0 sbeg new-ppss)))
+
+(defun pm--reset-ppss-cache-0 (pos &optional new-ppss)
+  (unless new-ppss
+    (setq new-ppss (list 0 nil pos nil nil nil 0 nil nil nil nil)))
+  ;; in emacs 26 there are two caches syntax-ppss-wide and
+  ;; syntax-ppss-narrow. The latter is reset automatically each time a
+  ;; different narrowing is in place so we don't deal with it for now.
+  (let ((cache (if pm--emacs>26
+                   (cdr syntax-ppss-wide)
+                 syntax-ppss-cache)))
+    (while (and cache (>= (caar cache) pos))
+      (setq cache (cdr cache)))
+    (setq cache (cons (cons pos new-ppss) cache))
+    (if pm--emacs>26
+        ;; syntax-ppss involves an aggressive cache cleaning; protect for one
+        ;; such cleaning by double entry
+        (setq syntax-ppss-wide (cons (car cache) cache))
+      (setq syntax-ppss-cache cache)
+      (setq syntax-ppss-last (cons pos new-ppss))))
+  new-ppss)
 
 
 ;; (defun polymode-reset-ppss-cache (&optional pos)
