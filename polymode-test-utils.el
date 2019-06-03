@@ -98,6 +98,10 @@ MODE is a quoted symbol."
        (insert (substring-no-properties ,string))
        (funcall ,mode)
        (setq-default indent-tabs-mode nil)
+       ;; In emacs 27 this is called from run-mode-hooks
+       (and (bound-and-true-p syntax-propertize-function)
+            (not (local-variable-p 'parse-sexp-lookup-properties))
+            (setq-local parse-sexp-lookup-properties t))
        (goto-char (point-min))
        (let ((poly-lock-allow-background-adjustment nil))
          (when polymode-mode
