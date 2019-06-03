@@ -190,23 +190,47 @@ MODE is a quoted symbol."
            (smode major-mode)
            (stext (buffer-substring-no-properties sbeg send))
            ;; other buffer
-           (obuf (pm-test-run-on-string smode stext))
-           (opos 1))
+           (ref-buf (pm-test-run-on-string smode stext))
+           (ref-pos 1))
       (when pm-verbose
         (message "---- testing %s ----" (pm-format-span span t)))
-      (while opos
-        (let* ((pos (1- (+ opos sbeg)))
+      ;; NB: String delimiters '' in pascal mode don't work in batch
+      ;; (require 'polymode-debug)
+      ;; (when (and (eq smode 'pascal-mode)
+      ;;            (> (buffer-size ref-buf) 29)
+      ;;            (> (buffer-size) 700))
+      ;;   (message "%s"
+      ;;            (list
+      ;;             :parse-sexp-lookup-properties  parse-sexp-lookup-properties
+      ;;             :font-lock-keywords-only font-lock-keywords-only
+      ;;             :font-lock-syntactic-face-function font-lock-syntactic-face-function
+      ;;             :font-lock-sk font-lock-syntactic-keywords
+      ;;             :syntax-prop-fun syntax-propertize-function
+      ;;             :ppss (syntax-ppss 675)
+      ;;             :char (pm--syntax-after 675)))
+      ;;   (with-current-buffer ref-buf
+      ;;     (message "%s"
+      ;;              (list
+      ;;               :parse-sexp-lookup-properties  parse-sexp-lookup-properties
+      ;;               :font-lock-keywords-only font-lock-keywords-only
+      ;;               :font-lock-syntactic-face-function font-lock-syntactic-face-function
+      ;;               :font-lock-sk font-lock-syntactic-keywords
+      ;;               :syntax-prop-fun syntax-propertize-function
+      ;;               :ppss-29 (syntax-ppss 29)
+      ;;               :char-29 (pm--syntax-after 29)))))
+      (while ref-pos
+        (let* ((pos (1- (+ ref-pos sbeg)))
                (face (get-text-property pos 'face))
-               (oface (get-text-property opos 'face obuf)))
+               (ref-face (get-text-property ref-pos 'face ref-buf)))
           (unless (or
                    ;; in markdown fence regexp matches end of line; it's likely
                    ;; to be a common mismatch between host mode and polymode,
                    ;; thus don't check first pos if it's a new line
-                   (and (= opos 1)
-                        (with-current-buffer obuf
+                   (and (= ref-pos 1)
+                        (with-current-buffer ref-buf
                           (eq (char-after 1) ?\n)))
                    (member face allow-failed-faces)
-                   (equal face oface))
+                   (equal face ref-face))
             (let ((data
                    (append
                     (when pm-test-current-change-set
@@ -215,19 +239,19 @@ MODE is a quoted symbol."
                      ;; :af poly-lock-allow-fontification
                      ;; :fl font-lock-mode
                      :face face
-                     :oface oface
+                     :ref-face ref-face
                      :pos pos
-                     :opos opos
+                     :ref-pos ref-pos
                      :line (progn (goto-char pos)
                                   (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
-                     :oline (with-current-buffer obuf
-                              (goto-char opos)
-                              (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+                     :ref-line (with-current-buffer ref-buf
+                                 (goto-char ref-pos)
+                                 (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
                      :mode smode))))
               ;; for the interactive convenience
               (switch-to-buffer (current-buffer))
               (ert-fail data)))
-          (setq opos (next-single-property-change opos 'face obuf)))))))
+          (setq ref-pos (next-single-property-change ref-pos 'face ref-buf)))))))
 
 (defun pm-test-faces (&optional allow-failed-faces)
   "Execute `pm-test-span-faces' for every span in the buffer.
@@ -321,6 +345,7 @@ execution undo is called once. After each change-set
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
+      (pm-test-faces)
       (dolist (cset ',change-sets)
         (let ((poly-lock-defer-after-change nil)
               (pm-test-current-change-set (caar cset)))

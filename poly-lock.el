@@ -236,6 +236,7 @@ Fontifies chunk-by chunk within the region BEG END."
                   (with-buffer-prepared-for-poly-lock
                    (when poly-lock-allow-fontification
                      (put-text-property beg end 'fontified nil) ; just in case
+                     ;; (message "jlrf-host:%d-%d %s" beg end major-mode)
                      (condition-case-unless-debug err
                          ;; NB: Some modes fontify beyond the limits (org-mode).
                          ;; We need a reliably way to detect the actual limit of
@@ -262,6 +263,7 @@ Fontifies chunk-by chunk within the region BEG END."
                       (let ((new-beg (max sbeg beg))
                             (new-end (min send end)))
                         (put-text-property new-beg new-end 'fontified nil)
+                        ;; (message "jlrf:%d-%d %s" new-beg new-end major-mode)
                         (condition-case-unless-debug err
                             (if (eieio-oref pm/chunkmode 'protect-font-lock)
                                 (pm-with-narrowed-to-span span
