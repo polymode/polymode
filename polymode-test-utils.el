@@ -150,9 +150,10 @@ MODE is a quoted symbol."
          (switch-to-buffer buf)
          (insert-file-contents file)
          (remove-hook 'text-mode-hook 'flyspell-mode) ;; triggers "too much reentrancy" error
-         (let ((inhibit-message t))
+         (let ((inhibit-message (not pm-verbose)))
            (funcall-interactively ',mode))
          ;; (flyspell-mode -1) ;; triggers "too much reentrancy" error
+         (hack-local-variables 'ignore-mode)
          (goto-char (point-min))
          ,pre-form
          ;; need this to activate all chunks
@@ -344,11 +345,16 @@ points."
     (let ((orig-line (buffer-substring-no-properties (point-at-eol) (point-at-bol))))
       (unless (string-match-p "no-indent-test" orig-line)
         (undo-boundary)
+        ;; (pm-switch-to-buffer)
+        ;; (message "line:%d pos:%s buf:%s ppss:%s spd:%s"
+        ;;          (line-number-at-pos) (point) (current-buffer)
+        ;;          (syntax-ppss) syntax-propertize--done)
         (pm-indent-line-dispatcher)
         (unless (equal orig-line (buffer-substring-no-properties (point-at-eol) (point-at-bol)))
           (undo-boundary)
           (pm-switch-to-buffer (point))
           (ert-fail (list :pos (point) :line (line-number-at-pos)
+                          :mode major-mode
                           :indent-line (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))
     (forward-line 1))
   (let (points1 points2)
@@ -375,7 +381,7 @@ points."
   "Test indentation for MODE and FILE."
   `(pm-test-run-on-file ,mode ,file
      (undo-boundary)
-     (let ((inhibit-message t))
+     (let ((inhibit-message (not pm-verbose)))
        (unwind-protect
            (pm-test--run-indentation-tests)
          (undo-boundary)))))
