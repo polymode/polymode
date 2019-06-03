@@ -433,26 +433,32 @@ currently traced functions."
              pm--syntax-propertize-function-original)))
 
 ;;;###autoload
-(defun pm-debug-print-relevant-variables ()
-  "Print values of relevant hooks and other variables."
-  (interactive)
-  (let* ((buff (get-buffer-create "*polymode-vars*"))
-         (cbuff (current-buffer))
+(defun pm-debug-relevant-variables (&optional out-type)
+  "Get the relevant polymode variables.
+If OUT-TYPE is 'buffer, print the variables in the dedicated
+buffer, if 'message issue a message, if nil just return a list of values."
+  (interactive (list 'buffer))
+  (let* ((cbuff (current-buffer))
          (vars (cl-loop for v on pm-debug-relevant-variables by #'cddr
                         collect (cons (car v)
                                       (mapcar (lambda (v)
                                                 (cons v (buffer-local-value v cbuff)))
-                                              (cadr v)))))
-         (cbuff (current-buffer)))
+                                              (cadr v))))))
     (require 'pp)
-    (with-current-buffer buff
-      (erase-buffer)
-      (goto-char (point-max))
-      (insert (format "\n================== %s ===================\n" cbuff))
-      (insert (pp-to-string vars))
-      (toggle-truncate-lines -1)
-      (goto-char (point-max)))
-    (display-buffer buff)))
+    (cond
+     ((eq out-type 'buffer)
+      (with-current-buffer (get-buffer-create "*polymode-vars*")
+        (erase-buffer)
+        (goto-char (point-max))
+        (insert (format "\n================== %s ===================\n" cbuff))
+        (insert (pp-to-string vars))
+        (toggle-truncate-lines -1)
+        (goto-char (point-max))
+        (view-mode)
+        (display-buffer (current-buffer))))
+     ((eq out-type 'message)
+      (message "%s" (pp-to-string vars)))
+     (t vars))))
 
 (defun pm-debug-diff-local-vars (&optional buffer1 buffer2)
   "Print differences between local variables in BUFFER1 and BUFFER2."
