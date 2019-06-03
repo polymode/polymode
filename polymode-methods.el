@@ -149,7 +149,11 @@ Ran by the polymode mode function."
             ;; !! run-mode-hooks and hack-local-variables run here
             (funcall mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s"
-                          mode (error-message-string err))))))
+                          mode (error-message-string err))))
+        ;; In emacs 27 this is called from run-mode-hooks
+        (and (bound-and-true-p syntax-propertize-function)
+             (not (local-variable-p 'parse-sexp-lookup-properties))
+             (setq-local parse-sexp-lookup-properties t))))
     (setq polymode-mode t)
     (current-buffer)))
 

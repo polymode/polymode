@@ -1490,9 +1490,15 @@ ARG is the same as in `forward-paragraph'"
                     (setq funs syntax-propertize-extend-region-functions)))))
             (when extended (cons start end))))))))
 
+;; do-not delete: used for hard debugging of syntax properties in batch
+;; (defun pm-syntax-after (pos)
+;;   (let ((syntax (syntax-after pos)))
+;;     (with-temp-buffer
+;;       (internal-describe-syntax-value syntax)
+;;       (buffer-string))))
+
 ;; called from syntax-propertize and thus at the beginning of syntax-ppss
 (defun polymode-syntax-propertize (beg end)
-
   (unless pm-initialization-in-progress
     (save-restriction
       (widen)
@@ -1525,7 +1531,7 @@ ARG is the same as in `forward-paragraph'"
                  ;; when propertize functions call syntax-ppss. `setq' doesn't
                  ;; have an effect because the var is let bound but `set'
                  ;; works.
-                 (set 'syntax-propertize--done end)
+                 (set 'syntax-propertize--done (max end mend))
                  (if (eq base (current-buffer))
                      (when protect-host
                        (pm--reset-ppss-cache-0 mbeg last-ppss)
@@ -1534,9 +1540,7 @@ ARG is the same as in `forward-paragraph'"
                        (setq last-ppss (syntax-ppss mend)))
                    (pm--reset-ppss-cache-0 mbeg)
                    (when pm--syntax-propertize-function-original
-                     (pm--call-syntax-propertize-original (max beg mbeg) mend)))
-                 (when (< end mend)
-                   (set 'syntax-propertize--done mend)))
+                     (pm--call-syntax-propertize-original (max beg mbeg) mend))))
                beg end))))))))
 
 (defvar syntax-ppss-wide)

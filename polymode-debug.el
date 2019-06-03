@@ -413,6 +413,7 @@ currently traced functions."
     ;; If any of these are reset by host mode it can create issues with
     ;; font-lock and syntax (e.g. scala-mode in #195)
     :search (parse-sexp-lookup-properties
+             parse-sexp-ignore-comments
              ;; (syntax-table)
              ;; font-lock-syntax-table
              case-fold-search)
