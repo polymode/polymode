@@ -58,15 +58,22 @@ test: version clean
 	@echo "******************* TESTING $(MODULE) **************************"
 	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
 
-version:
-	@echo "EMACS VERSION: $(EMACS_VERSION)"
-	@echo "GIT HEAD: $(shell git rev-parse --short HEAD)"
+test/%:
+	$(eval PATTERN := $(subst test/, , $@))
+	@echo "********** TESTING WITH PATTERN $(PATTERN) in $(MODULE) ************"
+	@$(EMACSBATCH) --load targets/melpa-init \
+		--eval "(setq pm-ert-selector \"$(PATTERN)\")" \
+		--load targets/test.el
 
 template../%:
 	@echo $@
 	$(eval OUTDIR := $(subst template, , $@))
 	$(eval ABSDIR := $(abspath $(OUTDIR)))
 	./targets/template.sh $(ABSDIR)
+
+version:
+	@echo "EMACS VERSION: $(EMACS_VERSION)"
+	@echo "GIT HEAD: $(shell git rev-parse --short HEAD)"
 
 update-versions:
 	@echo "******************* UPDATING VERSIONS **************************"

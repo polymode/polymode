@@ -5,4 +5,7 @@
 (dolist (f (directory-files polymode-test-dir t ".*el$"))
   (load f))
 
-(ert-run-tests-batch-and-exit t)
+(ert-run-tests-batch-and-exit
+ (if (boundp 'pm-ert-selector)
+     pm-ert-selector
+   t))
