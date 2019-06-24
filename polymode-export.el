@@ -404,7 +404,7 @@ for each polymode in CONFIGS."
      ("textile" "\\.textile\\'" "Textile"       "pandoc %i -f textile -t %t -o %o")
      ("rst"     "\\.rst\\'" "reStructuredText"  "pandoc %i -f rst -t %t -o %o")
      ("html"    "\\.x?html?\\'" "HTML"  "pandoc %i -f html -t %t -o %o")
-     ("doocbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f doocbook -t %t -o %o")
+     ("docbook"    "\\.xml\\'" "DocBook"       "pandoc %i -f docbook -t %t -o %o")
      ("mediawiki"   "\\.wiki\\'" "MediaWiki"        "pandoc %i -f mediawiki -t %t -o %o")
      ("latex"   "\\.tex\\'" "LaTeX"         "pandoc %i -f latex -t %t -o %o"))
    :to
