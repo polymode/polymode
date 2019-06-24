@@ -428,6 +428,7 @@ for each polymode in CONFIGS."
      ("docbook"	"xml"  "DocBook XML" "docbook")
      ("opendocument"    "xml"	"OpenDocument XML" "opendocument")
      ("odt"     "odt"  "OpenOffice text document" "odt")
+     ("pdf"     "pdf"  "Portable Document Format" "latex")
      ("docx"    "docx"  "Word docx" "docx")
      ("epub"    "epub"  "EPUB book" "epub")
      ("epub3"   "epub"  "EPUB v3" "epub3")
