@@ -278,27 +278,36 @@ changes."
 ;; (pm-around-advice 'newline #'polymode-newline-remove-hook-in-orig-buffer)
 
 
-;;; DESKTOP SAVE #194
+;;; DESKTOP SAVE #194 #240
 
-;; NB: desktop-save saves indirect buffers as base buffers but assumes that
-;; buffer names are the same. This would be ok if we hide implementation buffers
-;; as per #34.
+;; NB: desktop-save will not save indirect buffer.
+;; For base buffer, if it's hidden as per #34, we will save it unhide by removing left whitespaces.
 
 (defun polymode-fix-desktop-buffer-info (fn buffer)
-  "Save polymode buffers without mode prefix."
-  (let ((out (funcall fn buffer))
-        (base (buffer-base-buffer)))
-    (with-current-buffer buffer
-      (if (not (and polymode-mode base))
-          out
-        (when (car out)
-          (setf (car out) (buffer-name base)))
-        (setf (nth 2 out) (buffer-name base))
-        out))))
+  "Unhide poly-mode base buffer which is hidden as per #34.
+This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'."
+  (with-current-buffer buffer
+    (let ((out (funcall fn buffer))
+          (name (buffer-name)))
+      (when (and polymode-mode
+                 (not (buffer-base-buffer))
+                 (not (car out)))
+        (setf (car out) pm--core-buffer-name))
+      out)))
 
 (declare-function desktop-buffer-info "desktop")
 (with-eval-after-load "desktop"
   (advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info))
+
+(defun polymode-fix-desktop-save-buffer-p (_ bufname &rest _args)
+  "Dont save polymode buffers which are indirect buffers."
+  (with-current-buffer bufname
+    (not (and polymode-mode
+              (buffer-base-buffer)))))
+
+(declare-function desktop-save-buffer-p "desktop")
+(with-eval-after-load "desktop"
+  (advice-add #'desktop-save-buffer-p :before-while #'polymode-fix-desktop-save-buffer-p))
 
 
 ;;; MATLAB #199
