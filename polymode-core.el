@@ -103,6 +103,14 @@
 (defvar pm-hide-implementation-buffers t)
 (defvar-local pm--core-buffer-name nil)
 
+(defun pm--hidden-buffer-name ()
+  (generate-new-buffer-name (concat " " pm--core-buffer-name)))
+
+(defun pm--visible-buffer-name ()
+  (generate-new-buffer-name
+   (replace-regexp-in-string "^ +" "" pm--core-buffer-name)))
+
+
 
 ;;; CUSTOM
 
@@ -1019,7 +1027,7 @@ switch."
         (mkt (mark t)))
 
     (when pm-hide-implementation-buffers
-      (rename-buffer (generate-new-buffer-name (concat " " pm--core-buffer-name))))
+      (rename-buffer (pm--hidden-buffer-name)))
 
     (setq pm/current nil)
 
@@ -1043,9 +1051,7 @@ switch."
       (activate-mark))
 
     (when pm-hide-implementation-buffers
-      (rename-buffer
-       (generate-new-buffer-name
-        (replace-regexp-in-string "^ +" "" pm--core-buffer-name))))
+      (rename-buffer (pm--visible-buffer-name)))
 
     ;; avoid display jumps
     (goto-char point)
