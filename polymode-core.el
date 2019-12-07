@@ -953,7 +953,11 @@ Parents' hooks are run first."
     text-scale-mode-amount
     truncate-lines
     truncate-partial-width-windows
-    word-wrap)
+    word-wrap
+    ;; multiple-cursors stores here a command in a pre-command-hook
+    ;; and executes it for all cursors in a post-command-hook so we
+    ;; need to transfer in case the buffer was switched.
+    mc--this-command)
   "Variables transferred from old buffer on buffer switch.")
 
 (defvar polymode-move-these-minor-modes-from-base-buffer nil
@@ -962,7 +966,8 @@ Parents' hooks are run first."
   '(linum-mode
     visual-line-mode
     visual-fill-column-mode
-    writeroom-mode)
+    writeroom-mode
+    multiple-cursors-mode)
   "List of minor modes to move from the old buffer.")
 
 (defun pm-own-buffer-p (&optional buffer)
