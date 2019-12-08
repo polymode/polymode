@@ -56,12 +56,12 @@ startvs: version
 
 test: version clean
 	@echo "******************* TESTING $(MODULE) **************************"
-	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
+	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
 
 test/%:
 	$(eval PATTERN := $(subst test/, , $@))
 	@echo "********** TESTING WITH PATTERN $(PATTERN) in $(MODULE) ************"
-	@$(EMACSBATCH) --load targets/melpa-init \
+	$(EMACSBATCH) --load targets/melpa-init \
 		--eval "(setq pm-ert-selector \"$(PATTERN)\")" \
 		--load targets/test.el
 
