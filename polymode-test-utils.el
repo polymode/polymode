@@ -30,8 +30,6 @@
 ;;
 ;;; Code:
 
-(setq eieio-backward-compatibility nil)
-
 (require 'ert)
 (require 'polymode)
 (eval-when-compile

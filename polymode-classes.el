@@ -31,11 +31,6 @@
 (require 'eieio-base)
 (require 'eieio-custom)
 
-;; FIXME: fix emacs eieo-named bug #22840 where they wrongly set name of the
-;; parent object in clone method
-
-(setq eieio-backward-compatibility nil)
-
 (defvar pm--object-counter 0)
 
 (defun pm--filter-slots (slots)
@@ -488,8 +483,6 @@ called at the beginning of the head span."))
   "Inner chunkmodes with unknown (at definition time) mode of the
 body span. The body mode is determined dynamically by retrieving
 the name with the :mode-matcher.")
-
-(setq eieio-backward-compatibility t)
 
 (provide 'polymode-classes)
 ;;; polymode-classes.el ends here
