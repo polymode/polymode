@@ -951,6 +951,9 @@ Parents' hooks are run first."
     selective-display
     text-scale-mode
     text-scale-mode-amount
+    ;; transient-mark-mode stores here the state of selection
+    ;; when the shift-select-mode is enabled
+    transient-mark-mode
     truncate-lines
     truncate-partial-width-windows
     word-wrap
