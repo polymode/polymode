@@ -5,7 +5,7 @@
 ;; Copyright (C) 2013-2019, Vitalie Spinu
 ;; Version: 0.2
 ;; Package-Requires: ((emacs "25"))
-;; URL: https://github.com/vitoshka/polymode
+;; URL: https://github.com/polymode/polymode
 ;; Keywords: languages, multi-modes, processes
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
