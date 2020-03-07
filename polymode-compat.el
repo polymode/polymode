@@ -221,7 +221,8 @@ changes."
          (not (eq obeg font-lock-beg))
          (not (eq oend font-lock-end)))))
 
-(pm-around-advice 'font-lock-extend-region-multiline #'pm-check-for-real-change-in-extend-multiline)
+(pm-around-advice #'font-lock-extend-region-multiline
+                  #'pm-check-for-real-change-in-extend-multiline)
 
 
 ;;; Editing

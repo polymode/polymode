@@ -14,7 +14,8 @@
                         (car (read-from-string (buffer-substring (point) (point-at-eol))))))
       package-deps (delq 'emacs (delete-dups (append deps (mapcar #'car deps-requires))))
       package-user-dir (expand-file-name (format ".ELPA/%s" emacs-version))
-      package-archives '(("melpa" . "https://melpa.org/packages/")))
+      package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+                         ("melpa" . "https://melpa.org/packages/")))
 
 (defun package-desc-new (name)
   (cadr (assq name package-archive-contents)))
