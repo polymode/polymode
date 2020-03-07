@@ -542,6 +542,7 @@ OLD-LEN are as in `after-change-functions'. When
                         prop)))
 
 (declare-function pm-get-adjust-face "polymode-methods")
+(defvar poly-lock--extra-span-props (when (fboundp 'set-face-extend) (list :extend t)))
 (defun poly-lock-adjust-span-face (span)
   "Adjust 'face property of SPAN..
 How adjustment is made is defined in :adjust-face slot of the
@@ -550,8 +551,8 @@ SPAN's chunkmode."
   (let ((face (pm-get-adjust-face (nth 3 span) (car span))))
     (let ((face (if (numberp face)
                     (unless (= face 0)
-                      (list (list :background
-                                  (poly-lock--adjusted-background face))))
+                      (list (append (list :background (poly-lock--adjusted-background face))
+                                    poly-lock--extra-span-props)))
                   face)))
       (when face
         (font-lock-append-text-property
