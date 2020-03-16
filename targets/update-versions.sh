@@ -1,6 +1,7 @@
 #!/bin/bash
 ## Update version of polymode and all poly-xyz packages in the parent directory
-## NB: Modify Version: x.y.z in polymode.el then make update-versions
+## NB: Modify Version: x.y.z in polymode.el then make update-versions.
+## NB: !!! Don't commit here !!!
 
 set -e
 
