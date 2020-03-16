@@ -78,3 +78,7 @@ version:
 update-versions:
 	@echo "******************* UPDATING VERSIONS **************************"
 	@./targets/update-versions.sh
+
+update-templates:
+	@echo "******************* UPDATING TEMPLATES *************************"
+	@./targets/update-templates.sh
