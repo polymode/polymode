@@ -1729,7 +1729,9 @@ Return FALLBACK if non-nil, otherwise the value of
                   (or (cdr (assq (intern (pm--symbol-name name))
                                  polymode-mode-name-aliases))
                       name)))
-            (mname (concat str "-mode")))
+            (mname (if (string-match-p "-mode$" str)
+                       str
+                     (concat str "-mode"))))
        (or
         ;; direct search
         (let ((mode (intern mname)))
