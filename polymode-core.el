@@ -1084,7 +1084,7 @@ switch."
       (with-current-buffer to-buffer
         (dolist (var vars)
           (when (default-boundp var)
-            (make-variable-buffer-local var)
+            (make-local-variable var)
             (set var (buffer-local-value var from-buffer))))))))
 
 (defun pm--move-minor-modes (modes from-buffer &optional to-buffer)
