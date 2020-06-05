@@ -624,9 +624,7 @@ most frequently used slots are:
              (setq ,mode state)
              (if state
                  (unless (buffer-base-buffer)
-                   ;; Call in indirect buffers only. Inner modes during
-                   ;; initialization call this polymode minor-mode which triggers
-                   ;; this `pm-initialize'.
+                   ;; Call in host (base) buffers only.
                    (when ,mode
                      (let ((obj (clone ,config-name)))
                        ;; (eieio-oset obj '-minor-mode ',mode)

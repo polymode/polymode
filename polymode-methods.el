@@ -39,7 +39,7 @@
   "Initialization of host buffers.
 Ran by the polymode mode function."
   ;; Not calling config's '-minor-mode in hosts because this pm-initialize is
-  ;; called from minor-mode itself.
+  ;; called from minor-mode itself in base buffers.
   (let* ((hostmode-name (eieio-oref config 'hostmode))
          (hostmode (if hostmode-name
                        (clone (symbol-value hostmode-name))
@@ -93,14 +93,11 @@ Ran by the polymode mode function."
     (rename-buffer new-name)
     (pm--mode-setup mode)
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
-    ;; fixme: This breaks if different chunkmodes use same-mode buffer. Even for
+    ;; FIXME: This breaks if different chunkmodes use same-mode buffer. Even for
     ;; head/tail the value of pm/type will be wrong for tail
     (setq pm--core-buffer-name core-name
           pm/chunkmode chunkmode
           pm/type (pm-true-span-type chunkmode type))
-    ;; Call polymode mode for the sake of the keymap. Same minor mode which runs
-    ;; in the host buffer but without all the heavy initialization.
-    (funcall (eieio-oref pm/polymode '-minor-mode))
     ;; FIXME: should not be here?
     (vc-refresh-state)
     (pm--common-setup)
@@ -112,7 +109,10 @@ Ran by the polymode mode function."
     ;; inner buffers.
     (when pm-hide-implementation-buffers
       (rename-buffer (generate-new-buffer-name (concat " " pm--core-buffer-name)))))
-  (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook))
+  (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook)
+  ;; Call polymode mode for the sake of the keymap and hook. Same minor mode
+  ;; which runs in the host buffer but without recursive call to `pm-initialize'.
+  (funcall (eieio-oref pm/polymode '-minor-mode)))
 
 (defvar poly-lock-allow-fontification)
 (defun pm--mode-setup (mode &optional buffer)
