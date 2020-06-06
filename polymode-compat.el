@@ -288,8 +288,7 @@ changes."
   "Unhide poly-mode base buffer which is hidden as per #34.
 This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'."
   (with-current-buffer buffer
-    (let ((out (funcall fn buffer))
-          (name (buffer-name)))
+    (let ((out (funcall fn buffer)))
       (when (and polymode-mode
                  (not (buffer-base-buffer))
                  (not (car out)))
@@ -322,6 +321,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 ;;; Undo Tree (#230)
 ;; Not clear why this fix works, or even why the problem occurs.
 (declare-function make-undo-tree "undo-tree")
+(defvar buffer-undo-tree)
 (defun polymode-init-undo-tree-maybe ()
   (when (and (boundp 'undo-tree-mode)
              undo-tree-mode
@@ -375,14 +375,16 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 
 ;;; Multiple cursors
 
+(defvar mc--executing-command-for-fake-cursor)
 (defun polymode-disable-post-command-with-multiple-cursors (orig-fun &rest args)
   (unless mc--executing-command-for-fake-cursor
     (polymode-disable-post-command)
     (apply orig-fun args)
     (polymode-enable-post-command)))
 
-(with-eval-after-load "multiple-cursors-core"
-  (advice-add #'mc/execute-this-command-for-all-cursors :around
-              #'polymode-disable-post-command-with-multiple-cursors))
+(with-no-warnings
+  (with-eval-after-load "multiple-cursors-core"
+    (advice-add #'mc/execute-this-command-for-all-cursors :around
+                #'polymode-disable-post-command-with-multiple-cursors)))
 
 ;;; polymode-compat.el ends here

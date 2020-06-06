@@ -356,7 +356,7 @@ TYPE can be 'body, 'head or 'tail. SELF is the CHUNKMODE."
 Return a list of three elements (CHUNKMODE HEAD-BEG HEAD-END
 TAIL-BEG TAIL-END).")
 
-(cl-defmethod pm-next-chunk (chunkmode &optional _pos)
+(cl-defmethod pm-next-chunk (_chunkmode &optional _pos)
   nil)
 
 (cl-defmethod pm-next-chunk ((chunkmode pm-inner-chunkmode) &optional pos)

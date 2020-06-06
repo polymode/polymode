@@ -95,7 +95,7 @@ Shortcut | Description
 <kbd>M-n M-f</kbd> | Toggle font-locking (`pm-debug-toggle-fontification`)
 <kbd>M-n M-h</kbd> | Map through all spans and briefly blink each span (`pm-debug-map-over-spans-and-highlight`)
 <kbd>M-n M-i</kbd> | Highlight current span and display more info (`pm-debug-info-on-span`)
-<kbd>M-n M-p</kbd> | Print values of relevant variables in current buffer (`pm-debug-print-relevant-variables`)
+<kbd>M-n M-p</kbd> | Print values of relevant variables in current buffer (`pm-debug-relevant-variables`)
 <kbd>M-n M-t i</kbd> | Toggle info messages (`pm-debug-toogle-info-message`)
 <kbd>M-n M-t f</kbd> | Toggle whether font-lock should be performed (`pm-debug-toggle-fontification`)
 <kbd>M-n M-t p</kbd> | Toggle post-command hook (`pm-debug-toggle-post-command`)

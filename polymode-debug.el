@@ -52,8 +52,8 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "M-n M-i")     #'pm-debug-info-on-current-span)
     (define-key map (kbd "M-n i")       #'pm-debug-info-on-current-span)
-    (define-key map (kbd "M-n M-p")     #'pm-debug-print-relevant-variables)
-    (define-key map (kbd "M-n p")       #'pm-debug-print-relevant-variables)
+    (define-key map (kbd "M-n M-p")     #'pm-debug-relevant-variables)
+    (define-key map (kbd "M-n p")       #'pm-debug-relevant-variables)
     (define-key map (kbd "M-n M-h")     #'pm-debug-map-over-spans-and-highlight)
     (define-key map (kbd "M-n h")       #'pm-debug-map-over-spans-and-highlight)
     (define-key map (kbd "M-n M-t t")   #'pm-toggle-tracing)
@@ -514,7 +514,7 @@ buffer, if 'message issue a message, if nil just return a list of values."
   "Map over all spans between BEG and END and highlight modes."
   (interactive)
   (let ((cbuf (current-buffer)))
-    (pm-fast-map-over-modes
+    (pm-map-over-modes
      (lambda (beg end)
        (goto-char beg)
        ;; (dbg beg end (pm-format-span))
