@@ -112,7 +112,7 @@
    (replace-regexp-in-string "^ +" "" pm--core-buffer-name)))
 
 
-
+
 ;;; CUSTOM
 
 ;;;###autoload
@@ -218,7 +218,7 @@ The hook is run in chunkmode's body buffer from `pm-initialze'
 objects provides same functionality for narrower scope. See also
 `polymode-init-host-hook'.")
 
-
+
 ;;; Mode Macros
 
 (defun polymode--define-chunkmode (constructor name parent doc key-args)
@@ -297,7 +297,7 @@ key-value pairs. See the documentation of the class
   (polymode--define-chunkmode 'pm-inner-auto-chunkmode name parent doc key-args))
 
 
-
+
 ;;; MESSAGES
 
 (defvar pm-extra-span-info nil)
@@ -321,7 +321,7 @@ key-value pairs. See the documentation of the class
         (format "%s[%s %s-%s %s]" extra type beg end oname)
       (format "[%s %s-%s %s]%s" type beg end oname extra))))
 
-
+
 ;;; SPANS
 
 (defsubst pm-base-buffer ()
@@ -857,7 +857,7 @@ TYPE is either a symbol or a list of symbols of span types."
       (quit nil))
     sofar))
 
-
+
 ;;; OBJECT HOOKS
 
 (defun pm--run-derived-mode-hooks ()
@@ -920,7 +920,7 @@ Parents' hooks are run first."
               funs)
       (mapc #'funcall funs))))
 
-
+
 ;;; BUFFER SELECTION
 
 ;; Transfer of the buffer-undo-list is managed internally by emacs
@@ -1284,7 +1284,7 @@ behavior."
      ,@body))
 
 
-
+
 ;;; HOOKS
 ;; There is also `poly-lock-after-change' in poly-lock.el
 
@@ -1386,7 +1386,7 @@ NEW-MODE can be t in which case mode is picked from the
 
 (add-hook 'after-change-major-mode-hook #'polymode-after-change-major-mode-cleanup)
 
-
+
 ;;; CORE ADVICE
 
 (defun pm-around-advice (fun advice)
@@ -1437,7 +1437,7 @@ Used in advises."
 ;; (advice-remove #'kill-buffer #'polymode-with-current-base-buffer)
 ;; (advice-remove #'find-alternate-file #'polymode-with-current-base-buffer)
 
-
+
 ;;; FILL
 
 ;; FIXME: this is an incomplete heuristic and breaks on adjacent multi-span
@@ -1459,7 +1459,7 @@ ARG is the same as in `forward-paragraph'"
       (pm-goto-span-of-type (car cur-span) (if neg 1 -1)))
     out))
 
-
+
 ;;; SYNTAX
 
 (defun pm--call-syntax-propertize-original (start end)
@@ -1628,7 +1628,7 @@ ARG is the same as in `forward-paragraph'"
 ;;           (funcall orig-fun beg end)))
 ;;     (funcall orig-fun beg end)))
 
-
+
 ;;; INTERNAL UTILITIES
 
 (defun pm--set-transient-map (commands)
@@ -1865,7 +1865,7 @@ Elements of LIST can be either strings or symbols."
                collection))
     (completing-read prompt collection predicate require-match initial-input hist def inherit-input-method)))
 
-
+
 ;;; WEAVING and EXPORTING
 ;; fixme: move all these into separate polymode-process.el?
 (defvar polymode-exporter-output-file-format)

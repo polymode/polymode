@@ -99,7 +99,7 @@ Lives on `polymode-prefix-key' in polymode buffers.")
     ["Export" polymode-export]
     ["Set Exporter" polymode-set-exporter]))
 
-
+
 ;;; NAVIGATION
 
 (defun polymode-next-chunk (&optional N)
@@ -171,7 +171,7 @@ Return the number of chunks of the same type moved over."
   (interactive "p")
   (polymode-next-chunk-same-type (- N)))
 
-
+
 ;;; KILL and NARROWING
 
 (defun pm--kill-span (types)
@@ -304,7 +304,7 @@ is bound on M\\=-n M\\=-m (the default)
         (pop-to-buffer buf `(nil . ((inhibit-same-window . ,pop-up-windows))))
       (message "No polymode process buffers found."))))
 
-
+
 ;;; EVALUATION
 
 (defvar polymode-eval-map
@@ -408,7 +408,7 @@ non-nil, don't throw if `polymode-eval-region-function' is nil."
   (interactive)
   (polymode-eval-region (point) (point-max) "Eval buffer till end"))
 
-
+
 ;;; DEFINE
 
 (defun pm--config-name (symbol &optional must-exist)

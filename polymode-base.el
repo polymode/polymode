@@ -29,7 +29,7 @@
 
 (require 'polymode-core)
 
-
+
 ;; HOST MODES
 
 (define-obsolete-variable-alias 'pm-host/ada 'poly-ada-hostmode "v0.2")
@@ -84,7 +84,7 @@
 (define-obsolete-variable-alias 'pm-host/yaml 'poly-yaml-hostmode "v0.2")
 (define-hostmode poly-yaml-hostmode :mode 'yaml-mode)
 
-
+
 ;;; ROOT POLYMODES
 
 ;; These are simple generic configuration objects. More specialized polymodes

@@ -195,7 +195,7 @@ that call a shell command. SENTINEL is the process sentinel."
                          (concat "Exporting " from "-->" to " with command:\n\n     "
                                  command "\n\n")))
 
-
+
 ;;; METHODS
 
 (cl-defgeneric pm-export (exporter from to &optional ifile)
@@ -212,7 +212,7 @@ that call a shell command. SENTINEL is the process sentinel."
   (let ((cb (pm--wrap-callback exporter :sentinel ifile)))
     (pm--process-internal exporter from to ifile cb (eieio-oref exporter 'quote))))
 
-
+
 ;; UI
 
 (defvar pm--exporter-hist nil)
@@ -389,7 +389,7 @@ for each polymode in CONFIGS."
      (object-add-to-list (symbol-value pm) :exporters ',exporter)
      (when ,default (oset (symbol-value pm) :exporter ',exporter))))
 
-
+
 ;;; GLOBAL EXPORTERS
 (define-obsolete-variable-alias 'pm-exporter/pandoc 'poly-pandoc-exporter "v0.2")
 (defcustom poly-pandoc-exporter

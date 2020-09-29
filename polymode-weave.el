@@ -159,7 +159,7 @@ are ignored."
                          (concat "weaving " from-to-id " with command:\n\n     "
                                  command "\n\n")))
 
-
+
 ;;; METHODS
 
 (declare-function pm-export "polymode-export")
@@ -186,7 +186,7 @@ specification will be called.")
         (pm--export-spec (and pm--output-not-real pm--export-spec)))
     (pm--process-internal weaver fromto-id nil ifile cb (eieio-oref weaver 'quote))))
 
-
+
 ;; UI
 
 (defvar-local pm--weaver-hist nil)

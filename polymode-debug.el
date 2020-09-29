@@ -33,7 +33,7 @@
 (require 'poly-lock)
 (require 'trace)
 
-
+
 ;;; MINOR MODE
 
 (defvar pm--underline-overlay
@@ -102,7 +102,7 @@ Key bindings:
 ;;;###autoload
 (define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on)
 
-
+
 ;;; INFO
 
 (cl-defgeneric pm-debug-info (chunkmode))
@@ -160,7 +160,7 @@ With NO-CACHE prefix, don't use cached values of the span."
       (message "<%s> cb:%s %s" (or where "") (current-buffer) poses)))
   nil)
 
-
+
 ;;; TOGGLING
 
 (defvar pm-debug-display-info-message nil)
@@ -224,7 +224,7 @@ With NO-CACHE prefix, don't use cached values of the span."
           pm-allow-after-change-hook t
           pm-allow-post-command-hook t)))
 
-
+
 ;;; FONT-LOCK
 
 (defun pm-debug-fontify-current-span ()
@@ -243,7 +243,7 @@ With NO-CACHE prefix, don't use cached values of the span."
     (poly-lock-flush (point-min) (point-max))
     (poly-lock-fontify-now (point-min) (point-max))))
 
-
+
 ;;; TRACING
 
 (defvar pm-traced-functions
@@ -389,7 +389,7 @@ currently traced functions."
 ;; (advice-remove #'trace-entry-message #'pm-trace--fix-args-for-tracing)
 ;; (advice-remove #'trace-exit-message #'pm-trace--fix-args-for-tracing)
 
-
+
 ;;; RELEVANT VARIABLES
 
 (defvar pm-debug-relevant-variables
@@ -480,7 +480,7 @@ buffer, if 'message issue a message, if nil just return a list of values."
           out-buf))
     (pop-to-buffer out-buf)))
 
-
+
 ;;; HIGHLIGHT
 
 (defun pm-debug-highlight-current-span ()

@@ -40,7 +40,7 @@
   "Polymode compatibility settings."
   :group 'polymode)
 
-
+
 ;;; emacs 25 compat
 
 (unless (fboundp 'assoc-delete-all)
@@ -69,7 +69,7 @@ Elements of ALIST that are not conses are ignored."
     (assoc-delete-all key alist #'eq)))
 
 
-
+
 ;;; Various Wrappers for Around Advice
 
 (defvar *span* nil)
@@ -176,13 +176,13 @@ passed to ORIG-FUN."
         (pm-apply-protected orig-fun args))
     (apply orig-fun args)))
 
-
+
 ;;; Flyspel
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end _poss)
   (or (car (get-text-property beg :pm-span))
       (car (get-text-property end :pm-span))))
 
-
+
 ;;; C/C++/Java
 (pm-around-advice 'c-before-context-fl-expand-region #'pm-override-output-cons)
 ;; (advice-remove 'c-before-context-fl-expand-region #'pm-override-output-cons)
@@ -192,7 +192,7 @@ passed to ORIG-FUN."
 ;; (pm-around-advice 'font-lock-default-fontify-region #'pm-substitute-beg-end)
 (pm-around-advice 'c-determine-limit #'pm-execute-narrowed-to-span)
 
-
+
 ;;; Python
 (declare-function pm--first-line-indent "polymode-methods")
 (defun pm--python-dont-indent-to-0 (fun)
@@ -205,7 +205,7 @@ passed to ORIG-FUN."
 
 (pm-around-advice 'python-indent-line-function #'pm--python-dont-indent-to-0)
 
-
+
 ;;; Core Font Lock
 (defvar font-lock-beg)
 (defvar font-lock-end)
@@ -224,7 +224,7 @@ changes."
 (pm-around-advice #'font-lock-extend-region-multiline
                   #'pm-check-for-real-change-in-extend-multiline)
 
-
+
 ;;; Editing
 
 ;; (pm-around-advice 'fill-paragraph #'pm-execute-narrowed-to-span)
@@ -278,7 +278,7 @@ changes."
 
 ;; (pm-around-advice 'newline #'polymode-newline-remove-hook-in-orig-buffer)
 
-
+
 ;;; DESKTOP SAVE #194 #240
 
 ;; NB: desktop-save will not save indirect buffer.
@@ -309,7 +309,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 (with-eval-after-load "desktop"
   (advice-add #'desktop-save-buffer-p :before-while #'polymode-fix-desktop-save-buffer-p))
 
-
+
 ;;; MATLAB #199
 ;; matlab-mode is an old non-standard mode which doesn't trigger
 ;; `after-change-major-mode-hook`. As a result polymode cannot detect that
@@ -317,7 +317,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 ;; Explicitly trigger font-lock as a workaround.
 (add-hook 'matlab-mode-hook (lambda () (font-lock-mode t)))
 
-
+
 ;;; Undo Tree (#230)
 ;; Not clear why this fix works, or even why the problem occurs.
 (declare-function make-undo-tree "undo-tree")
@@ -331,7 +331,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 (eval-after-load 'undo-tree
   '(add-hook 'polymode-init-inner-hook 'polymode-init-undo-tree-maybe))
 
-
+
 ;;; EVIL
 (declare-function evil-change-state "evil-core")
 (defun polymode-switch-buffer-keep-evil-state-maybe (old-buffer new-buffer)
@@ -346,7 +346,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 (eval-after-load 'evil-core
   '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
 
-
+
 ;;; HL line
 (defvar hl-line-mode)
 (defvar global-hl-line-mode)
@@ -363,7 +363,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 (eval-after-load 'hl-line
   '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-hl-unhighlight))
 
-
+
 ;;; YAS
 
 (with-eval-after-load "yasnippet"
@@ -372,7 +372,7 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
 
 (provide 'polymode-compat)
 
-
+
 ;;; Multiple cursors
 
 (defvar mc--executing-command-for-fake-cursor)

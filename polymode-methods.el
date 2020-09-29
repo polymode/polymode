@@ -29,7 +29,7 @@
 
 (require 'polymode-core)
 
-
+
 ;;; INITIALIZATION
 
 (cl-defgeneric pm-initialize (object)
@@ -223,7 +223,7 @@ initialized. Return the buffer."
 
     (current-buffer)))
 
-
+
 ;;; BUFFER CREATION
 
 (cl-defgeneric pm-get-buffer-create (chunkmode &optional type)
@@ -306,7 +306,7 @@ Create and initialize the buffer if does not exist yet.")
        (setq -tail-buffer buff))
       (_ (error "Type must be one of 'body, 'head or 'tail")))))
 
-
+
 ;;; SPAN MANIPULATION
 
 (cl-defgeneric pm-get-span (chunkmode &optional pos)
@@ -414,7 +414,7 @@ TAIL-BEG TAIL-END).")
                  (object-add-to-list pm/polymode '-auto-innermodes innermode)
                  innermode)))))))))
 
-
+
 ;;; INDENT
 
 ;; indent-region-line-by-line for polymode buffers (more efficient, works on
@@ -664,7 +664,7 @@ to indent."
           (setq offset (pm--object-value offset)))
         (indent-line-to (max 0 (+ (current-indentation) offset (or offset2 0))))))))
 
-
+
 ;;; FACES
 (cl-defgeneric pm-get-adjust-face (chunkmode type))
 
