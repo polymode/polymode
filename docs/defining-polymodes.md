@@ -77,7 +77,7 @@ Finally, use the host and inner modes defined earlier to define the
 
 ```el
 (define-polymode poly-markdown-mode
-  :hostmode 'pm-host/markdown
+  :hostmode 'poly-markdown-hostmode
   :innermodes '(poly-markdown-yaml-metadata-innermode
                 poly-markdown-fenced-code-innermode))
 ```
