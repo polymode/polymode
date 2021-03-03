@@ -100,7 +100,8 @@ Key bindings:
     (pm-debug-minor-mode t)))
 
 ;;;###autoload
-(define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on)
+(define-globalized-minor-mode pm-debug-mode pm-debug-minor-mode pm-debug-minor-mode-on
+  :group 'polymode)
 
 
 ;;; INFO
