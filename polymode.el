@@ -551,10 +551,10 @@ most frequently used slots are:
     (while (keywordp (setq keyw (car body)))
       (setq body (cdr body))
       (pcase keyw
-        (`:lighter (setq lighter (purecopy (pop body))))
-        (`:keymap (setq keymap (pop body)))
-        (`:after-hook (setq after-hook (pop body)))
-        (`:keylist (setq keylist (pop body)))
+        (:lighter (setq lighter (purecopy (pop body))))
+        (:keymap (setq keymap (pop body)))
+        (:after-hook (setq after-hook (pop body)))
+        (:keylist (setq keylist (pop body)))
         (_ (push (pop body) slots) (push keyw slots))))
 
 
