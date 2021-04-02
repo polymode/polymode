@@ -5,6 +5,8 @@
 
 set -e
 
+SEDI=(sed -i)
+sed --version >/dev/null 2>&1 || SEDI+=('')
 # DIRS=( "../poly-erb")
 DIRS=( "../polymode" "../poly-*" )
 VERSION=$(grep Version polymode.el | sed 's/.*Version: *\(.*\) */\1/')
@@ -17,8 +19,8 @@ do
     if git rev-parse "v$VERSION" >/dev/null 2>&1; then
         echo "** TAG EXISTS";
     else
-        sed -i "s/\(;; Version: .\+\)/;; Version: $VERSION/g" $pkg
-        sed -i "s/(\(poly-\?[a-z]\+\) \"[0-9.]\+\")/(\1 \"$VERSION\")/g" $pkg
+        "${SEDI[@]}" "s/\(;; Version: .\+\)/;; Version: $VERSION/g" $pkg
+        "${SEDI[@]}" "s/(\(poly-\?[a-z]\+\) \"[0-9.]\+\")/(\1 \"$VERSION\")/g" $pkg
         git add $pkg
         git commit -m "Version $VERSION"
         git fetch --tags
