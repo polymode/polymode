@@ -616,6 +616,9 @@ most frequently used slots are:
                     ;; non-nil (like in define-mirror-mode)
                     doc keymap-name)
            (interactive)
+           ;; Don't restore in desktop-save-mode #289
+           (when (boundp 'desktop-minor-mode-table)
+             (add-to-list 'desktop-minor-mode-table '(,mode nil)))
            (let ((,last-message (current-message))
                  (state (cond
                          ((numberp arg) (> arg 0))
