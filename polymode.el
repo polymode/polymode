@@ -617,7 +617,7 @@ most frequently used slots are:
                     doc keymap-name)
            (interactive)
            ;; Don't restore in desktop-save-mode #289
-           (when (boundp 'desktop-minor-mode-table)
+           (with-eval-after-load 'desktop
              (add-to-list 'desktop-minor-mode-table '(,mode nil)))
            (let ((,last-message (current-message))
                  (state (cond
