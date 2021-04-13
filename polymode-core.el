@@ -875,10 +875,10 @@ TYPE is either a symbol or a list of symbols of span types."
                 (set mm old-state))))
           (pm--collect-parent-slots pm/polymode '-minor-mode))))
 
-(defun pm--run-init-hooks (object type &optional emacs-hook)
+(defun pm--run-init-hooks (object type &optional global-hook)
   (unless pm-initialization-in-progress
-    (when emacs-hook
-      (run-hooks emacs-hook))
+    (when global-hook
+      (run-hooks global-hook))
     (pm--run-hooks object :init-functions (or type 'host))))
 
 (defun pm--collect-parent-slots (object slot &optional do-when inclusive)
