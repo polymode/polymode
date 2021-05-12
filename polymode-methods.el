@@ -165,12 +165,12 @@ initialized. Return the buffer."
 
     ;; INDENTATION
     (setq-local pm--indent-line-function-original
-                (if (memq indent-line-function '(indent-relative indent-relative-maybe))
+                (if (memq indent-line-function '(indent-relative indent-relative-maybe pm-indent-line-dispatcher))
                     #'pm--indent-line-basic
                   indent-line-function))
     (setq-local indent-line-function #'pm-indent-line-dispatcher)
     (setq-local pm--indent-region-function-original
-                (if (memq indent-region-function '(nil indent-region-line-by-line))
+                (if (memq indent-region-function '(nil indent-region-line-by-line pm-indent-region))
                     #'pm--indent-region-line-by-line
                   indent-region-function))
     (setq-local indent-region-function #'pm-indent-region)
