@@ -2090,14 +2090,14 @@ Elements of LIST can be either strings or symbols."
                              (stringp pm--output-file)
                              (pm--file-mod-time pm--output-file)))
                    (imt (and omt (pm--file-mod-time pm--input-file)))
-                   (action (if is-exporter "exporting" "weaving"))
                    (ofile (if (and imt (time-less-p imt omt))
                               (progn
                                 (message "Not re-%s as input file '%s' hasn't changed"
-                                         (file-name-nondirectory ifile) action)
+                                         (if is-exporter "exporting" "weaving")
+                                         (file-name-nondirectory ifile))
                                 pm--output-file)
                             (message "%s '%s' with '%s' ..."
-                                     (capitalize action)
+                                     (if is-exporter "EXPORTING" "WEAVING")
                                      (file-name-nondirectory ifile)
                                      (eieio-object-name processor))
                             (let ((fn (with-no-warnings
