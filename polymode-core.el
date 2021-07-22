@@ -960,6 +960,84 @@ Parents' hooks are run first."
       (mapc #'funcall funs))))
 
 
+;;; PROTECTIVE LOCALIZATION AND RELAXED MODE INSTALLATION
+
+(defvar-local pm--localizing-span nil
+  "Global localizing advices related to `polymode'
+will be active whenever the value is bound to a non-nil value
+which is then presumed to be a polymode span object.
+
+For internal use only, so far.")
+
+(defun pm--localizing-narrow (f &rest args)
+  (if pm--localizing-span
+      (save-restriction
+        (narrow-to-region (nth 1 pm--localizing-span)
+                          (nth 2 pm--localizing-span))
+        (apply f args))
+    (apply f args)))
+
+;; TODO: make a key-value thing exposed to a user
+;; and make add, remove procedures iterate over it
+(defun pm-add-global-localizing-advices ()
+  (advice-add 'paredit-mode :around #'pm--localizing-narrow))
+(defun pm-remove-global-localizing-advices ()
+  (advice-remove 'paredit-mode #'pm--localizing-narrow))
+
+(defun pm--enable-localizing-advices-when-indirect-buffer (span buffer)
+  ;; This function is only used once.
+  ;; I defined it here only for the sake of all localization stuff
+  ;; being in one place.
+  (unless (eq buffer (pm-base-buffer))
+    (with-current-buffer buffer
+      (setq-local pm--localizing-span span))))
+
+;; What follows is a convenience procedure.
+;; It does not localize, only ignores, and might be unsafe.
+(cl-declaim (special paredit-override-check-parens-function))
+(defun pm--funcall-mode-with-convenience (mode)
+  ;; This function is only used once.
+  ;; I defined it here only for the sake of all localization stuff
+  ;; being in one place.
+  (let ((paredit-override-check-parens-function
+         ;; I agree that individual modes should support polymode
+         ;; so it's rather `paredit-override-check-parens-function'
+         ;; should be (looks like) defined as (lambda (c) polymode-mode)
+         ;; having first declaimed polymode-mode special
+         ;; but for now let it be here.
+         (lambda (&rest _) 'always)))
+    ;; “always” is also sorta wrong.
+    ;; An alternative approach would be
+    ;; to concat relevant substrings of the base buffer,
+    ;; assembling them into (the approximation of, really)
+    ;; temporary “complete buffer”,
+    ;; install major mode in it
+    ;; and if it goes without errors, drop the temporary buffer,
+    ;; and install major mode here, ignoring errors this time.
+    ;;
+    ;; But at least in case of paredit,
+    ;; it's still reasonable to install unconditionally
+    ;; and let users deal with paredit themselves
+    ;; if they have unbalanced brackets in chunks.
+    ;; At least the errors will be localized,
+    ;; especiallly since we narrow some functions globally.
+    ;;
+    ;; ↑ this comment will lose its meaning if we drop the
+    ;; “narrow globally” strategy
+    ;; due to adoption of polymode or for some other reasons.
+    ;;
+    ;; Here come less customizeable suspects:
+    (cl-flet ((always (_f &rest _args) t))
+      ;; This is merely a guess, for example's sake.
+      ;; Also, smartparens does sp--update-local-pairs
+      ;; which might bring smartparens into broken state
+      ;; if brackets are unbalanced.
+      (advice-add 'sp-wrap--can-wrap-p :around #'always)
+      (unwind-protect (funcall mode)
+        (advice-remove 'sp-wrap--can-wrap-p #'always)))))
+
+
+
 ;;; BUFFER SELECTION
 
 ;; Transfer of the buffer-undo-list is managed internally by emacs
@@ -1058,6 +1136,7 @@ switch."
                             cbuf buffer))
       (pm--move-vars polymode-move-these-vars-from-base-buffer
                      (pm-base-buffer) buffer)
+      (pm--enable-localizing-advices-when-indirect-buffer span buffer)
       (pm--move-vars polymode-move-these-vars-from-old-buffer
                      cbuf buffer)
       (if visibly
