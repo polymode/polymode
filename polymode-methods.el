@@ -28,6 +28,7 @@
 ;;; Code:
 
 (require 'polymode-core)
+(require 'polymode-compat)
 
 
 ;;; INITIALIZATION
