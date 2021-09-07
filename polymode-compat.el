@@ -111,8 +111,9 @@ Return new name (symbol). FUN is an unquoted name of a function."
 
 (defun pm-override-output-position (orig-fun &rest args)
   "Restrict returned value of ORIG-FUN to fall into the current span.
-*span* in `pm-map-over-spans` has precedence over span at point.
- ARGS are passed to ORIG-FUN."
+When this function is called from within `pm-map-over-spans' the
+dynamic variable *span* has precedence over the span at point.
+ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-innermost-range)))
@@ -124,9 +125,10 @@ Return new name (symbol). FUN is an unquoted name of a function."
 
 (defun pm-override-output-cons (orig-fun &rest args)
   "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
-*span* in `pm-map-over-spans` has precedence over span at point.
-This will break badly if (point) is not inside expected range.
-ARGS are passed to ORIG-FUN."
+When this function is called from within `pm-map-over-spans' the
+dynamic variable *span* has precedence over span at point. This
+will break badly if (point) is not inside expected range. ARGS
+are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((range (or (pm-span-to-range *span*)
                        (pm-innermost-range)))
@@ -143,9 +145,10 @@ ARGS are passed to ORIG-FUN."
 
 (defun pm-narrowed-override-output-cons (orig-fun &rest args)
   "Restrict returned (beg . end) of ORIG-FUN to fall into the current span.
-Run ORIG-FUN with buffer narrowed to span. *span* in
-`pm-map-over-spans` has precedence over span at point. ARGS are
-passed to ORIG-FUN."
+Run ORIG-FUN with buffer narrowed to span. When this function is
+called from within `pm-map-over-spans' the dynamic variable
+*span* has precedence over span at point. ARGS are passed to
+ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let ((*span* (or *span* (pm-innermost-span))))
         (pm-with-narrowed-to-span *span*
@@ -154,7 +157,8 @@ passed to ORIG-FUN."
 
 (defun pm-substitute-beg-end (orig-fun beg end &rest args)
   "Execute ORIG-FUN with first BEG and END arguments limited to current span.
-*span* in `pm-map-over-spans` has precedence over span at point.
+When this function is called from within `pm-map-over-spans' the
+dynamic variable *span* has precedence over span at point.
  ARGS are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (let* ((pos (if (and (<= (point) end) (>=  (point) beg))
@@ -169,8 +173,9 @@ passed to ORIG-FUN."
 
 (defun pm-execute-narrowed-to-span (orig-fun &rest args)
   "Execute ORIG-FUN narrowed to the current span.
-*span* in `pm-map-over-spans` has precedence over span at point.
- ARGS are passed to ORIG-FUN."
+When this function is called from within `pm-map-over-spans' the
+dynamic variable *span* has precedence over span at point. ARGS
+are passed to ORIG-FUN."
   (if (and polymode-mode pm/polymode)
       (pm-with-narrowed-to-span *span*
         (pm-apply-protected orig-fun args))
