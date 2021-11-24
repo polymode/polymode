@@ -166,9 +166,18 @@ than the input file."
 (define-obsolete-variable-alias 'polymode-mode-name-override-alist 'polymode-mode-name-aliases "2018-08")
 (define-obsolete-variable-alias 'polymode-mode-name-alias-alist 'polymode-mode-name-aliases "2019-04")
 (defcustom polymode-mode-name-aliases
-  '((elisp . emacs-lisp)
-    (el . emacs-lisp)
-    (bash . sh-mode))
+  '(
+    (asymptote  . asy-mode)
+    (bash       . sh-mode)
+    (cpp        . c++-mode)
+    (ditaa      . artist-mode)
+    (el         . emacs-lisp)
+    (elisp      . emacs-lisp)
+    (ocaml      . tuareg)
+    (screen     . shell-script-mode)
+    (shell      . sh-mode)
+    (sqlite     . sql-mode)
+    )
   "An alist of inner mode overrides.
 When inner mode is automatically detected from the header of the
 inner chunk (such as in markdown mode), the detected symbol might
