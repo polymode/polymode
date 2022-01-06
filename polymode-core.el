@@ -1138,7 +1138,16 @@ transport) are performed."
                 pos-or-span)))
     (pm-select-buffer span 'visibly)))
 
+;; NB: save-excursion saves window-point only when current buffer is the
+;; selected buffer. Thus when we iterate from a non-window buffer, and within
+;; some of the iterations are performed in selected-buffer the point is moved
+;; which might results in undesirable consequences (#295). Thus `save-excursion`
+;; must be applied on each iteration.
 (defun pm-map-over-modes (fn beg end)
+  "Apply function FN for each major mode between BEG and END.
+FN is a function of two arguments mode-beg and mode-end. This is
+different from `pm-map-over-spans' which maps over polymode
+spans. Two adjacent spans might have same major mode."
   (when (< beg end)
     (save-restriction
       (widen)
@@ -1439,6 +1448,7 @@ Used in advises."
             (pm--synchronize-points base))))
     (apply orig-fun args)))
 
+;; Most importat Core
 ;; (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
 (pm-around-advice #'write-file #'polymode-with-current-base-buffer)
@@ -1473,7 +1483,8 @@ ARG is the same as in `forward-paragraph'"
 
 (defun pm--call-syntax-propertize-original (start end)
   (condition-case err
-      (funcall pm--syntax-propertize-function-original start end)
+      (save-excursion
+        (funcall pm--syntax-propertize-function-original start end))
     (error
      (message "ERROR: (%s %d %d) -> %s"
               (if (symbolp pm--syntax-propertize-function-original)

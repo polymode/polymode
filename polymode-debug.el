@@ -87,10 +87,31 @@ Key bindings:
   (if pm-debug-minor-mode
       (progn
         ;; this is global hook. No need to complicate with local hooks
-        (add-hook 'post-command-hook 'pm-debug-highlight-current-span))
+        (add-hook 'post-command-hook 'pm-debug-highlight-current-span)
+        ;; (add-hook 'before-save-hook 'pm-debug-beore-change -99 t)
+        ;; (add-hook 'after-save-hook 'pm-debug-after-change -99)
+        )
+    ;; (remove-hook 'before-save-hook 'pm-debug-beore-change)
+    ;; (remove-hook 'after-save-hook 'pm-debug-after-change)
     (delete-overlay pm--underline-overlay)
     (delete-overlay pm--highlight-overlay)
     (remove-hook 'post-command-hook 'pm-debug-highlight-current-span)))
+
+;; use to track point movements (#295)
+(defun pm--debug-report-point (msg &optional r)
+  (when polymode-mode
+    (message "%s %s buffer[%s:%s %s:%s] window[%s:%s]"
+             msg (if r r "")
+             (pm-base-buffer) (with-current-buffer (pm-base-buffer) (point))
+             (buffer-name) (point)
+             (get-buffer-window (pm-base-buffer))
+             (with-current-buffer (pm-base-buffer) (window-point))  (window-point))))
+
+;; (defun pm-debug-beore-change (&rest r)
+;;   (pm--debug-report-point "|before|" this-command))
+
+;; (defun pm-debug-after-change (&rest r)
+;;   (pm--debug-report-point "|after|" this-command))
 
 ;;;###autoload
 (defun pm-debug-minor-mode-on ()
@@ -359,8 +380,8 @@ currently traced functions."
 (defun pm-trace--tracing-context ()
   (let ((span (or *span*
                   (get-text-property (point) :pm-span))))
-    (format " [%s pos:%d(%d-%d) %s%s (%f)]"
-            (current-buffer) (point) (point-min) (point-max)
+    (format " [%s pos:%d/%d(%d-%d) %s%s (%f)]"
+            (current-buffer) (point) (window-point) (point-min) (point-max)
             (or (when span
                   (when (not (and (= (point-min) (nth 1 span))
                                   (= (point-max) (nth 2 span))))
