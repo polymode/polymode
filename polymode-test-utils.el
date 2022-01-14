@@ -345,6 +345,8 @@ execution undo is called once. After each change-set
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
+      (poly-lock-flush)
+      (poly-lock-fontify-now (point-min) (point-max))
       (pm-test-faces)
       (dolist (cset ',change-sets)
         (let ((poly-lock-defer-after-change nil)
@@ -356,7 +358,8 @@ execution undo is called once. After each change-set
           (undo-boundary)
           (pm-test-faces)
           (let ((inhibit-message (not pm-verbose)))
-            (undo)))))))
+            (undo)))))
+    ))
 
 (defun pm-test--run-indentation-tests ()
   "Run an automatic batch of indentation tests.
