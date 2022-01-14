@@ -1204,17 +1204,21 @@ spans. Two adjacent spans might have same major mode."
                 (tichunks nil)
                 (spans nil))
             (while (< pos end)
-              ;; 1. recompute outdated chunks
+              ;; 1. Recompute outdated chunks - if pos behind a chunk, replace
+              ;; this chunk with next chunk of the same type.
               (setq tichunks nil)
               (dolist (ichunk ichunks)
                 (if (and (cdr ichunk)
                          (< pos (nth 5 ichunk)))
                     (push ichunk tichunks)
                   (let ((nchunk (pm-next-chunk (car ichunk) pos)))
-                    (when nchunk
-                      (push (cons (car ichunk) nchunk) tichunks)))))
+                    (if nchunk
+                        (push (cons (car ichunk) nchunk) tichunks)
+                      ;; If nil, ichunk is the last of this type in the buffer.
+                      ;; Keep it there.
+                      (push ichunk tichunks)))))
               (setq ichunks (reverse tichunks))
-              ;; 2. Compute all (next) spans
+              ;; 2. Compute all (next) spans from spans
               (setq spans nil)
               (dolist (ichunk ichunks)
                 (let ((chunk (cdr ichunk)))
@@ -1222,17 +1226,18 @@ spans. Two adjacent spans might have same major mode."
                                ((< pos (nth 1 chunk)) (list nil pos (nth 1 chunk) (car chunk)))
                                ((< pos (nth 2 chunk)) (list 'head (nth 1 chunk) (nth 2 chunk) (car chunk)))
                                ((< pos (nth 3 chunk)) (list 'body (nth 2 chunk) (nth 3 chunk) (car chunk)))
-                               ((< pos (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk))))))
+                               ((< pos (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk)))
+                               (t (list nil (nth 4 chunk) (point-max) (car chunk))))))
                     (push span spans))))
               (setq spans (nreverse spans))
-              ;; 3. Intersect
-              (setq nspan (list nil pos (point-max) hostmode))
+              ;; 3. Intersect the spans
+              (setq nspan (list nil 1 (point-max) hostmode))
+              ;; (goto-char pos) ;; for debugging
               (dolist (s spans)
                 (setq nspan (pm--intersect-spans nspan s)))
-              ;; (setq pm--span-counter (1+ pm--span-counter)) ;; for debugging
               (pm-cache-span nspan)
               (setq nttype (pm-true-span-type nspan))
-              ;; 4. funcall on region if type changed
+              ;; 4. funcall on (previous) region if type changed
               (unless (eq ttype nttype)
                 (when span
                   (with-current-buffer (pm-span-buffer span)
@@ -1241,6 +1246,7 @@ spans. Two adjacent spans might have same major mode."
                       beg (nth 1 nspan)))
               (setq span nspan
                     pos (nth 2 nspan)))))
+        ;; 5. funcall on last region
         (with-current-buffer (pm-span-buffer span)
           (funcall fn beg pos))))))
 
@@ -1322,7 +1328,7 @@ behavior."
         (narrow-to-region sbeg send)))))
 
 (defmacro pm-with-narrowed-to-span (span &rest body)
-  (declare (indent 1) (debug body))
+  (declare (indent 1) (debug (sexp body)))
   `(save-restriction
      (pm-narrow-to-span ,span)
      ,@body))
