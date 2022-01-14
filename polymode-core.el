@@ -570,6 +570,7 @@ the front)."
               (pm--chop-span (copy-sequence span) omin omax))))))))
 
 (define-obsolete-function-alias 'pm-get-innermost-span 'pm-innermost-span "2018-08")
+(defvar pm-use-cache t)
 (defun pm-innermost-span (&optional pos no-cache)
   "Get span object at POS.
 If NO-CACHE is non-nil, don't use cache and force re-computation
@@ -581,7 +582,7 @@ defaults to point. Guarantied to return a non-empty span."
                   :point-min (point-min)
                   :point-max (point-max))))
   (save-match-data
-    (or (unless no-cache
+    (or (when (and pm-use-cache (not no-cache))
           (pm--cached-span pos))
         (pm--innermost-span pm/polymode pos))))
 
