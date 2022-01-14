@@ -319,8 +319,8 @@ With NO-CACHE prefix, don't use cached values of the span."
 (defun pm-toggle-tracing (level)
   "Toggle polymode tracing.
 With numeric prefix toggle tracing for that LEVEL. Currently
-universal argument toggles maximum level of tracing (4). Default
-level is 3."
+universal argument toggles maximum level of tracing (15). See
+`pm-traced-functions'. Default level is 3."
   (interactive "P")
   (setq level (prefix-numeric-value (or level 3)))
   (with-current-buffer (get-buffer-create "*Messages*")
@@ -343,7 +343,7 @@ level is 3."
   "Trace function FN.
 Use `untrace-function' to untrace or `untrace-all' to untrace all
 currently traced functions."
-  (interactive (trace--read-args "Trace: "))
+  (interactive (trace--read-args "Trace:"))
   (let ((buff (get-buffer "*Messages*")))
     (unless (advice-member-p trace-advice-name fn)
       (advice-add

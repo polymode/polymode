@@ -443,16 +443,29 @@ the front)."
     (let ((allow-nested (eieio-oref (nth 3 span) 'allow-nested))
           (is-host (null (car span))))
       (cond
-       ;; 1. nil means host and it can be an intersection of spans returned
-       ;; by two neighboring inner chunkmodes. When `allow-nested` is
-       ;; 'always the innermode essentially behaves like the host-mode.
+       ;; 1. nil means host and it can be an intersection of spans returned by
+       ;; two neighboring inner chunkmodes. When `allow-nested` is 'always the
+       ;; innermode behaves like the host-mode (i.e. nest other spans regardless
+       ;; of :can-nest slot)
        ((or is-host (eq allow-nested 'always))
-        ;; when span is already an inner span, new host spans are irrelevant
-        (unless (car thespan)
+        (if (car thespan)
+            ;; 1) inner thespan:
+            ;;   a) inner span [thespan ..|.. [span ...] ...]
+            ;;   b) outer span [thespan ..|..] ... [span ...]
+            ;;   c) host-like span [span ... [thespan ..|..] ]
+            (setq thespan
+                  (list (car thespan)
+                        (max (nth 1 span) (nth 1 thespan))
+                        (min (nth 2 span) (nth 2 thespan))
+                        (nth 3 thespan)))
+          ;; 2) host thespan
+          ;;    a) hosts span [thespan ...] ..|.. [span ..]
+          ;;    b) host-like span [span ..|.. [thespan ...] ..]
           (setq thespan
-                (list (unless is-host (car span))
+                (list (car span)
                       (max (nth 1 span) (nth 1 thespan))
                       (min (nth 2 span) (nth 2 thespan))
+                      ;; first host span has precedence for clarity
                       (nth 3 (if is-host thespan span))))))
        ;; 2. Inner span
        ((and (>= (nth 1 span) (nth 1 thespan))
