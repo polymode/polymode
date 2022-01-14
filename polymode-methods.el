@@ -353,7 +353,7 @@ TYPE can be 'body, 'head or 'tail. SELF is the CHUNKMODE."
 
 (cl-defgeneric pm-next-chunk (chunkmode &optional pos)
   "Ask the CHUNKMODE for the chunk after POS.
-Return a list of three elements (CHUNKMODE HEAD-BEG HEAD-END
+Return a list of five elements (CHUNKMODE HEAD-BEG HEAD-END
 TAIL-BEG TAIL-END).")
 
 (cl-defmethod pm-next-chunk (_chunkmode &optional _pos)
@@ -610,10 +610,10 @@ to indent."
     (let ((pos (point)))
       (goto-char (nth 1 (or span (pm-innermost-span))))
       ;; when body starts at bol move to previous line
-      (when (and (= (point) (point-at-bol))
-                 (not (bobp)))
+      (when (and (bolp) (not (bobp)))
         (backward-char 1))
       (skip-chars-forward " \t\n")
+      (back-to-indentation)
       (when (< (point-at-eol) pos)
         (- (point) (point-at-bol))))))
 
@@ -622,7 +622,10 @@ to indent."
   (save-restriction
     (widen)
     (save-excursion
-      (let ((sbeg (nth 1 (or span (pm-innermost-span)))))
+      (let* ((span (or span (pm-innermost-span)))
+             ;; span is innermost, thus can be truncated due to nested innermodes
+             (span (pm-get-span (nth 3 span) (nth 1 span)))
+             (sbeg (nth 1 span)))
         (goto-char sbeg)
         (backward-char 1)
         (let ((head-span (pm-innermost-span)))
