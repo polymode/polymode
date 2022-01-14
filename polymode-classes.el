@@ -412,23 +412,24 @@ If set to 'host or 'body use host or body's mode respectively.")
     :type (or string cons function)
     :custom (choice string (cons string integer) function)
     :documentation
-    "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
+    "A REGEXP, a cons (REGEXP . SUB-MATCH) or a function.
 When a function, the matcher must accept one argument that can
 take either values 1 (forwards search) or -1 (backward search)
 and behave similarly to how search is performed by
 `re-search-forward' function. This function must return either
-nil (no match) or a (cons BEG END) representing the span of the
-head or tail respectively. See the code of `pm-fun-matcher' for a
-simple example.")
+nil (no match) or a (cons BEG END) representing the head span.
+See the code of `pm-fun-matcher' for how REGEXP and (REGEXP .
+SUB-MATCH) are converted to a function internally..")
    (tail-matcher
     :initarg :tail-matcher
     :type (or string cons function)
     :custom (choice string (cons string integer) function)
     :documentation
     "A regexp, a cons (REGEXP . SUB-MATCH) or a function.
-Like :head-matcher but for the chunk's tail. Currently, it is
-always called with the point at the end of the matched head and
-with the positive argument (aka match forward).")
+Like :head-matcher but for the chunk's tail. Unlike
+:head-matcher, it is always called with the point at the end of
+the matched head and with the positive argument (aka match
+forward). See `pm-forward-sexp-tail-matcher' for an example.")
    (adjust-face
     :initform 2)
    (head-adjust-face

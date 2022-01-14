@@ -600,6 +600,18 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
               (match-end (cdr matcher))))))
    (t (error "Head and tail matchers must be either regexp strings, cons cells or functions"))))
 
+(defun pm-forward-sexp-tail-matcher (arg)
+  "A simple tail matcher for a common closing-sexp character.
+Use this matcher if an inner mode is delimited by a closing
+construct like ${...}, xyz[...], html! {...} etc. In order to
+match the tail `forward-sexp' is matched from HEAD-END - 1
+position. ARG is ignored - always match forward."
+  (when (> (point) 0)
+    (backward-char 1)
+    (ignore-errors
+      (forward-sexp 1)
+      (cons (1- (point)) (point)))))
+
 (defun pm-same-indent-tail-matcher (_arg)
   "Get the end position of block with the higher indent than the current column.
 Used as tail matcher for blocks identified by same indent. See
