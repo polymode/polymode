@@ -1214,9 +1214,12 @@ spans. Two adjacent spans might have same major mode."
                   (let ((nchunk (pm-next-chunk (car ichunk) pos)))
                     (if nchunk
                         (push (cons (car ichunk) nchunk) tichunks)
-                      ;; If nil, ichunk is the last of this type in the buffer.
-                      ;; Keep it there.
-                      (push ichunk tichunks)))))
+                      ;; If nil, ichunk is the last of this type in the buffer,
+                      ;; or there are no such chunks at all (on 1st iteration).
+                      ;; Keep it in the list in order to correctly compute last
+                      ;; intersections with nested innermodes.
+                      (when (cdr ichunk)
+                        (push ichunk tichunks))))))
               (setq ichunks (reverse tichunks))
               ;; 2. Compute all (next) spans from spans
               (setq spans nil)
