@@ -32,6 +32,7 @@
 
 (require 'ert)
 (require 'polymode)
+(require 'poly-lock)
 (eval-when-compile
   (require 'cl-lib))
 
@@ -40,7 +41,9 @@
 ;; (add-hook 'after-change-major-mode-hook #'global-font-lock-mode-enable-in-buffers)
 ;; (message "ACMH: %s  GFL:%s" after-change-major-mode-hook global-font-lock-mode)
 
-(setq ert-batch-backtrace-right-margin 200)
+(setq ert-batch-backtrace-right-margin 200
+      ert-batch-print-level nil
+      ert-batch-print-length nil)
 (defvar pm-verbose (getenv "PM_VERBOSE"))
 
 (defvar pm-test-current-change-set nil)
