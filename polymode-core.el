@@ -388,13 +388,14 @@ case TYPE is ignored."
 
 (defun pm-cache-span (span)
   ;; cache span
-  (unless pm-initialization-in-progress
-    (with-silent-modifications
-      ;; (message "caching: %s %s" (car span) (pm-span-to-range span))
-      (let ((sbeg (nth 1 span))
-            (send (nth 2 span)))
-        (put-text-property sbeg send :pm-span span)
-        (put-text-property sbeg send :pm-mode (pm-span-mode span))))))
+  (when pm-use-cache
+    (unless pm-initialization-in-progress
+      (with-silent-modifications
+        ;; (message "caching: %s %s" (car span) (pm-span-to-range span))
+        (let ((sbeg (nth 1 span))
+              (send (nth 2 span)))
+          (put-text-property sbeg send :pm-span span)
+          (put-text-property sbeg send :pm-mode (pm-span-mode span)))))))
 
 (defun pm-flush-span-cache (beg end &optional buffer)
   (with-silent-modifications
@@ -1169,82 +1170,96 @@ transport) are performed."
 ;; some of the iterations are performed in selected-buffer the point is moved
 ;; which might results in undesirable consequences (#295). Thus `save-excursion`
 ;; must be applied on each iteration.
+
+;; TOTHINK: This function is used for font-lock, and thus we cannot rely on
+;; cached spans. For other use-cases relying on cached spans would be faster.
+;; Without cache `pm-get-span' is less efficient than this function which is
+;; essentially a forward search of spans.
 (defun pm-map-over-modes (fn beg end)
   "Apply function FN for each major mode between BEG and END.
 FN is a function of two arguments mode-beg and mode-end. This is
 different from `pm-map-over-spans' which maps over polymode
-spans. Two adjacent spans might have same major mode."
+spans. Two adjacent spans might have same major mode, thus
+`pm-map-over-modes' will iterate over same or bigger regions than
+`pm-map-over-spans'."
   (when (< beg end)
     (save-restriction
       (widen)
       (let* ((hostmode (eieio-oref pm/polymode '-hostmode))
              (pos beg)
              (ttype 'dummy)
-             span nspan nttype)
-        (when (< (point-min) beg)
-          (setq span (pm-innermost-span beg)
-                beg (nth 1 span)
-                pos (nth 2 span)
-                ttype (pm-true-span-type span))
-          (while (and (memq (car span) '(head body))
-                      (< pos end))
-            (setq nspan (pm-innermost-span (nth 2 span))
-                  nttype (pm-true-span-type nspan))
-            (if (eq ttype nttype)
-                (setq pos (nth 2 nspan))
-              (with-current-buffer (pm-span-buffer span)
-                (funcall fn beg pos))
-              (setq beg (nth 1 nspan)
-                    pos (nth 2 nspan)))
-            (setq span nspan
-                  ttype nttype)))
+             (span (pm-innermost-span beg))
+             (nspan span)
+             (ttype (pm-true-span-type span))
+             (nttype ttype))
+        ;; 1. Use pm-innermost-span to get to the first tail. From there on rely
+        ;; on `pm-next-chunk' for efficiency.
+        (setq beg (nth 1 span)
+              pos (nth 2 span))
+        (while (and (< pos end)
+                    (memq (car span) '(head body)))
+          (while (and (< pos end)
+                      (eq ttype nttype))
+            (setq pos (nth 2 nspan)
+                  nspan (pm-innermost-span pos)
+                  nttype (pm-true-span-type nspan)))
+          (with-current-buffer (pm-span-buffer span)
+            (funcall fn beg pos))
+          (setq span nspan
+                ttype nttype
+                beg (nth 1 nspan)
+                pos (nth 2 nspan)))
+        ;; 2. Forward chunk search
         (when (< pos end)
-          (let ((ichunks (cl-loop for im in (eieio-oref pm/polymode '-innermodes)
+          ;; Extended chunks: car is the original innermode. Cannot use
+          ;; autochunk modes (i.e. markdwon fortran-inner-mode) in calls to
+          ;; pm-next-chunk. It would return fortran chunks.
+          (let ((echunks (cl-loop for im in (eieio-oref pm/polymode '-innermodes)
                                   collect (cons im nil)))
-                (tichunks nil)
-                (spans nil))
+                spans)
             (while (< pos end)
               ;; 1. Recompute outdated chunks - if pos behind a chunk, replace
               ;; this chunk with next chunk of the same type.
-              (setq tichunks nil)
-              (dolist (ichunk ichunks)
-                (if (and (cdr ichunk)
-                         (< pos (nth 5 ichunk)))
-                    (push ichunk tichunks)
-                  (let ((nchunk (pm-next-chunk (car ichunk) pos)))
-                    (if nchunk
-                        (push (cons (car ichunk) nchunk) tichunks)
-                      ;; If nil, ichunk is the last of this type in the buffer,
-                      ;; or there are no such chunks at all (on 1st iteration).
-                      ;; Keep it in the list in order to correctly compute last
-                      ;; intersections with nested innermodes.
-                      (when (cdr ichunk)
-                        (push ichunk tichunks))))))
-              (setq ichunks (reverse tichunks))
+              (let (tchunks)
+                (dolist (echunk echunks)
+                  (if (and (cdr echunk)
+                           (< pos (nth 5 echunk)))
+                      (push echunk tchunks)
+                    (let ((nchunk (pm-next-chunk (car echunk) pos)))
+                      (if nchunk
+                          (push (cons (car echunk) nchunk) tchunks)
+                        ;; If nil, chunk is the last of this type in the buffer,
+                        ;; or there are no such chunks at all (on 1st iteration).
+                        ;; Keep it in the list in order to correctly compute last
+                        ;; intersections with nested innermodes.
+                        (when (cdr echunk)
+                          (push echunk tchunks))))))
+                (setq echunks (reverse tchunks)))
               ;; 2. Compute all (next) spans from spans
               (setq spans nil)
-              (dolist (ichunk ichunks)
-                (let ((chunk (cdr ichunk)))
-                  (let ((span (cond
-                               ((< pos (nth 1 chunk)) (list nil pos (nth 1 chunk) (car chunk)))
-                               ((< pos (nth 2 chunk)) (list 'head (nth 1 chunk) (nth 2 chunk) (car chunk)))
-                               ((< pos (nth 3 chunk)) (list 'body (nth 2 chunk) (nth 3 chunk) (car chunk)))
-                               ((< pos (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk)))
-                               (t (list nil (nth 4 chunk) (point-max) (car chunk))))))
-                    (push span spans))))
+              (dolist (echunk echunks)
+                (let ((chunk (cdr echunk)))
+                  (let ((s (cond
+                            ((< pos (nth 1 chunk)) (list nil pos (nth 1 chunk) (car chunk)))
+                            ((< pos (nth 2 chunk)) (list 'head (nth 1 chunk) (nth 2 chunk) (car chunk)))
+                            ((< pos (nth 3 chunk)) (list 'body (nth 2 chunk) (nth 3 chunk) (car chunk)))
+                            ((< pos (nth 4 chunk)) (list 'tail (nth 3 chunk) (nth 4 chunk) (car chunk)))
+                            (t (list nil (nth 4 chunk) (point-max) (car chunk))))))
+                    (push s spans))))
               (setq spans (nreverse spans))
               ;; 3. Intersect the spans
-              (setq nspan (list nil 1 (point-max) hostmode))
-              ;; (goto-char pos) ;; for debugging
+              (setq nspan (list nil pos (point-max) hostmode))
               (dolist (s spans)
                 (setq nspan (pm--intersect-spans nspan s)))
+              ;; NB: If there is a bug in the core, this caching is likely
+              ;; causing major issues (runs in font-lock). Disable during
+              ;; debugging.
               (pm-cache-span nspan)
               (setq nttype (pm-true-span-type nspan))
               ;; 4. funcall on (previous) region if type changed
               (unless (eq ttype nttype)
-                (when span
-                  (with-current-buffer (pm-span-buffer span)
-                    (funcall fn beg pos)))
+                (with-current-buffer (pm-span-buffer span)
+                  (funcall fn beg pos))
                 (setq ttype nttype
                       beg (nth 1 nspan)))
               (setq span nspan
