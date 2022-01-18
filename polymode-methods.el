@@ -58,15 +58,15 @@ Ran by the polymode mode function."
             pm/chunkmode hostmode
             pm/current t
             pm/type nil)
+      (pm--instantiate-innermodes config)
       (pm--common-setup)
-      ;; Initialize innermodes
-      (pm--initialize-innermodes config)
       ;; FIXME: must go into polymode-compat.el
       (add-hook 'flyspell-incorrect-hook
                 'pm--flyspel-dont-highlight-in-chunkmodes nil t))
     (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)))
 
-(defun pm--initialize-innermodes (config)
+(defun pm--instantiate-innermodes (config)
+  "Instantiate CONFIG's innermodes respecting inheritance."
   (let ((inner-syms (delete-dups
                      (delq :inherit
                            (apply #'append
