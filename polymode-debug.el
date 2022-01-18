@@ -282,37 +282,40 @@ With NO-CACHE prefix, don't use cached values of the span."
     ;; advises
     (2 (pm-override-output-cons
         pm-around-advice
-        polymode-with-current-base-buffer))
+        polymode-with-current-base-buffer
+        polymode-inhibit-during-initialization
+        pm-check-for-real-change-in-extend-multiline
+        poly-lock-no-jit-lock-in-polymode-buffers
+        pm-override-output-position))
+    ;; (2.5 . "^markdown-fontify-.*")
+    ;; init
+    (3  (pm--common-setup
+         pm-initialize
+         pm--mode-setup
+         pm--run-init-hooks
+         pm--run-derived-mode-hooks
+         pm-map-over-spans
+         pm-map-over-modes
+         pm-innermost-span
+         pm-next-chunk))
     ;; font-lock
-    (3 (font-lock-default-fontify-region
-        font-lock-fontify-keywords-region
-        font-lock-fontify-region
-        font-lock-fontify-syntactically-region
-        font-lock-unfontify-region
-        jit-lock--run-functions
-        jit-lock-fontify-now
-        poly-lock--after-change-internal
-        poly-lock--extend-region
-        poly-lock--extend-region-span
-        poly-lock-after-change
-        poly-lock-flush
-        poly-lock-fontify-now
-        poly-lock-function))
+    (4 . ".*\\(font\\|jit\\|poly\\)-lock.*")
     ;; syntax
-    (4 (syntax-ppss
+    (5 (syntax-ppss
         pm--call-syntax-propertize-original
         polymode-syntax-propertize
         polymode-restrict-syntax-propertize-extension
         pm-flush-syntax-ppss-cache
         pm--reset-ppss-cache))
     ;; core functions
-    (5 (pm-select-buffer
+    (6 (pm-select-buffer
         pm-map-over-spans
         pm--get-intersected-span
         pm--cached-span))
-    ;; (13 . "^syntax-")
-    (14 . "^polymode-")
-    (15 . "^pm-")))
+    (6 . "^polymode-")
+    (7 . "^pm-")
+    (20 . "^syntax-")
+    ))
 
 (defvar pm--do-trace nil)
 ;;;###autoload
@@ -320,9 +323,9 @@ With NO-CACHE prefix, don't use cached values of the span."
   "Toggle polymode tracing.
 With numeric prefix toggle tracing for that LEVEL. Currently
 universal argument toggles maximum level of tracing (15). See
-`pm-traced-functions'. Default level is 3."
+`pm-traced-functions'. Default level is 4."
   (interactive "P")
-  (setq level (prefix-numeric-value (or level 3)))
+  (setq level (prefix-numeric-value (or level 4)))
   (with-current-buffer (get-buffer-create "*Messages*")
     (read-only-mode -1))
   (setq pm--do-trace (not pm--do-trace))
@@ -357,7 +360,9 @@ currently traced functions."
                (save-excursion
                  (goto-char (point-max))
                  (insert "\n"))))
-           (if polymode-mode
+           (if (or polymode-mode
+                   ;; (derived-mode-p 'markdown-mode)
+                   )
                (apply advice body args)
              (apply body args))))
        `((name . ,trace-advice-name)
