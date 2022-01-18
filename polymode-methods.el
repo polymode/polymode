@@ -193,13 +193,12 @@ initialized. Return the buffer."
     ;; inner buffers are installed) but use `poly-lock-allow-fontification' to
     ;; disallow fontification in buffers which don't want font-lock (aka those
     ;; buffers where `turn-on-font-lock-if-desired' doesn't activate font-lock).
-    (turn-on-font-lock-if-desired) ; <- need this for the sake of poly-minor-modes
     ;; FIXME: can poly-lock-mode be used here instead?
     (setq-local poly-lock-allow-fontification font-lock-mode)
     ;; Make sure to re-install with our font-lock-function as
     ;; `turn-on-font-lock-if-desired' from above might actually not call it.
     (font-lock-mode t)
-    (font-lock-flush)
+    ;; (font-lock-flush)
 
     ;; SYNTAX (must be done after font-lock for after-change order)
 
