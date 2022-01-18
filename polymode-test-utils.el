@@ -41,11 +41,7 @@
 ;; (add-hook 'after-change-major-mode-hook #'global-font-lock-mode-enable-in-buffers)
 ;; (message "ACMH: %s  GFL:%s" after-change-major-mode-hook global-font-lock-mode)
 
-(setq ert-batch-backtrace-right-margin 200
-      ert-batch-print-level nil
-      ert-batch-print-length nil)
-(defvar pm-verbose (getenv "PM_VERBOSE"))
-
+(defvar pm-verbose nil)
 (defvar pm-test-current-change-set nil)
 (defun pm-test-get-file (name)
   "Find the file with NAME from inside a poly-xyz repo.
@@ -95,7 +91,8 @@ MODE is a quoted symbol."
        (kill-buffer *buf*))
      (with-current-buffer (get-buffer-create *buf*)
        (insert (substring-no-properties ,string))
-       (funcall ,mode)
+       (let ((inhibit-message (not pm-verbose)))
+         (funcall ,mode))
        (setq-default indent-tabs-mode nil)
        ;; In emacs 27 this is called from run-mode-hooks
        (and (bound-and-true-p syntax-propertize-function)
@@ -155,12 +152,11 @@ MODE is a quoted symbol."
          (remove-hook 'text-mode-hook 'flyspell-mode) ;; triggers "too much reentrancy" error
          (let ((inhibit-message (not pm-verbose)))
            (funcall-interactively ',mode))
-         ;; (flyspell-mode -1) ;; triggers "too much reentrancy" error
          (hack-local-variables 'ignore-mode)
          (goto-char (point-min))
          ,pre-form
+         ;; FIXME: figure this mambo-jumbo
          ;; need this to activate all chunks
-         (font-lock-ensure)
          (goto-char (point-min))
          (save-excursion
            (let ((font-lock-mode t))
@@ -178,7 +174,8 @@ MODE is a quoted symbol."
                 ;; fontification in X either (waf?)
                 (add-hook 'after-change-functions #'pm-test-invoke-fontification t t))
               (point-min) (point-max))))
-         (font-lock-ensure)
+         ;; (font-lock-flush)
+         ;; (font-lock-ensure)
          ,@body
          (current-buffer)))))
 
@@ -261,6 +258,8 @@ MODE is a quoted symbol."
 ALLOW-FAILED-FACES should be a list of faces on which failures
 are OK."
   (save-excursion
+    (font-lock-flush)
+    (font-lock-ensure)
     (pm-map-over-spans
      (lambda (span) (pm-test-span-faces span allow-failed-faces)))))
 
@@ -348,8 +347,6 @@ execution undo is called once. After each change-set
            (debug (sexp sexp &rest ((name sexp) &rest form))))
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
-      (poly-lock-flush)
-      (poly-lock-fontify-now (point-min) (point-max))
       (pm-test-faces)
       (dolist (cset ',change-sets)
         (let ((poly-lock-defer-after-change nil)
@@ -446,7 +443,8 @@ points."
 (defmacro pm-test-map-over-modes (mode file)
   `(pm-test-run-on-file ,mode ,file
      (let ((beg (point-min))
-           (end (point-max)))
+           (end (point-max))
+           (pm-use-cache t))
        (with-buffer-prepared-for-poly-lock
         (remove-text-properties beg end '(:pm-span :pm-face)))
        (pm-map-over-modes (lambda (b e)) beg end)
