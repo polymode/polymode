@@ -275,7 +275,8 @@ With NO-CACHE prefix, don't use cached values of the span."
         pm--common-setup
         pm--mode-setup))
     ;; core hooks
-    (1 (polymode-post-command-select-buffer
+    (1 (polymode-pre-command
+        polymode-post-command
         polymode-after-kill-fixes
         ;; this one indicates the start of a sequence
         poly-lock-after-change))
@@ -472,15 +473,16 @@ buffer, if 'message issue a message, if nil just return a list of values."
     (require 'pp)
     (cond
      ((eq out-type 'buffer)
-      (with-current-buffer (get-buffer-create "*polymode-vars*")
-        (erase-buffer)
-        (goto-char (point-max))
-        (insert (format "\n================== %s ===================\n" cbuff))
-        (insert (pp-to-string vars))
-        (toggle-truncate-lines -1)
-        (goto-char (point-max))
-        (view-mode)
-        (display-buffer (current-buffer))))
+      (let ((inhibit-read-only t))
+        (with-current-buffer (get-buffer-create "*polymode-vars*")
+          (erase-buffer)
+          (goto-char (point-max))
+          (insert (format "\n================== %s ===================\n" cbuff))
+          (insert (pp-to-string vars))
+          (toggle-truncate-lines -1)
+          (goto-char (point-max))
+          (view-mode)
+          (display-buffer (current-buffer)))))
      ((eq out-type 'message)
       (message "%s" (pp-to-string vars)))
      (t vars))))

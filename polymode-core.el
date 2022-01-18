@@ -85,7 +85,9 @@
 ;; SHIELDS
 
 (defvar pm-allow-after-change-hook t)
+(defvar pm-allow-before-change-hook t)
 
+(defvar pm-allow-pre-command-hook t)
 (defvar pm-allow-post-command-hook t)
 (defun polymode-disable-post-command ()
   (when polymode-mode
@@ -969,7 +971,7 @@ Parents' hooks are run first."
     outline-level
     polymode-default-inner-mode
     tab-width)
-  "Variables transferred from base buffer on buffer switch.")
+  "Variables transferred from base buffer on switch to inner mode buffer.")
 
 (define-obsolete-variable-alias 'pm-move-vars-from-old-buffer 'polymode-move-these-vars-from-old-buffer "v0.1.6")
 (defvar polymode-move-these-vars-from-old-buffer
@@ -998,17 +1000,17 @@ Parents' hooks are run first."
     ;; and executes it for all cursors in a post-command-hook so we
     ;; need to transfer in case the buffer was switched.
     mc--this-command)
-  "Variables transferred from old buffer on buffer switch.")
+  "Variables transferred from old buffer to new buffer on buffer switch.")
 
 (defvar polymode-move-these-minor-modes-from-base-buffer nil
-  "List of minor modes to move from base buffer.")
+  "Minor modes to move from base buffer on buffer switch.")
 (defvar polymode-move-these-minor-modes-from-old-buffer
   '(linum-mode
     visual-line-mode
     visual-fill-column-mode
     writeroom-mode
     multiple-cursors-mode)
-  "List of minor modes to move from the old buffer.")
+  "Minor modes to move from the old buffer during buffer switch.")
 
 (defun pm-own-buffer-p (&optional buffer)
   "Return t if BUFFER is owned by polymode.
@@ -1355,9 +1357,9 @@ behavior."
 
 ;;; HOOKS
 ;; There is also `poly-lock-after-change' in poly-lock.el
-
 (defun polymode-flush-syntax-ppss-cache (beg end _)
-  "Run `syntax-ppss-flush-cache' from BEG to END in all polymode buffers."
+  "Run `syntax-ppss-flush-cache' from BEG to END in all polymode buffers.
+Placed with high priority in `after-change-functions' hook."
   ;; Modification hooks are run only in current buffer and not in other (base or
   ;; indirect) buffers. Thus some actions like flush of ppss cache must be taken
   ;; care explicitly. We run some safety hooks checks here as well.
@@ -1371,7 +1373,8 @@ behavior."
         (unless (eq (car after-change-functions)
                     'polymode-flush-syntax-ppss-cache)
           (delq 'polymode-flush-syntax-ppss-cache after-change-functions)
-          (add-hook 'after-change-functions 'polymode-flush-syntax-ppss-cache nil t))
+          (setq after-change-functions (cons 'polymode-flush-syntax-ppss-cache
+                                             after-change-functions)))
         (syntax-ppss-flush-cache beg end)
         ;; Check if something has changed our hooks. (Am I theoretically paranoid or
         ;; this is indeed needed?) `fontification-functions' (and others?) should be
@@ -1382,21 +1385,83 @@ behavior."
         ;;   (remove-hook 'after-change-functions 'jit-lock-after-change t))
         ))))
 
-(defun polymode-pre-command-synchronize-state ()
-  "Synchronize state between buffers.
-Currently synchronize points only. Runs in local `pre-command-hook'."
-  (pm--synchronize-points (current-buffer)))
+(defun pm--run-other-hooks (allow syms hook &rest args)
+  (when (and allow polymode-mode pm/polymode)
+    (dolist (sym syms)
+      (dolist (buf (eieio-oref pm/polymode '-buffers))
+        (unless (eq buf (current-buffer))
+          (with-current-buffer buf
+            (when (memq sym hook)
+              (if args
+                  (apply #'run-hook-with-args sym args)
+                (run-hooks sym)))))))))
 
-(defun polymode-post-command-select-buffer ()
-  "Select the appropriate (indirect) buffer corresponding to point's context.
-This funciton is placed in local `post-command-hook'."
+(defvar polymode-run-these-before-change-functions-in-other-bufers nil
+  "Before-change functions to run in all other buffers.")
+(defvar polymode-run-these-after-change-functions-in-other-bufers nil
+  "After-change functions to run in all other buffers.")
+
+(defun polymode-before-change (beg end)
+  "Polymode before-change fixes.
+Run `polymode-run-these-before-change-functions-in-other-bufers'.
+Placed with low priority in `before-change-functions' hook."
+  (pm--run-other-hooks pm-allow-before-change-hook
+                       polymode-run-these-before-change-functions-in-other-bufers
+                       before-change-functions
+                       beg end))
+
+(defun polymode-after-change (beg end len)
+  "Polymode after-change fixes.
+Run `polymode-run-these-after-change-functions-in-other-bufers'.
+Placed with low priority in `after-change-functions' hook."
+  (pm--run-other-hooks pm-allow-after-change-hook
+                       polymode-run-these-after-change-functions-in-other-bufers
+                       after-change-functions
+                       beg end len))
+
+(defvar polymode-run-these-pre-commands-in-other-bufers nil
+  "These commands, if present in `pre-command-hook', are run in other bufers.")
+(defvar polymode-run-these-post-commands-in-other-bufers nil
+  "These commands, if present in `post-command-hook', are run in other bufers.")
+
+(defun polymode-pre-command ()
+  "Synchronize state between buffers and run pre-commands in other buffers.
+Currently synchronize points and runs
+`polymode-run-these-pre-commands-in-other-bufers' if any. Runs in
+local `pre-command-hook' with very high priority."
+  (pm--synchronize-points (current-buffer))
+  (condition-case err
+      (pm--run-other-hooks pm-allow-pre-command-hook
+                           polymode-run-these-pre-commands-in-other-bufers
+                           pre-command-hook)
+    (error (message "error polymode-pre-command run other hooks: (%s) %s"
+                    (point) (error-message-string err)))))
+
+(defun polymode-post-command ()
+  "Select the buffer relevant buffer and run post-commands in other buffers.
+Run all the `post-command-hooks' in the new buffer and those
+command defined in
+`polymode-run-these-post-commands-in-other-bufers' whenever
+appropriate. This function is placed into local
+`post-command-hook' with very low priority."
   (when (and pm-allow-post-command-hook
              polymode-mode
-             pm/chunkmode)
-    (condition-case err
-        (pm-switch-to-buffer)
-      (error (message "(pm-switch-to-buffer %s): %s"
-                      (point) (error-message-string err))))))
+             pm/polymode)
+    (let ((cbuf (current-buffer)))
+      (condition-case err
+          (pm-switch-to-buffer)
+        (error (message "error in polymode-post-command: (pm-switch-to-buffer %s): %s"
+                        (point) (error-message-string err))))
+      (condition-case err
+          (if (eq cbuf (current-buffer))
+              ;; 1. same buffer, run hooks in other buffers
+              (pm--run-other-hooks pm-allow-post-command-hook
+                                   polymode-run-these-post-commands-in-other-bufers
+                                   post-command-hook)
+            ;; 2. Run all hooks in this (newly switched to) buffer
+            (run-hooks 'post-command-hook))
+        (error (message "error in polymode-post-command run other hooks: (%s) %s"
+                        (point) (error-message-string err)))))))
 
 (defvar-local pm--killed nil)
 (defun polymode-after-kill-fixes ()
@@ -1453,6 +1518,8 @@ NEW-MODE can be t in which case mode is picked from the
       (pm-turn-polymode-off mmode))))
 
 (add-hook 'after-change-major-mode-hook #'polymode-after-change-major-mode-cleanup)
+
+
 
 
 ;;; CORE ADVICE

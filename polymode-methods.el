@@ -181,8 +181,10 @@ initialized. Return the buffer."
 
     ;; HOOKS
     (add-hook 'kill-buffer-hook #'polymode-after-kill-fixes nil t)
-    (add-hook 'post-command-hook #'polymode-post-command-select-buffer nil t)
-    (add-hook 'pre-command-hook #'polymode-pre-command-synchronize-state nil t)
+    (add-hook 'pre-command-hook #'polymode-pre-command -99 t)
+    (add-hook 'post-command-hook #'polymode-post-command 99 t)
+    (add-hook 'before-change-functions #'polymode-before-change -95 t)
+    (add-hook 'after-change-functions #'polymode-after-change 95 t)
 
     ;; FONT LOCK (see poly-lock.el)
     (setq-local font-lock-function 'poly-lock-mode)
@@ -201,7 +203,6 @@ initialized. Return the buffer."
     ;; (font-lock-flush)
 
     ;; SYNTAX (must be done after font-lock for after-change order)
-
     (with-no-warnings
       ;; [OBSOLETE as of 25.1 but we still protect it]
       (pm-around-advice syntax-begin-function 'pm-override-output-position))
@@ -218,7 +219,7 @@ initialized. Return the buffer."
     ;; https://lists.gnu.org/archive/html/emacs-devel/2019-03/msg00500.html)
     ;; TODO: Consider just advising syntax-ppss-flush-cache once the above is
     ;; fixed in emacs.
-    (add-hook 'after-change-functions 'polymode-flush-syntax-ppss-cache nil t)
+    (add-hook 'after-change-functions #'polymode-flush-syntax-ppss-cache -99 t)
 
     (current-buffer)))
 
