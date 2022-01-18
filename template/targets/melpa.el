@@ -1,18 +1,8 @@
 
+(load-file "targets/utils.el")
 (require 'package)
 
-(setq dev-deps '(elisp-lint)
-      deps (let ((file (expand-file-name "targets/deps")))
-             (when (file-exists-p file)
-               (with-temp-buffer
-                 (insert-file-contents file)
-	             (read (buffer-string)))))
-      deps-requires (with-temp-buffer
-                      (insert-file-contents "__MODULE__.el")
-                      (goto-char (point-min))
-                      (when (re-search-forward "Package-Requires:" nil t)
-                        (car (read-from-string (buffer-substring (point) (point-at-eol))))))
-      package-deps (delq 'emacs (delete-dups (append deps (mapcar #'car deps-requires))))
+(setq package-deps (polymode-library-deps "__MODULE__.el")
       package-user-dir (expand-file-name (format ".ELPA/%s" emacs-version))
       package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
                          ("melpa" . "https://melpa.org/packages/")))
