@@ -1538,9 +1538,23 @@ If FUN is a list, apply ADVICE to each element of it."
   (unless pm-initialization-in-progress
     (apply orig-fun args)))
 
+(defun polymode-inhibit-in-indirect-buffers (orig-fun &rest args)
+  "Don't run ORIG-FUN (with ARGS) in polymode indirect buffers (aka inner modes).
+Use this function to around advice delicate functions:
+   (advice-add #'lsp-deferred :around #'polymode-inhibit-in-indirect-buffers)
+or with `pm-around-advice' which allows for multiple advises at once:
+   (pm-around-advice '(lsp lsp-deferred) #'polymode-inhibit-in-indirect-buffers)"
+  (unless (and polymode-mode (buffer-base-buffer))
+    (apply orig-fun args)))
+
 (defun polymode-with-current-base-buffer (orig-fun &rest args)
   "Switch to base buffer and apply ORIG-FUN to ARGS.
-Used in advises."
+Use this function to around advice of functions that should run
+in base buffer only like this:
+   (advice-add #'foo :around #'polymode-with-current-base-buffer)
+or with `pm-around-advice' which allows for multiple advises at
+once:
+   (pm-around-advice '(foo bar) #'polymode-with-current-base-buffer)"
   (if (and polymode-mode
            (not pm--killed)
            (buffer-live-p (buffer-base-buffer)))

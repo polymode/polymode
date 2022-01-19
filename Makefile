@@ -32,7 +32,10 @@ cleanall: cleansilent
 cleansilent:
 	@rm -f $(OBJECTS)
 
-deploy:
+docs-build:
+	mkdocs build
+
+docs-deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
 
 lint: version

@@ -1,3 +1,14 @@
+## Protection
+
+Sometimes you don't want some functions to run in indirect buffers (inner
+modes). Either you want them to run in the base (host mode) buffer or not to run
+at all.
+
+Polymode provides two generic protection functions which can be used as around advice:
+
+- `polymode-with-current-base-buffer` - run the function inside the base buffer
+- `polymode-inhibit-in-indirect-buffers` - don't run the function at all when invoked in indirect buffers
+
 ## Synchronizing State Across Polymode Buffers
 
 Each major mode has its own buffer. This is generally a good thing and leads to
@@ -9,7 +20,7 @@ buffers and it's not always obvious what to synchronize and what not. Things
 like points, text properties, minor-modes, buffer-undo-lists, overlays are
 examples of the sate that needs to be synchronized.
 
-## Variables and Minor Modes
+### Variables and Minor Modes
 
 Polymode automatically synchronizes stated defined in the following
 variables. Users and mode authors should add to these variables. In case of a
@@ -28,7 +39,7 @@ variables.
 - `polymode-after-switch-buffer-hook`
 
 
-## Hooks
+### Hooks
 
 By default Emacs runs `pre-command-hook` and `post-command-hook` only in the
 original buffer. On a few occasions actions should propagate to other
@@ -42,4 +53,4 @@ run in other buffers.
 - `polymode-run-these-post-commands-in-other-bufers` - idem but for post-command-hook
 
 - `polymode-run-these-before-change-functions-in-other-bufers`  - Functions to run in all other buffers regardless where command originated.
-- `polymode-run-these-after-change-functions-in-other-bufers` - idem but for after-change-functions
+- `polymode-run-these-after-change-functions-in-other-bufers` - idem but for after-change-fun

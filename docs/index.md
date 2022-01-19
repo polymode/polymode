@@ -14,6 +14,7 @@ Creating new polymodes normally takes a few lines of code.
 - [Basic Usage](usage.md)
 - [Concepts](concepts.md)
 - [Defining Polymodes](defining-polymodes.md)
+- [Synchronization and Protection](synchronization.md)
 - [For Developers](internals.md)
 - [Screenshots](screenshots.md)
 - [Licence](licence.md)
