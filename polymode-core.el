@@ -282,7 +282,7 @@ from. If missing, the optional documentation string DOC is
 generated automatically. KEY-ARGS is a list of key-value pairs.
 See the documentation of the class `pm-host-chunkmode' for
 possible values."
-  (declare (doc-string 3) (indent 2))
+  (declare (doc-string 3) (indent defun))
   (polymode--define-chunkmode 'pm-host-chunkmode name parent doc key-args))
 
 ;;;###autoload
@@ -293,7 +293,7 @@ from. If missing the optional documentation string DOC is
 generated automatically. KEY-ARGS is a list of key-value pairs.
 See the documentation of the class `pm-inner-chunkmode' for
 possible values."
-  (declare (doc-string 3) (indent 2))
+  (declare (doc-string 3) (indent defun))
   (polymode--define-chunkmode 'pm-inner-chunkmode name parent doc key-args))
 
 ;;;###autoload
@@ -304,7 +304,7 @@ derived (cloned) from. If missing the optional documentation
 string DOC is generated automatically. KEY-ARGS is a list of
 key-value pairs. See the documentation of the class
 `pm-inner-auto-chunkmode' for possible values."
-  (declare (doc-string 3) (indent 2))
+  (declare (doc-string 3) (indent defun))
   (polymode--define-chunkmode 'pm-inner-auto-chunkmode name parent doc key-args))
 
 

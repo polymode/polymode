@@ -520,7 +520,7 @@ most frequently used slots are:
 :innermodes List of symbols pointing to `pm-inner-chunkmode'
   objects which specify the behavior of inner modes (or submodes)."
   (declare
-   (indent 1)
+   (indent defun)
    (doc-string 3)
    (debug (&define name
                    [&optional [&not keywordp] name]
