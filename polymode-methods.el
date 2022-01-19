@@ -606,16 +606,21 @@ to indent."
         (goto-char (+ (point) delta))))))
 
 (defun pm--first-line-indent (&optional span)
-  (save-excursion
-    (let ((pos (point)))
-      (goto-char (nth 1 (or span (pm-innermost-span))))
-      ;; when body starts at bol move to previous line
-      (when (and (bolp) (not (bobp)))
-        (backward-char 1))
-      (skip-chars-forward " \t\n")
-      (back-to-indentation)
+  "Return indentation of first line if not on a first line."
+  (setq span (or span (pm-innermost-span)))
+  (let ((pos (point)))
+    (save-excursion
+      (goto-char (nth 1 span))
+      (when (not (bolp)) ; for spans which don't start at bol, first line is next line
+        (forward-line 1))
+      (skip-chars-forward " \t\n\r")
       (when (< (point-at-eol) pos)
-        (- (point) (point-at-bol))))))
+        ;; not on first line -> compute indent of the first line
+        (goto-char (nth 1 span))
+        (skip-chars-forward " \t\n\r")
+        (back-to-indentation)
+        (when (< (point-at-eol) pos)
+          (- (point) (point-at-bol)))))))
 
 ;; SPAN is a body span; do nothing if narrowed to body
 (defun pm--head-indent (&optional span)
