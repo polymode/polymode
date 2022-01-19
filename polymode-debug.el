@@ -270,10 +270,15 @@ With NO-CACHE prefix, don't use cached values of the span."
 
 (defvar pm-traced-functions
   '(
-    ;; core initialization
-    (0 (pm-initialize
-        pm--common-setup
-        pm--mode-setup))
+    ;; core initialization (traced even when polymode-mode is not yet installed)
+    (0 (pm--common-setup
+        pm--mode-setup
+        pm--run-derived-mode-hooks
+        pm--run-init-hooks
+        pm-initialize
+        hack-local-variables
+        run-hooks
+        run-mode-hooks))
     ;; core hooks
     (1 (polymode-pre-command
         polymode-post-command
@@ -290,12 +295,7 @@ With NO-CACHE prefix, don't use cached values of the span."
         pm-override-output-position))
     ;; (2.5 . "^markdown-fontify-.*")
     ;; init
-    (3  (pm--common-setup
-         pm-initialize
-         pm--mode-setup
-         pm--run-init-hooks
-         pm--run-derived-mode-hooks
-         pm-map-over-spans
+    (3  (pm-map-over-spans
          pm-map-over-modes
          pm-innermost-span
          pm-next-chunk))
@@ -327,8 +327,10 @@ universal argument toggles maximum level of tracing (15). See
 `pm-traced-functions'. Default level is 4."
   (interactive "P")
   (setq level (prefix-numeric-value (or level 4)))
-  (with-current-buffer (get-buffer-create "*Messages*")
+  (with-current-buffer (get-buffer-create "*TMessages*")
     (read-only-mode -1))
+  (when pm--do-trace
+    (untrace-all))
   (setq pm--do-trace (not pm--do-trace))
   (if pm--do-trace
       (progn (dolist (kv pm-traced-functions)
@@ -338,7 +340,6 @@ universal argument toggles maximum level of tracing (15). See
                    (dolist (fn (cadr kv))
                      (pm-trace fn)))))
              (message "Polymode tracing activated"))
-    (untrace-all)
     (message "Polymode tracing deactivated")))
 
 
@@ -357,11 +358,13 @@ currently traced functions."
                       #'pm-trace--tracing-context)))
          (lambda (body &rest args)
            (when (eq fn 'polymode-flush-syntax-ppss-cache)
+             ;; waf is this?
              (with-current-buffer buff
                (save-excursion
                  (goto-char (point-max))
                  (insert "\n"))))
-           (if (or polymode-mode
+           (if (or (memq fn (nth 1 (car pm-traced-functions)))
+                   polymode-mode
                    ;; (derived-mode-p 'markdown-mode)
                    )
                (apply advice body args)

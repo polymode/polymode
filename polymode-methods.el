@@ -35,36 +35,6 @@
 (cl-defgeneric pm-initialize (object)
   "Initialize current buffer with OBJECT.")
 
-(cl-defmethod pm-initialize ((config pm-polymode))
-  "Initialization of host buffers.
-Ran by the polymode mode function."
-  ;; Not calling config's '-minor-mode in hosts because this pm-initialize is
-  ;; called from minor-mode itself in base buffers.
-  (let* ((hostmode-name (eieio-oref config 'hostmode))
-         (hostmode (if hostmode-name
-                       (clone (symbol-value hostmode-name))
-                     (pm-host-chunkmode :name "ANY" :mode nil))))
-    (let ((pm-initialization-in-progress t)
-          ;; Set if nil! This allows unspecified host chunkmodes to be used in
-          ;; minor modes.
-          (host-mode (or (eieio-oref hostmode 'mode)
-                         (oset hostmode :mode major-mode))))
-      ;; host-mode hooks are run here, but polymode is not initialized
-      (pm--mode-setup host-mode)
-      (oset hostmode -buffer (current-buffer))
-      (oset config -hostmode hostmode)
-      (setq pm--core-buffer-name (buffer-name)
-            pm/polymode config
-            pm/chunkmode hostmode
-            pm/current t
-            pm/type nil)
-      (pm--instantiate-innermodes config)
-      (pm--common-setup)
-      ;; FIXME: must go into polymode-compat.el
-      (add-hook 'flyspell-incorrect-hook
-                'pm--flyspel-dont-highlight-in-chunkmodes nil t))
-    (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)))
-
 (defun pm--instantiate-innermodes (config)
   "Instantiate CONFIG's innermodes respecting inheritance."
   (let ((inner-syms (delete-dups
@@ -80,6 +50,36 @@ Ran by the polymode mode function."
                     (clone (symbol-value sub-name)))
                   inner-syms))))
 
+(cl-defmethod pm-initialize ((config pm-polymode))
+  "Initialization of host buffers.
+Ran by the polymode mode function."
+  ;; Not calling config's '-minor-mode in hosts because this pm-initialize is
+  ;; called from minor-mode itself in base buffers.
+  (let* ((hostmode-name (eieio-oref config 'hostmode))
+         (hostmode (if hostmode-name
+                       (clone (symbol-value hostmode-name))
+                     (pm-host-chunkmode :name "ANY" :mode nil))))
+    (let ((pm-initialization-in-progress t)
+          ;; Set if nil! This allows unspecified host chunkmodes to be used in
+          ;; minor modes.
+          (host-mode (or (eieio-oref hostmode 'mode)
+                         (oset hostmode :mode major-mode))))
+      ;; FIXME: mode hooks and local var hacking happens here. Need to move it
+      ;; to the end.
+      (pm--mode-setup host-mode)
+      (oset hostmode -buffer (current-buffer))
+      (oset config -hostmode hostmode)
+      (setq pm--core-buffer-name (buffer-name)
+            pm/polymode config
+            pm/chunkmode hostmode
+            pm/current t
+            pm/type nil)
+      (pm--instantiate-innermodes config)
+      (pm--common-setup))
+    (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)
+    ;; (run-mode-hooks) ;; FIXME
+    ))
+
 (cl-defmethod pm-initialize ((chunkmode pm-inner-chunkmode) &optional type mode)
   "Initialization of the innermodes' (indirect) buffers."
   ;; run in chunkmode indirect buffer
@@ -91,6 +91,8 @@ Ran by the polymode mode function."
                                 post-fix)))
          (new-name (generate-new-buffer-name core-name)))
     (rename-buffer new-name)
+    ;; FIXME: Mode hooks and local var hacking happens here. Need to move it
+    ;; to the end. But then font-lock is not activated and buffers not installed correctly.
     (pm--mode-setup mode)
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
     ;; FIXME: This breaks if different chunkmodes use same-mode buffer. Even for
@@ -112,7 +114,10 @@ Ran by the polymode mode function."
   (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook)
   ;; Call polymode mode for the sake of the keymap and hook. Same minor mode
   ;; which runs in the host buffer but without recursive call to `pm-initialize'.
-  (funcall (eieio-oref pm/polymode '-minor-mode)))
+  (funcall (eieio-oref pm/polymode '-minor-mode))
+  ;; finally run the mode's native hooks (FIXME)
+  ;; (run-mode-hooks)
+  )
 
 (defvar poly-lock-allow-fontification)
 (defun pm--mode-setup (mode &optional buffer)

@@ -186,7 +186,8 @@ are passed to ORIG-FUN."
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end _poss)
   (or (car (get-text-property beg :pm-span))
       (car (get-text-property end :pm-span))))
-
+(add-hook 'flyspell-incorrect-hook
+          'pm--flyspel-dont-highlight-in-chunkmodes nil t)
 
 ;;; C/C++/Java
 (pm-around-advice 'c-before-context-fl-expand-region #'pm-override-output-cons)
