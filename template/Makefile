@@ -19,6 +19,10 @@ build: version clean
 	@echo "******************* BUILDING $(MODULE) *************************"
 	$(EMACSBATCH) --load targets/melpa-init.el --funcall batch-byte-compile *.el
 
+build-local: version clean
+	@echo "******************* BUILDING $(MODULE) *************************"
+	$(EMACSBATCH) --load targets/local.el --funcall batch-byte-compile *.el
+
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
 	$(EMACSBATCH) --load targets/checkdoc.el
@@ -50,6 +54,10 @@ startvs: version
 test: build version
 	@echo "******************* Testing $(MODULE) ***************************"
 	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
+
+test-local: version
+	@echo "******************* Testing $(MODULE) ***************************"
+	$(EMACSBATCH) --load targets/local.el --load targets/test.el
 
 version:
 	@echo "EMACS VERSION: $(EMACS_VERSION)"

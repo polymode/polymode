@@ -58,6 +58,10 @@ test: version clean
 	@echo "******************* TESTING $(MODULE) **************************"
 	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
 
+test-local: version
+	@echo "******************* Testing $(MODULE) ***************************"
+	$(EMACSBATCH) --load targets/local.el --load targets/test.el
+
 test/%:
 	$(eval PATTERN := $(subst test/, , $@))
 	@echo "********** TESTING WITH PATTERN $(PATTERN) in $(MODULE) ************"
