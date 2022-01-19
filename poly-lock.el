@@ -82,7 +82,7 @@
   (defmacro with-buffer-prepared-for-poly-lock (&rest body)
     "Execute BODY in current buffer, overriding several variables.
 Preserves the `buffer-modified-p' state of the current buffer."
-    (declare (debug (body)))
+    (declare (debug (body)) (indent 1))
     `(let ((inhibit-point-motion-hooks t))
        (with-silent-modifications
          ,@body))))

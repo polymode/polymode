@@ -473,8 +473,9 @@ buffer, if 'message issue a message, if nil just return a list of values."
     (require 'pp)
     (cond
      ((eq out-type 'buffer)
-      (let ((inhibit-read-only t))
-        (with-current-buffer (get-buffer-create "*polymode-vars*")
+      (let ((inhibit-read-only t)
+            (buf (get-buffer-create "*polymode-vars*")))
+        (with-current-buffer buf
           (erase-buffer)
           (goto-char (point-max))
           (insert (format "\n================== %s ===================\n" cbuff))
@@ -482,7 +483,8 @@ buffer, if 'message issue a message, if nil just return a list of values."
           (toggle-truncate-lines -1)
           (goto-char (point-max))
           (view-mode)
-          (display-buffer (current-buffer)))))
+          (display-buffer (current-buffer)))
+        (pop-to-buffer buf)))
      ((eq out-type 'message)
       (message "%s" (pp-to-string vars)))
      (t vars))))
