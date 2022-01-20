@@ -11,4 +11,4 @@
                          (goto-char (point-min))
                          (when (re-search-forward "Package-Requires:" nil t)
                            (car (read-from-string (buffer-substring (point) (point-at-eol))))))))
-    (delq 'emacs (delete-dups (append deps (mapcar #'car deps-requires))))))
+    (delq 'emacs (delete-dups (append dev-deps deps (mapcar #'car deps-requires))))))

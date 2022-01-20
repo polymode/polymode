@@ -49,8 +49,8 @@ corresponding buffers.
 Polymode maintains a list of functions which, if present in the hook, should be
 run in other buffers.
 
-- `polymode-run-these-pre-commands-in-other-bufers`  - Commands to run in all other buffers regardless where command originated.
-- `polymode-run-these-post-commands-in-other-bufers` - idem but for post-command-hook
+- `polymode-run-these-pre-commands-in-other-buffers`  - Commands to run in all other buffers regardless where command originated.
+- `polymode-run-these-post-commands-in-other-buffers` - idem but for post-command-hook
 
-- `polymode-run-these-before-change-functions-in-other-bufers`  - Functions to run in all other buffers regardless where command originated.
-- `polymode-run-these-after-change-functions-in-other-bufers` - idem but for after-change-fun
+- `polymode-run-these-before-change-functions-in-other-buffers`  - Functions to run in all other buffers regardless where command originated.
+- `polymode-run-these-after-change-functions-in-other-buffers` - idem but for after-change-fun

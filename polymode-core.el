@@ -1396,43 +1396,43 @@ Placed with high priority in `after-change-functions' hook."
                   (apply #'run-hook-with-args sym args)
                 (run-hooks sym)))))))))
 
-(defvar polymode-run-these-before-change-functions-in-other-bufers nil
+(defvar polymode-run-these-before-change-functions-in-other-buffers nil
   "Before-change functions to run in all other buffers.")
-(defvar polymode-run-these-after-change-functions-in-other-bufers nil
+(defvar polymode-run-these-after-change-functions-in-other-buffers nil
   "After-change functions to run in all other buffers.")
 
 (defun polymode-before-change (beg end)
   "Polymode before-change fixes.
-Run `polymode-run-these-before-change-functions-in-other-bufers'.
+Run `polymode-run-these-before-change-functions-in-other-buffers'.
 Placed with low priority in `before-change-functions' hook."
   (pm--run-other-hooks pm-allow-before-change-hook
-                       polymode-run-these-before-change-functions-in-other-bufers
+                       polymode-run-these-before-change-functions-in-other-buffers
                        before-change-functions
                        beg end))
 
 (defun polymode-after-change (beg end len)
   "Polymode after-change fixes.
-Run `polymode-run-these-after-change-functions-in-other-bufers'.
+Run `polymode-run-these-after-change-functions-in-other-buffers'.
 Placed with low priority in `after-change-functions' hook."
   (pm--run-other-hooks pm-allow-after-change-hook
-                       polymode-run-these-after-change-functions-in-other-bufers
+                       polymode-run-these-after-change-functions-in-other-buffers
                        after-change-functions
                        beg end len))
 
-(defvar polymode-run-these-pre-commands-in-other-bufers nil
+(defvar polymode-run-these-pre-commands-in-other-buffers nil
   "These commands, if present in `pre-command-hook', are run in other bufers.")
-(defvar polymode-run-these-post-commands-in-other-bufers nil
+(defvar polymode-run-these-post-commands-in-other-buffers nil
   "These commands, if present in `post-command-hook', are run in other bufers.")
 
 (defun polymode-pre-command ()
   "Synchronize state between buffers and run pre-commands in other buffers.
 Currently synchronize points and runs
-`polymode-run-these-pre-commands-in-other-bufers' if any. Runs in
+`polymode-run-these-pre-commands-in-other-buffers' if any. Runs in
 local `pre-command-hook' with very high priority."
   (pm--synchronize-points (current-buffer))
   (condition-case err
       (pm--run-other-hooks pm-allow-pre-command-hook
-                           polymode-run-these-pre-commands-in-other-bufers
+                           polymode-run-these-pre-commands-in-other-buffers
                            pre-command-hook)
     (error (message "error polymode-pre-command run other hooks: (%s) %s"
                     (point) (error-message-string err)))))
@@ -1441,7 +1441,7 @@ local `pre-command-hook' with very high priority."
   "Select the buffer relevant buffer and run post-commands in other buffers.
 Run all the `post-command-hooks' in the new buffer and those
 command defined in
-`polymode-run-these-post-commands-in-other-bufers' whenever
+`polymode-run-these-post-commands-in-other-buffers' whenever
 appropriate. This function is placed into local
 `post-command-hook' with very low priority."
   (when (and pm-allow-post-command-hook
@@ -1456,7 +1456,7 @@ appropriate. This function is placed into local
           (if (eq cbuf (current-buffer))
               ;; 1. same buffer, run hooks in other buffers
               (pm--run-other-hooks pm-allow-post-command-hook
-                                   polymode-run-these-post-commands-in-other-bufers
+                                   polymode-run-these-post-commands-in-other-buffers
                                    post-command-hook)
             ;; 2. Run all hooks in this (newly switched to) buffer
             (run-hooks 'post-command-hook))
