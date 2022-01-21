@@ -41,16 +41,19 @@ variables.
 
 ### Hooks
 
-By default Emacs runs `pre-command-hook` and `post-command-hook` only in the
-original buffer. On a few occasions actions should propagate to other
-buffers. Most commonly such actions manipulate and update local state in the
-corresponding buffers.
+By default Emacs runs `pre-command-hook`/`post-command-hook` and
+`before-change-functions`/`after-change-functions` only in the original
+buffer. On a few occasions these actions should propagate to other buffers. Most
+commonly such actions manipulate and update local state in the corresponding
+buffers.
 
-Polymode maintains a list of functions which, if present in the hook, should be
-run in other buffers.
+In order to make this task easier, `polymode` maintains a list of function
+symbols which, if present in the local hook, should be run in other buffers when
+corresponding hook is triggered in the current buffer. A function is run in the
+other buffer only if it is present in the other buffer's hook.
 
-- `polymode-run-these-pre-commands-in-other-buffers`  - Commands to run in all other buffers regardless where command originated.
-- `polymode-run-these-post-commands-in-other-buffers` - idem but for post-command-hook
+- `polymode-run-these-pre-commands-in-other-buffers`  - `pre-command-hook` functions to run in other buffers
+- `polymode-run-these-post-commands-in-other-buffers` - `post-command-hook` functions to run in other buffers
 
-- `polymode-run-these-before-change-functions-in-other-buffers`  - Functions to run in all other buffers regardless where command originated.
-- `polymode-run-these-after-change-functions-in-other-buffers` - idem but for after-change-fun
+- `polymode-run-these-before-change-functions-in-other-buffers`  - `before-change-functions` to run in other buffers
+- `polymode-run-these-after-change-functions-in-other-buffers`   - `after-change-functions` to run in other buffers
