@@ -1298,10 +1298,11 @@ spans. Two adjacent spans might have same major mode, thus
 FUN is a function of one argument a span object (also available
 in a dynamic variable *span*). Buffer is *not* narrowed to the
 span, nor point is moved. If COUNT is non-nil, jump at most that
-many times. If BACKWARDP is non-nil, map backwards. Point
-synchronization across indirect buffers is not taken care of.
-Modification of the buffer during mapping is an undefined
-behavior."
+many times. If BACKWARDP is non-nil, map backwards. If VISIBLY is
+non-nil select buffers with the full synchronization (as if
+performed by the user), otherwise point synchronization across
+indirect buffers is not taken care of. Modification of the buffer
+during mapping is an undefined behavior."
   ;; Important! Don't forget to save-excursion when calling map-overs-spans and
   ;; synchronize points if needed. Mapping can end in different buffer and
   ;; invalidate the caller assumptions.
@@ -1391,11 +1392,41 @@ Placed with high priority in `after-change-functions' hook."
       (dolist (buf (eieio-oref pm/polymode '-buffers))
         (unless (eq buf (current-buffer))
           (with-current-buffer buf
-            (when (memq sym hook)
+            (when (memq sym (symbol-value hook))
               (if args
-                  (apply #'run-hook-with-args sym args)
-                (run-hooks sym)))))))))
+                  (apply sym args)
+                (funcall sym)))))))))
 
+;; BUFFER SAVE
+;; TOTHINK: add auto-save-hook?
+(defvar polymode-run-these-before-save-functions-in-other-buffers nil
+  "Beore-save functions to run in indirect buffers.
+Saving happens from the base buffer, thus only `before-save-hook'
+declared in the base buffer is triggered.")
+
+(defvar polymode-run-these-after-save-functions-in-other-buffers nil
+  "After-save functions to run in indirect buffers.
+Saving happens from the base buffer, thus only `after-save-hook'
+declared in the base buffer is triggered.")
+
+(defun polymode-before-save ()
+  "Run after-save-hooks in indirect buffers.
+Only those in `polymode-run-these-after-save-functions-in-other-buffers'
+are triggered if present."
+  (pm--run-other-hooks t
+                       polymode-run-these-before-save-functions-in-other-buffers
+                       'after-save-hook))
+
+(defun polymode-after-save ()
+  "Run after-save-hooks in indirect buffers.
+Only those in `polymode-run-these-after-save-functions-in-other-buffers'
+are triggered if present."
+  (pm--run-other-hooks t
+                       polymode-run-these-after-save-functions-in-other-buffers
+                       'after-save-hook))
+
+
+;; change hooks
 (defvar polymode-run-these-before-change-functions-in-other-buffers nil
   "Before-change functions to run in all other buffers.")
 (defvar polymode-run-these-after-change-functions-in-other-buffers nil
@@ -1407,7 +1438,7 @@ Run `polymode-run-these-before-change-functions-in-other-buffers'.
 Placed with low priority in `before-change-functions' hook."
   (pm--run-other-hooks pm-allow-before-change-hook
                        polymode-run-these-before-change-functions-in-other-buffers
-                       before-change-functions
+                       'before-change-functions
                        beg end))
 
 (defun polymode-after-change (beg end len)
@@ -1416,7 +1447,7 @@ Run `polymode-run-these-after-change-functions-in-other-buffers'.
 Placed with low priority in `after-change-functions' hook."
   (pm--run-other-hooks pm-allow-after-change-hook
                        polymode-run-these-after-change-functions-in-other-buffers
-                       after-change-functions
+                       'after-change-functions
                        beg end len))
 
 (defvar polymode-run-these-pre-commands-in-other-buffers nil
@@ -1433,7 +1464,7 @@ local `pre-command-hook' with very high priority."
   (condition-case err
       (pm--run-other-hooks pm-allow-pre-command-hook
                            polymode-run-these-pre-commands-in-other-buffers
-                           pre-command-hook)
+                           'pre-command-hook)
     (error (message "error polymode-pre-command run other hooks: (%s) %s"
                     (point) (error-message-string err)))))
 
@@ -1457,7 +1488,7 @@ appropriate. This function is placed into local
               ;; 1. same buffer, run hooks in other buffers
               (pm--run-other-hooks pm-allow-post-command-hook
                                    polymode-run-these-post-commands-in-other-buffers
-                                   post-command-hook)
+                                   'post-command-hook)
             ;; 2. Run all hooks in this (newly switched to) buffer
             (run-hooks 'post-command-hook))
         (error (message "error in polymode-post-command run other hooks: (%s) %s"
@@ -1541,9 +1572,9 @@ If FUN is a list, apply ADVICE to each element of it."
 (defun polymode-inhibit-in-indirect-buffers (orig-fun &rest args)
   "Don't run ORIG-FUN (with ARGS) in polymode indirect buffers (aka inner modes).
 Use this function to around advice delicate functions:
-   (advice-add #'lsp-deferred :around #'polymode-inhibit-in-indirect-buffers)
+   (advice-add #'xyz :around #'polymode-inhibit-in-indirect-buffers)
 or with `pm-around-advice' which allows for multiple advises at once:
-   (pm-around-advice '(lsp lsp-deferred) #'polymode-inhibit-in-indirect-buffers)"
+   (pm-around-advice '(foo bar) #'polymode-inhibit-in-indirect-buffers)"
   (unless (and polymode-mode (buffer-base-buffer))
     (apply orig-fun args)))
 
@@ -1584,8 +1615,6 @@ once:
 (pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
 (pm-around-advice #'write-file #'polymode-with-current-base-buffer)
 (pm-around-advice #'basic-save-buffer #'polymode-with-current-base-buffer)
-;; (advice-remove #'kill-buffer #'polymode-with-current-base-buffer)
-;; (advice-remove #'find-alternate-file #'polymode-with-current-base-buffer)
 
 
 ;;; FILL

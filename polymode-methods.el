@@ -75,7 +75,9 @@ Ran by the polymode mode function."
             pm/current t
             pm/type nil)
       (pm--instantiate-innermodes config)
-      (pm--common-setup))
+      (pm--common-setup)
+      (add-hook 'after-save-hook #'polymode-after-save nil t)
+      (add-hook 'before-save-hook #'polymode-before-save nil t))
     (pm--run-init-hooks hostmode 'host 'polymode-init-host-hook)
     ;; (run-mode-hooks) ;; FIXME
     ))
