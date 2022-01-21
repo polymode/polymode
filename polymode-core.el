@@ -1436,6 +1436,13 @@ are triggered if present."
   "Polymode before-change fixes.
 Run `polymode-run-these-before-change-functions-in-other-buffers'.
 Placed with low priority in `before-change-functions' hook."
+  (pm--prop-put :before-change-range (cons beg end))
+  ;; FIXME: LSP specific move this out somehow
+  (when (boundp 'lsp-mode)
+    (dolist (buf (eieio-oref pm/polymode '-buffers))
+      (with-current-buffer buf
+        (when lsp-mode
+          (setq pm--lsp-before-change-end-position (pm--lsp-position end))))))
   (pm--run-other-hooks pm-allow-before-change-hook
                        polymode-run-these-before-change-functions-in-other-buffers
                        'before-change-functions

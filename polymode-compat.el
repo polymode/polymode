@@ -181,6 +181,151 @@ are passed to ORIG-FUN."
         (pm-apply-protected orig-fun args))
     (apply orig-fun args)))
 
+
+
+;;; LSP (lsp-mode and elglot)
+
+(defun pm--lsp-text-document-content-change-event (beg end len)
+  "Make a TextDocumentContentChangeEvent body for BEG to END, of length LEN."
+  ;;
+  ;; Emacs modifications `after-change-functions' to LSP insertions
+  ;; https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_didChange
+  ;;
+  ;; INSERT: (50 56 0) means insert 6 chars starting at pos 50
+  ;;   {"range": {"start": {"line": 1, "character": 0},
+  ;;              "end"  : {"line": 1, "character": 0}},
+  ;;              "text": "insert"}
+  ;;
+  ;; DELETE: (50 50 6) means delete 6 chars starting at pos 50
+  ;;   {"range": {"start": {"line": 1, "character": 0},
+  ;;              "end"  : {"line": 1, "character": 6}},
+  ;;              "text": ""}
+  ;;
+  ;; REPLACE: (50 60 6) means delete 6 chars starting at pos 50, and replace
+  ;; them with 10 chars
+  ;;   {"range": {"start": {"line": 1, "character": 0},
+  ;;              "end" :  {"line": 1, "character": 6}},
+  ;;              "text": "new-insert"}
+  ;;
+  ;; INSERT:
+  ;;   before-change:(obeg,oend)=(50,50)
+  ;;   after-change:(nbeg,nend,olen)=(50,56,0)
+  ;;
+  ;; DELETE:
+  ;;   before-change:(obeg,oend)=(50,56)
+  ;;   after-change:(nbeg,nend,len)=(50,50,6)
+  ;;
+  ;; REPLACE:
+  ;;   before-change:(obeg,oend)=(50,56)
+  ;;   lsp-on-change:(nbeg,nend,olen)=(50,60,6)
+  ;;
+  (if (zerop len)
+      ;; insertion
+      (pm--lsp-change-event beg end (buffer-substring-no-properties beg end))
+    (if (pm--lsp-simple-change-p beg len)
+        (let ((end-pos pm--lsp-before-change-end-position)
+              (text (buffer-substring-no-properties beg end)))
+          ;; if beg == end deletion, otherwise replacement
+          (pm--lsp-change-event beg end-pos text))
+      (pm--lsp-full-change-event))))
+
+(defvar-local pm--lsp-before-change-end-position nil)
+(defun pm--lsp-position (pos)
+  (save-restriction
+    (widen)
+    (save-excursion
+      (goto-char pos)
+      (let ((char (if (eq pm/chunkmode (nth 3 (pm-innermost-span pos)))
+                      (- (point) (line-beginning-position))
+                    0)))
+        (list :line (1- (line-number-at-pos pos))
+              :character char)))))
+
+(defun pm--lsp-change-event (beg end text)
+  (list
+   :range (list
+           :start (if (listp beg) beg (pm--lsp-position beg))
+           :end   (if (listp end) end (pm--lsp-position end)))
+   :text text))
+
+(defun pm--lsp-full-change-event ()
+  (list :text (pm--lsp-text)))
+
+(defun pm--lsp-text (&optional beg end)
+  (save-restriction
+    (widen)
+    (save-excursion
+      (setq beg (or beg (point-min)))
+      (setq end (or end (point-max)))
+      (let ((curbuf (current-buffer))
+            (acc))
+        (pm-map-over-spans
+         (lambda (span)
+           (let ((sbeg (max beg (nth 1 span)))
+                 (send (min end (nth 2 span))))
+             (if (eq curbuf (current-buffer))
+                 ;; 1. same buffer - accumulate text
+                 (progn
+                   (save-excursion
+                     (goto-char beg)
+                     (when (and (eq beg (nth 1 span))
+                                (not (bolp)))
+                       ;; taking care of preceding spaces
+                       (push (make-string (- beg (point-at-bol)) ? ) acc)))
+                   (push (buffer-substring-no-properties sbeg send) acc))
+               ;; 2. other buffer - accumulate white-space
+               (save-excursion
+                 (goto-char sbeg)
+                 (when (<= send (point-at-eol))
+                   ;; 2.a first line same line head, tail or inline mode
+                   (push (make-string (- send sbeg) ? ) acc))
+                 ;; 2.b intermediate
+                 (while (< (point-at-eol) send)
+                   (forward-line 1)
+                   (push "\n" acc))
+                 ;; 2.c last line
+                 (if (eolp)
+                     (push "\n" acc)
+                   (when (< (point) send) ; another mode follows
+                     (push (make-string (- send (point)) ? ) acc)))))))
+         beg end nil nil t)
+        (apply #'concat (reverse acc))))))
+
+;; We cannot compute original change location when modifications are complex
+;; (aka multiple changes are combined). In those cases we send an entire
+;; document.
+(defun pm--lsp-simple-change-p (beg len)
+  "Non-nil if the after change BEG and LEN match before change range."
+  (let ((bcr (pm--prop-get :before-change-range)))
+    (and (eq beg (car bcr))
+         (eq len (- (cdr bcr) (car bcr))))))
+
+;; advises
+(defun polymode-lsp-buffer-content (orig-fun)
+  (if (and polymode-mode pm/polymode)
+      (pm--lsp-text)
+    (funcall orig-fun)))
+
+(defun polymode-lsp-change-event (orig-fun beg end len)
+  (if (and polymode-mode pm/polymode)
+      (pm--lsp-text-document-content-change-event beg end len)
+    (funcall orig-fun beg end len)))
+
+(with-eval-after-load "lsp-mode"
+  (add-to-list 'polymode-run-these-after-change-functions-in-other-buffers 'lsp-on-change)
+  ;; (add-to-list 'polymode-run-these-before-change-functions-in-other-buffers 'lsp-before-change)
+
+  ;; FIXME: add auto-save?
+  (add-to-list 'polymode-run-these-before-save-functions-in-other-buffers 'lsp--before-save)
+  (dolist (sym '(lsp-lens--after-save lsp-on-save))
+    (add-to-list 'polymode-run-these-after-save-functions-in-other-buffers sym))
+
+  (pm-around-advice 'lsp--buffer-content #'polymode-lsp-buffer-content)
+  (pm-around-advice 'lsp--text-document-content-change-event #'polymode-lsp-change-event))
+
+;; (advice-remove 'lsp--buffer-content #'polymode-lsp-buffer-content)
+;; (advice-remove 'lsp--text-document-content-change-event #'polymode-lsp-change-event)
+
 
 ;;; Flyspel
 (defun pm--flyspel-dont-highlight-in-chunkmodes (beg end _poss)
