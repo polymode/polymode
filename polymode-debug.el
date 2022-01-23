@@ -409,10 +409,14 @@ currently traced functions."
    (arg)))
 
 (defun pm-trace--fix-args-for-tracing (orig-fn fn level args context)
-  (let ((args (or (and (listp args)
-                       (listp (cdr args))
-                       (ignore-errors (mapcar #'pm-trace--fix-1-arg-for-tracing args)))
-                  args)))
+  (let* ((args (or (and (listp args)
+                        (listp (cdr args))
+                        (ignore-errors (mapcar #'pm-trace--fix-1-arg-for-tracing args)))
+                   args))
+         (print-circle t)
+         (sargs (format "%s" args)))
+    (when (> (length sargs) 200)
+      (setq args "[...]"))
     (funcall orig-fn fn level args context)))
 
 (advice-add #'trace-entry-message :around #'pm-trace--fix-args-for-tracing)

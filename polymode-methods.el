@@ -93,8 +93,11 @@ Ran by the polymode mode function."
                                 post-fix)))
          (new-name (generate-new-buffer-name core-name)))
     (rename-buffer new-name)
-    ;; FIXME: Mode hooks and local var hacking happens here. Need to move it
-    ;; to the end. But then font-lock is not activated and buffers not installed correctly.
+    ;; FIXME: Mode hooks and local var hacking happens here. Need to move it to
+    ;; the end. But then font-lock is not activated and buffers not installed
+    ;; correctly.
+    ;; FIXME: One severe problem is that --*- mode: poly-xyz; does not
+    ;; currently work. See poly-noweb/samples/hello.nw.
     (pm--mode-setup mode)
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
     ;; FIXME: This breaks if different chunkmodes use same-mode buffer. Even for

@@ -1,2 +1,3 @@
 (ess markdown-mode yaml-mode rust-mode
-  coffee-mode markdown-mode slim-mode elisp-lint)
+  slim-mode elisp-lint
+  coffee-mode markdown-mode poly-markdown )

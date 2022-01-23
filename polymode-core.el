@@ -1047,7 +1047,6 @@ switch."
                                 ;; be installed yet and there is no way install it
                                 ;; from here
                                 buffer))))))
-    ;; (message "setting buffer %d-%d [%s]" (nth 1 span) (nth 2 span) cbuf)
     ;; no further action if BUFFER is already the current buffer
     (unless (eq buffer cbuf)
       (when (and own visibly)
@@ -1071,7 +1070,8 @@ switch."
         (window-start (window-start))
         (visible (pos-visible-in-window-p))
         (ractive (region-active-p))
-        (mkt (mark t)))
+        (mkt (mark t))
+        (hlf header-line-format))
 
     (when pm-hide-implementation-buffers
       (rename-buffer (pm--hidden-buffer-name)))
@@ -1088,6 +1088,11 @@ switch."
     (switch-to-buffer new-buffer)
     (bury-buffer-internal old-buffer)
     (set-window-prev-buffers nil (assq-delete-all old-buffer (window-prev-buffers nil)))
+
+    ;; if header line is active in some modes, make it active everywhere
+    (unless header-line-format
+      (when hlf
+        (setq header-line-format "")))
 
     (setq pm/current t)
 
