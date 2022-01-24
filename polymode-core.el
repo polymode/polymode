@@ -1092,7 +1092,7 @@ switch."
     ;; if header line is active in some modes, make it active everywhere
     (unless header-line-format
       (when hlf
-        (setq header-line-format "")))
+        (setq header-line-format '(""))))
 
     (setq pm/current t)
 
