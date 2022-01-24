@@ -281,54 +281,9 @@ are passed to ORIG-FUN."
                (while (< (point-at-eol) end1)
                  (push "\n" acc)
                  (forward-line 1))
-               ;; special case: end1 == eob or end1 == bol
-               ;; (when (and (= rem 0)
-               ;;            (< end1 (point)))
-               ;;   (forward-line -1))
                (setq line-acc (list (make-string (- end1 (point)) ? )))))))
        beg end-eol)
       (apply #'concat (reverse acc)))))
-
-;; (defun pm--lsp-text (&optional beg end)
-;;   (save-restriction
-;;     (widen)
-;;     (setq beg (or beg (point-min)))
-;;     (setq end (or end (point-max)))
-;;     (save-excursion
-;;       (let ((chunkmode pm/chunkmode)
-;;             (span (pm-innermost-span beg))
-;;             (acc))
-;;         (goto-char beg)
-;;         (when (eq chunkmode (nth 3 span))
-;;           (if (memq (car span) '(body nil))
-;;               ;; body cur buffer
-;;               (let ((send (nth 2 span)))
-;;                 (if (<= end send)
-;;                     (progn (push (buffer-substring-no-properties beg end) acc)
-;;                            (goto-char (setq beg end)))
-;;                   (push (buffer-substring-no-properties beg send) acc)
-;;                   (goto-char (setq beg send))))
-;;             ;; head cur buffer
-;;             (when (eq (car span) 'head)
-;;               ;; in head -> resume search loop from the start
-;;               (goto-char (nth 1 span)))))
-;;         (let (chunk)
-;;           (while (< beg end)
-;;             (let* ((chunk (cdr (pm-next-chunk chunkmode)))
-;;                    (sbeg (nth 1 chunk)))
-;;               (setq beg (if chunk (min end sbeg) end))
-;;               (while (<= (point) beg)
-;;                 (push "\n" acc)
-;;                 (forward-line))
-;;               (when (< sbeg (point))
-;;                 (forward-line -1)
-;;                 (when (< (point) beg)
-;;                   (push (make-string (- beg (point)) ? ) acc)))
-;;               (when (< beg end) ; aka beg == sbeg, we are in the span
-;;                 (let ((tend (min (nth 2 chunk) end)))
-;;                   (push (buffer-substring-no-properties beg tend) acc)
-;;                   (goto-char (setq beg tend)))))))
-;;         (apply #'concat (reverse acc))))))
 
 ;; We cannot compute original change location when modifications are complex
 ;; (aka multiple changes are combined). In those cases we send an entire
