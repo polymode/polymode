@@ -174,19 +174,23 @@ initialized. Return the buffer."
     (object-add-to-list pm/polymode '-buffers (current-buffer))
 
     ;; INDENTATION
-    (setq-local pm--indent-line-function-original
-                (if (memq indent-line-function '(indent-relative indent-relative-maybe pm-indent-line-dispatcher))
-                    #'pm--indent-line-basic
-                  indent-line-function))
+    ;; If poly-minor-mode is called twice don't overwrite the original (#289)
+    (unless pm--indent-line-function-original
+      (setq-local pm--indent-line-function-original
+                  (if (memq indent-line-function '(nil indent-relative indent-relative-maybe))
+                      #'pm--indent-line-basic
+                    indent-line-function)))
     (setq-local indent-line-function #'pm-indent-line-dispatcher)
-    (setq-local pm--indent-region-function-original
-                (if (memq indent-region-function '(nil indent-region-line-by-line pm-indent-region))
-                    #'pm--indent-region-line-by-line
-                  indent-region-function))
+    (unless pm--indent-region-function-original
+      (setq-local pm--indent-region-function-original
+                  (if (memq indent-region-function '(nil indent-region-line-by-line))
+                      #'pm--indent-region-line-by-line
+                    indent-region-function)))
     (setq-local indent-region-function #'pm-indent-region)
 
     ;; FILL
-    (setq-local pm--fill-forward-paragraph-original fill-forward-paragraph-function)
+    (unless pm--fill-forward-paragraph-original
+      (setq-local pm--fill-forward-paragraph-original fill-forward-paragraph-function))
     (setq-local fill-forward-paragraph-function #'polymode-fill-forward-paragraph)
 
     ;; HOOKS

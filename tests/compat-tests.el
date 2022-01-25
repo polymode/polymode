@@ -13,7 +13,7 @@
 
 (ert-deftest compat/lsp/lsp-text ()
   (let ((markdown-enable-math t))
-    (pm-test-run-on-file poly-test-markdown-mode "lsp.md"
+    (pm-test-run-on-file poly-test-markdown-mode "test.md"
       ;; python
       (goto-char 44)
       (pm-switch-to-buffer)
@@ -102,3 +102,25 @@
       (should (equal (point) 21))
 
       )))
+
+
+
+(ert-deftest compat/indent/double-poly-mode-init-preserves-original-functions ()
+  (pm-test-run-on-file poly-test-markdown-mode "test.md"
+    (goto-char (point-min))
+    (pm-switch-to-buffer)
+    (should (eq major-mode 'markdown-mode))
+    (poly-test-markdown-mode t)
+    (should (equal pm--indent-line-function-original 'markdown-indent-line))
+    (should (equal pm--indent-region-function-original 'markdown--indent-region))
+    (should (equal pm--fill-forward-paragraph-original 'markdown-fill-forward-paragraph))
+    (should (equal pm--syntax-propertize-function-original 'markdown-syntax-propertize))
+
+    (re-search-forward "http.createServer")
+    (forward-line 1)
+    (pm-switch-to-buffer)
+    (poly-test-markdown-mode t)
+    (should (eq major-mode 'js-mode))
+    (should (equal pm--indent-line-function-original 'js-indent-line))
+    (should (equal pm--indent-region-function-original 'pm--indent-region-line-by-line))
+    (should (equal pm--fill-forward-paragraph-original 'forward-paragraph))))
