@@ -38,7 +38,7 @@ current buffer.
 
     1. a _sum_  of related functionality in host and inner chunks
     2. configuration _objects_ derived from `pm-chunkmode` class
-       (`pm-host-hostmode`, `pm-inner-innermode`, `pm-inner-auto-chunkmode`).
+       (`pm-hostmode`, `pm-innermode`, `pm-auto-innermode`).
 
 
 ## Configuration
@@ -81,9 +81,9 @@ Polymode class hierarchy:
        +--pm-root
             +--pm-polymode
             +--pm-chunkmode
-            |    +--pm-inner-chunkmode
-            |    |    +--pm-inner-auto-chunkmode
-            |    +--pm-host-chunkmode
+            |    +--pm-innermode
+            |    |    +--pm-auto-innermode
+            |    +--pm-hostmode
             +--pm-weaver
             |    +--pm-shell-weaver
             |    +--pm-callback-weaver

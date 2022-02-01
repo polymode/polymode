@@ -81,8 +81,8 @@
 
 Key bindings:
 \\{pm-debug-minor-mode-map}"
-  nil
-  " PMDBG"
+  :init-value nil
+  :lighter " PMDBG"
   :group 'polymode
   (if pm-debug-minor-mode
       (progn
@@ -105,7 +105,7 @@ Key bindings:
              (pm-base-buffer) (with-current-buffer (pm-base-buffer) (point))
              (buffer-name) (point)
              (get-buffer-window (pm-base-buffer))
-             (with-current-buffer (pm-base-buffer) (window-point))  (window-point))))
+             (with-current-buffer (pm-base-buffer) (window-point)))))
 
 ;; (defun pm-debug-beore-change (&rest r)
 ;;   (pm--debug-report-point "|before|" this-command))
@@ -130,12 +130,12 @@ Key bindings:
 (cl-defgeneric pm-debug-info (chunkmode))
 (cl-defmethod pm-debug-info (chunkmode)
   (eieio-object-name chunkmode))
-(cl-defmethod pm-debug-info ((chunkmode pm-inner-chunkmode))
+(cl-defmethod pm-debug-info ((chunkmode pm-innermode))
   (format "%s head-matcher:\"%s\" tail-matcher:\"%s\""
           (cl-call-next-method)
           (eieio-oref chunkmode 'head-matcher)
           (eieio-oref chunkmode 'tail-matcher)))
-(cl-defmethod pm-debug-info ((_chunkmode pm-inner-auto-chunkmode))
+(cl-defmethod pm-debug-info ((_chunkmode pm-auto-innermode))
   (cl-call-next-method))
 
 (defvar syntax-ppss-wide)
@@ -344,10 +344,11 @@ universal argument toggles maximum level of tracing (15). See
 
 
 ;;;###autoload
-(defun pm-trace (fn)
+(defun pm-trace (fn &optional all-buffers)
   "Trace function FN.
-Use `untrace-function' to untrace or `untrace-all' to untrace all
-currently traced functions."
+If ALL-BUFFERS is non-nil, activate in all buffers not just
+polymode buffers. Use `untrace-function' to untrace or
+`untrace-all' to untrace all currently traced functions."
   (interactive (trace--read-args "Trace:"))
   (let ((buff (get-buffer "*Messages*")))
     (unless (advice-member-p trace-advice-name fn)
@@ -365,16 +366,17 @@ currently traced functions."
                  (insert "\n"))))
            (if (or (memq fn (nth 1 (car pm-traced-functions)))
                    polymode-mode
-                   ;; (derived-mode-p 'markdown-mode)
-                   )
+                   all-buffers)
                (apply advice body args)
              (apply body args))))
        `((name . ,trace-advice-name)
          (depth . -100))))))
 
-(defun pm-trace-functions-by-regexp (regexp)
-  "Trace all functions whose name matched REGEXP."
-  (interactive "sRegex: ")
+(defun pm-trace-functions-by-regexp (regexp &optional all-buffers)
+  "Trace all functions whose name matched REGEXP.
+If ALL-BUFFERS (prefix argument) is non-nil, activate in all
+buffers not just polymode."
+  (interactive "sRegex: \nP")
   (cl-loop for sym being the symbols
            when (and (fboundp sym)
                      (not (memq sym '(pm-toggle-tracing
@@ -384,7 +386,7 @@ currently traced functions."
                                       pm--find-tail-from-head)))
                      (not (string-match "^pm-\\(trace\\|debug\\)" (symbol-name sym)))
                      (string-match regexp (symbol-name sym)))
-           do (pm-trace sym)))
+           do (pm-trace sym all-buffers)))
 
 (defun pm-trace--tracing-context ()
   (let ((span (or *span*

@@ -232,12 +232,12 @@ objects provides same functionality for narrower scope. See also
 
 ;;; Mode Macros
 
-(defun polymode--define-chunkmode (constructor name parent doc key-args)
-  (let* ((type (format "%smode"
-                       (replace-regexp-in-string
-                        "-.*$" "" (replace-regexp-in-string "^pm-" "" (symbol-name constructor)))))
-         (sname (symbol-name name))
-         (root-name (replace-regexp-in-string (format "poly-\\|-%s" type) "" sname)))
+(defun polymode--define-chunkmode (type sym parent doc key-args)
+  (let* ((name (symbol-name sym))
+         (constructor (intern (concat "pm-" type)))
+         ;; simple type keep the last identification (e.g. innermode instead of auto-innermode)
+         (stype (replace-regexp-in-string "^.*?\\([^-]+\\)$" "\\1" type)))
+
     (when (keywordp parent)
       (progn
         (push doc key-args)
@@ -247,20 +247,22 @@ objects provides same functionality for narrower scope. See also
     (unless (stringp doc)
       (when (keywordp doc)
         (push doc key-args))
-      (setq doc (format "%s for %s chunks." (capitalize type) root-name)))
+      (setq doc (format "%s for %s chunks." (capitalize type)
+                        (replace-regexp-in-string (format "poly-" type) "" name))))
 
-    (unless (string-match-p (format "-%s$" type) sname)
-      (error "%s must end in '-%s'" (capitalize type) type))
+    (unless (string-match-p (format "-%s$" stype) name)
+      (error "%s name must end in '-%s'" (capitalize type) type))
     (unless (symbolp parent)
       ;; fixme: check inheritance
       (error "PARENT must be a name of an `%s'" type))
 
+    (when parent
+      (setq key-args (append `(:parent ',parent) key-args)))
+
     `(progn
-       (makunbound ',name)
-       (defvar ,name
-         ,(if parent
-              `(pm--safe-clone ',constructor ,parent :name ,root-name ,@key-args)
-            `(,constructor :name ,root-name ,@key-args))
+       (makunbound ',sym)
+       (defvar ,sym
+         (,constructor :name ,name ,@key-args)
          ,doc))
     ;; `(progn
     ;;    (defvar ,name)
@@ -270,8 +272,8 @@ objects provides same functionality for narrower scope. See also
     ;;      :type 'object)
     ;;    (setq ,name
     ;;          ,(if parent
-    ;;               `(clone ,parent :name ,root-name ,@key-args)
-    ;;             `(,constructor :name ,root-name ,@key-args))))
+    ;;               `(clone ,parent :name ,sname ,@key-args)
+    ;;             `(,constructor :name ,sname ,@key-args))))
     ))
 
 ;;;###autoload
@@ -280,10 +282,10 @@ objects provides same functionality for narrower scope. See also
 Optional PARENT is a name of a hostmode to be derived (cloned)
 from. If missing, the optional documentation string DOC is
 generated automatically. KEY-ARGS is a list of key-value pairs.
-See the documentation of the class `pm-host-chunkmode' for
+See the documentation of the class `pm-hostmode' for
 possible values."
   (declare (doc-string 3) (indent defun))
-  (polymode--define-chunkmode 'pm-host-chunkmode name parent doc key-args))
+  (polymode--define-chunkmode "hostmode" name parent doc key-args))
 
 ;;;###autoload
 (defmacro define-innermode (name &optional parent doc &rest key-args)
@@ -291,10 +293,10 @@ possible values."
 Optional PARENT is a name of a innermode to be derived (cloned)
 from. If missing the optional documentation string DOC is
 generated automatically. KEY-ARGS is a list of key-value pairs.
-See the documentation of the class `pm-inner-chunkmode' for
+See the documentation of the class `pm-innermode' for
 possible values."
   (declare (doc-string 3) (indent defun))
-  (polymode--define-chunkmode 'pm-inner-chunkmode name parent doc key-args))
+  (polymode--define-chunkmode "innermode" name parent doc key-args))
 
 ;;;###autoload
 (defmacro define-auto-innermode (name &optional parent doc &rest key-args)
@@ -303,9 +305,9 @@ Optional PARENT is a name of an auto innermode to be
 derived (cloned) from. If missing the optional documentation
 string DOC is generated automatically. KEY-ARGS is a list of
 key-value pairs. See the documentation of the class
-`pm-inner-auto-chunkmode' for possible values."
+`pm-auto-innermode' for possible values."
   (declare (doc-string 3) (indent defun))
-  (polymode--define-chunkmode 'pm-inner-auto-chunkmode name parent doc key-args))
+  (polymode--define-chunkmode "auto-innermode" name parent doc key-args))
 
 
 
@@ -367,7 +369,7 @@ case TYPE is ignored."
     ;; a span
     (setq type (car chunkmode)
           chunkmode (nth 3 chunkmode)))
-  (when (object-of-class-p chunkmode 'pm-inner-chunkmode)
+  (when (object-of-class-p chunkmode 'pm-innermode)
     (unless (or (null type) (eq type 'host))
       (with-slots (mode head-mode tail-mode fallback-mode) chunkmode
         (cond ((eq type 'body)
@@ -598,7 +600,7 @@ defaults to point. Guarantied to return a non-empty span."
 
 (defun pm-fun-matcher (matcher)
   "Make a function matcher given a MATCHER.
-MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
+MATCHER is one of the forms accepted by \=`pm-innermode''s
 :head-matcher slot."
   (cond
    ((stringp matcher)
@@ -617,7 +619,7 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
               (match-end (cdr matcher))))))
    (t (error "Head and tail matchers must be either regexp strings, cons cells or functions"))))
 
-(defun pm-forward-sexp-tail-matcher (arg)
+(defun pm-forward-sexp-tail-matcher (_arg)
   "A simple tail matcher for a common closing-sexp character.
 Use this matcher if an inner mode is delimited by a closing
 construct like ${...}, xyz[...], html! {...} etc. In order to
@@ -702,7 +704,7 @@ span."
 (defun pm--span-at-point (head-matcher tail-matcher &optional pos can-overlap do-chunk)
   "Span detector with head and tail matchers.
 HEAD-MATCHER and TAIL-MATCHER is as in :head-matcher slot of
-`pm-inner-chunkmode' object. POS defaults to (point). When
+`pm-innermode' object. POS defaults to (point). When
 CAN-OVERLAP is non-nil nested chunks of this type are allowed.
 
 Return a list of the form (TYPE SPAN-START SPAN-END) where TYPE
@@ -931,8 +933,8 @@ of the first object for which DO-WHEN failed."
         (failed nil))
     (while inst
       (if (not (slot-boundp inst slot))
-          (setq inst (and (slot-boundp inst :parent-instance)
-                          (eieio-oref inst 'parent-instance)))
+          (setq inst (and (slot-boundp inst :parent)
+                          (symbol-value (eieio-oref inst 'parent))))
         (push (eieio-oref inst slot) vals)
         (setq inst (and
                     (or (null do-when)
@@ -941,8 +943,8 @@ of the first object for which DO-WHEN failed."
                           (or (funcall do-when inst)
                               (and inclusive
                                    (setq failed t)))))
-                    (slot-boundp inst :parent-instance)
-                    (eieio-oref inst 'parent-instance)))))
+                    (slot-boundp inst :parent)
+                    (symbol-value (eieio-oref inst 'parent))))))
     vals))
 
 (defun pm--run-hooks (object slot &rest args)
@@ -1194,7 +1196,6 @@ spans. Two adjacent spans might have same major mode, thus
       (widen)
       (let* ((hostmode (eieio-oref pm/polymode '-hostmode))
              (pos beg)
-             (ttype 'dummy)
              (span (pm-innermost-span beg))
              (nspan span)
              (ttype (pm-true-span-type span))
@@ -1437,6 +1438,8 @@ are triggered if present."
 (defvar polymode-run-these-after-change-functions-in-other-buffers nil
   "After-change functions to run in all other buffers.")
 
+(defvar pm--lsp-before-change-end-position)
+(declare-function pm--lsp-position "lsp-mode")
 (defun polymode-before-change (beg end)
   "Polymode before-change fixes.
 Run `polymode-run-these-before-change-functions-in-other-buffers'.
@@ -1954,8 +1957,8 @@ Return FALLBACK if non-nil, otherwise the value of
       (setq VALS (append (and (slot-boundp object slot) ; don't cascade
                               (eieio-oref object slot))
                          VALS)
-            object (and (slot-boundp object :parent-instance)
-                        (eieio-oref object 'parent-instance))))
+            object (and (slot-boundp object :parent)
+                        (symbol-value (eieio-oref object 'parent)))))
     VALS))
 
 (defun pm--abrev-names (abrev-regexp list)

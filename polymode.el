@@ -437,21 +437,19 @@ non-nil, don't throw if `polymode-eval-region-function' is nil."
     (while pi
       (let ((map (and (slot-boundp pi :keylist)
                       (eieio-oref pi 'keylist))))
-        (when map
-          (if (and (symbolp map)
-                   (keymapp (symbol-value map)))
-              ;; if one of the parent's :keylist is a keymap, use it as our
-              ;; parent-map and stop further descent
-              (setq parent-map map
-                    pi nil)
-            ;; list, descend to next parent and append the key list to keylist
-            (setq pi (and (slot-boundp pi :parent-instance)
-                          (eieio-oref pi 'parent-instance))
-                  keylist (append map keylist))))))
+        (if (and (symbolp map)
+                 (keymapp (symbol-value map)))
+            ;; if one of the parent's :keylist is a keymap, use it as our
+            ;; parent-map and stop further descent
+            (setq parent-map map
+                  pi nil)
+          ;; list, descend to next parent and append the key list to keylist
+          (setq pi (and (slot-boundp pi :parent)
+                        (symbol-value (eieio-oref pi 'parent)))
+                keylist (append map keylist)))))
     (when (and parent-map (symbolp parent-map))
       (setq parent-map (symbol-value parent-map)))
-    (cons (reverse keylist)
-          (or parent-map polymode-minor-mode-map))))
+    (cons (reverse keylist) parent-map)))
 
 ;;;###autoload
 (defmacro define-polymode (mode &optional parent doc &rest body)
@@ -511,13 +509,13 @@ object and should be valid slots in PARENT config object or the
 root config `pm-polymode' object if PARENT is nil. By far the
 most frequently used slots are:
 
-:hostmode Symbol pointing to a `pm-host-chunkmode' object
+:hostmode Symbol pointing to a `pm-hostmode' object
   specifying the behavior of the hostmode. If missing or nil,
   MODE will behave as a minor-mode in the sense that it will
   reuse the currently installed major mode and will install only
   the inner modes.
 
-:innermodes List of symbols pointing to `pm-inner-chunkmode'
+:innermodes List of symbols pointing to `pm-innermode'
   objects which specify the behavior of inner modes (or submodes)."
   (declare
    (indent defun)
@@ -533,7 +531,7 @@ most frequently used slots are:
          (config-name (pm--config-name mode))
          (root-name (replace-regexp-in-string "poly-\\|-mode" "" mode-name))
          (keymap-name (intern (concat mode-name "-map")))
-         keymap keylist slots after-hook keyw lighter)
+         parent-config-name keymap keylist slots after-hook keyw lighter)
 
     (if (keywordp parent)
         (progn
@@ -545,9 +543,6 @@ most frequently used slots are:
         (push doc body)
         (setq doc (format "Polymode for %s." root-name))))
 
-    (unless (symbolp parent)
-      (error "PARENT must be a name of a `pm-polymode' config or a polymode mode function"))
-
     ;; Check keys
     (while (keywordp (setq keyw (car body)))
       (setq body (cdr body))
@@ -558,6 +553,10 @@ most frequently used slots are:
         (:keylist (setq keylist (pop body)))
         (_ (push (pop body) slots) (push keyw slots))))
 
+    (when parent
+      (unless (symbolp parent)
+        (error "PARENT must be a name of a `pm-polymode' config or a polymode mode function"))
+      (setq parent-config-name (pm--config-name parent 'must-exist)))
 
     `(progn
 
@@ -565,10 +564,9 @@ most frequently used slots are:
        (defvar-local ,mode nil ,(format "Non-nil if `%s' polymode is enabled." mode))
 
        (let* ((parent ',parent)
+              (parent-obj (symbol-value parent))
               (keymap ,keymap)
-              (keylist ,keylist)
-              (parent-conf-name (and parent (pm--config-name parent 'must-exist)))
-              (parent-conf (and parent-conf-name (symbol-value parent-conf-name))))
+              (keylist ,keylist))
 
          ;; define the minor-mode's keymap
          (makunbound ',keymap-name)
@@ -580,37 +578,34 @@ most frequently used slots are:
                                  (cond
                                   ;; 1. if parent is config object, merge all list
                                   ;; keymaps from parents
-                                  ((eieio-object-p (symbol-value parent))
+                                  ((eieio-object-p parent-obj)
                                    (let ((klist.kmap (pm--get-keylist.keymap-from-parent
-                                                      keymap (symbol-value parent))))
+                                                      keymap parent-obj)))
                                      (setq keymap (append keylist (car klist.kmap)))
                                      (cdr klist.kmap)))
                                   ;; 2. If parent is polymode function, take the
                                   ;; minor-mode from the parent config
-                                  (parent
+                                  (,parent-config-name
                                    (symbol-value
                                     (derived-mode-map-name
-                                     (eieio-oref parent-conf '-minor-mode))))
+                                     (eieio-oref ,parent-config-name '-minor-mode))))
                                   ;; 3. nil
                                   (t polymode-minor-mode-map)))))
                (easy-mmode-define-keymap keymap nil nil (list :inherit parent-map))))
            ,(format "Keymap for %s." mode-name))
 
-
-         ,@(unless (eq parent config-name)
+         ;; Configuration Object
+         ,@(unless (eq parent-config-name config-name)
+             (when parent-config-name
+               (setq slots (append `(:parent ',parent-config-name) slots)))
              `((makunbound ',config-name)
                (defvar ,config-name
-                 (if parent-conf-name
-                     (clone parent-conf
-                            :name ,(symbol-name config-name)
-                            '-minor-mode ',mode
-                            ,@slots)
-                   (pm-polymode :name ,(symbol-name config-name)
-                                '-minor-mode ',mode
-                                ,@slots))
+                 (pm-polymode :name ,(symbol-name config-name)
+                              '-minor-mode ',mode
+                              ,@slots)
                  ,(format "Configuration object for `%s' polymode." mode))))
 
-         ;; The actual mode function:
+         ;; Actual Mode Function
          (defun ,mode (&optional arg)
            ,(format "%s\n\n\\{%s}"
                     ;; fixme: add inheretance info here and warning if body is
@@ -654,11 +649,14 @@ most frequently used slots are:
            ;; Return the new state
            ,mode)
 
-         (add-minor-mode ',mode ,(or lighter " PM") ,keymap-name)))))
+         (add-minor-mode ',mode ,(or lighter " PM") ,keymap-name)
+
+         ,config-name))))
 
 (define-minor-mode polymode-minor-mode
   "Polymode minor mode, used to make everything work."
-  nil " PM")
+  :init-value nil
+  :lighter " PM")
 
 (define-derived-mode poly-head-tail-mode prog-mode "HeadTail"
   "Default major mode for polymode head and tail spans."

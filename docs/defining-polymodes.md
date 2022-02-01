@@ -13,7 +13,7 @@ Here is how the markdown hostmode is defined:
 ```
 
 `define-hostmode` is a macro which, in this case, simply defines an object
-`poly-markdown-hostmode` of class `pm-host-chunkmode`. Keyword arguments are
+`poly-markdown-hostmode` of class `pm-hostmode`. Keyword arguments are
 slots, of which the most important being `:mode` naming the emacs' major-mode
 which should be installed in host chunks.
 
@@ -25,8 +25,8 @@ file. Please re-use those in your own polymodes.
 
 ## Inner Modes
 
-Polymode defines two built-in types of innermodes - `pm-inner-chunkmode` which
-allows for one pre-specified in advance mode, and `pm-inner-auto-chunkmode`
+Polymode defines two built-in types of innermodes - `pm-innermode` which
+allows for one pre-specified in advance mode, and `pm-auto-innermode`
 which detects the major mode of the body span on-the-fly.
 
 Here is an example of the YAML metadata innermode for markdown
@@ -88,8 +88,8 @@ arguments - `PARENT` polymode to be derived from, `DOC` string and `BODY` which
 is executed in host and every indirect buffer during the installation of the
 chunkmodes. `BODY` can be preceded by key-value pairs further refining the
 configuration. By far the most common keys are `:hostmode` specify the name
-(symbol) of the `pm-host-chunkmode` object and `:innermodes` which is a list of
-names of `pm-inner-chunkmode` objects. See the documentation of
+(symbol) of the `pm-hostmode` object and `:innermodes` which is a list of
+names of `pm-innermode` objects. See the documentation of
 `define-polymode` for further details.
 
 Most polymodes are designed to be used as major modes (i.e. in `auto-mode-alist`

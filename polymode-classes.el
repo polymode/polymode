@@ -31,17 +31,51 @@
 (require 'eieio-base)
 (require 'eieio-custom)
 
-(defvar pm--object-counter 0)
+(defun pm--unbind-and-set-slots (obj ancestor params)
+  (dolist (descriptor (eieio-class-slots (eieio-object-class ancestor)))
+    (let ((slot (eieio-slot-descriptor-name descriptor)))
+      (unless (memq slot '(parent name))
+        (slot-makeunbound obj slot))))
+  (when params
+    (shared-initialize obj params))
+  obj)
 
-(defun pm--filter-slots (slots)
-  (delq nil (mapcar (lambda (slot)
-                      (unless (or (= (elt (symbol-name slot) 0) ?-)
-                                  (eq slot 'parent-instance)
-                                  (eq slot 'name))
-                        (intern (concat ":" (symbol-name slot)))))
-                    slots)))
+(defun pm--instantiate-from-ancestor (class ancestor params)
+  ;; Called from make-instance and should not call constructors!
+  ;; Relying on eieio internal cache implementation.
+  (let* ((obj (copy-sequence (eieio--class-default-object-cache
+                              (eieio--class-object class))))
+         (obj (pm--unbind-and-set-slots obj ancestor params)))
+    ;; ":" indicates that object's names is derived from the parent name
+    (unless (plist-get params :name)
+      (let ((old-name (eieio-oref ancestor 'name)))
+        (eieio-oset obj 'name (concat old-name ":"))))
+    (aset obj 0 class)
+    obj))
 
-(defclass pm-root (eieio-instance-inheritor)
+;; fixme: params as list
+(defun pm--safe-clone (class obj &rest params)
+  "Clone to an object of class CLASS.
+If CLASS is same as class of OBJ then just call `clone'.
+Otherwise do a bit more work by setting extra slots of the new
+object. PARAMS are passed to clone or constructor functions."
+  (if (eq class (eieio-object-class obj))
+      (apply #'clone obj params)
+    (pm--instantiate-from-ancestor class obj params)))
+
+;; We are no longer relying on eieio-instance-inheritor from v0.3 for a bunch of
+;; reasons:
+;;
+;;  - Cloning of eieio-instance-inheritor was broken prior to emacs 28
+;;
+;;  - :parent-instance copies are copies but we want them to be symbols to be
+;;    dynamically de-referenced on slot lookup.
+;;
+;;  - We want the entire hierarchy to be inheritable through objects. If a root
+;;    object is modified, the modification should propagate to all children. In
+;;    other words, if the user customizes `poly-root-chunkmode' the change
+;;    should be immediately visible to all innermodes and hostmodes.
+(defclass pm-root ()
   ((name
     :initarg :name
     :initform "UNNAMED"
@@ -49,6 +83,15 @@
     :custom string
     :documentation
     "Name of the object used to for display and info.")
+   (parent
+    :initarg :parent
+    :initform 'poly-root
+	:type symbol
+	:documentation
+	"Name of the parent of this instance (a symbol).
+When a slot of an object is not set the parent is checked for a
+value.")
+
    (-props
     :initform '()
     :type list
@@ -56,52 +99,46 @@
     "[Internal] Plist used to store various extra metadata such as user history.
 Use `pm--prop-get' and `pm--prop-put' to place key value pairs
 into this list."))
+
   "Root polymode class.")
+
+(cl-defmethod slot-unbound ((object pm-root) _class slot-name _fn)
+  (if (slot-boundp object 'parent)
+      ;; recur back into this method if the parent's slot is unbound
+      (eieio-oref (symbol-value (eieio-oref object 'parent)) slot-name)
+    ;; Throw the regular signal.
+    (cl-call-next-method)))
 
 (cl-defmethod eieio-object-name-string ((obj pm-root))
   (eieio-oref obj 'name))
 
 (cl-defmethod clone ((obj pm-root) &rest params)
   (let ((new-obj (cl-call-next-method obj)))
-    ;; Emacs bug: clone method for eieio-instance-inheritor instantiates all
-    ;; slots for cloned objects. We want them unbound to allow for the healthy
-    ;; inheritance.
-    (pm--complete-clonned-object new-obj obj params)))
+    (pm--unbind-and-set-slots new-obj obj params)))
 
-(defun pm--complete-clonned-object (new-obj old-obj params)
-  (let ((old-name (eieio-oref old-obj 'name)))
-    (when (equal old-name (eieio-oref new-obj 'name))
-      (let ((new-name (concat old-name ":")))
-        (eieio-oset new-obj 'name new-name))))
-  (dolist (descriptor (eieio-class-slots (eieio-object-class old-obj)))
-    (let ((slot (eieio-slot-descriptor-name descriptor)))
-      (unless (memq slot '(parent-instance name))
-        (slot-makeunbound new-obj slot))))
-  (when params
-    (shared-initialize new-obj params))
-  new-obj)
-
-(defun pm--safe-clone (end-class obj &rest params)
-  "Clone to an object of END-CLASS.
-If END-CLASS is same as class of OBJ then just call `clone'.
-Otherwise do a bit more work by setting extra slots of the
-end-class. PARAMS are passed to clone or constructor functions."
-  (if (eq end-class (eieio-object-class obj))
-      (apply #'clone obj params)
-    (let ((new-obj (pm--complete-clonned-object
-                    (apply end-class params)
-                    obj params)))
-      (eieio-oset new-obj 'parent-instance obj)
-      new-obj)))
+(cl-defmethod make-instance ((class (subclass pm-root)) &rest args)
+  (if (eq class 'pm-root)
+      (cl-call-next-method)
+    (let* ((name (plist-get args :name))
+           (parent (or (plist-get args :parent)
+                       (eieio-oref-default class 'parent))))
+      (when (equal name (symbol-name parent))
+        ;; Special case to allow defining root objects with this
+        ;; constructor.
+        (setq parent (eieio-oref-default (eieio-class-name (eieio-class-parent class))
+                                         'parent)))
+      (pm--instantiate-from-ancestor class (symbol-value parent) args))))
 
 (defclass pm-polymode (pm-root)
-  ((hostmode
+  ((parent
+    :initform 'poly-root-polymode)
+   (hostmode
     :initarg :hostmode
     :initform nil
     :type symbol
     :custom symbol
     :documentation
-    "Symbol pointing to a `pm-host-chunkmode' object.
+    "Symbol pointing to a `pm-hostmode' object.
 When nil, any host-mode will be matched (suitable for
 poly-minor-modes. ")
    (innermodes
@@ -210,7 +247,9 @@ Each polymode buffer holds a local variable `pm/polymode'
 instantiated from this class or a subclass of this class.")
 
 (defclass pm-chunkmode (pm-root)
-  ((mode
+  ((parent
+    :initform 'poly-root-chunkmode)
+   (mode
     :initarg :mode
     :initform nil
     :type symbol
@@ -344,21 +383,27 @@ the first buffer is used.")
    (-buffer
     :type (or null buffer)
     :initform nil))
+
   "Generic chunkmode object.
 Please note that by default :protect-xyz slots are nil in
 hostmodes and t in innermodes.")
 
-(defclass pm-host-chunkmode (pm-chunkmode)
-  ((allow-nested
+(defclass pm-hostmode (pm-chunkmode)
+  ((parent
+    :initform 'poly-root-hostmode)
+   (allow-nested
     ;; currently ignored in code as it doesn't make sense to not allow
     ;; innermodes in hosts
     :initform 'always))
+
   "This chunkmode doesn't know how to compute spans and takes
 over all the other space not claimed by other chunkmodes in the
 buffer.")
 
-(defclass pm-inner-chunkmode (pm-chunkmode)
-  ((protect-font-lock
+(defclass pm-innermode (pm-chunkmode)
+  ((parent
+    :initform 'poly-root-innermode)
+   (protect-font-lock
     :initform t)
    (protect-syntax
     :initform t)
@@ -469,8 +514,10 @@ can be delimited by some other logic (e.g. indentation). In the
 latter case, heads or tails have zero length and are not
 physically present in the buffer.")
 
-(defclass pm-inner-auto-chunkmode (pm-inner-chunkmode)
-  ((mode-matcher
+(defclass pm-auto-innermode (pm-innermode)
+  ((parent
+    :initform 'poly-root-auto-innermode)
+   (mode-matcher
     :initarg :mode-matcher
     :type (or string cons function)
     :custom (choice string (cons string integer) function)
@@ -485,5 +532,52 @@ called at the beginning of the head span."))
 body span. The body mode is determined dynamically by retrieving
 the name with the :mode-matcher.")
 
+;; Obsolete old names
+(defclass pm-host-chunkmode (pm-hostmode) ()
+  "Obsolete. Use class `pm-hostmode' instead.")
+(defclass pm-inner-chunkmode (pm-innermode) ()
+  "Obsolete. Use class `pm-innermode' instead.")
+(defclass pm-inner-auto-chunkmode (pm-auto-innermode) ()
+  "Obsolete. Use class `pm-auto-innermode' instead.")
+
+
+;;; Root Object Hierarchy
+;;
+;; We want users to be able to customize objects globally by using the unbound
+;; slot inheritance. But this is not possible with `oset-default' for two
+;; reasons:
+;;
+;;    1) unbound slot inheritance propagates through object hierarchy but not
+;;       through class hierarchy.
+;;
+;;    2) With oset-default users would need to add their customization before
+;;       chunkmodes are instantiated and this is imposible for built-in chunk
+;;       modes defined in poly-base.el.
+;;
+;; Therefore, we build a parallel object hierarchy which follows the class
+;; hierarchy with pm--safe-clone and let the eieio classes be simply an
+;; implementation detail.
+
+(defvar poly-root (pm-root :name "poly-root")
+  "Parent config of all polymode objects.")
+
+(defvar poly-root-polymode (pm-polymode :name "poly-root-polymode")
+  "Parent config of all polymodes.")
+
+(defvar poly-root-chunkmode (pm-chunkmode :name "poly-root-chunkmode")
+  "Parent config for all hostmodes and innermodes.")
+
+(defvar poly-root-hostmode (pm-hostmode :name "poly-root-hostmode")
+  "Parent config for all hostmodes.")
+
+(defvar poly-root-innermode (pm-innermode :name "poly-root-innermode")
+  "Parent config for all innermodes.")
+
+(defvar poly-root-auto-innermode (pm-auto-innermode :name "poly-root-auto-innermode")
+  "Parent config for all auto innermodes.")
+
 (provide 'polymode-classes)
 ;;; polymode-classes.el ends here
+
+
+(pm-hostmode :name "blabal")

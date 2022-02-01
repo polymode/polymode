@@ -58,7 +58,7 @@ Ran by the polymode mode function."
   (let* ((hostmode-name (eieio-oref config 'hostmode))
          (hostmode (if hostmode-name
                        (clone (symbol-value hostmode-name))
-                     (pm-host-chunkmode :name "ANY" :mode nil))))
+                     (pm-hostmode :name "ANY" :mode nil))))
     (let ((pm-initialization-in-progress t)
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
           ;; minor modes.
@@ -82,7 +82,7 @@ Ran by the polymode mode function."
     ;; (run-mode-hooks) ;; FIXME
     ))
 
-(cl-defmethod pm-initialize ((chunkmode pm-inner-chunkmode) &optional type mode)
+(cl-defmethod pm-initialize ((chunkmode pm-innermode) &optional type mode)
   "Initialization of the innermodes' (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-innermode-mode chunkmode type)))
@@ -244,7 +244,7 @@ initialized. Return the buffer."
   "Get the indirect buffer associated with SUBMODE and SPAN-TYPE.
 Create and initialize the buffer if does not exist yet.")
 
-(cl-defmethod pm-get-buffer-create ((chunkmode pm-host-chunkmode) &optional type)
+(cl-defmethod pm-get-buffer-create ((chunkmode pm-hostmode) &optional type)
   (when type
     (error "Cannot create host buffer of type '%s'" type))
   (let ((buff (eieio-oref chunkmode '-buffer)))
@@ -252,7 +252,7 @@ Create and initialize the buffer if does not exist yet.")
         buff
       (error "Cannot create host buffer for host chunkmode %s" (eieio-object-name chunkmode)))))
 
-(cl-defmethod pm-get-buffer-create ((chunkmode pm-inner-chunkmode) &optional type)
+(cl-defmethod pm-get-buffer-create ((chunkmode pm-innermode) &optional type)
   (let ((buff (cl-case type
                 (body (eieio-oref chunkmode '-buffer))
                 (head (eieio-oref chunkmode '-head-buffer))
@@ -341,7 +341,7 @@ Host modes usually do not compute spans."
     (error "Dispatching `pm-get-span' on a nil object"))
   nil)
 
-(cl-defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
+(cl-defmethod pm-get-span ((chunkmode pm-innermode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
 TYPE can be 'body, 'head or 'tail. SELF is the CHUNKMODE."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
@@ -350,7 +350,7 @@ TYPE can be 'body, 'head or 'tail. SELF is the CHUNKMODE."
       (when span
         (append span (list chunkmode))))))
 
-(cl-defmethod pm-get-span ((_chunkmode pm-inner-auto-chunkmode) &optional _pos)
+(cl-defmethod pm-get-span ((_chunkmode pm-auto-innermode) &optional _pos)
   (let ((span (cl-call-next-method)))
     (if (null (car span))
         span
@@ -373,7 +373,7 @@ TAIL-BEG TAIL-END).")
 (cl-defmethod pm-next-chunk (_chunkmode &optional _pos)
   nil)
 
-(cl-defmethod pm-next-chunk ((chunkmode pm-inner-chunkmode) &optional pos)
+(cl-defmethod pm-next-chunk ((chunkmode pm-innermode) &optional pos)
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
     (let ((raw-chunk (pm--next-chunk
                       head-matcher tail-matcher (or pos (point))
@@ -381,7 +381,7 @@ TAIL-BEG TAIL-END).")
       (when raw-chunk
         (cons chunkmode raw-chunk)))))
 
-(cl-defmethod pm-next-chunk ((chunkmode pm-inner-auto-chunkmode) &optional pos)
+(cl-defmethod pm-next-chunk ((chunkmode pm-auto-innermode) &optional pos)
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
     (let ((raw-chunk (pm--next-chunk
                       head-matcher tail-matcher (or pos (point))
@@ -546,7 +546,7 @@ the chunkmode.")
     (when (and delta (> delta 0))
       (goto-char (+ (point) delta)))))
 
-(cl-defmethod pm-indent-line ((_chunkmode pm-inner-chunkmode) span)
+(cl-defmethod pm-indent-line ((_chunkmode pm-innermode) span)
   "Indent line in inner chunkmodes.
 When point is at the beginning of head or tail, use parent chunk
 to indent."
@@ -584,7 +584,7 @@ to indent."
               (pm-indent-line-dispatcher)
             (let ((fl-indent (pm--first-line-indent span)))
               (if fl-indent
-                  ;; We are not on the 1st line
+                  ;; We are *not* on the 1st line
                   (progn
                     ;; thus indent according to mode
                     (pm--indent-line-raw span)
@@ -636,7 +636,7 @@ to indent."
         (when (< (point-at-eol) pos)
           (- (point) (point-at-bol)))))))
 
-;; SPAN is a body span; do nothing if narrowed to body
+;; SPAN is a body span
 (defun pm--head-indent (&optional span)
   (save-restriction
     (widen)
@@ -693,7 +693,7 @@ to indent."
 (cl-defmethod pm-get-adjust-face ((chunkmode pm-chunkmode) _type)
   (eieio-oref chunkmode 'adjust-face))
 
-(cl-defmethod pm-get-adjust-face ((chunkmode pm-inner-chunkmode) type)
+(cl-defmethod pm-get-adjust-face ((chunkmode pm-innermode) type)
   (cond ((eq type 'head)
          (eieio-oref chunkmode 'head-adjust-face))
         ((eq type 'tail)

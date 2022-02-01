@@ -216,6 +216,7 @@ are passed to ORIG-FUN."
 ;;   before-change:(obeg,oend)=(50,56)
 ;;   lsp-on-change:(nbeg,nend,olen)=(50,60,6)
 
+(defvar-local pm--lsp-before-change-end-position nil)
 (defun pm--lsp-text-document-content-change-event (beg end len)
   "Make a TextDocumentContentChangeEvent body for BEG to END, of length LEN."
   (if (zerop len)
@@ -228,7 +229,6 @@ are passed to ORIG-FUN."
           (pm--lsp-change-event beg end-pos text))
       (pm--lsp-full-change-event))))
 
-(defvar-local pm--lsp-before-change-end-position nil)
 (defun pm--lsp-position (pos)
   (save-restriction
     (widen)
@@ -262,8 +262,7 @@ are passed to ORIG-FUN."
       (pm-map-over-modes
        (lambda (sbeg send)
          (let ((beg1 (max sbeg beg))
-               (end1 (min send end))
-               (rem))
+               (end1 (min send end)))
            (if (eq cmode major-mode)
                (progn
                  (when (eq sbeg beg1)
@@ -305,6 +304,7 @@ are passed to ORIG-FUN."
       (pm--lsp-text-document-content-change-event beg end len)
     (funcall orig-fun beg end len)))
 
+(defvar lsp--)
 (with-eval-after-load "lsp-mode"
   (add-to-list 'polymode-run-these-after-change-functions-in-other-buffers 'lsp-on-change)
   ;; (add-to-list 'polymode-run-these-before-change-functions-in-other-buffers 'lsp-before-change)
