@@ -348,6 +348,7 @@ execution undo is called once. After each change-set
   `(kill-buffer
     (pm-test-run-on-file ,mode ,file
       (pm-test-faces)
+      (set-buffer-modified-p nil)
       (dolist (cset ',change-sets)
         (let ((poly-lock-defer-after-change nil)
               (pm-test-current-change-set (caar cset)))
@@ -358,8 +359,8 @@ execution undo is called once. After each change-set
           (undo-boundary)
           (pm-test-faces)
           (let ((inhibit-message (not pm-verbose)))
-            (undo)))))
-    ))
+            (when (buffer-modified-p)
+              (undo))))))))
 
 (defun pm-test--run-indentation-tests ()
   "Run an automatic batch of indentation tests.
