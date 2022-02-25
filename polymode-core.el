@@ -986,6 +986,8 @@ Parents' hooks are run first."
     face-remapping-alist
     isearch-mode ; this seems to be enough to avoid isearch glitching
     line-move-visual
+    left-margin-width
+    right-margin-width
     overwrite-mode
     selective-display
     text-scale-mode
