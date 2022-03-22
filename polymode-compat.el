@@ -305,16 +305,19 @@ are passed to ORIG-FUN."
       (pm--lsp-text-document-content-change-event beg end len)
     (funcall orig-fun beg end len)))
 
+(defvar-local polymode-lsp-integration t)
+
 (with-eval-after-load "lsp-mode"
-  (add-to-list 'polymode-run-these-after-change-functions-in-other-buffers 'lsp-on-change)
-  ;; (add-to-list 'polymode-run-these-before-change-functions-in-other-buffers 'lsp-before-change)
-  ;; FIXME: add auto-save?
-  (add-to-list 'polymode-run-these-before-save-functions-in-other-buffers 'lsp--before-save)
-  (dolist (sym '(lsp-lens--after-save lsp-on-save))
-    (add-to-list 'polymode-run-these-after-save-functions-in-other-buffers sym))
-  ;; (add-to-list 'polymode-move-these-minor-modes-from-old-buffer 'lsp-headerline-breadcrumb-mode)
-  (pm-around-advice 'lsp--buffer-content #'polymode-lsp-buffer-content)
-  (pm-around-advice 'lsp--text-document-content-change-event #'polymode-lsp-change-event))
+  (when polymode-lsp-integration
+    (add-to-list 'polymode-run-these-after-change-functions-in-other-buffers 'lsp-on-change)
+    ;; (add-to-list 'polymode-run-these-before-change-functions-in-other-buffers 'lsp-before-change)
+    ;; FIXME: add auto-save?
+    (add-to-list 'polymode-run-these-before-save-functions-in-other-buffers 'lsp--before-save)
+    (dolist (sym '(lsp-lens--after-save lsp-on-save))
+      (add-to-list 'polymode-run-these-after-save-functions-in-other-buffers sym))
+    ;; (add-to-list 'polymode-move-these-minor-modes-from-old-buffer 'lsp-headerline-breadcrumb-mode)
+    (pm-around-advice 'lsp--buffer-content #'polymode-lsp-buffer-content)
+    (pm-around-advice 'lsp--text-document-content-change-event #'polymode-lsp-change-event)))
 
 ;; (advice-remove 'lsp--buffer-content #'polymode-lsp-buffer-content)
 ;; (advice-remove 'lsp--text-document-content-change-event #'polymode-lsp-change-event)
