@@ -1397,12 +1397,13 @@ Placed with high priority in `after-change-functions' hook."
   (when (and allow polymode-mode pm/polymode)
     (dolist (sym syms)
       (dolist (buf (eieio-oref pm/polymode '-buffers))
-        (unless (eq buf (current-buffer))
-          (with-current-buffer buf
-            (when (memq sym (symbol-value hook))
-              (if args
-                  (apply sym args)
-                (funcall sym)))))))))
+        (when (buffer-live-p buf)
+          (unless (eq buf (current-buffer))
+            (with-current-buffer buf
+              (when (memq sym (symbol-value hook))
+                (if args
+                    (apply sym args)
+                  (funcall sym))))))))))
 
 ;; BUFFER SAVE
 ;; TOTHINK: add auto-save-hook?
