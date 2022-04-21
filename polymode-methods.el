@@ -655,7 +655,7 @@ to indent."
             ;; for instance.
             (goto-char sbeg)))
         (back-to-indentation)
-        (- (point) (point-at-bol))))))
+        (current-column)))))
 
 (defun pm--+-indent-offset-on-this-line (span)
   (if (re-search-forward "\\([+-]\\)indent" (point-at-eol) t)
