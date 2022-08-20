@@ -13,3 +13,6 @@ tmp*
 site/
 *autoloads.el
 *.elc
+
+# ELPA-generated files
+/polymode-pkg.el
