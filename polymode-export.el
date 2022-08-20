@@ -1,6 +1,6 @@
 ;;; polymode-export.el --- Exporting facilities for polymodes -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;
@@ -31,6 +31,7 @@
 
 (require 'polymode-core)
 (require 'polymode-classes)
+(eval-when-compile (require 'polymode-weave)) ;Silence "unknown slot from-to".
 
 (defgroup polymode-export nil
   "Polymode Exporters"
@@ -39,7 +40,6 @@
 (defcustom polymode-exporter-output-file-format "%s-exported"
   "Format of the exported files.
 %s is substituted with the current file name sans extension."
-  :group 'polymode-export
   :type 'string)
 
 (defclass pm-exporter (pm-root)
@@ -442,7 +442,6 @@ for each polymode in CONFIGS."
    :function 'pm-default-shell-export-function
    :sentinel 'pm-default-shell-export-sentinel)
   "Pandoc exporter."
-  :group 'polymode-export
   :type 'object)
 
 (provide 'polymode-export)

@@ -1,4 +1,8 @@
-(require 'poly-markdown)
+;;; compat-tests.el -- Tests for Polymode  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2022  Free Software Foundation, Inc.
+
+(require 'poly-markdown nil t)          ;Don't fail if not installed.
 
 (define-innermode poly-test-markdown-inline-python-innermode  poly-markdown-inline-code-innermode
   :head-matcher (cons "[^`]\\(`py \\)" 1)
@@ -12,6 +16,7 @@
                 poly-test-markdown-inline-python-innermode))
 
 (ert-deftest compat/lsp/lsp-text ()
+  (skip-unless (fboundp 'poly-markdown-mode))
   (let ((markdown-enable-math t))
     (pm-test-run-on-file poly-test-markdown-mode "test.md"
       ;; python
@@ -106,6 +111,7 @@
 
 
 (ert-deftest compat/indent/double-poly-mode-init-preserves-original-functions ()
+  (skip-unless (fboundp 'poly-markdown-mode))
   (pm-test-run-on-file poly-test-markdown-mode "test.md"
     (goto-char (point-min))
     (pm-switch-to-buffer)

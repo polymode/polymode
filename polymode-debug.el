@@ -1,6 +1,6 @@
 ;;; polymode-debug.el --- Interactive debugging utilities for polymode -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2016-2018 Vitalie Spinu
+;; Copyright (C) 2016-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;
@@ -81,21 +81,20 @@
 
 Key bindings:
 \\{pm-debug-minor-mode-map}"
-  nil
-  " PMDBG"
+  :lighter " PMDBG"
   :group 'polymode
   (if pm-debug-minor-mode
       (progn
         ;; this is global hook. No need to complicate with local hooks
-        (add-hook 'post-command-hook 'pm-debug-highlight-current-span)
-        ;; (add-hook 'before-save-hook 'pm-debug-beore-change -99 t)
-        ;; (add-hook 'after-save-hook 'pm-debug-after-change -99)
+        (add-hook 'post-command-hook #'pm-debug-highlight-current-span)
+        ;; (add-hook 'before-save-hook #'pm-debug-beore-change -99 t)
+        ;; (add-hook 'after-save-hook #'pm-debug-after-change -99)
         )
-    ;; (remove-hook 'before-save-hook 'pm-debug-beore-change)
-    ;; (remove-hook 'after-save-hook 'pm-debug-after-change)
+    ;; (remove-hook 'before-save-hook #'pm-debug-beore-change)
+    ;; (remove-hook 'after-save-hook #'pm-debug-after-change)
     (delete-overlay pm--underline-overlay)
     (delete-overlay pm--highlight-overlay)
-    (remove-hook 'post-command-hook 'pm-debug-highlight-current-span)))
+    (remove-hook 'post-command-hook #'pm-debug-highlight-current-span)))
 
 ;; use to track point movements (#295)
 (defun pm--debug-report-point (msg &optional r)
@@ -105,7 +104,9 @@ Key bindings:
              (pm-base-buffer) (with-current-buffer (pm-base-buffer) (point))
              (buffer-name) (point)
              (get-buffer-window (pm-base-buffer))
-             (with-current-buffer (pm-base-buffer) (window-point))  (window-point))))
+             (with-current-buffer (pm-base-buffer) (window-point))
+             ;; FIXME: This arg is not used.
+             (window-point))))
 
 ;; (defun pm-debug-beore-change (&rest r)
 ;;   (pm--debug-report-point "|before|" this-command))
@@ -468,8 +469,8 @@ currently traced functions."
 ;;;###autoload
 (defun pm-debug-relevant-variables (&optional out-type)
   "Get the relevant polymode variables.
-If OUT-TYPE is 'buffer, print the variables in the dedicated
-buffer, if 'message issue a message, if nil just return a list of values."
+If OUT-TYPE is `buffer', print the variables in the dedicated buffer,
+if `message' issue a message, if nil just return a list of values."
   (interactive (list 'buffer))
   (let* ((cbuff (current-buffer))
          (vars (cl-loop for v on pm-debug-relevant-variables by #'cddr
@@ -588,7 +589,7 @@ On prefix NO-CACHE don't use cached spans."
       (save-excursion
         (goto-char (point-max))
         (insert "\n")
-        (insert (apply 'format (concat "%f [%s at %d]: " msg)
+        (insert (apply #'format (concat "%f [%s at %d]: " msg)
                        (float-time) cbuf cpos args))))))
 
 (provide 'polymode-debug)

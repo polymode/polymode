@@ -1,6 +1,6 @@
 ;; polymode-core.el --- Core initialization and utilities for polymode -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;
@@ -121,9 +121,9 @@
 (defvar-local polymode-default-inner-mode nil
   "Inner mode for chunks with unspecified modes.
 Intended to be used as local variable in polymode buffers. A
-special value 'host means use the host mode.")
+special value `host' means use the host mode.")
 ;;;###autoload
-(put 'polymode-default-inner-mode 'safe-local-variable 'symbolp)
+(put 'polymode-default-inner-mode 'safe-local-variable #'symbolp)
 
 (defgroup polymode nil
   "Object oriented framework for multiple modes based on indirect buffers"
@@ -196,7 +196,7 @@ will cause installation of `ess-julia-mode' in markdown ```julia chunks."
   "An alist of abbreviation mappings from mode names to their abbreviations.
 Used to compute mode post-fixes in buffer names. Example:
 
-  (add-to-list 'polymode-mode-abbrevs-aliases '(\"ess-r\" . \"R\"))")
+  (add-to-list \\='polymode-mode-abbrevs-aliases \\='(\"ess-r\" . \"R\"))")
 
 (defvar polymode-before-switch-buffer-hook nil
   "Hook run just before switching to a different polymode buffer.
@@ -388,6 +388,8 @@ case TYPE is ignored."
                      (t 'tail)))
               (t (error "Type must be one of nil, 'host, 'head, 'tail or 'body")))))))
 
+(defvar pm-use-cache t)
+
 (defun pm-cache-span (span)
   ;; cache span
   (when pm-use-cache
@@ -572,8 +574,7 @@ the front)."
                            (not (eq span (get-text-property (1- beg) :pm-span)))))
               (pm--chop-span (copy-sequence span) omin omax))))))))
 
-(define-obsolete-function-alias 'pm-get-innermost-span 'pm-innermost-span "2018-08")
-(defvar pm-use-cache t)
+(define-obsolete-function-alias 'pm-get-innermost-span #'pm-innermost-span "2018-08")
 (defun pm-innermost-span (&optional pos no-cache)
   "Get span object at POS.
 If NO-CACHE is non-nil, don't use cache and force re-computation
@@ -592,7 +593,7 @@ defaults to point. Guarantied to return a non-empty span."
 (defun pm-span-to-range (span)
   (and span (cons (nth 1 span) (nth 2 span))))
 
-(define-obsolete-function-alias 'pm-get-innermost-range 'pm-innermost-range "2018-08")
+(define-obsolete-function-alias 'pm-get-innermost-range #'pm-innermost-range "2018-08")
 (defun pm-innermost-range (&optional pos no-cache)
   (pm-span-to-range (pm-innermost-span pos no-cache)))
 
@@ -617,7 +618,7 @@ MATCHER is one of the forms accepted by \=`pm-inner-chunkmode''s
               (match-end (cdr matcher))))))
    (t (error "Head and tail matchers must be either regexp strings, cons cells or functions"))))
 
-(defun pm-forward-sexp-tail-matcher (arg)
+(defun pm-forward-sexp-tail-matcher (_arg)
   "A simple tail matcher for a common closing-sexp character.
 Use this matcher if an inner mode is delimited by a closing
 construct like ${...}, xyz[...], html! {...} etc. In order to
@@ -1375,13 +1376,13 @@ Placed with high priority in `after-change-functions' hook."
     (when (buffer-live-p buff)
       (with-current-buffer buff
         ;; micro-optimization to avoid calling the flush twice
-        (when (memq 'syntax-ppss-flush-cache before-change-functions)
-          (remove-hook 'before-change-functions 'syntax-ppss-flush-cache t))
+        (when (memq #'syntax-ppss-flush-cache before-change-functions)
+          (remove-hook 'before-change-functions #'syntax-ppss-flush-cache t))
         ;; need to be the first to avoid breaking preceding hooks
         (unless (eq (car after-change-functions)
-                    'polymode-flush-syntax-ppss-cache)
-          (delq 'polymode-flush-syntax-ppss-cache after-change-functions)
-          (setq after-change-functions (cons 'polymode-flush-syntax-ppss-cache
+                    #'polymode-flush-syntax-ppss-cache)
+          (delq #'polymode-flush-syntax-ppss-cache after-change-functions)
+          (setq after-change-functions (cons #'polymode-flush-syntax-ppss-cache
                                              after-change-functions)))
         (syntax-ppss-flush-cache beg end)
         ;; Check if something has changed our hooks. (Am I theoretically paranoid or
@@ -1587,9 +1588,9 @@ If FUN is a list, apply ADVICE to each element of it."
 (defun polymode-inhibit-in-indirect-buffers (orig-fun &rest args)
   "Don't run ORIG-FUN (with ARGS) in polymode indirect buffers (aka inner modes).
 Use this function to around advice delicate functions:
-   (advice-add #'xyz :around #'polymode-inhibit-in-indirect-buffers)
+   (advice-add \\='xyz :around #\\='polymode-inhibit-in-indirect-buffers)
 or with `pm-around-advice' which allows for multiple advises at once:
-   (pm-around-advice '(foo bar) #'polymode-inhibit-in-indirect-buffers)"
+   (pm-around-advice \\='(foo bar) #\\='polymode-inhibit-in-indirect-buffers)"
   (unless (and polymode-mode (buffer-base-buffer))
     (apply orig-fun args)))
 
@@ -1597,10 +1598,10 @@ or with `pm-around-advice' which allows for multiple advises at once:
   "Switch to base buffer and apply ORIG-FUN to ARGS.
 Use this function to around advice of functions that should run
 in base buffer only like this:
-   (advice-add #'foo :around #'polymode-with-current-base-buffer)
+   (advice-add \\='foo :around #\\='polymode-with-current-base-buffer)
 or with `pm-around-advice' which allows for multiple advises at
 once:
-   (pm-around-advice '(foo bar) #'polymode-with-current-base-buffer)"
+   (pm-around-advice \\='(foo bar) #\\='polymode-with-current-base-buffer)"
   (if (and polymode-mode
            (not pm--killed)
            (buffer-live-p (buffer-base-buffer)))
@@ -1627,9 +1628,9 @@ once:
 
 ;; Most importat Core
 ;; (pm-around-advice #'kill-buffer #'polymode-with-current-base-buffer)
-(pm-around-advice #'find-alternate-file #'polymode-with-current-base-buffer)
-(pm-around-advice #'write-file #'polymode-with-current-base-buffer)
-(pm-around-advice #'basic-save-buffer #'polymode-with-current-base-buffer)
+(pm-around-advice 'find-alternate-file #'polymode-with-current-base-buffer)
+(pm-around-advice 'write-file #'polymode-with-current-base-buffer)
+(pm-around-advice 'basic-save-buffer #'polymode-with-current-base-buffer)
 
 
 ;;; FILL
@@ -1803,9 +1804,9 @@ ARG is the same as in `forward-paragraph'"
 ;;   (when polymode-mode
 ;;     (pm--reset-ppss-cache (pm-innermost-span pos))))
 
-;; (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache)
+;; (advice-add 'syntax-ppss :before #'polymode-reset-ppss-cache)
 ;; (unless pm--emacs>26
-;;   (advice-add #'syntax-ppss :before #'polymode-reset-ppss-cache))
+;;   (advice-add 'syntax-ppss :before #'polymode-reset-ppss-cache))
 
 ;; (defun polymode-restrict-syntax-propertize-extension (orig-fun beg end)
 ;;   (if (and polymode-mode pm/polymode)

@@ -2,7 +2,7 @@
 ;;
 ;; Author: Vitalie Spinu
 ;; Maintainer: Vitalie Spinu
-;; Copyright (C) 2018 Vitalie Spinu
+;; Copyright (C) 2018-2022  Free Software Foundation, Inc.
 ;; Version: 0.1
 ;; Package-Requires: ((emacs "25") (polymode "__POLYMODE_VERSION__"))
 ;; URL: https://github.com/polymode/__MODULE__

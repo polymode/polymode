@@ -1,6 +1,6 @@
 ;;; polymode-classes.el --- Core polymode classes -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;
@@ -295,7 +295,7 @@ the trailing white spaces if any.")
    (adjust-face
     :initarg :adjust-face
     :initform nil
-    :type (or number face list)
+    :type (or number symbol list)
     :custom (choice number face sexp)
     :documentation
     "Fontification adjustment for the body of the chunk.
@@ -435,7 +435,7 @@ forward). See `pm-forward-sexp-tail-matcher' for an example.")
    (head-adjust-face
     :initarg :head-adjust-face
     :initform 'bold
-    :type (or number face list)
+    :type (or number symbol list)
     :custom (choice number face sexp)
     :documentation
     "Head's face adjustment.
@@ -443,7 +443,7 @@ Can be a number, a list of properties or a face.")
    (tail-adjust-face
     :initarg :tail-adjust-face
     :initform nil
-    :type (or null number face list)
+    :type (or null number symbol list)
     :custom (choice (const :tag "From Head" nil)
                     number face sexp)
     :documentation

@@ -1,5 +1,7 @@
 ;;; mode-init-tests.el --- Various initialization tests -*- lexical-binding: t -*-
 
+;; Copyright (C) 2019-2022  Free Software Foundation, Inc.
+
 (require 'polymode)
 (require 'polymode-test-utils)
 

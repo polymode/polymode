@@ -1,8 +1,8 @@
 ;;; polymode.el --- Extensible framework for multiple major modes -*- lexical-binding: t -*-
 ;;
 ;; Author: Vitalie Spinu
-;; Maintainer: Vitalie Spinu
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Maintainer: Vitalie Spinu <spinuvit@gmail.com>
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Version: 0.2.2
 ;; Package-Requires: ((emacs "25"))
 ;; URL: https://github.com/polymode/polymode
@@ -56,22 +56,22 @@ Not effective after loading the polymode library.")
     ;; eval
     (define-key map "v" 'polymode-eval-map)
     ;; navigation
-    (define-key map "\C-n" 'polymode-next-chunk)
-    (define-key map "\C-p" 'polymode-previous-chunk)
-    (define-key map "\C-\M-n" 'polymode-next-chunk-same-type)
-    (define-key map "\C-\M-p" 'polymode-previous-chunk-same-type)
+    (define-key map "\C-n" #'polymode-next-chunk)
+    (define-key map "\C-p" #'polymode-previous-chunk)
+    (define-key map "\C-\M-n" #'polymode-next-chunk-same-type)
+    (define-key map "\C-\M-p" #'polymode-previous-chunk-same-type)
     ;; chunk manipulation
-    (define-key map "\M-k" 'polymode-kill-chunk)
-    (define-key map "\M-m" 'polymode-mark-or-extend-chunk)
-    (define-key map "\C-t" 'polymode-toggle-chunk-narrowing)
+    (define-key map "\M-k" #'polymode-kill-chunk)
+    (define-key map "\M-m" #'polymode-mark-or-extend-chunk)
+    (define-key map "\C-t" #'polymode-toggle-chunk-narrowing)
     ;; backends
-    (define-key map "e" 'polymode-export)
-    (define-key map "E" 'polymode-set-exporter)
-    (define-key map "w" 'polymode-weave)
-    (define-key map "W" 'polymode-set-weaver)
-    (define-key map "t" 'polymode-tangle)
-    (define-key map "T" 'polymode-set-tangler)
-    (define-key map "$" 'polymode-show-process-buffer)
+    (define-key map "e" #'polymode-export)
+    (define-key map "E" #'polymode-set-exporter)
+    (define-key map "w" #'polymode-weave)
+    (define-key map "W" #'polymode-set-weaver)
+    (define-key map "t" #'polymode-tangle)
+    (define-key map "T" #'polymode-set-tangler)
+    (define-key map "$" #'polymode-show-process-buffer)
     map)
   "Polymode prefix map.
 Lives on `polymode-prefix-key' in polymode buffers.")
@@ -658,7 +658,7 @@ most frequently used slots are:
 
 (define-minor-mode polymode-minor-mode
   "Polymode minor mode, used to make everything work."
-  nil " PM")
+  :lighter " PM")
 
 (define-derived-mode poly-head-tail-mode prog-mode "HeadTail"
   "Default major mode for polymode head and tail spans."

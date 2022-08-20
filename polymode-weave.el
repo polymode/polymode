@@ -1,6 +1,6 @@
 ;;; polymode-weave.el --- Weaving facilities for polymodes -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;
@@ -38,7 +38,6 @@
 (defcustom polymode-weaver-output-file-format "%s-woven"
   "Format of the weaved files.
 %s is substituted with the current file name sans extension."
-  :group 'polymode-weave
   :type 'string)
 
 (defclass pm-weaver (pm-root)

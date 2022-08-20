@@ -1,3 +1,6 @@
+;;; poly-modes-tests.el -- Tests for Polymode  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2022  Free Software Foundation, Inc.
 
 ;; load all tests from individual poly-xyz repositories located in the parent of
 ;; this repository

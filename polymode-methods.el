@@ -1,6 +1,6 @@
 ;;; polymode-methods.el --- Methods for polymode classes -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;
@@ -201,7 +201,7 @@ initialized. Return the buffer."
     (add-hook 'after-change-functions #'polymode-after-change 95 t)
 
     ;; FONT LOCK (see poly-lock.el)
-    (setq-local font-lock-function 'poly-lock-mode)
+    (setq-local font-lock-function #'poly-lock-mode)
     ;; Font lock is a globalized minor mode and is thus initialized in
     ;; `after-change-major-mode-hook' within `run-mode-hooks'. As a result
     ;; poly-lock won't get installed if polymode is installed as a minor mode or
@@ -328,7 +328,7 @@ Create and initialize the buffer if does not exist yet.")
 Return a list of three elements (TYPE BEG END OBJECT) where TYPE
 is a symbol representing the type of the span surrounding
 POS (head, tail, body). BEG and END are the coordinates of the
-span. OBJECT is a suitable object which is 'responsible' for this
+span. OBJECT is a suitable object which is `responsible' for this
 span. This is an object that could be dispatched upon with
 `pm-select-buffer'. Should return nil if there is no SUBMODE
 specific span around POS. Not to be used in programs directly;
@@ -343,7 +343,7 @@ Host modes usually do not compute spans."
 
 (cl-defmethod pm-get-span ((chunkmode pm-inner-chunkmode) &optional pos)
   "Return a list of the form (TYPE POS-START POS-END SELF).
-TYPE can be 'body, 'head or 'tail. SELF is the CHUNKMODE."
+TYPE can be `body', `head' or `tail'. SELF is the CHUNKMODE."
   (with-slots (head-matcher tail-matcher head-mode tail-mode) chunkmode
     (let ((span (pm--span-at-point head-matcher tail-matcher pos
                                    (eieio-oref chunkmode 'can-overlap))))

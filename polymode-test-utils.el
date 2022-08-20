@@ -1,6 +1,6 @@
 ;;; polymode-test-utils.el --- Testing utilities for polymode -*- lexical-binding: t -*-
 ;;
-;; Copyright (C) 2018-2019, Vitalie Spinu
+;; Copyright (C) 2018-2022  Free Software Foundation, Inc.
 ;; Author: Vitalie Spinu
 ;; URL: https://github.com/polymode/polymode
 ;;

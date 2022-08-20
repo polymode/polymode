@@ -2,7 +2,7 @@
 ;;
 ;; Author: Vitalie Spinu
 ;; Maintainer: Vitalie Spinu
-;; Copyright (C) 2013-2019, Vitalie Spinu
+;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 ;; Version: 0.1
 ;; URL: https://github.com/polymode/polymode
 ;; Keywords: emacs
@@ -183,7 +183,7 @@ are passed to ORIG-FUN."
 
 
 
-;;; LSP (lsp-mode and elglot)
+;;; LSP (lsp-mode and eglot)
 ;;
 ;; Emacs modifications `after-change-functions' to LSP insertions
 ;; https://microsoft.github.io/language-server-protocol/specifications/specification-current/#textDocument_didChange
@@ -328,7 +328,7 @@ are passed to ORIG-FUN."
   (or (car (get-text-property beg :pm-span))
       (car (get-text-property end :pm-span))))
 (add-hook 'flyspell-incorrect-hook
-          'pm--flyspel-dont-highlight-in-chunkmodes nil t)
+          #'pm--flyspel-dont-highlight-in-chunkmodes nil t)
 
 ;;; C/C++/Java
 (pm-around-advice 'c-before-context-fl-expand-region #'pm-override-output-cons)
@@ -475,8 +475,8 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
              (null buffer-undo-tree))
     (setq buffer-undo-tree (make-undo-tree))))
 
-(eval-after-load 'undo-tree
-  '(add-hook 'polymode-init-inner-hook 'polymode-init-undo-tree-maybe))
+(with-eval-after-load 'undo-tree
+  (add-hook 'polymode-init-inner-hook #'polymode-init-undo-tree-maybe))
 
 
 ;;; EVIL
@@ -490,8 +490,8 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
         (with-current-buffer new-buffer
           (evil-change-state old-state))))))
 
-(eval-after-load 'evil-core
-  '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-keep-evil-state-maybe))
+(with-eval-after-load 'evil-core
+  (add-hook 'polymode-after-switch-buffer-hook #'polymode-switch-buffer-keep-evil-state-maybe))
 
 
 ;;; HL line
@@ -507,8 +507,8 @@ This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'.
       (hl-line-unhighlight))
     (when global-hl-line-mode
       (global-hl-line-unhighlight))))
-(eval-after-load 'hl-line
-  '(add-hook 'polymode-after-switch-buffer-hook 'polymode-switch-buffer-hl-unhighlight))
+(with-eval-after-load 'hl-line
+  (add-hook 'polymode-after-switch-buffer-hook #'polymode-switch-buffer-hl-unhighlight))
 
 
 ;;; YAS
