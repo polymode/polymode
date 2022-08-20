@@ -4,6 +4,7 @@ EMACS_VERSION = $(shell ${EMACS} -Q --batch --eval "(princ emacs-version)")
 ELPA_DIR := .ELPA/$(EMACS_VERSION)
 EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(ELPA_DIR)
 EMACSBATCH = $(EMACSRUN) --batch
+EMACSTARGET = $(EMACSBATCH) -l targets/poly-targets.el
 
 ELS = $(wildcard *.el)
 LINTELS = $(filter-out polymode-autoloads.el polymode-compat.el polymode-configuration.el, $(ELS))
@@ -21,7 +22,7 @@ build: version cleansilent
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
-	@$(EMACSBATCH) --load targets/checkdoc.el $(LINTELS)
+	@$(EMACSTARGET) -f pm--target-checkdoc $(LINTELS)
 
 clean:
 	rm -f $(OBJECTS) polymode-autoloads.el
@@ -39,38 +40,38 @@ docs-deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
 
 lint: version
-	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/lint.el $(LINTELS)
+	@$(EMACSTARGET) -f pm--target-melpa-init -f pm--target-lint $(LINTELS)
 
 melpa: version
-	@$(EMACSBATCH) --load targets/melpa.el
+	@$(EMACSTARGET) -f pm--target-melpa
 
 elpa: melpa
 
 start: version melpa
-	$(EMACSRUN) -L . \
-		--load targets/melpa-init.el \
+	$(EMACSTARGET) -L . 		 \
+		-f pm--target-melpa-init \
 		--load tests/*.el
 
 startvs: version
-	$(EMACSRUN) -L . \
-		--load targets/melpa-init.el \
-		--load targets/local.el \
+	$(EMACSTARGET) -L . 		 \
+		-f pm--target-melpa-init \
+		-f pm--parget-local   	 \
 		--load tests/*.el --load ~/.eBasic.el
 
 test: version clean
 	@echo "******************* TESTING $(MODULE) **************************"
-	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
+	$(EMACSTARGET) -f pm--target-melpa-init -f pm--target-test
 
 test-local: version
 	@echo "******************* Testing $(MODULE) ***************************"
-	$(EMACSBATCH) --load targets/local.el --load targets/test.el
+	$(EMACSTARGET) -f pm--target-local -f pm--target-test
 
 test/%:
 	$(eval PATTERN := $(subst test/, , $@))
 	@echo "********** TESTING WITH PATTERN $(PATTERN) in $(MODULE) ************"
-	$(EMACSBATCH) --load targets/melpa-init \
+	$(EMACSTARGET) -f pm--target-melpa-init 	       \
 		--eval "(setq pm-ert-selector \"$(PATTERN)\")" \
-		--load targets/test.el
+		-f pm--target-test
 
 template../%:
 	@echo $@
