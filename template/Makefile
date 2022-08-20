@@ -4,6 +4,7 @@ EMACS_VERSION = $(shell ${EMACS} -Q --batch --eval "(princ emacs-version)")
 ELPA_DIR := .ELPA/$(EMACS_VERSION)
 EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(ELPA_DIR)
 EMACSBATCH = $(EMACSRUN) --batch
+EMACSTARGET = $(EMACSBATCH) -l targets/poly-targets.el
 
 ELS = $(wildcard *.el)
 OBJECTS = $(ELS:.el=.elc)
@@ -17,18 +18,18 @@ all: build checkdoc test
 
 build: version clean
 	@echo "******************* BUILDING $(MODULE) *************************"
-	$(EMACSBATCH) --load targets/melpa-init.el --funcall batch-byte-compile *.el
+	$(EMACSTARGET) -f pm--target-melpa-init -f batch-byte-compile *.el
 
 build-local: version clean
 	@echo "******************* BUILDING $(MODULE) *************************"
-	$(EMACSBATCH) --load targets/local.el --funcall batch-byte-compile *.el
+	$(EMACSTARGET) -f pm--target-local --funcall batch-byte-compile *.el
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
-	$(EMACSBATCH) --load targets/checkdoc.el
+	$(EMACSTARGET) -f pm--target-checkdoc
 
 lint: version
-	@$(EMACSBATCH) --load targets/melpa-init.el --load targets/lint.el $(LINTELS)
+	@$(EMACSTARGET) -f pm--target-melpa-init -f pm--target-lint $(LINTELS)
 
 clean:
 	rm -f $(OBJECTS)
@@ -37,27 +38,24 @@ cleanall: clean
 	rm -rf $(ELPA_DIR) *autoloads.el
 
 melpa: version
-	$(EMACSBATCH) --load targets/melpa.el
+	$(EMACSTARGET) -f pm--target-melpa
 
 elpa: melpa
 
 start: version melpa
-	$(EMACSRUN) -L . \
-		--load targets/melpa-init.el \
-		--load tests/*.el
+	$(EMACSTARGET) -L . -f pm--target-melpa-init --load tests/*.el
 
 startvs: version
-	$(EMACSRUN) -L . \
-		--load targets/local.el \
-		--load tests/*.el --load ~/.eBasic.el
+	$(EMACSTARGET) -L . -f pm--target-local \
+		       --load tests/*.el --load ~/.eBasic.el
 
 test: build version
 	@echo "******************* Testing $(MODULE) ***************************"
-	$(EMACSBATCH) --load targets/melpa-init.el --load targets/test.el
+	$(EMACSTARGET) -f pm--target-melpa-init -f pm--target-test
 
 test-local: version
 	@echo "******************* Testing $(MODULE) ***************************"
-	$(EMACSBATCH) --load targets/local.el --load targets/test.el
+	$(EMACSTARGET) -f pm--target-local -f pm--target-test
 
 version:
 	@echo "EMACS VERSION: $(EMACS_VERSION)"
