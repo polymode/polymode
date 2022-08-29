@@ -1,0 +1,7 @@
+.elpaignore
+.gitignore
+Makefile
+mkdocs.yml
+docs/
+template/
+targets/
