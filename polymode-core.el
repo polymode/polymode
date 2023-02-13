@@ -1002,7 +1002,8 @@ Parents' hooks are run first."
     ;; multiple-cursors stores here a command in a pre-command-hook
     ;; and executes it for all cursors in a post-command-hook so we
     ;; need to transfer in case the buffer was switched.
-    mc--this-command)
+    mc--this-command
+    char-property-alias-alist)
   "Variables transferred from old buffer to new buffer on buffer switch.")
 
 (defvar polymode-move-these-minor-modes-from-base-buffer nil
