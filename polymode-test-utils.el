@@ -243,10 +243,10 @@ MODE is a quoted symbol."
                      :pos pos
                      :ref-pos ref-pos
                      :line (progn (goto-char pos)
-                                  (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+                                  (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
                      :ref-line (with-current-buffer ref-buf
                                  (goto-char ref-pos)
-                                 (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+                                 (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
                      :mode smode))))
               ;; for the interactive convenience
               (switch-to-buffer (current-buffer))
@@ -371,7 +371,7 @@ points."
   (goto-char (point-min))
   (set-buffer-modified-p nil)
   (while (not (eobp))
-    (let ((orig-line (buffer-substring-no-properties (point-at-eol) (point-at-bol))))
+    (let ((orig-line (buffer-substring-no-properties (line-end-position) (line-beginning-position))))
       (unless (string-match-p "no-indent-test" orig-line)
         (undo-boundary)
         ;; (pm-switch-to-buffer)
@@ -379,12 +379,12 @@ points."
         ;;          (line-number-at-pos) (point) (current-buffer)
         ;;          (syntax-ppss) syntax-propertize--done)
         (pm-indent-line-dispatcher)
-        (unless (equal orig-line (buffer-substring-no-properties (point-at-eol) (point-at-bol)))
+        (unless (equal orig-line (buffer-substring-no-properties (line-end-position) (line-beginning-position)))
           (undo-boundary)
           (pm-switch-to-buffer (point))
           (ert-fail (list :pos (point) :line (line-number-at-pos)
                           :mode major-mode
-                          :indent-line (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))
+                          :indent-line (buffer-substring-no-properties (line-beginning-position) (line-end-position)))))))
     (forward-line 1))
   (let (points1 points2)
     (pm-map-over-spans (lambda (span) (push (/ (+ (nth 1 span) (nth 2 span)) 2) points1)))
@@ -436,10 +436,10 @@ points."
                              :ref (with-temp-buffer
                                     (insert right)
                                     (goto-char pos)
-                                    (buffer-substring-no-properties (point-at-bol) (point-at-eol)))
+                                    (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
                              :new (progn
                                     (goto-char pos)
-                                    (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))))))))
+                                    (buffer-substring-no-properties (line-beginning-position) (line-end-position)))))))))))
 
 (defmacro pm-test-map-over-modes (mode file)
   `(pm-test-run-on-file ,mode ,file
