@@ -641,12 +641,12 @@ forward."
          (block-col (if (< cur-indent cur-col)
                         cur-indent
                       (1- cur-indent)))
-         (end (point-at-eol)))
+         (end (line-end-position)))
     (forward-line 1)
     (while (and (not (eobp))
                 (or (looking-at-p "[ \t]*$")
                     (and (> (current-indentation) block-col)
-                         (setq end (point-at-eol)))))
+                         (setq end (line-end-position)))))
       (forward-line 1))
     ;; end at bol for the sake of indentation
     (setq end (min (point-max) (1+ end)))
