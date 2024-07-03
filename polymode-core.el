@@ -966,6 +966,7 @@ Parents' hooks are run first."
 (define-obsolete-variable-alias 'pm-move-vars-from-base 'polymode-move-these-vars-from-base-buffer "v0.1.6")
 (defvar polymode-move-these-vars-from-base-buffer
   '(buffer-file-name
+    buffer-file-truename
     ;; ideally this one should be merged across all buffers
     buffer-display-table
     outline-regexp
