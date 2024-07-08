@@ -1,0 +1,52 @@
+name: CI
+on:
+  pull_request:
+    paths-ignore:
+    - '**.md'
+    - '**.org'
+    - '.dir-locals.el'
+    - '.elpaignore'
+    - '.gitignore'
+    - 'doc/**'
+    branches:
+      - master
+  push:
+    paths-ignore:
+    - '**.md'
+    - '**.org'
+    - '.dir-locals.el'
+    - '.elpaignore'
+    - '.gitignore'
+    - 'doc/**'
+permissions: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs_version:
+          - 28.2
+          - 29.4
+          - 30.1
+          - snapshot
+
+    steps:
+    - uses: purcell/setup-emacs@master
+      with:
+        version: ${{ matrix.emacs_version }}
+
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Check Emacs version
+      run: emacs --version
+
+    - name: Build
+      run: |
+        make elpa
+        make build
+
+    - name: Test
+      run: make test-local
