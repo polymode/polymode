@@ -989,6 +989,7 @@ Parents' hooks are run first."
     line-move-visual
     left-margin-width
     right-margin-width
+    olivetti-body-width
     overwrite-mode
     selective-display
     text-scale-mode
