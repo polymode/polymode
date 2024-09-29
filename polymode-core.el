@@ -1010,6 +1010,7 @@ Parents' hooks are run first."
   "Minor modes to move from base buffer on buffer switch.")
 (defvar polymode-move-these-minor-modes-from-old-buffer
   '(linum-mode
+    olivetti-mode
     visual-line-mode
     visual-fill-column-mode
     writeroom-mode
