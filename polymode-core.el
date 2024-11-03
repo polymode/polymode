@@ -1473,6 +1473,8 @@ Placed with low priority in `before-change-functions' hook."
   "Polymode after-change fixes.
 Run `polymode-run-these-after-change-functions-in-other-buffers'.
 Placed with low priority in `after-change-functions' hook."
+  ;; ensure points are synchronized (after-change runs BEFORE post-command-hook)
+  (pm--synchronize-points)
   (pm--run-other-hooks pm-allow-after-change-hook
                        polymode-run-these-after-change-functions-in-other-buffers
                        'after-change-functions
