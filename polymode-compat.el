@@ -251,39 +251,42 @@ are passed to ORIG-FUN."
   (list :text (pm--lsp-text)))
 
 (defun pm--lsp-text (&optional beg end)
-  (save-restriction
-    (widen)
-    (setq beg (or beg (point-min)))
-    (setq end (or end (point-max)))
-    (let ((cmode major-mode)
-          (end-eol (save-excursion (goto-char end)
-                                   (line-end-position)))
-          line-acc acc)
-      (pm-map-over-modes
-       (lambda (sbeg send)
-         (let ((beg1 (max sbeg beg))
-               (end1 (min send end))
-               (rem))
-           (if (eq cmode major-mode)
-               (progn
-                 (when (eq sbeg beg1)
-                   ;; first line of mode; use line-acc
-                   (setq acc (append line-acc acc))
-                   (setq line-acc nil))
-                 ;; if cur-mode follows after end on same line, accumulate the
-                 ;; last line but not the actual text
-                 (when (< beg1 end)
-                   (push (buffer-substring-no-properties beg1 end1) acc)))
-             (goto-char beg1)
-             (if (<= end1 (line-end-position))
-                 (when (< beg1 end1) ; don't accumulate on last line
-                   (push (make-string (- end1 beg1) ? ) line-acc))
-               (while (< (line-end-position) end1)
-                 (push "\n" acc)
-                 (forward-line 1))
-               (setq line-acc (list (make-string (- end1 (point)) ? )))))))
-       beg end-eol)
-      (apply #'concat (reverse acc)))))
+  (prog1
+      (save-excursion
+        (save-restriction
+          (widen)
+          (setq beg (or beg (point-min)))
+          (setq end (or end (point-max)))
+          (let ((cmode major-mode)
+                (end-eol (save-excursion (goto-char end)
+                                         (point-at-eol)))
+                line-acc acc)
+            (pm-map-over-modes
+             (lambda (sbeg send)
+               (let ((beg1 (max sbeg beg))
+                     (end1 (min send end))
+                     (rem))
+                 (if (eq cmode major-mode)
+                     (progn
+                       (when (eq sbeg beg1)
+                         ;; first line of mode; use line-acc
+                         (setq acc (append line-acc acc))
+                         (setq line-acc nil))
+                       ;; if cur-mode follows after end on same line, accumulate the
+                       ;; last line but not the actual text
+                       (when (< beg1 end)
+                         (push (buffer-substring-no-properties beg1 end1) acc)))
+                   (goto-char beg1)
+                   (if (<= end1 (point-at-eol))
+                       (when (< beg1 end1) ; don't accumulate on last line
+                         (push (make-string (- end1 beg1) ? ) line-acc))
+                     (while (< (point-at-eol) end1)
+                       (push "\n" acc)
+                       (forward-line 1))
+                     (setq line-acc (list (make-string (- end1 (point)) ? )))))))
+             beg end-eol)
+            (apply #'concat (reverse acc)))))
+    (pm--synchronize-points)))
 
 ;; We cannot compute original change location when modifications are complex
 ;; (aka multiple changes are combined). In those cases we send an entire
