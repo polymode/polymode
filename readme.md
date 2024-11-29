@@ -11,7 +11,7 @@
 </p>
 
 Polymode is a framework for multiple major modes (MMM) inside a single Emacs
-buffer. It is fast and has a simple but flexible object oriented design.
+buffer. It is fast and has a simple but flexible object-oriented design.
 Creating new polymodes normally takes a few lines of code. 
 
 [Installation](https://polymode.github.io/installation/) instructions and the
