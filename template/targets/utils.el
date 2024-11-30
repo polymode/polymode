@@ -36,7 +36,7 @@
                          (goto-char (point-min))
                          (when (re-search-forward "Package-Requires:" nil t)
                            (car (read-from-string
-                                 (buffer-substring (point) (point-at-eol))))))))
+                                 (buffer-substring (point) (line-end-position))))))))
     (delq 'emacs (delete-dups (append deps (mapcar #'car deps-requires))))))
 
 (defun polymode-add-deps-to-load-path (file)

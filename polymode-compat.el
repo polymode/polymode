@@ -257,7 +257,7 @@ are passed to ORIG-FUN."
     (setq end (or end (point-max)))
     (let ((cmode major-mode)
           (end-eol (save-excursion (goto-char end)
-                                   (point-at-eol)))
+                                   (line-end-position)))
           line-acc acc)
       (pm-map-over-modes
        (lambda (sbeg send)
@@ -275,10 +275,10 @@ are passed to ORIG-FUN."
                  (when (< beg1 end)
                    (push (buffer-substring-no-properties beg1 end1) acc)))
              (goto-char beg1)
-             (if (<= end1 (point-at-eol))
+             (if (<= end1 (line-end-position))
                  (when (< beg1 end1) ; don't accumulate on last line
                    (push (make-string (- end1 beg1) ? ) line-acc))
-               (while (< (point-at-eol) end1)
+               (while (< (line-end-position) end1)
                  (push "\n" acc)
                  (forward-line 1))
                (setq line-acc (list (make-string (- end1 (point)) ? )))))))
