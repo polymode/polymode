@@ -2,7 +2,7 @@ site_name: Polymode
 repo_url: https://github.com/emacs-polymode/polymode
 site_favicon: favicon.ico
 copyright: "Copyright &copy; 2013-2019 Vitalie Spinu"
-pages:
+nav:
 - Home: index.md
 - Installation: installation.md
 - Basic Usage: usage.md
