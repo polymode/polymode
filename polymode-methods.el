@@ -403,7 +403,7 @@ TAIL-BEG TAIL-END).")
                   (when (stringp matcher)
                     (setq matcher (cons matcher 0)))
                   (cond  ((consp matcher)
-                          (re-search-forward (car matcher) (point-at-eol) t)
+                          (re-search-forward (car matcher) (line-end-position) t)
                           (match-string-no-properties (cdr matcher)))
                          ((functionp matcher)
                           (funcall matcher)))))
@@ -477,7 +477,7 @@ TAIL-BEG TAIL-END).")
 
 (defun pm--indent-line-raw (span)
   (pm--indent-raw span 'pm--indent-line-function-original)
-  (pm--reindent-with+-indent span (point-at-bol) (point-at-eol)))
+  (pm--reindent-with+-indent span (line-beginning-position) (line-end-position)))
 
 (defun pm--indent-region-raw (span beg end)
   (pm--indent-raw span 'pm--indent-region-function-original beg end)
@@ -530,7 +530,7 @@ the chunkmode.")
         (delta))
     (back-to-indentation)
     (setq delta (- pos (point)))
-    (let* ((bol (point-at-bol))
+    (let* ((bol (line-beginning-position))
            (span (or span (pm-innermost-span)))
            (prev-span-pos)
            (first-line (save-excursion
@@ -603,14 +603,14 @@ to indent."
                                  ;; empty line
                                  ((looking-at-p "[ \t]*$") 0)
                                  ;; inner span starts at bol; honor +-indent cookie
-                                 ((= (point) (point-at-bol))
+                                 ((= (point) (line-beginning-position))
                                   (pm--+-indent-offset-on-this-line span))
                                  ;; code after header
                                  (t
                                   (end-of-line)
                                   (skip-chars-forward "\t\n")
                                   (pm--indent-line-raw span)
-                                  (- (point) (point-at-bol))))))))
+                                  (- (point) (line-beginning-position))))))))
                   (indent-line-to
                    ;; indent with respect to header line
                    (+ delta (pm--head-indent span)))))))))
@@ -628,13 +628,13 @@ to indent."
       (when (not (bolp)) ; for spans which don't start at bol, first line is next line
         (forward-line 1))
       (skip-chars-forward " \t\n\r")
-      (when (< (point-at-eol) pos)
+      (when (< (line-end-position) pos)
         ;; not on first line -> compute indent of the first line
         (goto-char (nth 1 span))
         (skip-chars-forward " \t\n\r")
         (back-to-indentation)
-        (when (< (point-at-eol) pos)
-          (- (point) (point-at-bol)))))))
+        (when (< (line-end-position) pos)
+          (- (point) (line-beginning-position)))))))
 
 ;; SPAN is a body span; do nothing if narrowed to body
 (defun pm--head-indent (&optional span)
@@ -658,7 +658,7 @@ to indent."
         (current-column)))))
 
 (defun pm--+-indent-offset-on-this-line (span)
-  (if (re-search-forward "\\([+-]\\)indent" (point-at-eol) t)
+  (if (re-search-forward "\\([+-]\\)indent" (line-end-position) t)
       (let ((basic-offset (pm--oref-value (nth 3 span) 'indent-offset)))
         (if (string= (match-string 1) "-")
             (- basic-offset)
