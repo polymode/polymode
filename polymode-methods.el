@@ -28,6 +28,7 @@
 ;;; Code:
 
 (require 'polymode-core)
+(require 'polymode-compat)
 
 
 ;;; INITIALIZATION
@@ -155,7 +156,7 @@ Ran by the polymode mode function."
           (pm--move-vars polymode-move-these-vars-from-base-buffer base))
         (condition-case-unless-debug err
             ;; !! run-mode-hooks and hack-local-variables run here
-            (funcall mode)
+            (pm--funcall-mode-with-convenience mode)
           (error (message "Polymode error (pm--mode-setup '%s): %s"
                           mode (error-message-string err))))
         ;; In emacs 27 this is called from run-mode-hooks

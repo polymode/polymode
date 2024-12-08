@@ -40,6 +40,12 @@
 
 ;;; ESSENTIAL DECLARATIONS
 (defvar *span* nil)
+(defvar-local pm--localizing-span nil
+  "Global localizing advices related to `polymode'
+will be active whenever the value is bound to a non-nil value
+which is then presumed to be a polymode span object.
+
+For internal use only, so far.")
 (defvar-local pm/polymode nil)
 (put 'pm/polymode 'permanent-local t)
 (defvar-local pm/chunkmode nil)
@@ -959,6 +965,7 @@ Parents' hooks are run first."
               funs)
       (mapc #'funcall funs))))
 
+
 
 ;;; BUFFER SELECTION
 
@@ -1058,6 +1065,9 @@ switch."
                             cbuf buffer))
       (pm--move-vars polymode-move-these-vars-from-base-buffer
                      (pm-base-buffer) buffer)
+      (unless (eq buffer (pm-base-buffer))
+        (with-current-buffer buffer
+          (setq-local pm--localizing-span span)))
       (pm--move-vars polymode-move-these-vars-from-old-buffer
                      cbuf buffer)
       (if visibly
