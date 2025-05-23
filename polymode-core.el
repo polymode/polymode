@@ -1119,11 +1119,20 @@ switch."
     (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
 
 (defun pm--move-overlays (from-buffer to-buffer)
+  "Delete all overlays in TO-BUFFER, then copy FROM-BUFFER overlays to it."
+  (delete-all-overlays to-buffer)
   (with-current-buffer from-buffer
     (mapc (lambda (o)
             (unless (or (overlay-get o 'linum-str)
-                        (overlay-get o 'yas--snippet))
-              (move-overlay o (overlay-start o) (overlay-end o) to-buffer)))
+                        (overlay-get o 'yas--snippet)
+                        (eq (overlay-get o 'face) 'region)
+			(eq (overlay-get o 'face) 'show-paren-match))
+              (let ((o-copy (copy-overlay o))
+		    (inhibit-redisplay t)
+		    (inhibit-modification-hooks t)
+                    (start (overlay-start o))
+                    (end (overlay-end o)))
+                (move-overlay o-copy start end  to-buffer))))
           (overlays-in 1 (1+ (buffer-size))))))
 
 (defun pm--move-vars (vars from-buffer &optional to-buffer)
