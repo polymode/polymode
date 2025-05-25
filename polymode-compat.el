@@ -216,7 +216,7 @@ are passed to ORIG-FUN."
 ;;   before-change:(obeg,oend)=(50,56)
 ;;   lsp-on-change:(nbeg,nend,olen)=(50,60,6)
 
-(defun pm--lsp-text-document-content-change-event (beg end len)
+(defun pm--lsp-buffer-content-document-content-change-event (beg end len)
   "Make a TextDocumentContentChangeEvent body for BEG to END, of length LEN."
   (if (zerop len)
       ;; insertion
@@ -248,45 +248,45 @@ are passed to ORIG-FUN."
    :text text))
 
 (defun pm--lsp-full-change-event ()
-  (list :text (pm--lsp-text)))
+  (list :text (pm--lsp-buffer-content)))
 
-(defun pm--lsp-text (&optional beg end)
-  (prog1
-      (save-excursion
-        (save-restriction
-          (widen)
-          (setq beg (or beg (point-min)))
-          (setq end (or end (point-max)))
-          (let ((cmode major-mode)
-                (end-eol (save-excursion (goto-char end)
-                                         (point-at-eol)))
-                line-acc acc)
-            (pm-map-over-modes
-             (lambda (sbeg send)
-               (let ((beg1 (max sbeg beg))
-                     (end1 (min send end))
-                     (rem))
-                 (if (eq cmode major-mode)
-                     (progn
-                       (when (eq sbeg beg1)
-                         ;; first line of mode; use line-acc
-                         (setq acc (append line-acc acc))
-                         (setq line-acc nil))
-                       ;; if cur-mode follows after end on same line, accumulate the
-                       ;; last line but not the actual text
-                       (when (< beg1 end)
-                         (push (buffer-substring-no-properties beg1 end1) acc)))
-                   (goto-char beg1)
-                   (if (<= end1 (point-at-eol))
-                       (when (< beg1 end1) ; don't accumulate on last line
-                         (push (make-string (- end1 beg1) ? ) line-acc))
-                     (while (< (point-at-eol) end1)
-                       (push "\n" acc)
-                       (forward-line 1))
-                     (setq line-acc (list (make-string (- end1 (point)) ? )))))))
-             beg end-eol)
-            (apply #'concat (reverse acc)))))
-    (pm--synchronize-points)))
+(defun pm--lsp-buffer-content (&optional beg end)
+  "Buffer content between BEG and END with text for non-current mode replaced with whitespaces."
+  (pm-with-synchronized-points
+    (save-excursion
+      (save-restriction
+        (widen)
+        (setq beg (or beg (point-min)))
+        (setq end (or end (point-max)))
+        (let ((cmode major-mode)
+              (end-eol (save-excursion (goto-char end)
+                                       (point-at-eol)))
+              line-acc acc)
+          (pm-map-over-modes
+           (lambda (sbeg send)
+             (let ((beg1 (max sbeg beg))
+                   (end1 (min send end))
+                   (rem))
+               (if (eq cmode major-mode)
+                   (progn
+                     (when (eq sbeg beg1)
+                       ;; first line of mode; use line-acc
+                       (setq acc (append line-acc acc))
+                       (setq line-acc nil))
+                     ;; if cur-mode follows after end on same line, accumulate the
+                     ;; last line but not the actual text
+                     (when (< beg1 end)
+                       (push (buffer-substring-no-properties beg1 end1) acc)))
+                 (goto-char beg1)
+                 (if (<= end1 (point-at-eol))
+                     (when (< beg1 end1) ; don't accumulate on last line
+                       (push (make-string (- end1 beg1) ? ) line-acc))
+                   (while (< (point-at-eol) end1)
+                     (push "\n" acc)
+                     (forward-line 1))
+                   (setq line-acc (list (make-string (- end1 (point)) ? )))))))
+           beg end-eol)
+          (apply #'concat (reverse acc)))))))
 
 ;; We cannot compute original change location when modifications are complex
 ;; (aka multiple changes are combined). In those cases we send an entire
@@ -297,18 +297,20 @@ are passed to ORIG-FUN."
     (and (eq beg (car bcr))
          (eq len (- (cdr bcr) (car bcr))))))
 
-;; advises
 (defun polymode-lsp-buffer-content (orig-fun)
+  "In polymode buffers, replace other modes' content with whitespaces.
+Use as around advice for lsp--buffer-content."
   (if (and polymode-mode pm/polymode)
-      (pm--lsp-text)
+      (pm--lsp-buffer-content)
     (funcall orig-fun)))
 
 (defun polymode-lsp-change-event (orig-fun beg end len)
   (if (and polymode-mode pm/polymode)
-      (pm--lsp-text-document-content-change-event beg end len)
+      (pm--lsp-buffer-content-document-content-change-event beg end len)
     (funcall orig-fun beg end len)))
 
-(defvar-local polymode-lsp-integration t)
+(defvar-local polymode-lsp-integration t
+  "Non-nil if lsp polymode integration should be enabled for this buffer.")
 
 (with-eval-after-load "lsp-mode"
   (when polymode-lsp-integration
@@ -321,9 +323,6 @@ are passed to ORIG-FUN."
     ;; (add-to-list 'polymode-move-these-minor-modes-from-old-buffer 'lsp-headerline-breadcrumb-mode)
     (pm-around-advice 'lsp--buffer-content #'polymode-lsp-buffer-content)
     (pm-around-advice 'lsp--text-document-content-change-event #'polymode-lsp-change-event)))
-
-;; (advice-remove 'lsp--buffer-content #'polymode-lsp-buffer-content)
-;; (advice-remove 'lsp--text-document-content-change-event #'polymode-lsp-change-event)
 
 
 ;;; Flyspel
