@@ -1120,6 +1120,8 @@ switch."
 
 (defun pm--move-overlays (from-buffer to-buffer)
   "Delete all overlays in TO-BUFFER, then copy FROM-BUFFER overlays to it."
+  ;; We cannot simply move overlays from one buffer to the antoher as this would alter the
+  ;; display of the buffer in another window (see #348 for an example with org mode).
   (delete-all-overlays to-buffer)
   (with-current-buffer from-buffer
     (mapc (lambda (o)

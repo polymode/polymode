@@ -8,6 +8,6 @@
   (checkdoc-arguments-in-order-flag . nil)
   (checkdoc-force-docstrings-flag . nil)
   (checkdoc-verb-check-experimental-flag . nil)
-  (bug-reference-bug-regexp . "#\\([[:digit:]]+\\)")
-  (bug-reference-url-format . "https://github.com/vspinu/polymode/issues/%s")
+  (bug-reference-bug-regexp . "#\\(\\([[:digit:]]+\\)\\)")
+  (bug-reference-url-format . "https://github.com/polymode/polymode/issues/%s")
   (eval . (add-hook 'before-save-hook 'delete-trailing-whitespace nil t))))
