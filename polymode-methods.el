@@ -69,7 +69,7 @@ Ran by the polymode mode function."
       (pm--mode-setup host-mode)
       (oset hostmode -buffer (current-buffer))
       (oset config -hostmode hostmode)
-      (setq pm--core-buffer-name (buffer-name)
+      (setq pm--base-buffer-name (buffer-name)
             pm/polymode config
             pm/chunkmode hostmode
             pm/current t
@@ -82,17 +82,13 @@ Ran by the polymode mode function."
     ;; (run-mode-hooks) ;; FIXME
     ))
 
+
 (cl-defmethod pm-initialize ((chunkmode pm-inner-chunkmode) &optional type mode)
   "Initialization of the innermodes' (indirect) buffers."
   ;; run in chunkmode indirect buffer
   (setq mode (or mode (pm--get-innermode-mode chunkmode type)))
-  (let* ((pm-initialization-in-progress t)
-         (post-fix (replace-regexp-in-string "poly-\\|-mode" "" (symbol-name mode)))
-         (core-name (format "%s[%s]" (buffer-name (pm-base-buffer))
-                            (or (cdr (assoc post-fix polymode-mode-abbrev-aliases))
-                                post-fix)))
-         (new-name (generate-new-buffer-name core-name)))
-    (rename-buffer new-name)
+  (let* ((pm-initialization-in-progress t))
+    (rename-buffer (pm--buffer-name))
     ;; FIXME: Mode hooks and local var hacking happens here. Need to move it to
     ;; the end. But then font-lock is not activated and buffers not installed
     ;; correctly.
@@ -102,8 +98,7 @@ Ran by the polymode mode function."
     (pm--move-vars '(pm/polymode buffer-file-coding-system) (pm-base-buffer))
     ;; FIXME: This breaks if different chunkmodes use same-mode buffer. Even for
     ;; head/tail the value of pm/type will be wrong for tail
-    (setq pm--core-buffer-name core-name
-          pm/chunkmode chunkmode
+    (setq pm/chunkmode chunkmode
           pm/type (pm-true-span-type chunkmode type))
     ;; FIXME: should not be here?
     (vc-refresh-state)
@@ -115,7 +110,7 @@ Ran by the polymode mode function."
     ;; If this rename happens before the mode setup font-lock doesn't work in
     ;; inner buffers.
     (when pm-hide-implementation-buffers
-      (rename-buffer (generate-new-buffer-name (concat " " pm--core-buffer-name)))))
+      (rename-buffer (pm--buffer-name 'hidden))))
   (pm--run-init-hooks chunkmode type 'polymode-init-inner-hook)
   ;; Call polymode mode for the sake of the keymap and hook. Same minor mode
   ;; which runs in the host buffer but without recursive call to `pm-initialize'.

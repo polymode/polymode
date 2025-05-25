@@ -430,32 +430,28 @@ changes."
 
 ;;; DESKTOP SAVE #194 #240
 
-;; NB: desktop-save will not save indirect buffer.
-;; For base buffer, if it's hidden as per #34, we will save it unhide by removing left whitespaces.
+;; NB: We advice desktop-save functionality to not save indirect buffers and for base buffers,
+;; save the buffers with un-hidden name.
 
 (defun polymode-fix-desktop-buffer-info (fn buffer)
-  "Unhide poly-mode base buffer which is hidden as per #34.
-This is done by modifying `uniquify-buffer-base-name' to `pm--core-buffer-name'."
+  "Unhide poly-mode base buffer which is hidden by removing the leading spaces from the name."
   (with-current-buffer buffer
     (let ((out (funcall fn buffer)))
       (when (and polymode-mode
                  (not (buffer-base-buffer))
                  (not (car out)))
-        (setf (car out) pm--core-buffer-name))
+        (setf (car out) (replace-regexp-in-string "^ +" "" (buffer-name buffer))))
       out)))
-
-(declare-function desktop-buffer-info "desktop")
-(with-eval-after-load "desktop"
-  (advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info))
 
 (defun polymode-fix-desktop-save-buffer-p (_ bufname &rest _args)
   "Dont save polymode buffers which are indirect buffers."
   (with-current-buffer bufname
-    (not (and polymode-mode
-              (buffer-base-buffer)))))
+    (not (and polymode-mode (buffer-base-buffer)))))
 
+(declare-function desktop-buffer-info "desktop")
 (declare-function desktop-save-buffer-p "desktop")
 (with-eval-after-load "desktop"
+  (advice-add #'desktop-buffer-info :around #'polymode-fix-desktop-buffer-info)
   (advice-add #'desktop-save-buffer-p :before-while #'polymode-fix-desktop-save-buffer-p))
 
 

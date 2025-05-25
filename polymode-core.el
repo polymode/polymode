@@ -104,14 +104,22 @@
 (defvar pm-initialization-in-progress nil)
 
 (defvar pm-hide-implementation-buffers t)
-(defvar-local pm--core-buffer-name nil)
+(defvar-local pm--base-buffer-name nil
+  "Local name of the base buffer in the base buffer.
+Currently, we only use it to track renames of the buffer.")
 
-(defun pm--hidden-buffer-name ()
-  (generate-new-buffer-name (concat " " pm--core-buffer-name)))
 
-(defun pm--visible-buffer-name ()
-  (generate-new-buffer-name
-   (replace-regexp-in-string "^ +" "" pm--core-buffer-name)))
+(defun pm--buffer-name (&optional hidden)
+  (let ((name (if-let ((bbuf (buffer-base-buffer)))
+                  (let ((postfix (replace-regexp-in-string "poly-\\|-mode" "" (symbol-name major-mode)))
+                        (base-name (buffer-local-value 'pm--base-buffer-name bbuf)))
+                    (format "%s[%s]" (replace-regexp-in-string "^ " "" base-name)
+                            (or (cdr (assoc postfix polymode-mode-abbrev-aliases))
+                                postfix)))
+                pm--base-buffer-name)))
+    (when hidden
+      (setq name (concat " " name)))
+    (generate-new-buffer-name name)))
 
 
 
@@ -1056,10 +1064,10 @@ switch."
       (when (and own visibly)
         (run-hook-with-args 'polymode-before-switch-buffer-hook
                             cbuf buffer))
-      (pm--move-vars polymode-move-these-vars-from-base-buffer
-                     (pm-base-buffer) buffer)
-      (pm--move-vars polymode-move-these-vars-from-old-buffer
-                     cbuf buffer)
+
+      (pm--move-vars polymode-move-these-vars-from-base-buffer (pm-base-buffer) buffer)
+      (pm--move-vars polymode-move-these-vars-from-old-buffer cbuf buffer)
+
       ;; synchronize again just in case
       (pm--synchronize-points cbuf)
       (if visibly
@@ -1080,7 +1088,7 @@ switch."
         (hlf header-line-format))
 
     (when pm-hide-implementation-buffers
-      (rename-buffer (pm--hidden-buffer-name)))
+      (rename-buffer (pm--buffer-name 'hidden)))
 
     (setq pm/current nil)
 
@@ -1109,7 +1117,7 @@ switch."
       (activate-mark))
 
     (when pm-hide-implementation-buffers
-      (rename-buffer (pm--visible-buffer-name)))
+      (rename-buffer (pm--buffer-name)))
 
     ;; avoid display jumps
     (goto-char point)
@@ -1447,6 +1455,16 @@ are triggered if present."
   "Run after-save-hooks in indirect buffers.
 Only those in `polymode-run-these-after-save-functions-in-other-buffers'
 are triggered if present."
+  (unless (equal (buffer-name) pm--base-buffer-name)
+    (let ((cbuf (current-buffer)))
+      ;; Ensure we are in the base-buffer by accident
+      (cl-assert (eq (buffer-base-buffer) nil))
+      (setq pm--base-buffer-name (buffer-name))
+      ;; Rename indirect buffers (#346)
+      (dolist (buf (eieio-oref pm/polymode '-buffers))
+        (unless (eq buf cbuf)
+          (with-current-buffer buf
+            (rename-buffer (pm--buffer-name (not (get-buffer-window buf 'visible)))))))))
   (pm--run-hooks-in-other-buffers
    polymode-run-these-after-save-functions-in-other-buffers
    'after-save-hook))
