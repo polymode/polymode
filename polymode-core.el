@@ -1139,8 +1139,6 @@ switch."
                         (overlay-get o 'yas--snippet)
                         (memq (overlay-get o 'face) '(region show-paren-match)))
               (let ((o-copy (copy-overlay o))
-		    (inhibit-redisplay t)
-		    (inhibit-modification-hooks t)
                     (start (overlay-start o))
                     (end (overlay-end o)))
                 (move-overlay o-copy start end  to-buffer))))
