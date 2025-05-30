@@ -104,9 +104,7 @@ Key bindings:
              (pm-base-buffer) (with-current-buffer (pm-base-buffer) (point))
              (buffer-name) (point)
              (get-buffer-window (pm-base-buffer))
-             (with-current-buffer (pm-base-buffer) (window-point))
-             ;; FIXME: This arg is not used.
-             (window-point))))
+             (with-current-buffer (pm-base-buffer) (window-point)))))
 
 ;; (defun pm-debug-beore-change (&rest r)
 ;;   (pm--debug-report-point "|before|" this-command))
@@ -420,6 +418,8 @@ currently traced functions."
       (setq args "[...]"))
     (funcall orig-fn fn level args context)))
 
+(declare-function trace-entry-message "ext:")
+(declare-function trace-exit-message "ext:")
 (advice-add #'trace-entry-message :around #'pm-trace--fix-args-for-tracing)
 (advice-add #'trace-exit-message :around #'pm-trace--fix-args-for-tracing)
 ;; (advice-remove #'trace-entry-message #'pm-trace--fix-args-for-tracing)

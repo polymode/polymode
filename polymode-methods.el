@@ -63,7 +63,7 @@ Ran by the polymode mode function."
           ;; Set if nil! This allows unspecified host chunkmodes to be used in
           ;; minor modes.
           (host-mode (or (eieio-oref hostmode 'mode)
-                         (oset hostmode :mode major-mode))))
+                         (oset hostmode 'mode major-mode))))
       ;; FIXME: mode hooks and local var hacking happens here. Need to move it
       ;; to the end.
       (pm--mode-setup host-mode)

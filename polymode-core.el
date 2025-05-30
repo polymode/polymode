@@ -110,7 +110,7 @@ Currently, we only use it to track renames of the buffer.")
 
 
 (defun pm--buffer-name (&optional hidden)
-  (let ((name (if-let ((bbuf (buffer-base-buffer)))
+  (let ((name (if-let* ((bbuf (buffer-base-buffer)))
                   (let ((postfix (replace-regexp-in-string "poly-\\|-mode" "" (symbol-name major-mode)))
                         (base-name (buffer-local-value 'pm--base-buffer-name bbuf)))
                     (format "%s[%s]" (replace-regexp-in-string "^ " "" base-name)
@@ -874,7 +874,7 @@ forward spans from pos."
                           (cons (point-max) (point-max)))))
             (when can-overlap
               (goto-char (cdr head))
-              (when-let ((hbeg (car (funcall head-matcher 1))))
+              (when-let* ((hbeg (car (funcall head-matcher 1))))
                 (when (< hbeg (car tail))
                   (setq tail (cons hbeg hbeg)))))
             (list (car head) (cdr head) (car tail) (cdr tail))))))))
@@ -926,7 +926,7 @@ TYPE is either a symbol or a list of symbols of span types."
   (unless pm-initialization-in-progress
     (when global-hook
       (run-hooks global-hook))
-    (pm--run-hooks object :init-functions (or type 'host))))
+    (pm--run-hooks object 'init-functions (or type 'host))))
 
 (defun pm--collect-parent-slots (object slot &optional do-when inclusive)
   "Descend into parents of OBJECT and return a list of SLOT values.
@@ -940,7 +940,7 @@ of the first object for which DO-WHEN failed."
         (failed nil))
     (while inst
       (if (not (slot-boundp inst slot))
-          (setq inst (and (slot-boundp inst :parent-instance)
+          (setq inst (and (slot-boundp inst 'parent-instance)
                           (eieio-oref inst 'parent-instance)))
         (push (eieio-oref inst slot) vals)
         (setq inst (and
@@ -950,7 +950,7 @@ of the first object for which DO-WHEN failed."
                           (or (funcall do-when inst)
                               (and inclusive
                                    (setq failed t)))))
-                    (slot-boundp inst :parent-instance)
+                    (slot-boundp inst 'parent-instance)
                     (eieio-oref inst 'parent-instance)))))
     vals))
 
@@ -1125,8 +1125,8 @@ switch."
       (set-window-start (get-buffer-window new-buffer t) window-start))
 
     (run-hook-with-args 'polymode-after-switch-buffer-hook old-buffer new-buffer)
-    (pm--run-hooks pm/polymode :switch-buffer-functions old-buffer new-buffer)
-    (pm--run-hooks pm/chunkmode :switch-buffer-functions old-buffer new-buffer)))
+    (pm--run-hooks pm/polymode 'switch-buffer-functions old-buffer new-buffer)
+    (pm--run-hooks pm/chunkmode 'switch-buffer-functions old-buffer new-buffer)))
 
 (defun pm--move-overlays (from-buffer to-buffer)
   "Delete all overlays in TO-BUFFER, then copy FROM-BUFFER overlays to it."
@@ -1997,7 +1997,7 @@ Return FALLBACK if non-nil, otherwise the value of
       (setq VALS (append (and (slot-boundp object slot) ; don't cascade
                               (eieio-oref object slot))
                          VALS)
-            object (and (slot-boundp object :parent-instance)
+            object (and (slot-boundp object 'parent-instance)
                         (eieio-oref object 'parent-instance))))
     VALS))
 
@@ -2077,7 +2077,8 @@ Elements of LIST can be either strings or symbols."
             (goto-char pos)))))))
 
 (defmacro pm-with-synchronized-points (&rest body)
-  "Run BODY and ensure the points in all polymode buffers are synchronized before and after BODY."
+  "Run BODY and ensure the points in all polymode buffers are
+synchronized before and after BODY."
   (declare (indent 0) (debug (body)))
   (pm--synchronize-points)
   `(prog1
