@@ -351,7 +351,7 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
   (interactive)
   (unless pm/polymode
     (error "No pm/polymode object found. Not in polymode buffer?"))
-  (let* ((weavers (delete-dups (pm--oref-with-parents pm/polymode :weavers)))
+  (let* ((weavers (delete-dups (pm--oref-with-parents pm/polymode 'weavers)))
          (exporters (pm--abrev-names
                      "pm-exporter/\\|-exporter"
                      (cl-delete-if-not
@@ -368,7 +368,7 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
                                                                  when (pm--selector-match el (concat "dummy." (nth 2 w)))
                                                                  return t))
                                      return t)))
-                      (delete-dups (pm--oref-with-parents pm/polymode :exporters)))))
+                      (delete-dups (pm--oref-with-parents pm/polymode 'exporters)))))
          (sel (if exporters
                   (if (and no-ask-if-1 (= (length exporters) 1))
                       (car exporters)
@@ -378,7 +378,7 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
     (setq pm--exporter-hist (delete-dups pm--exporter-hist))
     (setq-local pm--export:from-last nil)
     (setq-local pm--export:to-last nil)
-    (oset pm/polymode :exporter out)
+    (oset pm/polymode 'exporter out)
     out))
 
 (defmacro polymode-register-exporter (exporter default &rest configs)
@@ -386,8 +386,8 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
 When DEFAULT is non-nil, also make EXPORTER the default exporter
 for each polymode in CONFIGS."
   `(dolist (pm ',configs)
-     (object-add-to-list (symbol-value pm) :exporters ',exporter)
-     (when ,default (oset (symbol-value pm) :exporter ',exporter))))
+     (object-add-to-list (symbol-value pm) 'exporters ',exporter)
+     (when ,default (oset (symbol-value pm) 'exporter ',exporter))))
 
 
 ;;; GLOBAL EXPORTERS

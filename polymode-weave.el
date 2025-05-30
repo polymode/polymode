@@ -258,8 +258,8 @@ specification."
 When DEFAULT is non-nil, also make weaver the default WEAVER for
 each polymode in CONFIGS."
   `(dolist (pm ',configs)
-     (object-add-to-list (symbol-value pm) :weavers ',weaver)
-     (when ,default (oset (symbol-value pm) :weaver ',weaver))))
+     (object-add-to-list (symbol-value pm) 'weavers ',weaver)
+     (when ,default (oset (symbol-value pm) 'weaver ',weaver))))
 
 (defun polymode-set-weaver ()
   "Set the current weaver for this polymode."
@@ -268,12 +268,12 @@ each polymode in CONFIGS."
     (error "No pm/polymode object found. Not in polymode buffer?"))
   (let* ((weavers (pm--abrev-names
                    "pm-weaver/\\|-weaver$"
-                   (delete-dups (pm--oref-with-parents pm/polymode :weavers))))
+                   (delete-dups (pm--oref-with-parents pm/polymode 'weavers))))
          (sel (pm--completing-read "Choose weaver: " weavers nil t nil 'pm--weaver-hist))
          (out (intern (cdr sel))))
     (setq pm--weaver-hist (delete-dups pm--weaver-hist))
     (setq-local pm--weave:fromto-last nil)
-    (oset pm/polymode :weaver out)
+    (oset pm/polymode 'weaver out)
     out))
 
 (provide 'polymode-weave)
