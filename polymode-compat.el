@@ -215,7 +215,6 @@ are passed to ORIG-FUN."
 ;; REPLACE:
 ;;   before-change:(obeg,oend)=(50,56)
 ;;   lsp-on-change:(nbeg,nend,olen)=(50,60,6)
-
 (defun pm--lsp-buffer-content-document-content-change-event (beg end len)
   "Make a TextDocumentContentChangeEvent body for BEG to END, of length LEN."
   (if (zerop len)
@@ -228,7 +227,6 @@ are passed to ORIG-FUN."
           (pm--lsp-change-event beg end-pos text))
       (pm--lsp-full-change-event))))
 
-(defvar-local pm--lsp-before-change-end-position nil)
 (defun pm--lsp-position (pos)
   (save-restriction
     (widen)
@@ -251,7 +249,9 @@ are passed to ORIG-FUN."
   (list :text (pm--lsp-buffer-content)))
 
 (defun pm--lsp-buffer-content (&optional beg end)
-  "Buffer content between BEG and END with text for non-current mode replaced with whitespaces."
+  "Get text between BEG and END cleaned from non-current mode content.
+The text from non-current mode is replaced with whitespaces, thus
+preserving locations arriving from LSP intact."
   (pm-with-synchronized-points
     (save-excursion
       (save-restriction
@@ -265,8 +265,7 @@ are passed to ORIG-FUN."
           (pm-map-over-modes
            (lambda (sbeg send)
              (let ((beg1 (max sbeg beg))
-                   (end1 (min send end))
-                   (rem))
+                   (end1 (min send end)))
                (if (eq cmode major-mode)
                    (progn
                      (when (eq sbeg beg1)

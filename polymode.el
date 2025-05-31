@@ -58,7 +58,6 @@ in `polymode-minor-mode-map` keymap:
  (define-key polymode-minor-mode-map (kbd \"C-c n\") polymode-map)
 ")
 
-
 (defvar polymode-map
   (let ((map (define-prefix-command 'polymode-map)))
     ;; eval
@@ -77,8 +76,8 @@ in `polymode-minor-mode-map` keymap:
     (define-key map "E" #'polymode-set-exporter)
     (define-key map "w" #'polymode-weave)
     (define-key map "W" #'polymode-set-weaver)
-    (define-key map "t" #'polymode-tangle)
-    (define-key map "T" #'polymode-set-tangler)
+    ;; (define-key map "t" #'polymode-tangle)
+    ;; (define-key map "T" #'polymode-set-tangler)
     (define-key map "$" #'polymode-show-process-buffer)
     map)
   "Polymode prefix map.

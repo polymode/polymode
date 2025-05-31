@@ -194,9 +194,9 @@ inner chunk (such as in markdown mode), the detected symbol might
 not correspond to the desired mode. This alist maps discovered
 symbols into desired modes. For example
 
-  (add-to-list 'polymode-mode-name-aliases '(julia . ess-julia))
+  (add-to-list \\='polymode-mode-name-aliases \\='(julia . ess-julia))
 
-will cause installation of `ess-julia-mode' in markdown ```julia chunks."
+will cause installation of `ess-julia-mode' in markdown julia chunks."
   :group 'polymode
   :type 'alist)
 
@@ -1216,7 +1216,6 @@ spans. Two adjacent spans might have same major mode, thus
       (widen)
       (let* ((hostmode (eieio-oref pm/polymode '-hostmode))
              (pos beg)
-             (ttype 'dummy)
              (span (pm-innermost-span beg))
              (nspan span)
              (ttype (pm-true-span-type span))
@@ -1415,7 +1414,8 @@ Placed with high priority in `after-change-functions' hook."
 
 (defun pm--run-hooks-in-other-buffers (function-names hook-name &rest args)
   "Run each function in FUNCTION-NAMES in other polymode buffers.
-But, only if it is part of the hook HOOK-NAME. Each function is called witih arguments ARGS."
+But, only if it is part of the hook HOOK-NAME. Each function is called
+witih arguments ARGS."
   (when (and polymode-mode pm/polymode)
     (let ((cbuf (current-buffer)))
       (dolist (buf (eieio-oref pm/polymode '-buffers))
@@ -1475,12 +1475,15 @@ are triggered if present."
 (defvar polymode-run-these-after-change-functions-in-other-buffers nil
   "After-change functions to run in all other buffers.")
 
+;; FIXME: LSP specific; move this to compat somehow
+(declare-function pm--lsp-position "polymode-compat")
+(defvar-local pm--lsp-before-change-end-position nil)
+
 (defun polymode-before-change (beg end)
   "Polymode before-change fixes.
 Run `polymode-run-these-before-change-functions-in-other-buffers'.
 Placed with low priority in `before-change-functions' hook."
   (pm--prop-put :before-change-range (cons beg end))
-  ;; FIXME: LSP specific move this out somehow
   (when (boundp 'lsp-mode)
     (dolist (buf (eieio-oref pm/polymode '-buffers))
       (with-current-buffer buf
