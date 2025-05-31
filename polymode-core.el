@@ -1953,11 +1953,12 @@ Return FALLBACK if non-nil, otherwise the value of
                 (fboundp polymode-default-inner-mode))
         polymode-default-inner-mode)
       (when (or (eq fallback 'host)
-                (fboundp fallback))
+                (and (fboundp fallback)
+                     (functionp fallback)))
         fallback)
       'poly-fallback-mode))
     ;; proper mode symbol
-    ((and (symbolp name) (fboundp name) name))
+    ((and (symbolp name) (and (fboundp name) (functionp name)) name))
     ;; compute from name
     ((let* ((str (pm--symbol-name
                   (or (cdr (assq (intern (pm--symbol-name name))
@@ -1969,11 +1970,11 @@ Return FALLBACK if non-nil, otherwise the value of
        (or
         ;; direct search
         (let ((mode (intern mname)))
-          (when (fboundp mode)
+          (when (and (fboundp mode) (functionp mode))
             mode))
         ;; downcase
         (let ((mode (intern (downcase mname))))
-          (when (fboundp mode)
+          (when (and (fboundp mode) (functionp mode))
             mode))
         ;; auto-mode alist
         (let ((dummy-file (concat "a." str)))
@@ -1982,10 +1983,11 @@ Return FALLBACK if non-nil, otherwise the value of
                            (not (string-match-p "^poly-" (symbol-name v))))
                    return v))
         (when (or (eq polymode-default-inner-mode 'host)
-                  (fboundp polymode-default-inner-mode))
+                  (and (fboundp polymode-default-inner-mode)
+                       (functionp polymode-default-inner-mode)))
           polymode-default-inner-mode)
         (when (or (eq fallback 'host)
-                  (fboundp fallback))
+                  (and (fboundp fallback) (functionp fallback)))
           fallback)
         'poly-fallback-mode))))))
 
