@@ -419,8 +419,8 @@ take either values 1 (forwards search) or -1 (backward search)
 and behave similarly to how search is performed by
 `re-search-forward' function. This function must return either
 nil (no match) or a (cons BEG END) representing the head span.
-See the code of `pm-fun-matcher' for how REGEXP and (REGEXP .
-SUB-MATCH) are converted to a function internally..")
+See `pm-fun-matcher' for how polymode internally converts a REGEXP or
+(REGEXP . SUB-MATCH) into such a function.")
    (tail-matcher
     :initarg :tail-matcher
     :type (or string cons function)
