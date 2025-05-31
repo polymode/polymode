@@ -218,9 +218,9 @@ instantiated from this class or a subclass of this class.")
     :documentation
     "Emacs major mode for the chunk's body.
 If :mode slot is nil (anonymous chunkmodes), use the value of
-`polymode-default-inner-mode' is when set, or use the value of
+`polymode-default-inner-mode' when set, or use the value of
 the slot :fallback-mode. A special value 'host means to use the
-host mode (useful auto-chunkmodes only).")
+host mode (useful for `pm-inner-auto-chunkmode' only).")
    (fallback-mode
     :initarg :fallback-mode
     :initform 'poly-fallback-mode
@@ -335,11 +335,12 @@ is of this chunkmode.")
     :type symbol
     :custom symbol
     :documentation
-    "Major mode to keep in when polymode switches implementation buffers.
-When a special symbol 'host, keep in hostmode. The buffer with
-this major mode must be installed by one of the innermodes or the
-hostmode. If multiple innermodes installed buffers of this mode,
-the first buffer is used.")
+    "Major mode to keep the chunk when the point is inside the chunk.
+When a special symbol 'host, keep in hostmode. This is useful when you
+want the inner mode to be responsible for font-locking but the host mode
+for the edditing capabilities. The buffer with this major mode must be
+installed by one of the innermodes or the hostmode. If multiple
+innermodes installed buffers of this mode, the first buffer is used.")
 
    (-buffer
     :type (or null buffer)

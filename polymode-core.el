@@ -1455,16 +1455,17 @@ are triggered if present."
   "Run after-save-hooks in indirect buffers.
 Only those in `polymode-run-these-after-save-functions-in-other-buffers'
 are triggered if present."
-  (unless (equal (buffer-name) pm--base-buffer-name)
-    (let ((cbuf (current-buffer)))
-      ;; Ensure we are in the base-buffer by accident
-      (cl-assert (eq (buffer-base-buffer) nil))
-      (setq pm--base-buffer-name (buffer-name))
-      ;; Rename indirect buffers (#346)
-      (dolist (buf (eieio-oref pm/polymode '-buffers))
-        (unless (eq buf cbuf)
-          (with-current-buffer buf
-            (rename-buffer (pm--buffer-name (not (get-buffer-window buf 'visible)))))))))
+  (let ((new-name (replace-regexp-in-string "^ +" "" (buffer-name))))
+   (unless (equal new-name pm--base-buffer-name)
+     (let ((cbuf (current-buffer)))
+       ;; Ensure we are in the base-buffer
+       (cl-assert (eq (buffer-base-buffer) nil))
+       (setq pm--base-buffer-name new-name)
+       ;; Rename indirect buffers (#346)
+       (dolist (buf (eieio-oref pm/polymode '-buffers))
+         (unless (eq buf cbuf)
+           (with-current-buffer buf
+             (rename-buffer (pm--buffer-name (not (get-buffer-window buf 'visible))))))))))
   (pm--run-hooks-in-other-buffers
    polymode-run-these-after-save-functions-in-other-buffers
    'after-save-hook))
