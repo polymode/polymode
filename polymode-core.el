@@ -1099,7 +1099,10 @@ switch."
 
     (pm--move-overlays old-buffer new-buffer)
 
-    (switch-to-buffer new-buffer)
+    ;; make sure we display in the same window as the old buffer (#337)
+    (let ((switch-to-buffer-obey-display-actions))
+     (switch-to-buffer new-buffer nil 'force-same-window))
+
     (bury-buffer-internal old-buffer)
     (set-window-prev-buffers nil (assq-delete-all old-buffer (window-prev-buffers nil)))
 

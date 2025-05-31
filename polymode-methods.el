@@ -494,7 +494,6 @@ Function used for `indent-region-function'."
           (let* ((end-span (copy-marker (nth 2 span)))
                  (end1 (min end end-span)))
             (goto-char beg)
-            ;; (pm-switch-to-buffer)
             ;; indent first line separately
             (pm-indent-line (nth 3 span) span)
             (beginning-of-line 2)
