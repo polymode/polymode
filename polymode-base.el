@@ -51,7 +51,9 @@
 (define-hostmode poly-js-hostmode :mode 'js-mode)
 
 (define-obsolete-variable-alias 'pm-host/latex 'poly-latex-hostmode "v0.2")
-(define-hostmode poly-latex-hostmode :mode 'latex-mode)
+(define-hostmode poly-latex-hostmode
+  :mode 'LaTeX-mode
+  :fallback-mode 'latex-mode)
 
 (define-obsolete-variable-alias 'pm-host/html 'poly-html-hostmode "v0.2")
 (define-hostmode poly-html-hostmode
@@ -88,27 +90,27 @@
 ;;; ROOT POLYMODES
 
 ;; These are simple generic configuration objects. More specialized polymodes
-;; should clone these.
+;; should extend (aka clone) these.
 
 (define-obsolete-variable-alias 'pm-poly/brew 'poly-brew-root-polymode "v0.2")
 (defvar poly-brew-root-polymode
   (pm-polymode :name "brew-root" :hostmode 'poly-text-hostmode)
-  "Brew root configuration.")
+  "Brew root polymode.")
 
 (define-obsolete-variable-alias 'pm-poly/html 'poly-html-root-polymode "v0.2")
 (defvar poly-html-root-polymode
   (pm-polymode :name "html-root" :hostmode 'poly-html-hostmode)
-  "HTML root configuration.")
+  "HTML root polymode.")
 
 (define-obsolete-variable-alias 'pm-poly/C++ 'poly-c++-root-polymode "v0.2")
 (defvar poly-c++-root-polymode
   (pm-polymode :name "c++-root" :hostmode 'poly-c++-hostmode)
-  "C++ root configuration.")
+  "C++ root polymode.")
 
 (define-obsolete-variable-alias 'pm-poly/latex 'poly-latex-root-polymode "v0.2")
 (defvar poly-latex-root-polymode
   (pm-polymode :name "latex-root" :hostmode 'poly-latex-hostmode)
-  "LaTeX root configuration.")
+  "LaTeX root polymode.")
 
 (defvar poly-js-root-polymode
   (pm-polymode :name "js-root" :hostmode 'poly-js-hostmode)
