@@ -378,7 +378,7 @@ If NO-ASK-IF-1 is non-nil, don't ask if there is only one exporter."
     (setq pm--exporter-hist (delete-dups pm--exporter-hist))
     (setq-local pm--export:from-last nil)
     (setq-local pm--export:to-last nil)
-    (oset pm/polymode 'exporter out)
+    (oset pm/polymode exporter out)
     out))
 
 (defmacro polymode-register-exporter (exporter default &rest configs)
@@ -387,7 +387,7 @@ When DEFAULT is non-nil, also make EXPORTER the default exporter
 for each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) 'exporters ',exporter)
-     (when ,default (oset (symbol-value pm) 'exporter ',exporter))))
+     (when ,default (oset (symbol-value pm) exporter ',exporter))))
 
 
 ;;; GLOBAL EXPORTERS

@@ -259,7 +259,7 @@ When DEFAULT is non-nil, also make weaver the default WEAVER for
 each polymode in CONFIGS."
   `(dolist (pm ',configs)
      (object-add-to-list (symbol-value pm) 'weavers ',weaver)
-     (when ,default (oset (symbol-value pm) 'weaver ',weaver))))
+     (when ,default (oset (symbol-value pm) weaver ',weaver))))
 
 (defun polymode-set-weaver ()
   "Set the current weaver for this polymode."
@@ -273,7 +273,7 @@ each polymode in CONFIGS."
          (out (intern (cdr sel))))
     (setq pm--weaver-hist (delete-dups pm--weaver-hist))
     (setq-local pm--weave:fromto-last nil)
-    (oset pm/polymode 'weaver out)
+    (oset pm/polymode weaver out)
     out))
 
 (provide 'polymode-weave)
