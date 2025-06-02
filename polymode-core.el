@@ -1099,11 +1099,15 @@ switch."
 
     (pm--move-overlays old-buffer new-buffer)
 
-    ;; make sure we display in the same window as the old buffer (#337)
-    (let ((switch-to-buffer-obey-display-actions))
-     (switch-to-buffer new-buffer nil 'force-same-window))
+    (let ((strongly-dedicated-flag (window-dedicated-p)))
+      (when strongly-dedicated-flag
+        (set-window-dedicated-p nil nil))
+      (set-window-buffer nil new-buffer 'keep-margins)
+      (when strongly-dedicated-flag
+        (set-window-dedicated-p nil strongly-dedicated-flag)))
 
     (bury-buffer-internal old-buffer)
+    ;; remove old-buffer form window-prev-buffers
     (set-window-prev-buffers nil (assq-delete-all old-buffer (window-prev-buffers nil)))
 
     ;; if header line is active in some modes, make it active everywhere
