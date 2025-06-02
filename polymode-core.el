@@ -1099,12 +1099,12 @@ switch."
 
     (pm--move-overlays old-buffer new-buffer)
 
-    (let ((strongly-dedicated-flag (window-dedicated-p)))
-      (when strongly-dedicated-flag
+    (let ((dedicated-flag (window-dedicated-p)))
+      (when dedicated-flag
         (set-window-dedicated-p nil nil))
       (set-window-buffer nil new-buffer 'keep-margins)
-      (when strongly-dedicated-flag
-        (set-window-dedicated-p nil strongly-dedicated-flag)))
+      (when dedicated-flag
+        (set-window-dedicated-p nil dedicated-flag)))
 
     (bury-buffer-internal old-buffer)
     ;; remove old-buffer form window-prev-buffers
