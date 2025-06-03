@@ -64,9 +64,9 @@
 
     (elisp-lint-files-batch)))
 
-(defun pm--target-local ()
-  (load-file "template/targets/utils.el")
-  (polymode-add-deps-to-load-path "polymode.el"))
+(defun pm--target-melpa ()
+  (load "template/targets/utils.el")
+  (polymode-install-packages "polymode.el"))
 
 (defun pm--target-melpa-init ()
   (require 'package)
@@ -78,14 +78,19 @@
                            ("melpa" . "https://melpa.org/packages/")))
   (package-initialize))
 
-(defun pm--target-melpa ()
-  (load "template/targets/utils.el")
-  (polymode-install-packages "polymode.el"))
+(defun pm--target-local-init ()
+  "Add all relevant local paths to the load-path.
+Used for local development and CI."
+  (load-file "template/targets/utils.el")
+  (polymode-add-deps-to-load-path "polymode.el"))
 
 (defun pm--target-test ()
   (toggle-debug-on-error)
 
   (let ((polymode-test-dir (expand-file-name "tests/")))
+    ;; make sure current directory always has precedence, even if the same package is
+    ;; installed in .ELPA
+    (setq load-path (cons (expand-file-name "./") load-path))
     (add-to-list 'load-path polymode-test-dir)
     (dolist (f (directory-files polymode-test-dir t ".*el\\'"))
       (load f)))

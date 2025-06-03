@@ -7,7 +7,7 @@
 (require 'polymode-test-utils)
 (require 'poly-markdown nil t)          ;Don't fail if not installed.
 
-(define-innermode poly-test-markdown-inline-python-innermode  poly-markdown-inline-code-innermode
+(define-innermode poly-test-markdown-inline-python-innermode poly-markdown-inline-code-innermode
   :head-matcher (cons "[^`]\\(`py \\)" 1)
   :mode 'python-mode
   :fallback-mode 'poly-fallback-mode

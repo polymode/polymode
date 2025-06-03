@@ -24,6 +24,20 @@
 
 ;;; Code:
 
+(defmacro dlet (binders &rest body)
+  "Like `let' but using dynamic scoping."
+  (declare (indent 1) (debug let))
+  ;; (defvar FOO) only affects the current scope, but in order for
+  ;; this not to affect code after the main `let' we need to create a new scope,
+  ;; which is what the surrounding `let' is for.
+  ;; FIXME: (let () ...) currently doesn't actually create a new scope,
+  ;; which is why we use (let (_) ...).
+  `(let (_)
+     ,@(mapcar (lambda (binder)
+                 `(defvar ,(if (consp binder) (car binder) binder)))
+               binders)
+     (let ,binders ,@body)))
+
 (defun pm--target-checkdoc ()
   (dlet ((sentence-end-double-space)
          (checkdoc-arguments-in-order-flag)
@@ -51,7 +65,7 @@
 
     (elisp-lint-files-batch)))
 
-(defun pm--target-local ()
+(defun pm--target-local-init ()
   (load-file "targets/utils.el")
   (polymode-add-deps-to-load-path "__MODULE__.el"))
 
@@ -70,6 +84,9 @@
 
 (defun pm--target-test ()
   (let ((polymode-test-dir (expand-file-name "tests/")))
+    ;; make sure current directory always has precedence, even if the same package is
+    ;; installed in .ELPA
+    (setq load-path (cons (expand-file-name "./") load-path))
     (add-to-list 'load-path polymode-test-dir)
     (dolist (f (directory-files polymode-test-dir t ".*el$"))
       (load f)))

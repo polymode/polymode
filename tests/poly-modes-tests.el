@@ -5,9 +5,13 @@
 ;; load all tests from individual poly-xyz repositories located in the parent of
 ;; this repository
 
+(require 'polymode)
 (require 'polymode-test-utils)
 
-(let* ((root (expand-file-name "../.."
+
+(let* ((root (expand-file-name (if (pm-test-running-on-github-p)
+                                   "../polyrepos/"
+                                 "../..")
                                (file-truename
                                 (file-name-directory
                                  (or load-file-name buffer-file-name default-directory)))))
