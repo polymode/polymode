@@ -22,7 +22,7 @@ build: version clean
 
 build-local: version clean
 	@echo "******************* BUILDING $(MODULE) *************************"
-	$(EMACSTARGET) -f pm--target-local --funcall batch-byte-compile *.el
+	$(EMACSTARGET) -f pm--target-local-init --funcall batch-byte-compile *.el
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
@@ -46,7 +46,7 @@ start: version melpa
 	$(EMACSTARGET) -L . -f pm--target-melpa-init --load tests/*.el
 
 startvs: version
-	$(EMACSTARGET) -L . -f pm--target-local \
+	$(EMACSTARGET) -L . -f pm--target-local-init \
 		       --load tests/*.el --load ~/.eBasic.el
 
 test: build version
@@ -55,7 +55,7 @@ test: build version
 
 test-local: version
 	@echo "******************* Testing $(MODULE) ***************************"
-	$(EMACSTARGET) -f pm--target-local -f pm--target-test
+	$(EMACSTARGET) -f pm--target-local-init -f pm--target-test
 
 version:
 	@echo "EMACS VERSION: $(EMACS_VERSION)"

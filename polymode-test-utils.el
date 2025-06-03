@@ -54,6 +54,10 @@ Look into tests/input directory then in samples directory."
                  if (file-exists-p f) return f)
         (error "No file with name '%s' found in '%s'" name default-directory))))
 
+(defun pm-test-running-on-github-p ()
+  (string= (downcase (or (getenv "GITHUB_ACTIONS") "false")) "true"))
+
+
 (defun pm-test-matcher (string span-alist matcher &optional dry-run)
   (with-temp-buffer
     (insert string)
@@ -110,7 +114,7 @@ MODE is a quoted symbol."
 
 (defun pm-test-spans (mode string)
   (declare (indent 1))
-  (pm-test-run-on-string mode 
+  (pm-test-run-on-string mode
     string 1
     (pm-map-over-spans
      (lambda (span)

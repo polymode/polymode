@@ -64,7 +64,7 @@ test: version clean
 
 test-local: version
 	@echo "******************* Testing $(MODULE) ***************************"
-	$(EMACSTARGET) -f pm--target-local -f pm--target-test
+	$(EMACSTARGET) -f pm--target-local-init -f pm--target-test
 
 test/%:
 	$(eval PATTERN := $(subst test/, , $@))

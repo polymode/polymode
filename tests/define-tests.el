@@ -48,9 +48,9 @@
   (should (should (eq (lookup-key poly-xyz+-mode-map "<")
                       'some-command))))
 
+
 (ert-deftest define/hooks-run-in-indirect-buffers ()
-  ;; skip when run under GithubActions
-  (skip-unless (not (string= (getenv "GITHUB_ACTIONS") "true")))
+  (skip-when (pm-running-on-github-p))
   (setq ran-body-in-modes nil
         ran-hooks-in-modes nil
         ran-inner-hooks-in-modes nil
