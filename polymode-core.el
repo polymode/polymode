@@ -37,8 +37,11 @@
   (require 'cl-lib)
   (require 'derived))
 
+
 
 ;;; ESSENTIAL DECLARATIONS
+
+;; fixme: rename into pm-active-span or something similar
 (defvar *span* nil)
 (defvar-local pm/polymode nil)
 (put 'pm/polymode 'permanent-local t)
@@ -82,6 +85,23 @@
   (with-no-warnings
     (eieio-object-name-string obj)))
 
+
+
+;; CORE EMACS COMPATS
+
+;;; emacs 30
+(unless (fboundp 'major-mode-remap)
+  (defvar major-mode-remap-alist nil)
+  (defvar major-mode-remap-defaults nil)
+  (defalias 'major-mode-remap
+    (lambda (mode)
+      "Return the function to use to enable MODE."
+      (or (cdr (or (assq mode major-mode-remap-alist)
+                   (assq mode major-mode-remap-defaults)))
+          mode))))
+
+
+
 ;; SHIELDS
 
 (defvar pm-allow-after-change-hook t)
@@ -236,6 +256,7 @@ The hook is run in chunkmode's body buffer from `pm-initialze'
 `pm-chunkmode' methods. Slot :init-functions `pm-chunkmode'
 objects provides same functionality for narrower scope. See also
 `polymode-init-host-hook'.")
+
 
 
 ;;; Mode Macros
