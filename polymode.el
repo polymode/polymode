@@ -70,6 +70,7 @@ in `polymode-minor-mode-map` keymap:
     ;; chunk manipulation
     (define-key map "\M-k" #'polymode-kill-chunk)
     (define-key map "\M-m" #'polymode-mark-or-extend-chunk)
+    (define-key map "\M-w" #'polymode-kill-ring-save-chunk)
     (define-key map "\C-t" #'polymode-toggle-chunk-narrowing)
     ;; backends
     (define-key map "e" #'polymode-export)
@@ -244,10 +245,22 @@ Return the number of chunks of the same type moved over."
                 (pm-span-to-range span)
               (pm-chunk-range (1- (nth 1 span))))))))
 
-(defun polymode-kill-ring-save ()
-  "Copy current chunk into the kill-ring."
+(defun polymode-kill-ring-save-chunk ()
+  "Copy current chunk into the kill-ring.
+When in the head of chunk, copy the chunk including the head and tail,
+otherwise only the body span.
+When called interactively, highlight the copie region for `copy-region-blink-delay'."
   (interactive)
-  )
+  (let ((span (pm-innermost-span)))
+    (let ((range (if (memq (car span) '(nil body))
+                     (pm-span-to-range span)
+                   (pm-chunk-range))))
+      (copy-region-as-kill (car range) (cdr range))
+      (when (called-interactively-p 'interactive)
+        (let ((overlay (make-overlay (car range) (cdr range))))
+          (overlay-put overlay 'face  'highlight)
+          (run-with-timer copy-region-blink-delay nil
+                          (lambda () (delete-overlay overlay))))))))
 
 (defun polymode-mark-or-extend-chunk ()
   "DWIM command to repeatedly mark chunk or extend region.
