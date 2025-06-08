@@ -1165,7 +1165,7 @@ switch."
     (mapc (lambda (o)
             (unless (or (overlay-get o 'linum-str)
                         (overlay-get o 'yas--snippet)
-                        (memq (overlay-get o 'face) '(region show-paren-match)))
+                        (memq (overlay-get o 'face) '(region show-paren-match hl-line)))
               (let ((o-copy (copy-overlay o))
                     (start (overlay-start o))
                     (end (overlay-end o)))
