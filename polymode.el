@@ -244,6 +244,11 @@ Return the number of chunks of the same type moved over."
                 (pm-span-to-range span)
               (pm-chunk-range (1- (nth 1 span))))))))
 
+(defun polymode-kill-ring-save ()
+  "Copy current chunk into the kill-ring."
+  (interactive)
+  )
+
 (defun polymode-mark-or-extend-chunk ()
   "DWIM command to repeatedly mark chunk or extend region.
 When no region is active, mark the current span if in body of a
