@@ -27,6 +27,14 @@
  (depends-on "coffee-mode")
  (depends-on "poly-markdown"))
 
+;; For byte-compile
+
+(add-hook 'eask-before-compile-hook
+           (lambda ()
+             ;; Turn this on for more restriction.
+             ;;(setq byte-compile-error-on-warn t)
+             ))
+
 ;; For ERT tests
 
 (load-paths (expand-file-name "tests/"))
@@ -36,9 +44,3 @@
              (setq ert-batch-backtrace-right-margin 200)
              (setq ert-batch-print-level nil)
              (setq ert-batch-print-length nil)))
-
-(add-hook 'eask-before-compile-hook
-           (lambda ()
-             ;; Turn this on for more restriction.
-             ;;(setq byte-compile-error-on-warn t)
-             ))
