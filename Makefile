@@ -23,13 +23,13 @@ build: cleansilent
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
-	$(EASK) checkdoc
+	$(EASK) lint checkdoc
 
 clean:
 	$(EASK) clean all
 
 cleanall: cleansilent
-	$(EASK) clean all
+	$(EASK) clean workspace
 
 cleansilent:
 	$(EASK) clean elc
