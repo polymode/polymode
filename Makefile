@@ -5,6 +5,7 @@ ELPA_DIR := .ELPA/$(EMACS_VERSION)
 EMACSRUN = $(EMACS) -Q -L . -L modes -L tests -L $(ELPA_DIR)
 EMACSBATCH = $(EMACSRUN) --batch
 EMACSTARGET = $(EMACSBATCH) -l targets/poly-targets.el
+EASK ?= eask
 
 ELS = $(wildcard *.el)
 LINTELS = $(filter-out polymode-autoloads.el polymode-compat.el polymode-configuration.el, $(ELS))
@@ -16,22 +17,22 @@ OBJECTS = $(ELS:.el=.elc)
 
 all: build checkdoc test
 
-build: version cleansilent
+build: cleansilent
 	@echo "******************* BUILDING $(MODULE) *************************"
-	@$(EMACSBATCH) --funcall batch-byte-compile *.el
+	$(EASK) compile
 
 checkdoc: version
 	@echo "******************* CHECKDOC $(MODULE) *************************"
-	@$(EMACSTARGET) -f pm--target-checkdoc $(LINTELS)
+	$(EASK) checkdoc
 
 clean:
-	rm -f $(OBJECTS) polymode-autoloads.el
+	$(EASK) clean all
 
 cleanall: cleansilent
-	rm -rf $(ELPA_DIR)
+	$(EASK) clean all
 
 cleansilent:
-	@rm -f $(OBJECTS)
+	$(EASK) clean elc
 
 docs-build:
 	mkdocs build
@@ -40,10 +41,11 @@ docs-deploy:
 	cd ../polymode.github.io/; mkdocs gh-deploy --config-file ../polymode/mkdocs.yml --remote-branch master
 
 lint: version
-	@$(EMACSTARGET) -f pm--target-melpa-init -f pm--target-lint $(LINTELS)
+	@$(EASK) lint checkdoc
+	@$(EASK) lint elisp-lint
 
 melpa: version
-	@$(EMACSTARGET) -f pm--target-melpa
+	@$(EASK) install --dev
 
 elpa: melpa
 
@@ -64,7 +66,7 @@ test: version clean
 
 test-local: version
 	@echo "******************* Testing $(MODULE) ***************************"
-	$(EMACSTARGET) -f pm--target-local-init -f pm--target-test
+	$(EASK) test ert tests/*.el
 
 test/%:
 	$(eval PATTERN := $(subst test/, , $@))

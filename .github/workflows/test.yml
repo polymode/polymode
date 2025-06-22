@@ -23,21 +23,26 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        emacs_version:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        emacs-version:
           # - 28.2
           # - 29.4
           - 30.1
           - snapshot
 
     steps:
-    - uses: purcell/setup-emacs@master
+    - uses: jcs090218/setup-emacs@master
       with:
-        version: ${{ matrix.emacs_version }}
+        version: ${{ matrix.emacs-version }}
+
+    - uses: emacs-eask/setup-eask@master
+      with:
+        version: 'snapshot'
 
     - name: Pull polymode
       uses: actions/checkout@v4

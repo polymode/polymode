@@ -16,3 +16,7 @@ site/
 
 # ELPA-generated files
 /polymode-pkg.el
+
+# Packaging
+/.eask
+/dist
