@@ -20,3 +20,6 @@ site/
 # Packaging
 /.eask
 /dist
+
+# Tests
+/polyrepos
