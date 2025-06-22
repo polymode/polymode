@@ -45,7 +45,7 @@ lint: version
 	@$(EASK) lint elisp-lint
 
 melpa: version
-	@$(EASK) install --dev
+	@$(EASK) install-deps --dev
 
 elpa: melpa
 
