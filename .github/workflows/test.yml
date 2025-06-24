@@ -24,7 +24,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
@@ -33,7 +33,17 @@ jobs:
           # - 28.2
           # - 29.4
           - 30.1
-          - snapshot
+        experimental: [false]
+        include:
+        - os: ubuntu-latest
+          emacs-version: snapshot
+          experimental: true
+        - os: macos-latest
+          emacs-version: snapshot
+          experimental: true
+        - os: windows-latest
+          emacs-version: snapshot
+          experimental: true
 
     steps:
     - uses: jcs090218/setup-emacs@master
@@ -44,26 +54,23 @@ jobs:
       with:
         version: 'snapshot'
 
-    - name: Pull polymode
-      uses: actions/checkout@v4
-
     - name: Pull poly-markdown
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-markdown
-        path: polyrepos/poly-markdown
 
     - name: Pull poly-org
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-org
-        path: polyrepos/poly-org
 
     - name: Pull poly-noweb
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-noweb
-        path: polyrepos/poly-noweb
+
+    - name: Pull polymode
+      uses: actions/checkout@v4
 
     - name: Check Emacs version
       run: emacs --version
@@ -76,3 +83,10 @@ jobs:
 
     - name: Test
       run: make test-local
+
+    - name: Test poly-markdown
+      working-directory: ../poly-markdown
+      run: |
+        eask link add polymode ../polymode
+        eask install-deps --dev
+        eask test ert ./tests/*.el
