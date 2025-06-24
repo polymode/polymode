@@ -81,10 +81,6 @@ jobs:
     - name: Check Emacs version
       run: emacs --version
 
-    - name: Link child packages
-      working-directory: polymode
-      run: make link-child-packages
-
     - name: ELPA
       working-directory: polymode
       run: make elpa
