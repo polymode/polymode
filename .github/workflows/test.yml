@@ -75,6 +75,9 @@ jobs:
     - name: Check Emacs version
       run: emacs --version
 
+    - name: Link child packages
+      run: make link-child-packages
+
     - name: ELPA
       run: make elpa
 

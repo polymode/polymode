@@ -44,6 +44,11 @@ lint: version
 	@$(EASK) lint checkdoc
 	@$(EASK) lint elisp-lint
 
+link-child-packages:
+	@$(EASK) link add poly-markdown ../poly-markdown
+	@$(EASK) link add poly-org ../poly-org
+	@$(EASK) link add poly-noweb ../poly-noweb
+
 melpa: version
 	@$(EASK) install-deps --dev
 
