@@ -74,6 +74,8 @@ jobs:
 
     - name: Pull polymode
       uses: actions/checkout@v4
+      with:
+        path: polymode
 
     - name: Check Emacs version
       run: emacs --version
@@ -90,8 +92,10 @@ jobs:
     - name: Test
       run: make test-local
 
+    # Tests for downstream packages.
+
     - name: Test poly-markdown
-      working-directory: ../poly-markdown
+      working-directory: poly-markdown
       run: |
         eask link add polymode ../polymode
         eask install-deps --dev
