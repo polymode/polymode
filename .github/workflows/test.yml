@@ -58,42 +58,48 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-markdown
-        path: ../poly-markdown
+        path: poly-markdown
 
     - name: Pull poly-org
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-org
-        path: ../poly-org
+        path: poly-org
 
     - name: Pull poly-noweb
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-noweb
-        path: ../poly-noweb
+        path: poly-noweb
 
     - name: Pull polymode
       uses: actions/checkout@v4
+      with:
+        path: polymode
 
     - name: Check Emacs version
       run: emacs --version
 
     - name: Link child packages
+      working-directory: polymode
       run: make link-child-packages
 
     - name: ELPA
+      working-directory: polymode
       run: make elpa
 
     - name: Build
+      working-directory: polymode
       run: make build
 
     - name: Test
+      working-directory: polymode
       run: make test-local
 
     # Tests for downstream packages.
 
     - name: Test poly-markdown
-      working-directory: ../poly-markdown
+      working-directory: poly-markdown
       run: |
         eask link add polymode ../polymode
         eask install-deps --dev
