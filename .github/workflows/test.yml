@@ -57,9 +57,8 @@ jobs:
     - name: Pull poly-markdown
       uses: actions/checkout@v4
       with:
-        repository: jcs-PR/poly-markdown
+        repository: polymode/poly-markdown
         path: poly-markdown
-        ref: ci/basic
 
     - name: Pull poly-org
       uses: actions/checkout@v4
