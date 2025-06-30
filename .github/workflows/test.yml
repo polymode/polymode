@@ -100,3 +100,17 @@ jobs:
         eask link add polymode ../polymode
         eask install-deps --dev
         eask test ert ./tests/*.el
+
+    - name: Test poly-org
+      working-directory: poly-org
+      run: |
+        eask link add polymode ../polymode
+        eask install-deps --dev
+        eask test ert ./tests/*.el
+
+    - name: Test poly-noweb
+      working-directory: poly-noweb
+      run: |
+        eask link add polymode ../polymode
+        eask install-deps --dev
+        eask test ert ./tests/*.el
