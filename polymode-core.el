@@ -85,7 +85,10 @@
   (with-no-warnings
     (eieio-object-name-string obj)))
 
-
+;; avoids appending random numbers to buffer name when multiple windows are involved
+(defun pm--buffer-hiddenp ()
+  "Check whether the Emacs buffer is hidden."
+  (= ?\  (string-to-char (buffer-name))))
 
 ;; CORE EMACS COMPATS
 
@@ -1108,7 +1111,8 @@ switch."
         (mkt (mark t))
         (hlf header-line-format))
 
-    (when pm-hide-implementation-buffers
+    (when (and pm-hide-implementation-buffers
+               (not (pm--buffer-hiddenp)))
       (rename-buffer (pm--buffer-name 'hidden)))
 
     (setq pm/current nil)
@@ -1144,7 +1148,8 @@ switch."
         (deactivate-mark)
       (activate-mark))
 
-    (when pm-hide-implementation-buffers
+    (when (and pm-hide-implementation-buffers
+               (pm--buffer-hiddenp))
       (rename-buffer (pm--buffer-name)))
 
     ;; avoid display jumps
