@@ -619,7 +619,7 @@ most frequently used slots are:
                                      (eieio-oref parent-conf '-minor-mode))))
                                   ;; 3. nil
                                   (t polymode-minor-mode-map)))))
-               (apply #'define-keymap :parent parent-map keymap)))
+               (easy-mmode-define-keymap keymap nil nil (list :inherit parent-map))))
            ,(format "Keymap for %s." mode-name))
 
 
