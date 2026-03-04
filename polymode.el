@@ -601,25 +601,27 @@ most frequently used slots are:
          (defvar ,keymap-name
            (if (keymapp keymap)
                keymap
-             (let ((parent-map (unless (keymapp keymap)
-                                 ;; keymap is either nil or a list
-                                 (cond
-                                  ;; 1. if parent is config object, merge all list
-                                  ;; keymaps from parents
-                                  ((eieio-object-p (symbol-value parent))
-                                   (let ((klist.kmap (pm--get-keylist.keymap-from-parent
-                                                      keymap (symbol-value parent))))
-                                     (setq keymap (append keylist (car klist.kmap)))
-                                     (cdr klist.kmap)))
-                                  ;; 2. If parent is polymode function, take the
-                                  ;; minor-mode from the parent config
-                                  (parent
-                                   (symbol-value
-                                    (derived-mode-map-name
-                                     (eieio-oref parent-conf '-minor-mode))))
-                                  ;; 3. nil
-                                  (t polymode-minor-mode-map)))))
-               (apply #'define-keymap :parent parent-map keymap)))
+             (let* ((parent-map
+                     ;; keymap is either nil or a list
+                     (cond
+                      ;; 1. if parent is config object, merge all list
+                      ;; keymaps from parents
+                      ((eieio-object-p (symbol-value parent))
+                       (let ((klist.kmap (pm--get-keylist.keymap-from-parent
+                                          keymap (symbol-value parent))))
+                         (setq keymap (append keylist (car klist.kmap)))
+                         (cdr klist.kmap)))
+                      ;; 2. If parent is polymode function, take the
+                      ;; minor-mode from the parent config
+                      (parent
+                       (symbol-value
+                        (derived-mode-map-name
+                         (eieio-oref parent-conf '-minor-mode))))
+                      ;; 3. nil
+                      (t polymode-minor-mode-map)))
+                    (bindings (mapcan (lambda (pair) (list (car pair) (cdr pair)))
+                                      keymap)))
+               (apply #'define-keymap :parent parent-map bindings)))
            ,(format "Keymap for %s." mode-name))
 
 
