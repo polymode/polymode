@@ -1,4 +1,4 @@
-;;; poly-modes-tests.el -- Tests for Polymode  -*- lexical-binding: t; -*-
+;;; span-matcher-tests.el -- Tests for Polymode  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2022  Free Software Foundation, Inc.
 

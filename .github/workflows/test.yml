@@ -23,51 +23,94 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        emacs_version:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        emacs-version:
           # - 28.2
           # - 29.4
           - 30.1
-          - snapshot
+        experimental: [false]
+        include:
+        - os: ubuntu-latest
+          emacs-version: snapshot
+          experimental: true
+        - os: macos-latest
+          emacs-version: snapshot
+          experimental: true
+        - os: windows-latest
+          emacs-version: snapshot
+          experimental: true
 
     steps:
-    - uses: purcell/setup-emacs@master
+    - uses: jcs090218/setup-emacs@master
       with:
-        version: ${{ matrix.emacs_version }}
+        version: ${{ matrix.emacs-version }}
 
-    - name: Pull polymode
-      uses: actions/checkout@v4
+    - uses: emacs-eask/setup-eask@master
+      with:
+        version: 'snapshot'
 
     - name: Pull poly-markdown
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-markdown
-        path: polyrepos/poly-markdown
+        path: poly-markdown
 
     - name: Pull poly-org
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-org
-        path: polyrepos/poly-org
+        path: poly-org
 
     - name: Pull poly-noweb
       uses: actions/checkout@v4
       with:
         repository: polymode/poly-noweb
-        path: polyrepos/poly-noweb
+        path: poly-noweb
+
+    - name: Pull polymode
+      uses: actions/checkout@v4
+      with:
+        path: polymode
 
     - name: Check Emacs version
       run: emacs --version
 
     - name: ELPA
+      working-directory: polymode
       run: make elpa
 
     - name: Build
+      working-directory: polymode
       run: make build
 
     - name: Test
+      working-directory: polymode
       run: make test-local
+
+    # Tests for downstream packages.
+
+    - name: Test poly-markdown
+      working-directory: poly-markdown
+      run: |
+        eask link add polymode ../polymode
+        eask install-deps --dev
+        eask test ert ./tests/*.el
+
+    - name: Test poly-org
+      working-directory: poly-org
+      run: |
+        eask link add polymode ../polymode
+        eask install-deps --dev
+        eask test ert ./tests/*.el
+
+    - name: Test poly-noweb
+      working-directory: poly-noweb
+      run: |
+        eask link add polymode ../polymode
+        eask install-deps --dev
+        eask test ert ./tests/*.el
