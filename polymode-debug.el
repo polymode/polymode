@@ -236,7 +236,7 @@ With NO-CACHE prefix, don't use cached values of the span."
   (interactive)
   (if poly-lock-allow-fontification
       (progn
-        (message "fontificaiton, after-chnage and command-hook disabled")
+        (message "fontificaiton, after-change and command-hook disabled")
         (setq poly-lock-allow-fontification nil
               pm-allow-after-change-hook nil
               pm-allow-post-command-hook nil))

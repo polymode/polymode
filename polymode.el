@@ -50,7 +50,7 @@
   "Default prefix key in `polymode-minor-mode-map'.
 Not effective after loading the polymode library.
 
-Instead of setting this key you can programatically bind it directly
+Instead of setting this key you can programmatically bind it directly
 in `polymode-minor-mode-map` keymap:
 
  (define-key polymode-minor-mode-map (kbd \"M-n\") nil)
@@ -501,7 +501,7 @@ the entire configuration for this polymode.
 PARENT is either the polymode configuration object or a polymode
 mode (there is 1-to-1 correspondence between config
 objects (`pm-polymode') and mode functions). The new polymode
-MODE inherits alll the behavior from PARENT except for the
+MODE inherits all the behavior from PARENT except for the
 overwrites specified by the keywords (see below). The new MODE
 runs all the hooks from the PARENT-mode and inherits its MODE-map
 from PARENT-map.

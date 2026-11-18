@@ -51,7 +51,7 @@
     :documentation
     "Input exporter specifications.
      This is an alist of elements of the form (id regexp doc
-     commmand) or (id . selector). ID is the unique identifier of
+     command) or (id . selector). ID is the unique identifier of
      the spec. REGEXP is a regexp which, if matched on current
      file name, implies that the current file can be exported
      with this specification. DOC is a short help string shown
@@ -86,7 +86,7 @@
 
          doc - return documentation string
 
-         commmand - return a string with optional %i, %f,
+         command - return a string with optional %i, %f,
              etc. format specs as described above. It will be
              passed to the processing :function.")
 
@@ -102,7 +102,7 @@
 
      In the former case EXT is an extension of the output file.
      DOC is a short documentation string. t-spec is a string what
-     is substituted instead of %t in :from spec commmand.
+     is substituted instead of %t in :from spec command.
      `t-spec' can be a list of one element '(command), in which
      case the whole :from spec command is substituted with
      command from %t-spec.
@@ -146,7 +146,7 @@
                 (error "Function not defined for this exporter"))
     :type (or symbol function)
     :documentation
-    "Function to process the commmand. Must take 3 arguments
+    "Function to process the command. Must take 3 arguments
      COMMAND, FROM-ID and TO-ID and return an output file name or
      a list of output file names. COMMAND is the 4th argument of
      :from spec with all the formats substituted. FROM-ID is the

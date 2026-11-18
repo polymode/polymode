@@ -247,7 +247,7 @@ narrower scope.")
 
 (defvar polymode-init-host-hook nil
   "Hook run on initialization of every hostmode.
-Ran in a base buffer from `pm-initialze'
+Ran in a base buffer from `pm-initialize'
 methods. Slot :init-functions in `pm-polymode' objects provides
 similar hook for more focused scope. See
 `polymode-init-inner-hook' and :init-functions slot in
@@ -255,7 +255,7 @@ similar hook for more focused scope. See
 
 (defvar polymode-init-inner-hook nil
   "Hook run on initialization of every `pm-chunkmode' object.
-The hook is run in chunkmode's body buffer from `pm-initialze'
+The hook is run in chunkmode's body buffer from `pm-initialize'
 `pm-chunkmode' methods. Slot :init-functions `pm-chunkmode'
 objects provides same functionality for narrower scope. See also
 `polymode-init-host-hook'.")
@@ -1578,9 +1578,9 @@ Placed with low priority in `after-change-functions' hook."
      beg end len)))
 
 (defvar polymode-run-these-pre-commands-in-other-buffers nil
-  "These commands, if present in `pre-command-hook', are run in other bufers.")
+  "These commands, if present in `pre-command-hook', are run in other buffers.")
 (defvar polymode-run-these-post-commands-in-other-buffers nil
-  "These commands, if present in `post-command-hook', are run in other bufers.")
+  "These commands, if present in `post-command-hook', are run in other buffers.")
 
 (defun polymode-pre-command ()
   "Synchronize state between buffers and run pre-commands in other buffers.

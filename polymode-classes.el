@@ -304,8 +304,8 @@ properties as in `put-text-property' specification. If nil or 0
 no highlighting occurs. If a face, use that face. If a number, it
 is a percentage by which to lighten/darken the default chunk
 background. If positive - lighten the background on dark themes
-and darken on light thems. If negative - darken in dark thems and
-lighten in light thems.")
+and darken on light themes. If negative - darken in dark themes and
+lighten in light themes.")
    (init-functions
     :initarg :init-functions
     :initform '()
@@ -338,7 +338,7 @@ is of this chunkmode.")
     "Major mode to keep the chunk when the point is inside the chunk.
 When a special symbol 'host, keep in hostmode. This is useful when you
 want the inner mode to be responsible for font-locking but the host mode
-for the edditing capabilities. The buffer with this major mode must be
+for the editing capabilities. The buffer with this major mode must be
 installed by one of the innermodes or the hostmode. If multiple
 innermodes installed buffers of this mode, the first buffer is used.")
 
